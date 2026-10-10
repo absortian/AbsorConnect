@@ -37,7 +37,7 @@
 - [x] 6.3 (manual, `npm run dev`) Recorrer los escenarios de `specs/sftp-explorer/spec.md` contra el servidor de pruebas: home, directorio inicial, navegación, directorio sin permisos (`chmod 000`), subida múltiple, sobrescritura, descarga por arrastre y por menú, crear carpeta, borrado recursivo y cancelar el borrado.
 - [x] 6.4 (manual) Errores: host inexistente (`SSH_UNREACHABLE`), puerto filtrado (`SSH_TIMEOUT`), contraseña errónea (`SSH_AUTH_FAILED`), ruta de clave inexistente (`SSH_KEY_UNREADABLE`), y parar el contenedor durante una subida grande (la cola queda en error y el reintento funciona al volver a arrancarlo).
 - [x] 6.5 (manual) Compatibilidad: abrir la app con un `connections.json` de la v0.0.7 (conexiones S3 intactas), exportar e importar con una conexión SSH (ida y vuelta) e importar un JSON con un tipo desconocido (error sin cambios).
-- [ ] 6.6 Empaquetado: `npm run build:mac` y abrir la app empaquetada contra el servidor de pruebas. En Linux (VM de OrbStack) y Windows (workflow temporal en GitHub Actions), construir e instalar el paquete y comprobar que una conexión SSH a un host inexistente devuelve `SSH_UNREACHABLE` (prueba de que `ssh2` carga en el paquete), y en Linux también que lista el servidor de pruebas.
+- [x] 6.6 Empaquetado: `npm run build:mac` y abrir la app empaquetada contra el servidor de pruebas. En Linux (VM de OrbStack) y Windows (workflow temporal en GitHub Actions), construir e instalar el paquete y comprobar que una conexión SSH a un host inexistente devuelve `SSH_UNREACHABLE` (prueba de que `ssh2` carga en el paquete), y en Linux también que lista el servidor de pruebas.
 
 ## Workflow follow-up
 
