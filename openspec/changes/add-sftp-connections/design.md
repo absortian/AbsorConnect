@@ -72,7 +72,7 @@ En los tres casos, el paquete debe funcionar con o sin el binario nativo (ver ta
   - **Windows:** abre por defecto `%USERPROFILE%\.ssh`.
 - **Host key:** **no se verifica** (sin `hostVerifier`). Es decisión de producto; ver Riesgos.
 - **Cierre:** el pool se cierra en `before-quit`.
-- **Errores:** viajan como `Error` cuyo mensaje empieza por un código estable: `SSH_AUTH_FAILED` (`err.level === 'client-authentication'`), `SSH_UNREACHABLE` (`ENOTFOUND`/`ECONNREFUSED`/`EHOSTUNREACH`/`ENETUNREACH`), `SSH_TIMEOUT` (timeout del handshake), `SSH_KEY_UNREADABLE`, `SSH_KEY_UNSUPPORTED`, `SFTP_PERMISSION_DENIED` (código SFTP 3) y `SFTP_NOT_FOUND` (código SFTP 2). El renderer extrae el código y muestra el texto i18n, con el mensaje original como detalle.
+- **Errores:** viajan como `Error` cuyo mensaje empieza por un código estable: `SSH_AUTH_FAILED` (`err.level === 'client-authentication'`), `SSH_UNREACHABLE` (`ENOTFOUND`/`ECONNREFUSED`/`EHOSTUNREACH`/`ENETUNREACH`), `SSH_TIMEOUT` (timeout del handshake), `SSH_CONNECTION_LOST` (`ECONNRESET`, keepalive agotado o conexión cerrada), `SSH_KEY_UNREADABLE`, `SSH_KEY_UNSUPPORTED`, `SSH_KEY_PASSPHRASE` (passphrase ausente o incorrecta; `ssh2` lo detecta al conectar), `SFTP_PERMISSION_DENIED` (código SFTP 3) y `SFTP_NOT_FOUND` (código SFTP 2). El renderer extrae el código y muestra el texto i18n, con el mensaje original como detalle.
 
 El change `add-ssh-terminal` reutiliza este pool para abrir canales `shell`.
 

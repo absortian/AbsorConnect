@@ -1,5 +1,5 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
-import { S3Connection } from '../shared/types'
+import { ConnectionEntry, S3Connection, SshConnection } from '../shared/types'
 
 interface UpdateStatusEvent {
   status: 'checking' | 'available' | 'up-to-date' | 'downloading' | 'downloaded' | 'error'
@@ -14,8 +14,8 @@ declare global {
   interface Window {
     electron: ElectronAPI
     api: {
-      getConnections: () => Promise<S3Connection[]>
-      saveConnections: (connections: S3Connection[]) => Promise<void>
+      getConnections: () => Promise<ConnectionEntry[]>
+      saveConnections: (connections: ConnectionEntry[]) => Promise<void>
       listBuckets: (conn: S3Connection) => Promise<string[]>
       listObjects: (conn: S3Connection, bucket: string, prefix: string) => Promise<{ folders: string[], files: Array<{key: string, size: number, lastModified: string}> }>
       uploadFile: (conn: S3Connection, bucket: string, localPath: string, key: string, jobId?: string) => Promise<void>
@@ -23,6 +23,14 @@ declare global {
       createFolder: (conn: S3Connection, bucket: string, key: string) => Promise<void>
       deleteObject: (conn: S3Connection, bucket: string, key: string) => Promise<void>
       deleteFolder: (conn: S3Connection, bucket: string, prefix: string) => Promise<void>
+      sftpHome: (conn: SshConnection) => Promise<string>
+      sftpListDir: (conn: SshConnection, dirPath: string) => Promise<{ currentPath: string, folders: string[], files: Array<{name: string, path: string, size: number, lastModified: string}> }>
+      sftpCreateDir: (conn: SshConnection, dirPath: string, name: string) => Promise<string>
+      sftpDelete: (conn: SshConnection, itemPath: string) => Promise<void>
+      sftpUpload: (conn: SshConnection, localPath: string, remotePath: string, jobId?: string) => Promise<void>
+      sftpDownload: (conn: SshConnection, remotePath: string, localDestPath: string, jobId?: string) => Promise<void>
+      showOpenFileDialog: (defaultPath?: string) => Promise<string | null>
+      getPathForFile: (file: File) => string
       showSaveDialog: (defaultPath: string) => Promise<string | null>
       getLocalHome: () => Promise<string>
       listLocalDir: (dirPath: string) => Promise<{ currentPath: string, folders: string[], files: Array<{name: string, path: string, size: number, lastModified: string}> }>
@@ -33,7 +41,7 @@ declare global {
       getLanguage: () => Promise<string>
       saveLanguage: (language: string) => Promise<void>
       exportConnections: () => Promise<boolean>
-      importConnections: () => Promise<S3Connection[] | null>
+      importConnections: () => Promise<ConnectionEntry[] | null>
       getAppVersion: () => Promise<string>
       checkForUpdates: () => Promise<void>
       downloadUpdate: () => Promise<void>

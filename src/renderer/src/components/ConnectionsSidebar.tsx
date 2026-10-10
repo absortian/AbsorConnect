@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Plus, HardDrive, Trash2, X, FolderPlus, Folder, ChevronDown, ChevronRight, Pencil } from 'lucide-react'
-import { S3Connection } from '../../../shared/types'
+import { Plus, HardDrive, Server, Trash2, X, FolderPlus, Folder, ChevronDown, ChevronRight, Pencil } from 'lucide-react'
+import { Connection, ConnectionDraft, ConnectionEntry, ConnectionType, FolderEntry, SshAuthMethod } from '../../../shared/types'
+import { DEFAULT_SSH_PORT } from '../../../shared/connections'
 
-export default function ConnectionsSidebar({ isOpen, onSelectConnection }: { isOpen: boolean, onSelectConnection: (conn: S3Connection) => void }) {
+export default function ConnectionsSidebar({ isOpen, onSelectConnection }: { isOpen: boolean, onSelectConnection: (conn: Connection) => void }) {
   const { t } = useTranslation()
-  const [connections, setConnections] = useState<S3Connection[]>([])
+  const [connections, setConnections] = useState<ConnectionEntry[]>([])
   const [showModal, setShowModal] = useState(false)
-  const [editingConnection, setEditingConnection] = useState<S3Connection | null>(null)
+  const [editingConnection, setEditingConnection] = useState<Connection | null>(null)
   const [showFolderModal, setShowFolderModal] = useState(false)
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
   const [draggedId, setDraggedId] = useState<string | null>(null)
@@ -20,21 +21,21 @@ export default function ConnectionsSidebar({ isOpen, onSelectConnection }: { isO
 
   if (!isOpen) return null
 
-  const handleSaveConnection = async (newConn: Omit<S3Connection, 'id'>) => {
+  const handleSaveConnection = async (newConn: ConnectionDraft) => {
     if (editingConnection) {
       // Update existing connection
       const updated = connections.map(c =>
-        c.id === editingConnection.id ? { ...newConn, id: editingConnection.id } : c
+        c.id === editingConnection.id ? ({ ...newConn, id: editingConnection.id } as Connection) : c
       )
       setConnections(updated)
       await window.api.saveConnections(updated)
       setEditingConnection(null)
       setShowModal(false)
     } else {
-      const conn: S3Connection = {
+      const conn = {
         ...newConn,
         id: crypto.randomUUID()
-      }
+      } as Connection
       const updated = [...connections, conn]
       setConnections(updated)
       await window.api.saveConnections(updated)
@@ -42,19 +43,16 @@ export default function ConnectionsSidebar({ isOpen, onSelectConnection }: { isO
     }
   }
 
-  const handleEditConnection = (conn: S3Connection, e: React.MouseEvent) => {
+  const handleEditConnection = (conn: Connection, e: React.MouseEvent) => {
     e.stopPropagation()
     setEditingConnection(conn)
     setShowModal(true)
   }
 
   const handleSaveFolder = async (name: string) => {
-    const folder: S3Connection = {
+    const folder: FolderEntry = {
       id: crypto.randomUUID(),
       name,
-      endpoint: '',
-      accessKeyId: '',
-      secretAccessKey: '',
       isFolder: true,
       parentId: null
     }
@@ -110,10 +108,10 @@ export default function ConnectionsSidebar({ isOpen, onSelectConnection }: { isO
     await window.api.saveConnections(updated)
   }
 
-  const folders = connections.filter(c => c.isFolder)
+  const folders = connections.filter((c): c is FolderEntry => c.isFolder === true)
   const rootItems = connections.filter(c => !c.parentId)
 
-  const renderConnection = (conn: S3Connection, indent = 0) => {
+  const renderConnection = (conn: Connection, indent = 0) => {
     const isDragOver = dragOverId === conn.id
     return (
       <li key={conn.id} 
@@ -160,7 +158,9 @@ export default function ConnectionsSidebar({ isOpen, onSelectConnection }: { isO
           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <HardDrive size={16} color="var(--accent-primary)" />
+          {conn.type === 'ssh'
+            ? <Server size={16} color="var(--accent-primary)" />
+            : <HardDrive size={16} color="var(--accent-primary)" />}
           <span style={{ fontSize: '0.9rem' }}>{conn.name}</span>
         </div>
         <div className="actions-group" style={{ display: 'flex', gap: '4px', opacity: 0.7 }}>
@@ -175,7 +175,7 @@ export default function ConnectionsSidebar({ isOpen, onSelectConnection }: { isO
     )
   }
 
-  const renderFolder = (folder: S3Connection, indent = 0) => {
+  const renderFolder = (folder: FolderEntry, indent = 0) => {
     const isExpanded = expandedFolders.has(folder.id)
     const children = connections.filter(c => c.parentId === folder.id)
     const isDragOver = dragOverId === folder.id
@@ -312,65 +312,147 @@ export default function ConnectionsSidebar({ isOpen, onSelectConnection }: { isO
   )
 }
 
-function ConnectionModal({ folders, editingConnection, onClose, onSave }: { folders: S3Connection[], editingConnection: S3Connection | null, onClose: () => void, onSave: (conn: any) => Promise<void> }) {
+function ConnectionModal({ folders, editingConnection, onClose, onSave }: { folders: FolderEntry[], editingConnection: Connection | null, onClose: () => void, onSave: (conn: ConnectionDraft) => Promise<void> }) {
   const { t } = useTranslation()
+  const editingS3 = editingConnection?.type === 's3' ? editingConnection : null
+  const editingSsh = editingConnection?.type === 'ssh' ? editingConnection : null
+  const [type, setType] = useState<ConnectionType>(editingConnection?.type ?? 's3')
   const [name, setName] = useState(editingConnection?.name || '')
-  const [endpoint, setEndpoint] = useState(editingConnection?.endpoint || '')
-  const [accessKeyId, setAccessKeyId] = useState(editingConnection?.accessKeyId || '')
-  const [secretAccessKey, setSecretAccessKey] = useState(editingConnection?.secretAccessKey || '')
-  const [bucket, setBucket] = useState(editingConnection?.bucket || '')
-  const [region, setRegion] = useState(editingConnection?.region || 'us-east-1')
   const [parentId, setParentId] = useState<string>(editingConnection?.parentId || '')
+  // S3
+  const [endpoint, setEndpoint] = useState(editingS3?.endpoint || '')
+  const [accessKeyId, setAccessKeyId] = useState(editingS3?.accessKeyId || '')
+  const [secretAccessKey, setSecretAccessKey] = useState(editingS3?.secretAccessKey || '')
+  const [bucket, setBucket] = useState(editingS3?.bucket || '')
+  const [region, setRegion] = useState(editingS3?.region || 'us-east-1')
+  // SSH
+  const [host, setHost] = useState(editingSsh?.host || '')
+  const [port, setPort] = useState(String(editingSsh?.port ?? DEFAULT_SSH_PORT))
+  const [username, setUsername] = useState(editingSsh?.username || '')
+  const [authMethod, setAuthMethod] = useState<SshAuthMethod>(editingSsh?.authMethod ?? 'password')
+  const [password, setPassword] = useState(editingSsh?.password || '')
+  const [privateKeyPath, setPrivateKeyPath] = useState(editingSsh?.privateKeyPath || '')
+  const [passphrase, setPassphrase] = useState(editingSsh?.passphrase || '')
+  const [initialPath, setInitialPath] = useState(editingSsh?.initialPath || '')
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onSave({ name, endpoint, accessKeyId, secretAccessKey, bucket, region, parentId: parentId || null })
+    const common = { name, parentId: parentId || null }
+    if (type === 's3') {
+      onSave({ ...common, type, endpoint, accessKeyId, secretAccessKey, bucket, region })
+      return
+    }
+    onSave({
+      ...common,
+      type,
+      host: host.trim(),
+      port: Number(port),
+      username: username.trim(),
+      authMethod,
+      ...(authMethod === 'password' ? { password } : { privateKeyPath: privateKeyPath.trim(), passphrase }),
+      ...(initialPath.trim() ? { initialPath: initialPath.trim() } : {})
+    })
   }
+
+  const handleBrowseKey = async (): Promise<void> => {
+    const selected = await window.api.showOpenFileDialog()
+    if (selected) setPrivateKeyPath(selected)
+  }
+
+  const field = (label: string, input: React.ReactNode): React.JSX.Element => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+      <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{label}</label>
+      {input}
+    </div>
+  )
 
   return (
     <div style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100
     }}>
-      <div className="glass-panel animate-fade-in" style={{ padding: '24px', width: '400px' }}>
+      <div className="glass-panel animate-fade-in" style={{ padding: '24px', width: '420px', maxHeight: '90vh', overflowY: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
           <h3 style={{ fontSize: '1.2rem', fontWeight: 600 }}>{editingConnection ? t('sidebar.editConnection') : t('sidebar.newConnection')}</h3>
           <button className="btn-icon" onClick={onClose}><X size={20} /></button>
         </div>
-        
+
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{t('sidebar.connectionName')}</label>
+          {field(t('sidebar.connectionType'), (
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {(['s3', 'ssh'] as const).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  disabled={!!editingConnection && option !== type}
+                  onClick={() => setType(option)}
+                  style={{
+                    ...btnStyle, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                    background: type === option ? 'var(--accent-primary)' : 'transparent',
+                    color: type === option ? 'white' : 'var(--text-secondary)',
+                    border: '1px solid var(--border-light)',
+                    opacity: !!editingConnection && option !== type ? 0.4 : 1,
+                    cursor: editingConnection ? 'default' : 'pointer'
+                  }}
+                >
+                  {option === 's3' ? <HardDrive size={14} /> : <Server size={14} />}
+                  {option === 's3' ? t('sidebar.typeS3') : t('sidebar.typeSsh')}
+                </button>
+              ))}
+            </div>
+          ))}
+          {field(t('sidebar.connectionName'), (
             <input required type="text" value={name} onChange={e => setName(e.target.value)} placeholder={t('sidebar.connectionNamePlaceholder')} style={inputStyle} />
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{t('sidebar.folder')}</label>
+          ))}
+          {field(t('sidebar.folder'), (
             <select value={parentId} onChange={e => setParentId(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
               <option value="" style={{ background: '#222', color: 'white' }}>{t('sidebar.folderNone')}</option>
               {folders.map(f => <option key={f.id} value={f.id} style={{ background: '#222', color: 'white' }}>{f.name}</option>)}
             </select>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{t('sidebar.endpointUrl')}</label>
-            <input required type="url" value={endpoint} onChange={e => setEndpoint(e.target.value)} placeholder="https://..." style={inputStyle} />
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-             <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{t('sidebar.region')}</label>
-            <input type="text" value={region} onChange={e => setRegion(e.target.value)} placeholder="us-east-1" style={inputStyle} />
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{t('sidebar.accessKeyId')}</label>
-            <input required type="text" value={accessKeyId} onChange={e => setAccessKeyId(e.target.value)} style={inputStyle} />
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{t('sidebar.secretAccessKey')}</label>
-            <input required type="password" value={secretAccessKey} onChange={e => setSecretAccessKey(e.target.value)} style={inputStyle} />
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{t('sidebar.defaultBucket')}</label>
-            <input type="text" value={bucket} onChange={e => setBucket(e.target.value)} style={inputStyle} />
-          </div>
-          
+          ))}
+
+          {type === 's3' ? (
+            <>
+              {field(t('sidebar.endpointUrl'), <input required type="url" value={endpoint} onChange={e => setEndpoint(e.target.value)} placeholder="https://..." style={inputStyle} />)}
+              {field(t('sidebar.region'), <input type="text" value={region} onChange={e => setRegion(e.target.value)} placeholder="us-east-1" style={inputStyle} />)}
+              {field(t('sidebar.accessKeyId'), <input required type="text" value={accessKeyId} onChange={e => setAccessKeyId(e.target.value)} style={inputStyle} />)}
+              {field(t('sidebar.secretAccessKey'), <input required type="password" value={secretAccessKey} onChange={e => setSecretAccessKey(e.target.value)} style={inputStyle} />)}
+              {field(t('sidebar.defaultBucket'), <input type="text" value={bucket} onChange={e => setBucket(e.target.value)} style={inputStyle} />)}
+            </>
+          ) : (
+            <>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ flex: 1 }}>
+                  {field(t('sidebar.host'), <input required type="text" value={host} onChange={e => setHost(e.target.value)} placeholder="server.example.com" style={inputStyle} />)}
+                </div>
+                <div style={{ width: '90px' }}>
+                  {field(t('sidebar.port'), <input required type="number" min={1} max={65535} value={port} onChange={e => setPort(e.target.value)} style={{ ...inputStyle, width: '100%', boxSizing: 'border-box' }} />)}
+                </div>
+              </div>
+              {field(t('sidebar.username'), <input required type="text" value={username} onChange={e => setUsername(e.target.value)} style={inputStyle} />)}
+              {field(t('sidebar.authMethod'), (
+                <select value={authMethod} onChange={e => setAuthMethod(e.target.value as SshAuthMethod)} style={{ ...inputStyle, cursor: 'pointer' }}>
+                  <option value="password" style={{ background: '#222', color: 'white' }}>{t('sidebar.authPassword')}</option>
+                  <option value="privateKey" style={{ background: '#222', color: 'white' }}>{t('sidebar.authPrivateKey')}</option>
+                </select>
+              ))}
+              {authMethod === 'password' ? (
+                field(t('sidebar.password'), <input type="password" value={password} onChange={e => setPassword(e.target.value)} style={inputStyle} />)
+              ) : (
+                <>
+                  {field(t('sidebar.privateKeyPath'), (
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input required type="text" value={privateKeyPath} onChange={e => setPrivateKeyPath(e.target.value)} placeholder="~/.ssh/id_ed25519" style={{ ...inputStyle, flex: 1, minWidth: 0 }} />
+                      <button type="button" onClick={handleBrowseKey} style={{ ...btnStyle, background: 'transparent', border: '1px solid var(--border-light)', color: 'var(--text-primary)' }}>{t('sidebar.browse')}</button>
+                    </div>
+                  ))}
+                  {field(t('sidebar.passphrase'), <input type="password" value={passphrase} onChange={e => setPassphrase(e.target.value)} style={inputStyle} />)}
+                </>
+              )}
+              {field(t('sidebar.initialPath'), <input type="text" value={initialPath} onChange={e => setInitialPath(e.target.value)} placeholder={t('sidebar.initialPathPlaceholder')} style={inputStyle} />)}
+            </>
+          )}
+
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '16px' }}>
             <button type="button" onClick={onClose} style={{ ...btnStyle, background: 'transparent', border: '1px solid var(--border-light)' }}>{t('sidebar.cancel')}</button>
             <button type="submit" style={{ ...btnStyle, background: 'var(--accent-primary)', color: 'white' }}>{editingConnection ? t('sidebar.update') : t('sidebar.saveConnection')}</button>

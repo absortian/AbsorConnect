@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { X, Sun, Moon, Download, Upload, AlertTriangle, RefreshCw, ExternalLink, RotateCcw } from 'lucide-react'
-import { S3Connection } from '../../../shared/types'
+import { ConnectionEntry } from '../../../shared/types'
 import { RELEASES_URL } from '../../../shared/constants'
 
 interface UpdateStatus {
@@ -17,7 +17,7 @@ interface SettingsPanelProps {
   theme: string
   onThemeChange: (theme: string) => void
   onClose: () => void
-  onConnectionsImported: (connections: S3Connection[]) => void
+  onConnectionsImported: (connections: ConnectionEntry[]) => void
 }
 
 export default function SettingsPanel({ theme, onThemeChange, onClose, onConnectionsImported }: SettingsPanelProps) {

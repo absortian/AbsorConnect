@@ -70,7 +70,7 @@ function toNodeReadable(body: unknown): Readable {
   throw new Error('Unsupported response body stream')
 }
 
-async function moveTempFile(partialDestPath: string, localDestPath: string) {
+export async function moveTempFile(partialDestPath: string, localDestPath: string) {
   try {
     await fs.rename(partialDestPath, localDestPath)
   } catch (error) {

@@ -4,12 +4,12 @@ import { Folder, File, ArrowLeft, RefreshCw, HardDrive, Trash2, FolderPlus } fro
 import { useTransferQueue } from '../context/TransferQueueContext'
 import { formatFileSize } from '../../../shared/utils'
 
-import { S3Connection } from '../../../shared/types'
+import { Connection, RemoteLocation } from '../../../shared/types'
 import { CloudUpload } from 'lucide-react'
 
 interface LocalExplorerProps {
-  activeConnection: S3Connection | null
-  s3Location: { bucket: string; prefix: string }
+  activeConnection: Connection | null
+  remoteLocation: RemoteLocation | null
   onPathChange?: (path: string) => void
 }
 
@@ -31,7 +31,7 @@ const getContextMenuPosition = (mouseX: number, mouseY: number, itemCount: numbe
   return { x, y: Math.max(CONTEXT_MENU_GUTTER, y) }
 }
 
-export default function LocalExplorer({ activeConnection, s3Location, onPathChange }: LocalExplorerProps) {
+export default function LocalExplorer({ activeConnection, remoteLocation, onPathChange }: LocalExplorerProps) {
   const { t } = useTranslation()
   const [currentPath, setCurrentPath] = useState<string>('')
   const [folders, setFolders] = useState<string[]>([])
@@ -177,20 +177,33 @@ export default function LocalExplorer({ activeConnection, s3Location, onPathChan
     setContextMenu({ ...position, file, isFolder, folderName })
   }
 
-  const handleCopyToS3 = () => {
-    if (!activeConnection || !s3Location.bucket) return
-    // Upload all selected files to S3
+  const canCopyToRemote = !!activeConnection && !!remoteLocation &&
+    (remoteLocation.kind === 'sftp' ? !!remoteLocation.path : !!remoteLocation.bucket)
+
+  const handleCopyToRemote = () => {
+    if (!activeConnection || !remoteLocation || !canCopyToRemote) return
+    // Upload all selected files to the active remote location (S3 bucket/prefix or SFTP directory)
     const selectedFiles = getSelectedFiles()
     for (const file of selectedFiles) {
-      const key = `${s3Location.prefix}${file.name}`
-      addJob({
-        type: 'upload',
-        sourcePath: file.path,
-        destPath: key,
-        fileName: file.name,
-        connectionId: activeConnection.id,
-        bucket: s3Location.bucket
-      })
+      if (remoteLocation.kind === 's3') {
+        addJob({
+          type: 'upload',
+          sourcePath: file.path,
+          destPath: `${remoteLocation.prefix}${file.name}`,
+          fileName: file.name,
+          connectionId: activeConnection.id,
+          bucket: remoteLocation.bucket
+        })
+      } else {
+        const dir = remoteLocation.path
+        addJob({
+          type: 'upload',
+          sourcePath: file.path,
+          destPath: dir.endsWith('/') ? `${dir}${file.name}` : `${dir}/${file.name}`,
+          fileName: file.name,
+          connectionId: activeConnection.id
+        })
+      }
     }
     setContextMenu(null)
   }
@@ -303,6 +316,25 @@ export default function LocalExplorer({ activeConnection, s3Location, onPathChan
     e.preventDefault()
     e.stopPropagation()
     
+    const separator = currentPath.includes('\\') ? '\\' : '/'
+    const localDest = (fileName: string): string =>
+      currentPath.endsWith(separator) ? `${currentPath}${fileName}` : `${currentPath}${separator}${fileName}`
+
+    // Files dragged from the SFTP explorer
+    const sftpPayload = e.dataTransfer.getData('application/x-sftp-files')
+    if (sftpPayload) {
+      try {
+        const { paths, connectionId } = JSON.parse(sftpPayload)
+        for (const remotePath of paths as string[]) {
+          const fileName = remotePath.split('/').pop() || 'download'
+          addJob({ type: 'download', sourcePath: remotePath, destPath: localDest(fileName), fileName, connectionId })
+        }
+      } catch {
+        console.error('Failed to parse SFTP drop data')
+      }
+      return
+    }
+
     // Check if it's multi-file from S3
     const s3MultiPayload = e.dataTransfer.getData('application/x-s3-files')
     if (s3MultiPayload) {
@@ -479,11 +511,13 @@ export default function LocalExplorer({ activeConnection, s3Location, onPathChan
           {contextMenu.file && !contextMenu.isFolder && (
             <button 
               className="context-menu-item"
-              onClick={handleCopyToS3}
-              disabled={!activeConnection || !s3Location.bucket}
+              onClick={handleCopyToRemote}
+              disabled={!canCopyToRemote}
             >
               <CloudUpload size={16} />
-              {selectedItems.size > 1 ? t('local.copyItemsToS3', { count: selectedItems.size }) : t('local.copyToS3')}
+              {remoteLocation?.kind === 'sftp'
+                ? (selectedItems.size > 1 ? t('local.copyItemsToServer', { count: selectedItems.size }) : t('local.copyToServer'))
+                : (selectedItems.size > 1 ? t('local.copyItemsToS3', { count: selectedItems.size }) : t('local.copyToS3'))}
             </button>
           )}
           {/* Delete */}
