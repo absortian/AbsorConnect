@@ -5,10 +5,10 @@
   "license": "MIT",
   "main": "./out/main/index.js",
   "author": "absortian",
-  "homepage": "https://github.com/absortian/AbsorS3Explorer",
+  "homepage": "https://github.com/absortian/AbsorConnect",
   "repository": {
     "type": "git",
-    "url": "https://github.com/absortian/AbsorS3Explorer.git"
+    "url": "https://github.com/absortian/AbsorConnect.git"
   },
   "scripts": {
     "format": "prettier --write .",

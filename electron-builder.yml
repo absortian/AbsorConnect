@@ -1,5 +1,5 @@
 appId: com.absor.fileexplorer
-productName: Absor S3 Explorer
+productName: Absor Connect
 directories:
   buildResources: build
 files:
@@ -12,15 +12,15 @@ files:
 asarUnpack:
   - resources/**
 win:
-  executableName: AbsorS3Explorer
+  executableName: AbsorConnect
 nsis:
-  artifactName: ${name}-${version}-setup.${ext}
+  artifactName: absor-connect-${version}-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
 mac:
   icon: build/icon.png
-  artifactName: ${name}-${version}-${arch}.${ext}
+  artifactName: absor-connect-${version}-${arch}.${ext}
   target:
     - target: dmg
       arch:
@@ -42,21 +42,22 @@ mac:
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   notarize: false
 dmg:
-  artifactName: ${name}-${version}-${arch}.${ext}
+  artifactName: absor-connect-${version}-${arch}.${ext}
 linux:
   target:
     - AppImage
     - deb
     - rpm
     - tar.gz
+  artifactName: absor-connect-${version}-${arch}.${ext}
   maintainer: absortian
   category: Utility
 appImage:
-  artifactName: ${name}-${version}.${ext}
+  artifactName: absor-connect-${version}.${ext}
 rpm:
-  artifactName: ${name}-${version}.${ext}
+  artifactName: absor-connect-${version}.${ext}
 npmRebuild: false
 publish:
   provider: github
   owner: absortian
-  repo: AbsorS3Explorer
+  repo: AbsorConnect

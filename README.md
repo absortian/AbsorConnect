@@ -1,4 +1,6 @@
-# Absor S3 Explorer
+# Absor Connect
+
+*(antes Absor S3 Explorer)*
 
 Aplicación de escritorio para gestionar archivos entre el sistema de archivos local y cualquier servicio de almacenamiento compatible con S3 (AWS S3, MinIO, DigitalOcean Spaces, etc.) desde una interfaz unificada de doble panel.
 
@@ -43,3 +45,7 @@ npm run build
 - **macOS** — ARM64 (Apple Silicon), formatos DMG y ZIP
 - **Windows** — Instalador NSIS
 - **Linux** — AppImage, Snap y DEB
+
+## Historial
+
+Hasta la v0.0.7 la aplicación se llamaba **Absor S3 Explorer** y el repositorio era `absortian/AbsorS3Explorer`. Las instalaciones de esas versiones siguen buscando actualizaciones en esa ruta y GitHub las redirige a `absortian/AbsorConnect`, así que **no se debe crear un repositorio nuevo llamado `AbsorS3Explorer`**: rompería la redirección y esas instalaciones dejarían de recibir actualizaciones.
