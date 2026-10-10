@@ -4,10 +4,13 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { getConnections, saveConnections, getTheme, saveTheme, getLanguage, saveLanguage } from './store'
 import { listBuckets, listObjects, uploadFile, downloadFile, createFolder, deleteObject, deleteFolder } from './s3'
-import { S3Connection } from '../shared/types'
+import { ConnectionEntry, S3Connection, SshConnection } from '../shared/types'
+import { normalizeEntry } from '../shared/connections'
+import { closeAllSsh, sftpCreateDir, sftpDelete, sftpDownload, sftpHome, sftpListDir, sftpUpload } from './ssh'
 import { getLocalHome, listLocalDir, createLocalDir, deleteLocalItem } from './localFs'
 import { initUpdater, checkForUpdates, downloadUpdate, quitAndInstall } from './updater'
 import * as fs from 'fs/promises'
+import * as os from 'os'
 
 
 function createWindow(): void {
@@ -61,7 +64,7 @@ app.whenReady().then(() => {
     return await getConnections()
   })
 
-  ipcMain.handle('save-connections', async (_, connections: S3Connection[]) => {
+  ipcMain.handle('save-connections', async (_, connections: ConnectionEntry[]) => {
     await saveConnections(connections)
   })
 
@@ -84,6 +87,33 @@ app.whenReady().then(() => {
   ipcMain.handle('s3-delete-object', async (_, conn: S3Connection, bucket: string, key: string) => await deleteObject(conn, bucket, key))
   ipcMain.handle('s3-delete-folder', async (_, conn: S3Connection, bucket: string, prefix: string) => await deleteFolder(conn, bucket, prefix))
   
+  // SFTP IPC handlers
+  ipcMain.handle('sftp-home', async (_, conn: SshConnection) => await sftpHome(conn))
+  ipcMain.handle('sftp-list-dir', async (_, conn: SshConnection, dirPath: string) => await sftpListDir(conn, dirPath))
+  ipcMain.handle('sftp-create-dir', async (_, conn: SshConnection, dirPath: string, name: string) => await sftpCreateDir(conn, dirPath, name))
+  ipcMain.handle('sftp-delete', async (_, conn: SshConnection, itemPath: string) => await sftpDelete(conn, itemPath))
+  ipcMain.handle('sftp-upload-file', async (event, conn: SshConnection, localPath: string, remotePath: string, jobId?: string) => {
+    const onProgress = jobId ? (loaded: number, total: number) => {
+      event.sender.send('transfer-progress', { jobId, loaded, total })
+    } : undefined
+    await sftpUpload(conn, localPath, remotePath, onProgress)
+  })
+  ipcMain.handle('sftp-download-file', async (event, conn: SshConnection, remotePath: string, localDestPath: string, jobId?: string) => {
+    const onProgress = jobId ? (loaded: number, total: number) => {
+      event.sender.send('transfer-progress', { jobId, loaded, total })
+    } : undefined
+    await sftpDownload(conn, remotePath, localDestPath, onProgress)
+  })
+  ipcMain.handle('show-open-file-dialog', async (_, defaultPath?: string) => {
+    const mainWindow = BrowserWindow.getAllWindows()[0]
+    const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
+      defaultPath: defaultPath || join(os.homedir(), '.ssh'),
+      properties: ['openFile', 'showHiddenFiles']
+    })
+    if (canceled || filePaths.length === 0) return null
+    return filePaths[0]
+  })
+
   // Local FS IPC handlers
   ipcMain.handle('local-get-home', async () => await getLocalHome())
   ipcMain.handle('local-list-dir', async (_, dirPath: string) => await listLocalDir(dirPath))
@@ -118,7 +148,7 @@ app.whenReady().then(() => {
       cancelId: 1,
       title: 'Export Connections',
       message: 'Credentials will be exported in plain text',
-      detail: 'The exported file will contain your access keys and secret keys without encryption. Keep this file secure and do not share it.'
+      detail: 'The exported file will contain your credentials (access keys, passwords and passphrases) without encryption. Keep this file secure and do not share it.'
     })
     if (response !== 0) return false
     const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
@@ -142,7 +172,7 @@ app.whenReady().then(() => {
     const data = await fs.readFile(filePaths[0], 'utf-8')
     const parsed = JSON.parse(data)
     if (!Array.isArray(parsed)) throw new Error('Invalid format: expected an array of connections')
-    return parsed as S3Connection[]
+    return parsed.map(normalizeEntry)
   })
 
   initUpdater()
@@ -154,6 +184,8 @@ app.whenReady().then(() => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
 })
+
+app.on('before-quit', () => closeAllSsh())
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits

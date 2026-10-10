@@ -1,11 +1,11 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-import { S3Connection } from '../shared/types'
+import { ConnectionEntry, S3Connection, SshConnection } from '../shared/types'
 
 // Custom APIs for renderer
 const api = {
   getConnections: () => ipcRenderer.invoke('get-connections'),
-  saveConnections: (connections: S3Connection[]) => ipcRenderer.invoke('save-connections', connections),
+  saveConnections: (connections: ConnectionEntry[]) => ipcRenderer.invoke('save-connections', connections),
   listBuckets: (conn: S3Connection) => ipcRenderer.invoke('s3-list-buckets', conn),
   listObjects: (conn: S3Connection, bucket: string, prefix: string) => ipcRenderer.invoke('s3-list-objects', conn, bucket, prefix),
   uploadFile: (conn: S3Connection, bucket: string, localPath: string, key: string, jobId?: string) => ipcRenderer.invoke('s3-upload-file', conn, bucket, localPath, key, jobId),
@@ -13,6 +13,14 @@ const api = {
   createFolder: (conn: S3Connection, bucket: string, key: string) => ipcRenderer.invoke('s3-create-folder', conn, bucket, key),
   deleteObject: (conn: S3Connection, bucket: string, key: string) => ipcRenderer.invoke('s3-delete-object', conn, bucket, key),
   deleteFolder: (conn: S3Connection, bucket: string, prefix: string) => ipcRenderer.invoke('s3-delete-folder', conn, bucket, prefix),
+  sftpHome: (conn: SshConnection) => ipcRenderer.invoke('sftp-home', conn),
+  sftpListDir: (conn: SshConnection, dirPath: string) => ipcRenderer.invoke('sftp-list-dir', conn, dirPath),
+  sftpCreateDir: (conn: SshConnection, dirPath: string, name: string) => ipcRenderer.invoke('sftp-create-dir', conn, dirPath, name),
+  sftpDelete: (conn: SshConnection, itemPath: string) => ipcRenderer.invoke('sftp-delete', conn, itemPath),
+  sftpUpload: (conn: SshConnection, localPath: string, remotePath: string, jobId?: string) => ipcRenderer.invoke('sftp-upload-file', conn, localPath, remotePath, jobId),
+  sftpDownload: (conn: SshConnection, remotePath: string, localDestPath: string, jobId?: string) => ipcRenderer.invoke('sftp-download-file', conn, remotePath, localDestPath, jobId),
+  showOpenFileDialog: (defaultPath?: string) => ipcRenderer.invoke('show-open-file-dialog', defaultPath),
+  getPathForFile: (file: File) => webUtils.getPathForFile(file),
   showSaveDialog: (defaultPath: string) => ipcRenderer.invoke('show-save-dialog', defaultPath),
   getLocalHome: () => ipcRenderer.invoke('local-get-home'),
   listLocalDir: (dirPath: string) => ipcRenderer.invoke('local-list-dir', dirPath),

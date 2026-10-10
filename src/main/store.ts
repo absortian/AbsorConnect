@@ -1,7 +1,8 @@
 import { app, safeStorage } from 'electron'
 import * as fs from 'fs/promises'
 import * as path from 'path'
-import { S3Connection } from '../shared/types'
+import { ConnectionEntry } from '../shared/types'
+import { SECRET_FIELDS, normalizeEntry } from '../shared/connections'
 
 const STORE_PATH = path.join(app.getPath('userData'), 'connections.json')
 const SETTINGS_PATH = path.join(app.getPath('userData'), 'settings.json')
@@ -16,34 +17,47 @@ function decryptField(value: string): string {
   return safeStorage.decryptString(Buffer.from(value, 'base64'))
 }
 
-function encryptConnection(conn: S3Connection): S3Connection {
-  if (conn.isFolder) return conn
-  return {
-    ...conn,
-    accessKeyId: encryptField(conn.accessKeyId),
-    secretAccessKey: encryptField(conn.secretAccessKey),
-    _encrypted: true
+// Aplica `transform` a los campos secretos no vacíos del tipo de la entrada
+function mapSecrets(
+  entry: Record<string, unknown>,
+  transform: (value: string) => string
+): Record<string, unknown> {
+  const result = { ...entry }
+  const fields = SECRET_FIELDS[entry.type as keyof typeof SECRET_FIELDS] ?? []
+  for (const field of fields) {
+    const value = result[field]
+    if (typeof value === 'string' && value !== '') result[field] = transform(value)
+  }
+  return result
+}
+
+function encryptEntry(entry: ConnectionEntry): ConnectionEntry {
+  if (entry.isFolder) return entry
+  return { ...mapSecrets({ ...entry }, encryptField), _encrypted: true } as ConnectionEntry
+}
+
+function decryptEntry(entry: ConnectionEntry): ConnectionEntry {
+  const { _encrypted, ...rest } = entry
+  if (!_encrypted || rest.isFolder) return rest as ConnectionEntry
+  return mapSecrets(rest, decryptField) as unknown as ConnectionEntry
+}
+
+// Entradas de versiones anteriores (sin tipo) pasan a S3; una entrada no reconocible
+// se conserva tal cual para no perderla al volver a guardar
+function toEntry(raw: unknown): ConnectionEntry {
+  try {
+    return normalizeEntry(raw)
+  } catch (error) {
+    console.error('Keeping unrecognized connection entry as-is:', (error as Error).message)
+    return raw as ConnectionEntry
   }
 }
 
-function decryptConnection(conn: S3Connection): S3Connection {
-  if (!conn._encrypted || conn.isFolder) {
-    const { _encrypted, ...rest } = conn
-    return rest
-  }
-  const { _encrypted, ...rest } = conn
-  return {
-    ...rest,
-    accessKeyId: decryptField(conn.accessKeyId),
-    secretAccessKey: decryptField(conn.secretAccessKey)
-  }
-}
-
-export async function getConnections(): Promise<S3Connection[]> {
+export async function getConnections(): Promise<ConnectionEntry[]> {
   try {
     const data = await fs.readFile(STORE_PATH, 'utf-8')
-    const connections: S3Connection[] = JSON.parse(data)
-    return connections.map(decryptConnection)
+    const entries: unknown[] = JSON.parse(data)
+    return entries.map(toEntry).map(decryptEntry)
   } catch (error: any) {
     if (error.code === 'ENOENT') {
       return [] // File doesn't exist yet
@@ -53,9 +67,9 @@ export async function getConnections(): Promise<S3Connection[]> {
   }
 }
 
-export async function saveConnections(connections: S3Connection[]): Promise<void> {
+export async function saveConnections(connections: ConnectionEntry[]): Promise<void> {
   try {
-    const encrypted = connections.map(encryptConnection)
+    const encrypted = connections.map(encryptEntry)
     await fs.writeFile(STORE_PATH, JSON.stringify(encrypted, null, 2), 'utf-8')
   } catch (error) {
     console.error('Failed to save connections:', error)

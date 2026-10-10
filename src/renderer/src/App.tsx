@@ -4,17 +4,18 @@ import { Menu, Settings } from 'lucide-react'
 import './assets/main.css'
 import ConnectionsSidebar from './components/ConnectionsSidebar'
 import S3Explorer from './components/S3Explorer'
+import SftpExplorer from './components/SftpExplorer'
 import LocalExplorer from './components/LocalExplorer'
 import TransferQueueBar from './components/TransferQueueBar'
 import SettingsPanel from './components/SettingsPanel'
-import { S3Connection } from '../../shared/types'
+import { Connection, RemoteLocation } from '../../shared/types'
 import logo from './assets/icon.png'
 
 function App(): React.JSX.Element {
   const { t, i18n } = useTranslation()
-  const [activeConnection, setActiveConnection] = useState<S3Connection | null>(null)
+  const [activeConnection, setActiveConnection] = useState<Connection | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [s3Location, setS3Location] = useState({ bucket: '', prefix: '' })
+  const [remoteLocation, setRemoteLocation] = useState<RemoteLocation | null>(null)
   const [localCurrentPath, setLocalCurrentPath] = useState('')
   const [theme, setTheme] = useState('dark')
   const [showSettings, setShowSettings] = useState(false)
@@ -65,8 +66,9 @@ function App(): React.JSX.Element {
     })
   }, [])
 
-  const handleSelectConnection = (conn: S3Connection) => {
+  const handleSelectConnection = (conn: Connection) => {
     setActiveConnection(conn)
+    setRemoteLocation(null)
     setSidebarOpen(false) // Auto-hide menu once selected
   }
 
@@ -108,16 +110,25 @@ function App(): React.JSX.Element {
           ) : (
             <div className="split-view" ref={splitRef} style={{ display: 'flex', height: '100%', width: '100%' }}>
               <div style={{ flexBasis: `${splitRatio * 100}%`, flexShrink: 0, flexGrow: 0, minWidth: 200, overflow: 'hidden' }}>
-                <LocalExplorer activeConnection={activeConnection} s3Location={s3Location} onPathChange={setLocalCurrentPath} />
+                <LocalExplorer activeConnection={activeConnection} remoteLocation={remoteLocation} onPathChange={setLocalCurrentPath} />
               </div>
               <div className="split-divider" onMouseDown={handleDividerMouseDown} onDoubleClick={handleDividerDoubleClick} />
               <div style={{ flex: 1, minWidth: 200, overflow: 'hidden' }}>
-                <S3Explorer 
-                  key={activeConnection.id} 
-                  connection={activeConnection} 
-                  localCurrentPath={localCurrentPath}
-                  onLocationChange={(bucket, prefix) => setS3Location({ bucket, prefix })}
-                />
+                {activeConnection.type === 's3' ? (
+                  <S3Explorer
+                    key={activeConnection.id}
+                    connection={activeConnection}
+                    localCurrentPath={localCurrentPath}
+                    onLocationChange={(bucket, prefix) => setRemoteLocation({ kind: 's3', bucket, prefix })}
+                  />
+                ) : (
+                  <SftpExplorer
+                    key={activeConnection.id}
+                    connection={activeConnection}
+                    localCurrentPath={localCurrentPath}
+                    onLocationChange={(path) => setRemoteLocation({ kind: 'sftp', path })}
+                  />
+                )}
               </div>
             </div>
           )}

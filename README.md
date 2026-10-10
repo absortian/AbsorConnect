@@ -2,17 +2,18 @@
 
 *(antes Absor S3 Explorer)*
 
-Aplicación de escritorio para gestionar archivos entre el sistema de archivos local y cualquier servicio de almacenamiento compatible con S3 (AWS S3, MinIO, DigitalOcean Spaces, etc.) desde una interfaz unificada de doble panel.
+Aplicación de escritorio para gestionar archivos entre el sistema de archivos local y servicios remotos (almacenamiento compatible con S3, como AWS S3, MinIO o DigitalOcean Spaces, y servidores SSH mediante SFTP) desde una interfaz unificada de doble panel.
 
 > **Nota:** Este proyecto es un experimento de *vibe coding*. Fue desarrollado íntegramente utilizando VS Code con GitHub Copilot, sin instrucciones precisas preconfiguradas, con el objetivo de explorar cómo responde el editor y su agente de IA ante peticiones abiertas y progresivas. El resultado es esta aplicación funcional construida de forma conversacional.
 
 ## Características
 
-- **Explorador dual** — Panel izquierdo para el sistema de archivos local y panel derecho para buckets S3, permitiendo navegar ambos simultáneamente.
-- **Gestión de conexiones** — Crear, organizar en carpetas y persistir múltiples conexiones S3 con soporte para servicios compatibles (MinIO, etc.).
+- **Explorador dual** — Panel izquierdo para el sistema de archivos local y panel derecho para el servicio remoto (buckets S3 o directorios SFTP), permitiendo navegar ambos simultáneamente.
+- **Gestión de conexiones** — Crear, organizar en carpetas y persistir conexiones S3 y SSH. Las credenciales (claves de acceso, contraseñas y passphrases) se guardan cifradas con el almacén seguro del sistema.
+- **Conexiones SSH / SFTP** — Autenticación por contraseña o por clave privada (ruta al fichero, con passphrase opcional; la clave no se copia a la app) y directorio inicial opcional.
 - **Transferencias drag-and-drop** — Arrastrar archivos entre paneles para subir o descargar. También disponible mediante menú contextual.
 - **Cola de transferencias** — Barra inferior que muestra el estado en tiempo real de cada transferencia (pendiente, subiendo, descargando, completado, error).
-- **Operaciones S3** — Crear carpetas, eliminar objetos y descargar archivos individuales desde los buckets.
+- **Operaciones remotas** — Crear carpetas, eliminar objetos o archivos (en SFTP, las carpetas se borran con todo su contenido) y descargar archivos individuales.
 - **Interfaz moderna** — Tema oscuro con elementos glassmorphism, sidebar colapsable e indicadores de estado en tiempo real.
 
 ## Stack tecnológico
@@ -23,6 +24,7 @@ Aplicación de escritorio para gestionar archivos entre el sistema de archivos l
 | UI | React + TypeScript |
 | Build | Vite (electron-vite) |
 | AWS SDK | @aws-sdk/client-s3 |
+| SSH / SFTP | ssh2 |
 | Persistencia | electron-store |
 | Iconos | lucide-react |
 | Empaquetado | electron-builder |
@@ -45,6 +47,11 @@ npm run build
 - **macOS** — ARM64 (Apple Silicon), formatos DMG y ZIP
 - **Windows** — Instalador NSIS
 - **Linux** — AppImage, Snap y DEB
+
+## Seguridad
+
+- **Host key SSH sin verificar:** Absor Connect acepta la clave de host de cualquier servidor SSH sin comprobarla. Es una decisión consciente para esta versión, pero implica que en una red no confiable un atacante podría suplantar al servidor (man-in-the-middle) y capturar la contraseña o los datos transferidos. Usa autenticación por clave privada y redes de confianza siempre que puedas.
+- **Exportación de conexiones:** el fichero exportado contiene todas las credenciales sin cifrar.
 
 ## Historial
 

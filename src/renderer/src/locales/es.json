@@ -4,7 +4,7 @@
     "toggleConnections": "Mostrar conexiones",
     "settings": "Ajustes",
     "welcomeTitle": "Bienvenido a Absor Connect",
-    "welcomeDescription": "Conéctate a cualquier almacenamiento blob compatible con S3, organiza tus conexiones y arrastra y suelta archivos entre tu ordenador y la nube."
+    "welcomeDescription": "Conéctate a almacenamiento compatible con S3 o a servidores SSH, organiza tus conexiones y arrastra y suelta archivos entre tu ordenador y tus servidores remotos."
   },
   "settings": {
     "title": "Ajustes",
@@ -37,16 +37,16 @@
     "exportSuccess": "Conexiones exportadas correctamente.",
     "importConnections": "Importar conexiones",
     "importError": "Error al importar: el archivo no tiene un formato válido.",
-    "exportWarning": "El archivo exportado contiene tus claves de acceso (Access Key / Secret Key). Guárdalo en un lugar seguro. Al importar, las conexiones actuales serán reemplazadas."
+    "exportWarning": "El archivo exportado contiene tus credenciales (claves de acceso, contraseñas y passphrases) sin cifrar. Guárdalo en un lugar seguro. Al importar, las conexiones actuales serán reemplazadas."
   },
   "sidebar": {
     "title": "Conexiones",
     "addFolder": "Añadir carpeta",
     "addConnection": "Añadir conexión",
     "noConnections": "No hay conexiones aún.",
-    "noConnectionsHint": "Haz clic en + para añadir un nuevo destino S3.",
+    "noConnectionsHint": "Haz clic en + para añadir una conexión S3 o SSH.",
     "editConnection": "Editar conexión",
-    "newConnection": "Nueva conexión S3",
+    "newConnection": "Nueva conexión",
     "connectionName": "Nombre de la conexión",
     "connectionNamePlaceholder": "ej. Producción Assets",
     "folder": "Carpeta (Opcional)",
@@ -62,7 +62,22 @@
     "newFolder": "Nueva carpeta",
     "folderName": "Nombre de la carpeta",
     "folderNamePlaceholder": "ej. Trabajo",
-    "save": "Guardar"
+    "save": "Guardar",
+    "connectionType": "Tipo",
+    "typeS3": "S3",
+    "typeSsh": "SSH / SFTP",
+    "host": "Host",
+    "port": "Puerto",
+    "username": "Usuario",
+    "authMethod": "Autenticación",
+    "authPassword": "Contraseña",
+    "authPrivateKey": "Clave privada",
+    "password": "Contraseña",
+    "privateKeyPath": "Fichero de clave privada",
+    "browse": "Examinar…",
+    "passphrase": "Passphrase (Opcional)",
+    "initialPath": "Directorio inicial (Opcional)",
+    "initialPathPlaceholder": "Si está vacío, el home; ej. /var/www"
   },
   "local": {
     "newFolder": "Nueva carpeta",
@@ -77,7 +92,9 @@
     "confirmDeleteMultiple": "¿Estás seguro de que quieres eliminar {{count}} elementos?",
     "failedToDelete": "Error al eliminar",
     "failedToCreateFolder": "Error al crear la carpeta",
-    "failedToListDirectory": "Error al listar el directorio"
+    "failedToListDirectory": "Error al listar el directorio",
+    "copyToServer": "Subir al servidor",
+    "copyItemsToServer": "Subir {{count}} elementos al servidor"
   },
   "s3": {
     "allBuckets": "Todos los Buckets",
@@ -107,5 +124,36 @@
     "statusUploading": "Subiendo...",
     "statusDownloading": "Descargando...",
     "moreItems": "+{{count}} elementos más..."
+  },
+  "sftp": {
+    "connecting": "Conectando…",
+    "emptyFolder": "Carpeta vacía",
+    "newFolder": "Nueva carpeta",
+    "folderNamePlaceholder": "Nombre de la carpeta...",
+    "download": "Descargar",
+    "downloadSaveAs": "Descargar (Guardar como...)",
+    "downloadToLocal": "Descargar a carpeta local",
+    "downloadItemsToLocal": "Descargar {{count}} a local",
+    "delete": "Eliminar",
+    "deleteItems": "Eliminar {{count}} elementos",
+    "confirmDelete": "¿Estás seguro de que quieres eliminar \"{{name}}\"? Las carpetas se eliminan con todo su contenido.",
+    "confirmDeleteMultiple": "¿Estás seguro de que quieres eliminar {{count}} elementos? Las carpetas se eliminan con todo su contenido.",
+    "failedToDelete": "Error al eliminar",
+    "failedToCreateFolder": "Error al crear la carpeta",
+    "failedToList": "Error al listar el directorio",
+    "failedToConnect": "No se pudo conectar con el servidor",
+    "retry": "Reintentar"
+  },
+  "errors": {
+    "SSH_AUTH_FAILED": "Autenticación fallida: el servidor rechazó el usuario, la contraseña o la clave.",
+    "SSH_UNREACHABLE": "No se pudo conectar con el servidor. Revisa el host y el puerto.",
+    "SSH_TIMEOUT": "El servidor no respondió a tiempo.",
+    "SSH_CONNECTION_LOST": "Se perdió la conexión con el servidor.",
+    "SSH_KEY_UNREADABLE": "No se pudo leer la clave privada ({{detail}}).",
+    "SSH_KEY_UNSUPPORTED": "Formato de clave privada no soportado ({{detail}}).",
+    "SSH_KEY_PASSPHRASE": "La clave privada necesita una passphrase o la passphrase es incorrecta.",
+    "SFTP_PERMISSION_DENIED": "Permiso denegado en el servidor.",
+    "SFTP_NOT_FOUND": "El archivo o la carpeta ya no existe en el servidor.",
+    "SSH_ERROR": "Error SSH: {{detail}}"
   }
 }

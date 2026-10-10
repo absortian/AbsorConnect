@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
+import i18n from '../i18n'
+import { remoteErrorMessage } from '../remoteErrors'
 
 export type TransferJob = {
   id: string
@@ -9,7 +11,7 @@ export type TransferJob = {
   status: 'pending' | 'uploading' | 'downloading' | 'done' | 'error'
   error?: string
   connectionId: string
-  bucket: string
+  bucket?: string // solo S3; en SFTP las rutas remotas son absolutas
   progress?: number
 }
 
@@ -88,17 +90,26 @@ export function TransferQueueProvider({ children }: { children: React.ReactNode 
       // or pass it in the job. It's better to pass it in the job or fetch from store.
       const connections = await window.api.getConnections()
       const conn = connections.find(c => c.id === job.connectionId)
-      if (!conn) throw new Error('Connection not found')
+      if (!conn || conn.isFolder) throw new Error('Connection not found')
 
-      if (job.type === 'upload') {
-        await window.api.uploadFile(conn, job.bucket, job.sourcePath, job.destPath, job.id)
+      if (conn.type === 'ssh') {
+        if (job.type === 'upload') {
+          await window.api.sftpUpload(conn, job.sourcePath, job.destPath, job.id)
+        } else {
+          await window.api.sftpDownload(conn, job.sourcePath, job.destPath, job.id)
+        }
       } else {
-        await window.api.downloadFile(conn, job.bucket, job.sourcePath, job.destPath, job.id)
+        if (!job.bucket) throw new Error('No bucket specified')
+        if (job.type === 'upload') {
+          await window.api.uploadFile(conn, job.bucket, job.sourcePath, job.destPath, job.id)
+        } else {
+          await window.api.downloadFile(conn, job.bucket, job.sourcePath, job.destPath, job.id)
+        }
       }
       
       updateJobStatus(job.id, 'done')
     } catch (err: any) {
-      updateJobStatus(job.id, 'error', err.message || 'Transfer failed')
+      updateJobStatus(job.id, 'error', err.message ? remoteErrorMessage(err.message, i18n.t) : 'Transfer failed')
     }
   }
 

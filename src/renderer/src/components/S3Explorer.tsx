@@ -242,8 +242,8 @@ const CONTEXT_MENU_GUTTER = 4
     if (files.length === 0) return
 
     for (const file of files) {
-      // @ts-ignore - Electron specific property 'path'
-      const localPath = file.path
+      // File.path no existe desde Electron 32: la ruta se obtiene con webUtils desde el preload
+      const localPath = window.api.getPathForFile(file)
       if (!localPath) continue
       const key = `${currentPrefix}${file.name}`
       addJob({

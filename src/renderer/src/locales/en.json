@@ -4,7 +4,7 @@
     "toggleConnections": "Toggle Connections",
     "settings": "Settings",
     "welcomeTitle": "Welcome to Absor Connect",
-    "welcomeDescription": "Connect to any S3-compatible blob storage, organize your connections, and seamlessly drag & drop files between your computer and the cloud."
+    "welcomeDescription": "Connect to S3-compatible storage or SSH servers, organize your connections, and drag & drop files between your computer and your remote servers."
   },
   "settings": {
     "title": "Settings",
@@ -37,16 +37,16 @@
     "exportSuccess": "Connections exported successfully.",
     "importConnections": "Import connections",
     "importError": "Import error: the file does not have a valid format.",
-    "exportWarning": "The exported file contains your access keys (Access Key / Secret Key). Keep it in a safe place. When importing, current connections will be replaced."
+    "exportWarning": "The exported file contains your credentials (access keys, passwords and passphrases) unencrypted. Keep it in a safe place. When importing, current connections will be replaced."
   },
   "sidebar": {
     "title": "Connections",
     "addFolder": "Add Folder",
     "addConnection": "Add Connection",
     "noConnections": "No connections yet.",
-    "noConnectionsHint": "Click + to add a new S3 target.",
+    "noConnectionsHint": "Click + to add an S3 or SSH connection.",
     "editConnection": "Edit Connection",
-    "newConnection": "New S3 Connection",
+    "newConnection": "New connection",
     "connectionName": "Connection Name",
     "connectionNamePlaceholder": "e.g. Production Assets",
     "folder": "Folder (Optional)",
@@ -62,7 +62,22 @@
     "newFolder": "New Folder",
     "folderName": "Folder Name",
     "folderNamePlaceholder": "e.g. Work",
-    "save": "Save"
+    "save": "Save",
+    "connectionType": "Type",
+    "typeS3": "S3",
+    "typeSsh": "SSH / SFTP",
+    "host": "Host",
+    "port": "Port",
+    "username": "Username",
+    "authMethod": "Authentication",
+    "authPassword": "Password",
+    "authPrivateKey": "Private key",
+    "password": "Password",
+    "privateKeyPath": "Private key file",
+    "browse": "Browse…",
+    "passphrase": "Passphrase (Optional)",
+    "initialPath": "Initial directory (Optional)",
+    "initialPathPlaceholder": "Home directory if empty, e.g. /var/www"
   },
   "local": {
     "newFolder": "New Folder",
@@ -77,7 +92,9 @@
     "confirmDeleteMultiple": "Are you sure you want to delete {{count}} items?",
     "failedToDelete": "Failed to delete",
     "failedToCreateFolder": "Failed to create folder",
-    "failedToListDirectory": "Failed to list directory"
+    "failedToListDirectory": "Failed to list directory",
+    "copyToServer": "Upload to server",
+    "copyItemsToServer": "Upload {{count}} items to server"
   },
   "s3": {
     "allBuckets": "All Buckets",
@@ -107,5 +124,36 @@
     "statusUploading": "Uploading...",
     "statusDownloading": "Downloading...",
     "moreItems": "+{{count}} more items..."
+  },
+  "sftp": {
+    "connecting": "Connecting…",
+    "emptyFolder": "Empty folder",
+    "newFolder": "New folder",
+    "folderNamePlaceholder": "Folder name...",
+    "download": "Download",
+    "downloadSaveAs": "Download (Save as...)",
+    "downloadToLocal": "Download to local folder",
+    "downloadItemsToLocal": "Download {{count}} to local",
+    "delete": "Delete",
+    "deleteItems": "Delete {{count}} items",
+    "confirmDelete": "Are you sure you want to delete \"{{name}}\"? Folders are deleted with all their contents.",
+    "confirmDeleteMultiple": "Are you sure you want to delete {{count}} items? Folders are deleted with all their contents.",
+    "failedToDelete": "Failed to delete",
+    "failedToCreateFolder": "Failed to create folder",
+    "failedToList": "Failed to list the directory",
+    "failedToConnect": "Could not connect to the server",
+    "retry": "Retry"
+  },
+  "errors": {
+    "SSH_AUTH_FAILED": "Authentication failed: the server rejected the username, password or key.",
+    "SSH_UNREACHABLE": "Could not reach the server. Check the host and port.",
+    "SSH_TIMEOUT": "The server did not respond in time.",
+    "SSH_CONNECTION_LOST": "The connection to the server was lost.",
+    "SSH_KEY_UNREADABLE": "Could not read the private key ({{detail}}).",
+    "SSH_KEY_UNSUPPORTED": "Unsupported private key format ({{detail}}).",
+    "SSH_KEY_PASSPHRASE": "The private key needs a passphrase, or the passphrase is incorrect.",
+    "SFTP_PERMISSION_DENIED": "Permission denied on the server.",
+    "SFTP_NOT_FOUND": "The file or folder no longer exists on the server.",
+    "SSH_ERROR": "SSH error: {{detail}}"
   }
 }
