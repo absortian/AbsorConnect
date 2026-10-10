@@ -1,7 +1,6 @@
 import { autoUpdater, UpdateInfo } from 'electron-updater'
 import { BrowserWindow } from 'electron'
-
-const RELEASES_URL = 'https://github.com/absortian/AbsorS3Explorer/releases'
+import { RELEASES_URL } from '../shared/constants'
 
 export function initUpdater(): void {
   autoUpdater.autoDownload = false

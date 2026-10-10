@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { X, Sun, Moon, Download, Upload, AlertTriangle, RefreshCw, ExternalLink, RotateCcw } from 'lucide-react'
 import { S3Connection } from '../../../shared/types'
+import { RELEASES_URL } from '../../../shared/constants'
 
 interface UpdateStatus {
   status: 'idle' | 'checking' | 'available' | 'up-to-date' | 'downloading' | 'downloaded' | 'error'
@@ -45,7 +46,7 @@ export default function SettingsPanel({ theme, onThemeChange, onClose, onConnect
       setUpdateStatus({
         status: 'error',
         error: t('settings.errorCheckUpdates'),
-        releasesUrl: 'https://github.com/absortian/AbsorS3Explorer/releases'
+        releasesUrl: RELEASES_URL
       })
     }
   }, [])
@@ -57,7 +58,7 @@ export default function SettingsPanel({ theme, onThemeChange, onClose, onConnect
       setUpdateStatus({
         status: 'error',
         error: t('settings.errorDownloadUpdate'),
-        releasesUrl: 'https://github.com/absortian/AbsorS3Explorer/releases'
+        releasesUrl: RELEASES_URL
       })
     }
   }, [])

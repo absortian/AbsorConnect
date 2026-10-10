@@ -1,9 +1,9 @@
 {
   "app": {
-    "title": "Absor S3 Explorer",
+    "title": "Absor Connect",
     "toggleConnections": "Mostrar conexiones",
     "settings": "Ajustes",
-    "welcomeTitle": "Bienvenido a Absor Explorer",
+    "welcomeTitle": "Bienvenido a Absor Connect",
     "welcomeDescription": "Conéctate a cualquier almacenamiento blob compatible con S3, organiza tus conexiones y arrastra y suelta archivos entre tu ordenador y la nube."
   },
   "settings": {

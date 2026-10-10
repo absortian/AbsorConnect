@@ -47,7 +47,7 @@ jobs:
           draft: false
           prerelease: false
           body: |
-            ## Absor S3 Explorer ${{ github.ref_name }} 🚀
+            ## Absor Connect ${{ github.ref_name }} 🚀
 
             Explorador de archivos dual-panel para transferir archivos entre el sistema de archivos local y almacenamiento compatible con S3 (AWS S3, MinIO, DigitalOcean Spaces, etc.).
 
@@ -68,6 +68,11 @@ jobs:
             | Linux (Fedora/RHEL) | `.rpm` |
             | Linux (Universal) | `.AppImage` |
             | Linux (Genérico) | `.tar.gz` |
+
+            ### Migración desde Absor S3 Explorer
+            Absor Connect es el nuevo nombre de Absor S3 Explorer. Tus conexiones y ajustes se conservan al actualizar.
+            - **Windows y Linux (deb/rpm):** la nueva versión sustituye a la anterior automáticamente.
+            - **macOS:** tras instalar "Absor Connect.app" puedes borrar "Absor S3 Explorer.app" de Aplicaciones; ambas comparten los mismos datos.
           files: |
             dist/*.dmg
             dist/*.zip
