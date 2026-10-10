@@ -1,0 +1,68 @@
+schema: spec-driven
+
+context: |
+  Language: Spanish
+  All artifacts must be written in Spanish.
+  Keep OpenSpec structural headings and SHALL/MUST keywords in English.
+
+  ## Producto
+  Absor Connect (antes "Absor S3 Explorer", repo GitHub absortian/AbsorS3Explorer):
+  app de escritorio multiplataforma (macOS arm64/x64, Windows, Linux) para gestionar
+  conexiones remotas. Hoy: explorador de doble panel (local ↔ S3-compatible: AWS S3,
+  MinIO, DO Spaces…) con drag & drop y cola de transferencias. Hoja de ruta: renombrado
+  a Absor Connect, conexiones SFTP en el explorador y terminal SSH interactiva.
+  Ya hay usuarios con la v0.0.7 instalada: cualquier cambio de nombre, ruta de datos,
+  cifrado o canal de actualización debe preservar sus conexiones y su auto-update.
+
+  ## Stack
+  - Electron 39 + electron-vite 5 + Vite 7; React 19 + TypeScript 5.9 (renderer).
+  - @aws-sdk/client-s3 (multipart y streaming para ficheros grandes).
+  - electron-builder 26 (dmg/zip, NSIS, AppImage/deb/rpm/tar.gz) y electron-updater
+    con provider GitHub Releases. CI: .github/workflows/release.yml al pushear tags v*.
+  - i18next/react-i18next con locales en y es; iconos lucide-react; CSS propio
+    (src/renderer/src/assets/main.css, tema oscuro/claro, estilo glassmorphism).
+
+  ## Arquitectura
+  - src/main: proceso principal. index.ts registra los handlers ipcMain.handle;
+    s3.ts (cliente S3), localFs.ts (FS local), store.ts (persistencia), updater.ts.
+  - src/preload/index.ts expone window.api vía contextBridge; los tipos en
+    src/preload/index.d.ts. Todo acceso a red/FS pasa por IPC main ↔ renderer.
+  - src/shared/types.ts: tipos compartidos (S3Connection). src/shared/utils.ts.
+  - src/renderer/src: App.tsx (layout sidebar + split view LocalExplorer | S3Explorer),
+    components/, context/TransferQueueContext.tsx (cola y progreso vía evento
+    'transfer-progress').
+  - Persistencia: JSON en app.getPath('userData') (connections.json, settings.json).
+    Los secretos se cifran campo a campo con safeStorage (base64) y _encrypted: true.
+  - Identificadores actuales: package.json name "absor-file-explorer", appId
+    "com.absor.fileexplorer", productName "Absor S3 Explorer", executableName (win)
+    "AbsorS3Explorer". electronApp.setAppUserModelId('com.electron') es un resto de la
+    plantilla.
+
+  ## Convenciones
+  - Canales IPC en kebab-case con prefijo de dominio (s3-*, local-*, get-/save-*).
+    Cada canal nuevo: handler en main, método en preload y tipo en index.d.ts.
+  - Todo texto visible al usuario va por i18n y se añade en en.json y es.json.
+  - Credenciales nunca en claro en disco ni en logs; nunca se envían al renderer más
+    allá de lo que ya hace el formulario de edición.
+  - Prettier + ESLint (npm run lint, npm run format). Commits estilo conventional
+    (feat:, fix:, chore:).
+
+  ## Calidad y verificación
+  - No hay tests automatizados todavía. Puerta mínima: npm run typecheck (pasa en limpio).
+  - npm run lint arrastra deuda previa (~110 errores, sobre todo
+    explicit-function-return-type y no-explicit-any): no limpiarla de paso; el código
+    nuevo o tocado no debe añadir errores de lint.
+  - La verificación funcional es manual (npm run dev) y, cuando el cambio toca
+    empaquetado, datos de usuario o updates, con builds reales por plataforma.
+  - macOS no está firmado ni notarizado: Squirrel.Mac no puede auto-instalar; en mac
+    la actualización acaba siendo descarga manual del DMG.
+
+rules:
+  proposal:
+    - Incluir siempre una sección de "Fuera de alcance".
+    - Indicar impacto en usuarios existentes (datos, credenciales, auto-update) aunque sea "ninguno".
+  design:
+    - Para cada decisión con impacto multiplataforma, detallar macOS, Windows y Linux por separado.
+  tasks:
+    - Agrupar por capa (main, preload, renderer, empaquetado/CI, documentación).
+    - Terminar con tareas de verificación concretas (comandos o pasos manuales), incluyendo npm run typecheck y comprobar que los ficheros tocados no añaden errores de lint.
