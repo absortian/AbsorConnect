@@ -2,10 +2,14 @@ import { app, shell, BrowserWindow, ipcMain, dialog, clipboard } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { getConnections, saveConnections, getStoreStatus, isEncryptionAvailable, getTheme, saveTheme, getLanguage, saveLanguage } from './store'
+import { isEncryptionAvailable, getTheme, saveTheme, getLanguage, saveLanguage } from './store'
+import { getConnections, saveConnections, refreshIfStale } from './cloud/cloudStore'
+import { changePassword, deleteAccount, expireSession, getSessionState, login, logout, register } from './cloud/account'
+import { getMigrationOffer, migrateLocalConnections } from './cloud/migration'
+import { setUnauthorizedHandler } from './cloud/apiClient'
 import { listBuckets, listObjects, uploadFile, downloadFile, createFolder, deleteObject, deleteFolder } from './s3'
 import { ConnectionEntry, S3Connection, SshConnection } from '../shared/types'
-import { normalizeEntry } from '../shared/connections'
+import { normalizeEntry, sanitizeTree } from '../shared/connections'
 import { closeAllSsh, closeTerminal, openTerminal, resizeTerminal, sftpCreateDir, sftpDelete, sftpDownload, sftpHome, sftpListDir, sftpUpload, writeTerminal } from './ssh'
 import { getLocalHome, listLocalDir, createLocalDir, deleteLocalItem } from './localFs'
 import { initUpdater, checkForUpdates, downloadUpdate, quitAndInstall } from './updater'
@@ -59,12 +63,23 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  // IPC handlers
+  // Cuenta en la nube: las conexiones se leen y guardan en la API (src/main/cloud/)
+  setUnauthorizedHandler(expireSession)
+  ipcMain.handle('get-session', async () => await getSessionState())
+  ipcMain.handle('login', async (_, email: string, password: string) => await login(email, password))
+  ipcMain.handle('register', async (_, email: string, password: string) => await register(email, password))
+  ipcMain.handle('logout', async () => await logout())
+  ipcMain.handle('change-password', async (_, currentPassword: string, newPassword: string) => await changePassword(currentPassword, newPassword))
+  ipcMain.handle('delete-account', async (_, password: string) => await deleteAccount(password))
+  ipcMain.handle('get-migration-offer', async () => await getMigrationOffer())
+  ipcMain.handle('migrate-local-connections', async () => await migrateLocalConnections())
+  // Cambios desde otros equipos: al volver a la ventana se relee la lista si es antigua
+  app.on('browser-window-focus', () => refreshIfStale())
+
   ipcMain.handle('get-connections', async () => {
     return await getConnections()
   })
 
-  ipcMain.handle('get-store-status', () => getStoreStatus())
   ipcMain.handle('is-encryption-available', () => isEncryptionAvailable())
 
   ipcMain.handle('save-connections', async (_, connections: ConnectionEntry[]) => {
@@ -183,7 +198,8 @@ app.whenReady().then(() => {
     const data = await fs.readFile(filePaths[0], 'utf-8')
     const parsed = JSON.parse(data)
     if (!Array.isArray(parsed)) throw new Error('Invalid format: expected an array of connections')
-    return parsed.map(normalizeEntry)
+    // El servicio rechaza padres inexistentes: los huérfanos de ficheros antiguos pasan a la raíz
+    return sanitizeTree(parsed.map(normalizeEntry))
   })
 
   initUpdater()

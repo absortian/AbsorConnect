@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { X, Sun, Moon, Download, Upload, AlertTriangle, RefreshCw, ExternalLink, RotateCcw } from 'lucide-react'
+import { X, Sun, Moon, Download, Upload, AlertTriangle, RefreshCw, ExternalLink, RotateCcw, LogOut, KeyRound, Trash2, Loader2 } from 'lucide-react'
 import { ConnectionEntry } from '../../../shared/types'
 import { RELEASES_URL } from '../../../shared/constants'
+import { cloudErrorCode, cloudErrorMessage } from '../cloudErrors'
 
 interface UpdateStatus {
   status: 'idle' | 'checking' | 'available' | 'up-to-date' | 'downloading' | 'downloaded' | 'error'
@@ -14,13 +15,15 @@ interface UpdateStatus {
 }
 
 interface SettingsPanelProps {
+  email: string
   theme: string
   onThemeChange: (theme: string) => void
   onClose: () => void
   onConnectionsImported: (connections: ConnectionEntry[]) => void
+  onSignedOut: () => void
 }
 
-export default function SettingsPanel({ theme, onThemeChange, onClose, onConnectionsImported }: SettingsPanelProps) {
+export default function SettingsPanel({ email, theme, onThemeChange, onClose, onConnectionsImported, onSignedOut }: SettingsPanelProps) {
   const { t, i18n } = useTranslation()
   const [importError, setImportError] = useState<string | null>(null)
   const [exportSuccess, setExportSuccess] = useState(false)
@@ -84,15 +87,22 @@ export default function SettingsPanel({ theme, onThemeChange, onClose, onConnect
     if (result) setExportSuccess(true)
   }
 
+  // Importar reemplaza la lista de la cuenta, igual que antes reemplazaba la local
   const handleImport = async () => {
     setImportError(null)
+    let imported: ConnectionEntry[] | null
     try {
-      const imported = await window.api.importConnections()
-      if (imported === null) return // User cancelled
-      await window.api.saveConnections(imported)
-      onConnectionsImported(imported)
+      imported = await window.api.importConnections()
     } catch {
       setImportError(t('settings.importError'))
+      return
+    }
+    if (imported === null) return // User cancelled
+    try {
+      await window.api.saveConnections(imported)
+      onConnectionsImported(imported)
+    } catch (error) {
+      setImportError(t('cloud.saveFailed', { reason: cloudErrorMessage(cloudErrorCode(error), t) }))
     }
   }
 
@@ -110,6 +120,8 @@ export default function SettingsPanel({ theme, onThemeChange, onClose, onConnect
             <X size={18} />
           </button>
         </div>
+
+        <AccountSection email={email} encryptionAvailable={encryptionAvailable} onSignedOut={onSignedOut} />
 
         {/* Updates section */}
         <div className="settings-section">
@@ -278,14 +290,142 @@ export default function SettingsPanel({ theme, onThemeChange, onClose, onConnect
               {t('settings.exportWarning')}
             </span>
           </div>
-          {encryptionAvailable === false && (
-            <div className="settings-warning encryption-unavailable">
-              <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: '1px', color: '#eab308' }} />
-              <span>{t('store.encryptionUnavailable')}</span>
-            </div>
-          )}
         </div>
       </div>
     </div>
+  )
+}
+
+// Cuenta: email, cerrar sesión, cambiar contraseña y borrar la cuenta (con aviso y contraseña)
+function AccountSection({ email, encryptionAvailable, onSignedOut }: { email: string; encryptionAvailable: boolean | null; onSignedOut: () => void }): React.JSX.Element {
+  const { t } = useTranslation()
+  const [form, setForm] = useState<'password' | 'delete' | null>(null)
+  const [passwordChanged, setPasswordChanged] = useState(false)
+
+  const handleLogout = async (): Promise<void> => {
+    await window.api.logout()
+    onSignedOut()
+  }
+
+  return (
+    <div className="settings-section">
+      <h3>{t('account.title')}</h3>
+      <div className="settings-row">
+        <div style={{ minWidth: 0 }}>
+          <div className="settings-row-label">{t('account.signedInAs')}</div>
+          <div className="settings-row-hint account-email">{email}</div>
+        </div>
+        <button className="btn-secondary" onClick={handleLogout}>
+          <LogOut size={14} /> {t('account.logout')}
+        </button>
+      </div>
+
+      {form === null && (
+        <>
+          <button className="settings-btn" onClick={() => { setForm('password'); setPasswordChanged(false) }}>
+            <KeyRound size={16} /> {t('account.changePassword')}
+          </button>
+          {passwordChanged && <div className="form-success" style={{ marginTop: '6px' }}>{t('account.passwordChanged')}</div>}
+          <button className="settings-btn" onClick={() => { setForm('delete'); setPasswordChanged(false) }}>
+            <Trash2 size={16} /> {t('account.deleteAccount')}
+          </button>
+        </>
+      )}
+      {form === 'password' && (
+        <ChangePasswordForm onCancel={() => setForm(null)} onChanged={() => { setForm(null); setPasswordChanged(true) }} />
+      )}
+      {form === 'delete' && <DeleteAccountForm onCancel={() => setForm(null)} onDeleted={onSignedOut} />}
+
+      {encryptionAvailable === false && (
+        <div className="settings-warning encryption-unavailable">
+          <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: '1px', color: '#eab308' }} />
+          <span>{t('store.encryptionUnavailable')}</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ChangePasswordForm({ onCancel, onChanged }: { onCancel: () => void; onChanged: () => void }): React.JSX.Element {
+  const { t } = useTranslation()
+  const [current, setCurrent] = useState('')
+  const [next, setNext] = useState('')
+  const [confirmation, setConfirmation] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [working, setWorking] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
+    e.preventDefault()
+    if (next !== confirmation) {
+      setError('password_mismatch')
+      return
+    }
+    setWorking(true)
+    setError(null)
+    const result = await window.api.changePassword(current, next)
+    setWorking(false)
+    if (result.ok) onChanged()
+    else setError(result.code)
+  }
+
+  return (
+    <form className="form-stack" onSubmit={handleSubmit} style={{ marginTop: '12px' }}>
+      <div className="form-field">
+        <label htmlFor="account-current">{t('account.currentPassword')}</label>
+        <input id="account-current" className="form-input" type="password" required autoFocus autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} />
+      </div>
+      <div className="form-field">
+        <label htmlFor="account-new">{t('account.newPassword')}</label>
+        <input id="account-new" className="form-input" type="password" required autoComplete="new-password" value={next} onChange={(e) => setNext(e.target.value)} />
+        <span className="form-hint">{t('auth.passwordHint')}</span>
+      </div>
+      <div className="form-field">
+        <label htmlFor="account-confirmation">{t('account.confirmNewPassword')}</label>
+        <input id="account-confirmation" className="form-input" type="password" required autoComplete="new-password" value={confirmation} onChange={(e) => setConfirmation(e.target.value)} />
+      </div>
+      {error && <div className="form-error" role="alert">{cloudErrorMessage(error, t)}</div>}
+      <div className="form-actions">
+        <button type="button" className="btn-secondary" disabled={working} onClick={onCancel}>{t('account.cancel')}</button>
+        <button type="submit" className="btn-primary" disabled={working}>
+          {working && <Loader2 size={14} className="spin" />} {t('account.save')}
+        </button>
+      </div>
+    </form>
+  )
+}
+
+function DeleteAccountForm({ onCancel, onDeleted }: { onCancel: () => void; onDeleted: () => void }): React.JSX.Element {
+  const { t } = useTranslation()
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [working, setWorking] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
+    e.preventDefault()
+    setWorking(true)
+    setError(null)
+    const result = await window.api.deleteAccount(password)
+    setWorking(false)
+    if (result.ok) onDeleted()
+    else setError(result.code)
+  }
+
+  return (
+    <form className="danger-zone" onSubmit={handleSubmit}>
+      <p>{t('account.deleteWarning')}</p>
+      <div className="form-stack">
+        <div className="form-field">
+          <label htmlFor="account-delete-password">{t('account.deletePassword')}</label>
+          <input id="account-delete-password" className="form-input" type="password" required autoFocus autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+        </div>
+        {error && <div className="form-error" role="alert">{cloudErrorMessage(error, t)}</div>}
+        <div className="form-actions">
+          <button type="button" className="btn-secondary" disabled={working} onClick={onCancel}>{t('account.cancel')}</button>
+          <button type="submit" className="btn-danger" disabled={working}>
+            {working && <Loader2 size={14} className="spin" />} {t('account.deleteConfirm')}
+          </button>
+        </div>
+      </div>
+    </form>
   )
 }

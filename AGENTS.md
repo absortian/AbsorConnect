@@ -15,8 +15,10 @@ Lee primero el `README.md` (qué es, stack, comandos). Aquí va lo que no se ded
 ## Decisiones que conviene no romper
 
 ### App
-- **Almacén local de conexiones** (`src/main/store.ts`): nunca escribe encima de un fichero que no pudo leer, aparta el fichero dañado a `connections.json.corrupt-<fecha>` y conserva los secretos que no puede descifrar (`credentialsUnavailable`) hasta que la persona introduce otros.
-- **Nada de `safeStorage` al arrancar**: en macOS cada acceso puede abrir el diálogo del Llavero. Solo se usa al leer o guardar secretos.
+- **Conexiones en la cuenta, no en el disco** (`src/main/cloud/`): el proceso principal guarda la lista en la API y la tiene en caché; el token nunca llega al renderer. Lecturas y escrituras van en fila (`cloudStore.ts`) para que dos guardados seguidos no choquen entre sí con un 409.
+- **`connections.json` solo se lee para migrarlo** (`store.ts` + `cloud/migration.ts`): aparta el fichero dañado a `connections.json.corrupt-<fecha>`, sube los secretos que no puede descifrar vacíos y con `credentialsUnavailable`, y borra el fichero y su `.bak` solo si la subida va bien.
+- **Errores de la API en el renderer**: las operaciones de cuenta devuelven `{ok: false, code}` y las de conexiones lanzan un error cuyo mensaje acaba en el código (`cloudErrors.ts`). Toda llamada que pueda fallar se captura: `main.tsx` convierte cualquier promesa rechazada sin capturar en un `alert()`.
+- **`safeStorage` solo con sesión**: en macOS cada acceso puede abrir el diálogo del Llavero. Sin `session.json` la app arranca sin tocarlo; se usa para el token de sesión (`src/main/cloud/session.ts`) y, una vez, para leer `connections.json` en la migración.
 - **Windows**: el instalador se construye con NSIS 3.12 (`toolsets.nsis: '1.2.1'` en `electron-builder.yml`); el 3.0.4.1 por defecto se cuelga en parte de las instalaciones.
 - **Paquetes `.deb`**: se construyen en Linux; el `ar` de macOS genera paquetes rotos.
 

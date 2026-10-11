@@ -67,3 +67,27 @@ export function normalizeEntry(raw: unknown): ConnectionEntry {
 
   return fail(`unknown type "${String(type)}"`)
 }
+
+/**
+ * Deja la lista en una forma que el servicio acepta sin perder entradas: quita los ids
+ * repetidos (se queda la primera), y las entradas cuyo padre no es una carpeta de la
+ * lista, o que forman un ciclo, pasan a la raíz. Versiones antiguas podían dejar
+ * huérfanos que la barra lateral no muestra.
+ */
+export function sanitizeTree(entries: ConnectionEntry[]): ConnectionEntry[] {
+  const seenIds = new Set<string>()
+  const unique = entries.filter((entry) => !seenIds.has(entry.id) && seenIds.add(entry.id))
+  const folderIds = new Set(unique.filter((entry) => entry.isFolder).map((entry) => entry.id))
+  const parentOf = new Map(unique.map((entry) => [entry.id, entry.parentId && folderIds.has(entry.parentId) ? entry.parentId : null]))
+  for (const entry of unique) {
+    const visited = new Set<string>()
+    for (let id: string | null = entry.id; id !== null; id = parentOf.get(id) ?? null) {
+      if (visited.has(id)) {
+        parentOf.set(id, null) // rompe el ciclo en la entrada que se repite
+        break
+      }
+      visited.add(id)
+    }
+  }
+  return unique.map((entry) => (parentOf.get(entry.id) === (entry.parentId ?? null) ? entry : { ...entry, parentId: parentOf.get(entry.id) ?? null }))
+}

@@ -169,9 +169,73 @@
   },
   "store": {
     "credentialsUnavailable": "Las credenciales guardadas de esta conexión no se pueden leer. Edítala y vuelve a introducirlas.",
-    "unreadableCredentials": "Las credenciales guardadas de {{count}} conexión(es) no se pueden leer en este sistema (por ejemplo, si cambió el llavero del sistema). Se conservan: edita esas conexiones para volver a introducirlas.",
+    "unreadableCredentials": "Las credenciales de {{count}} conexión(es) no están disponibles: no se pudieron leer en el equipo del que se subieron o el servicio no puede descifrarlas. Se conservan: edita esas conexiones para volver a introducirlas.",
     "corruptRecovered": "El fichero de conexiones estaba dañado y no se pudo leer. Se ha guardado una copia en: {{path}}",
     "reenterCredentials": "Las credenciales guardadas no se pueden leer. Vuelve a introducirlas o déjalas vacías para conservar las guardadas.",
-    "encryptionUnavailable": "Este sistema no tiene un almacén seguro disponible (por ejemplo, Linux sin keyring): las credenciales se guardan sin cifrar."
+    "encryptionUnavailable": "Este sistema no tiene un almacén seguro disponible (por ejemplo, Linux sin keyring): la sesión de tu cuenta se guarda sin cifrar en este equipo."
+  },
+  "auth": {
+    "subtitle": "Inicia sesión para tener tus conexiones en todos tus equipos.",
+    "login": "Iniciar sesión",
+    "register": "Crear cuenta",
+    "email": "Email",
+    "password": "Contraseña",
+    "confirmPassword": "Repite la contraseña",
+    "passwordHint": "Al menos 10 caracteres.",
+    "submitLogin": "Entrar",
+    "submitRegister": "Crear cuenta",
+    "working": "Un momento…",
+    "expired": "Tu sesión ha caducado o se ha cerrado desde otro lugar. Vuelve a iniciar sesión.",
+    "errors": {
+      "invalid_credentials": "El email o la contraseña no son correctos.",
+      "email_taken": "Ya existe una cuenta con ese email. Inicia sesión.",
+      "email_invalid": "El email no es válido.",
+      "password_too_short": "La contraseña debe tener al menos 10 caracteres.",
+      "password_too_long": "La contraseña es demasiado larga.",
+      "password_mismatch": "Las contraseñas no coinciden.",
+      "password_incorrect": "La contraseña no es correcta.",
+      "too_many_attempts": "Demasiados intentos. Espera un poco y vuelve a probar.",
+      "connections_conflict": "Otro equipo ha guardado cambios mientras tanto.",
+      "connections_invalid": "El servicio ha rechazado la lista de conexiones.",
+      "network_error": "No se puede contactar con el servicio. Comprueba tu conexión a internet.",
+      "server_error": "El servicio no está disponible ahora mismo. Inténtalo más tarde.",
+      "unknown": "Algo ha fallado. Inténtalo de nuevo."
+    }
+  },
+  "unreachable": {
+    "title": "No se puede contactar con el servicio",
+    "description": "Absor Connect guarda tus conexiones en tu cuenta. Comprueba tu conexión a internet y vuelve a intentarlo.",
+    "retry": "Reintentar"
+  },
+  "migration": {
+    "title": "Conexiones de este equipo",
+    "description_one": "Hay 1 conexión guardada en este equipo por una versión anterior. ¿Quieres subirla a tu cuenta? Después se borrará del equipo.",
+    "description_other": "Hay {{count}} conexiones guardadas en este equipo por una versión anterior. ¿Quieres subirlas a tu cuenta? Después se borrarán del equipo.",
+    "upload": "Subir a mi cuenta",
+    "later": "Ahora no",
+    "uploading": "Subiendo…",
+    "failed": "No se pudo completar la migración: {{reason}} Las conexiones siguen en este equipo y se te volverá a preguntar la próxima vez que inicies sesión.",
+    "done": "Conexiones subidas a tu cuenta y borradas de este equipo."
+  },
+  "cloud": {
+    "conflict": "Otro equipo ha cambiado tus conexiones. Se ha cargado la lista actual y tu último cambio no se ha guardado: repítelo.",
+    "saveFailed": "No se pudo guardar el cambio: {{reason}}",
+    "dismiss": "Cerrar"
+  },
+  "account": {
+    "title": "Cuenta",
+    "signedInAs": "Sesión iniciada como",
+    "changePassword": "Cambiar contraseña",
+    "currentPassword": "Contraseña actual",
+    "newPassword": "Contraseña nueva",
+    "confirmNewPassword": "Repite la contraseña nueva",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "passwordChanged": "Contraseña cambiada. Se han cerrado tus sesiones en los demás equipos.",
+    "logout": "Cerrar sesión",
+    "deleteAccount": "Borrar cuenta",
+    "deleteWarning": "Se borrarán tu cuenta y todas tus conexiones guardadas, en todos tus equipos. No se puede deshacer.",
+    "deletePassword": "Escribe tu contraseña para confirmar",
+    "deleteConfirm": "Borrar mi cuenta"
   }
 }

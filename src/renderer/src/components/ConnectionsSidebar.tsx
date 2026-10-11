@@ -3,6 +3,10 @@ import { useTranslation } from 'react-i18next'
 import { Plus, HardDrive, Server, Trash2, X, FolderPlus, Folder, ChevronDown, ChevronRight, Pencil, SquareTerminal, AlertTriangle } from 'lucide-react'
 import { Connection, ConnectionDraft, ConnectionEntry, ConnectionType, FolderEntry, SshAuthMethod, SshConnection } from '../../../shared/types'
 import { DEFAULT_SSH_PORT, SECRET_FIELDS } from '../../../shared/connections'
+import { cloudErrorCode, cloudErrorMessage } from '../cloudErrors'
+
+// Aviso sobre el último guardado: otro equipo guardó antes (conflict) o falló la petición
+type SaveNotice = { kind: 'conflict' } | { kind: 'error'; code: string }
 
 export default function ConnectionsSidebar({ isOpen, onSelectConnection, onOpenTerminal }: { isOpen: boolean, onSelectConnection: (conn: Connection) => void, onOpenTerminal: (conn: SshConnection) => void }) {
   const { t } = useTranslation()
@@ -14,17 +18,44 @@ export default function ConnectionsSidebar({ isOpen, onSelectConnection, onOpenT
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [dragOverId, setDragOverId] = useState<string | null>(null)
 
-  const [recoveredFile, setRecoveredFile] = useState<string | null>(null)
+  const [notice, setNotice] = useState<SaveNotice | null>(null)
 
-  // Load existing connections (and whether the store had to set a damaged file aside)
+  // Lista de la cuenta (el proceso principal la tiene en caché) y cambios desde otros equipos:
+  // al volver a la ventana o cuando un guardado se rechaza por conflicto
   useEffect(() => {
-    window.api.getConnections().then(async (list) => {
-      setConnections(list)
-      setRecoveredFile((await window.api.getStoreStatus()).recoveredFile)
+    window.api.getConnections().then(setConnections).catch((error) => setNotice({ kind: 'error', code: cloudErrorCode(error) }))
+    return window.api.onConnectionsChanged(async ({ conflict }) => {
+      try {
+        setConnections(await window.api.getConnections())
+        if (conflict) setNotice({ kind: 'conflict' })
+      } catch {
+        // Sesión caducada: la puerta de sesión ya vuelve a la pantalla de acceso
+      }
     })
   }, [])
 
   if (!isOpen) return null
+
+  // Guarda la lista entera en la cuenta. Si falla, devuelve false y la lista vuelve a la
+  // guardada (en un conflicto ya llega recargada por connections-changed, con su aviso)
+  const persist = async (updated: ConnectionEntry[]): Promise<boolean> => {
+    setConnections(updated)
+    setNotice(null)
+    try {
+      await window.api.saveConnections(updated)
+      // La lista que ha confirmado el servicio. El proceso principal pone en fila lecturas y
+      // escrituras, así que una carga anterior aún en curso no puede pisar este cambio.
+      setConnections(await window.api.getConnections())
+      return true
+    } catch (error) {
+      const code = cloudErrorCode(error)
+      if (code !== 'connections_conflict' && code !== 'unauthenticated') {
+        setNotice({ kind: 'error', code })
+        setConnections(await window.api.getConnections().catch(() => connections))
+      }
+      return false
+    }
+  }
 
   const handleSaveConnection = async (newConn: ConnectionDraft) => {
     if (editingConnection) {
@@ -32,8 +63,8 @@ export default function ConnectionsSidebar({ isOpen, onSelectConnection, onOpenT
       const updated = connections.map(c =>
         c.id === editingConnection.id ? ({ ...newConn, id: editingConnection.id } as Connection) : c
       )
-      setConnections(updated)
-      await window.api.saveConnections(updated)
+      // Si no se guarda, el formulario sigue abierto para repetir el cambio
+      if (!(await persist(updated))) return
       setEditingConnection(null)
       setShowModal(false)
     } else {
@@ -42,8 +73,7 @@ export default function ConnectionsSidebar({ isOpen, onSelectConnection, onOpenT
         id: crypto.randomUUID()
       } as Connection
       const updated = [...connections, conn]
-      setConnections(updated)
-      await window.api.saveConnections(updated)
+      if (!(await persist(updated))) return
       setShowModal(false)
     }
   }
@@ -62,8 +92,7 @@ export default function ConnectionsSidebar({ isOpen, onSelectConnection, onOpenT
       parentId: null
     }
     const updated = [...connections, folder]
-    setConnections(updated)
-    await window.api.saveConnections(updated)
+    if (!(await persist(updated))) return
     setShowFolderModal(false)
   }
 
@@ -81,8 +110,7 @@ export default function ConnectionsSidebar({ isOpen, onSelectConnection, onOpenT
     findChildren(id)
     
     const updated = connections.filter(c => !toDelete.has(c.id))
-    setConnections(updated)
-    await window.api.saveConnections(updated)
+    await persist(updated)
   }
 
   const toggleFolder = (id: string, e: React.MouseEvent) => {
@@ -109,10 +137,10 @@ export default function ConnectionsSidebar({ isOpen, onSelectConnection, onOpenT
       if (c.id === itemId) return { ...c, parentId: targetParentId }
       return c
     })
-    setConnections(updated)
-    await window.api.saveConnections(updated)
+    await persist(updated)
   }
 
+  const noticeText = notice && (notice.kind === 'conflict' ? t('cloud.conflict') : t('cloud.saveFailed', { reason: cloudErrorMessage(notice.code, t) }))
   const folders = connections.filter((c): c is FolderEntry => c.isFolder === true)
   const unreadableCount = connections.filter((c) => !c.isFolder && c.credentialsUnavailable).length
   const rootItems = connections.filter(c => !c.parentId)
@@ -294,13 +322,19 @@ export default function ConnectionsSidebar({ isOpen, onSelectConnection, onOpenT
                await handleMoveItem(draggedId, null)
              }}
         >
-          {(unreadableCount > 0 || recoveredFile) && (
+          {notice && (
+            <div className={`cloud-notice ${notice.kind === 'error' ? 'error' : ''}`} role="alert">
+              <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: '1px', color: notice.kind === 'error' ? '#ef4444' : '#eab308' }} />
+              <span>{noticeText}</span>
+              <button title={t('cloud.dismiss')} onClick={() => setNotice(null)}>
+                <X size={14} />
+              </button>
+            </div>
+          )}
+          {unreadableCount > 0 && (
             <div className="settings-warning store-warning" style={{ marginBottom: '12px' }}>
               <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: '1px', color: '#eab308' }} />
-              <span>
-                {unreadableCount > 0 && <span style={{ display: 'block' }}>{t('store.unreadableCredentials', { count: unreadableCount })}</span>}
-                {recoveredFile && <span style={{ display: 'block', wordBreak: 'break-all' }}>{t('store.corruptRecovered', { path: recoveredFile })}</span>}
-              </span>
+              <span>{t('store.unreadableCredentials', { count: unreadableCount })}</span>
             </div>
           )}
           {connections.length === 0 ? (
@@ -322,6 +356,7 @@ export default function ConnectionsSidebar({ isOpen, onSelectConnection, onOpenT
       {showModal && (
         <ConnectionModal 
           folders={folders}
+          notice={noticeText}
           editingConnection={editingConnection}
           onClose={() => { setShowModal(false); setEditingConnection(null) }} 
           onSave={handleSaveConnection} 
@@ -329,6 +364,7 @@ export default function ConnectionsSidebar({ isOpen, onSelectConnection, onOpenT
       )}
       {showFolderModal && (
         <FolderModal 
+          notice={noticeText}
           onClose={() => setShowFolderModal(false)} 
           onSave={handleSaveFolder} 
         />
@@ -337,7 +373,7 @@ export default function ConnectionsSidebar({ isOpen, onSelectConnection, onOpenT
   )
 }
 
-function ConnectionModal({ folders, editingConnection, onClose, onSave }: { folders: FolderEntry[], editingConnection: Connection | null, onClose: () => void, onSave: (conn: ConnectionDraft) => Promise<void> }) {
+function ConnectionModal({ folders, notice, editingConnection, onClose, onSave }: { folders: FolderEntry[], notice: string | null, editingConnection: Connection | null, onClose: () => void, onSave: (conn: ConnectionDraft) => Promise<void> }) {
   const { t } = useTranslation()
   const editingS3 = editingConnection?.type === 's3' ? editingConnection : null
   const editingSsh = editingConnection?.type === 'ssh' ? editingConnection : null
@@ -407,6 +443,7 @@ function ConnectionModal({ folders, editingConnection, onClose, onSave }: { fold
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {notice && <SaveNoticeBanner text={notice} />}
           {unavailable && (
             <div className="settings-warning">
               <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: '1px', color: '#eab308' }} />
@@ -498,7 +535,7 @@ function ConnectionModal({ folders, editingConnection, onClose, onSave }: { fold
   )
 }
 
-function FolderModal({ onClose, onSave }: { onClose: () => void, onSave: (name: string) => Promise<void> }) {
+function FolderModal({ notice, onClose, onSave }: { notice: string | null, onClose: () => void, onSave: (name: string) => Promise<void> }) {
   const { t } = useTranslation()
   const [name, setName] = useState('')
   const handleSubmit = (e: React.FormEvent) => {
@@ -516,6 +553,7 @@ function FolderModal({ onClose, onSave }: { onClose: () => void, onSave: (name: 
           <button className="btn-icon" onClick={onClose}><X size={20} /></button>
         </div>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {notice && <SaveNoticeBanner text={notice} />}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{t('sidebar.folderName')}</label>
             <input required autoFocus type="text" value={name} onChange={e => setName(e.target.value)} placeholder={t('sidebar.folderNamePlaceholder')} style={inputStyle} />
@@ -526,6 +564,16 @@ function FolderModal({ onClose, onSave }: { onClose: () => void, onSave: (name: 
           </div>
         </form>
       </div>
+    </div>
+  )
+}
+
+// El aviso del último guardado también dentro del formulario abierto: el fondo lo tapa
+function SaveNoticeBanner({ text }: { text: string }): React.JSX.Element {
+  return (
+    <div className="cloud-notice" role="alert" style={{ marginBottom: 0 }}>
+      <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: '1px', color: '#eab308' }} />
+      <span>{text}</span>
     </div>
   )
 }

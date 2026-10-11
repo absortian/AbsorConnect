@@ -4,6 +4,8 @@ import * as path from 'path'
 import { ConnectionEntry } from '../shared/types'
 import { SECRET_FIELDS, normalizeEntry } from '../shared/connections'
 
+// connections.json de las versiones sin cuenta: ya no se escribe, solo se lee para migrarlo a la
+// nube (cloud/migration.ts). settings.json (tema e idioma) sigue siendo local a cada equipo.
 const STORE_PATH = path.join(app.getPath('userData'), 'connections.json')
 const SETTINGS_PATH = path.join(app.getPath('userData'), 'settings.json')
 
@@ -12,19 +14,18 @@ export interface StoreStatus {
   recoveredFile: string | null
 }
 
-// Estado de la última lectura: lo consulta el renderer para avisar al usuario
+// Estado de la última lectura, para el aviso de la migración
 let unreadableCredentials = 0
 let recoveredFile: string | null = null
-let readFailed = false
 
 // No consulta safeStorage: en macOS eso accede al Llavero (y puede abrir un diálogo que bloquea
-// el proceso principal), y el estado se pide en cada arranque
+// el proceso principal)
 export function getStoreStatus(): StoreStatus {
   return { unreadableCredentials, recoveredFile }
 }
 
-// Solo para la nota de Ajustes. En macOS (Llavero) y Windows (DPAPI) el almacén seguro siempre
-// existe; solo Linux depende de que haya keyring (libsecret/kwallet)
+// Solo para la nota de Ajustes sobre la sesión. En macOS (Llavero) y Windows (DPAPI) el almacén
+// seguro siempre existe; solo Linux depende de que haya keyring (libsecret/kwallet)
 export function isEncryptionAvailable(): boolean {
   return process.platform === 'linux' ? safeStorage.isEncryptionAvailable() : true
 }
@@ -52,7 +53,7 @@ function decryptEntry(entry: ConnectionEntry): ConnectionEntry {
     try {
       result[field] = safeStorage.decryptString(Buffer.from(value, 'base64'))
     } catch {
-      // Se conserva en disco: saveConnections recupera el valor cifrado original
+      // La migración la sube sin secreto y marcada, para que se reintroduzca
       result[field] = ''
       unreadable = true
     }
@@ -61,8 +62,8 @@ function decryptEntry(entry: ConnectionEntry): ConnectionEntry {
   return result as unknown as ConnectionEntry
 }
 
-// Entradas de versiones anteriores (sin tipo) pasan a S3; una entrada no reconocible
-// se conserva tal cual para no perderla al volver a guardar
+// Entradas de versiones anteriores (sin tipo) pasan a S3; una entrada no reconocible se
+// devuelve tal cual y la migración la deja fuera
 function toEntry(raw: unknown): ConnectionEntry {
   try {
     return normalizeEntry(raw)
@@ -72,31 +73,19 @@ function toEntry(raw: unknown): ConnectionEntry {
   }
 }
 
-async function readRawEntries(): Promise<unknown[] | null> {
-  try {
-    const parsed = JSON.parse(await fs.readFile(STORE_PATH, 'utf-8'))
-    return Array.isArray(parsed) ? parsed : null
-  } catch {
-    return null
-  }
-}
-
 export async function getConnections(): Promise<ConnectionEntry[]> {
   let data: string
   try {
     data = await fs.readFile(STORE_PATH, 'utf-8')
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      readFailed = false
       unreadableCredentials = 0
-      return [] // File doesn't exist yet
+      return [] // No hay fichero de una versión anterior
     }
-    // No se pudo leer (permisos…): no se permitirá guardar encima de lo que no se leyó
+    // No se pudo leer (permisos…): no se ofrece la migración y el fichero queda intacto
     console.error('Failed to read connections:', error)
-    readFailed = true
     return []
   }
-  readFailed = false
 
   let entries: unknown
   try {
@@ -119,53 +108,11 @@ export async function getConnections(): Promise<ConnectionEntry[]> {
   return result
 }
 
-function encryptEntry(entry: ConnectionEntry, stored: Record<string, unknown> | undefined): Record<string, unknown> {
-  const result: Record<string, unknown> = { ...entry }
-  const credentialsUnavailable = result.credentialsUnavailable === true
-  delete result.credentialsUnavailable
-  delete result._encrypted
-  if (result.isFolder) return result
-  // Se consulta solo si hay algo que cifrar, para no tocar el almacén seguro sin necesidad
-  let canEncrypt: boolean | undefined
-  let allEncrypted = true
-  for (const field of secretFields(result)) {
-    const value = result[field]
-    if (credentialsUnavailable && (value === '' || value === undefined) && typeof stored?.[field] === 'string') {
-      // Secreto ilegible que el usuario no ha reemplazado: se conserva tal cual estaba
-      result[field] = stored[field]
-    } else if (typeof value === 'string' && value !== '') {
-      canEncrypt ??= safeStorage.isEncryptionAvailable()
-      if (canEncrypt) result[field] = safeStorage.encryptString(value).toString('base64')
-    }
-    const final = result[field]
-    if (typeof final === 'string' && final !== '' && !isEncryptedBlob(final)) allEncrypted = false
-  }
-  return allEncrypted ? { ...result, _encrypted: true } : result
-}
-
-export async function saveConnections(connections: ConnectionEntry[]): Promise<void> {
-  if (readFailed) {
-    throw new Error('Connections file could not be read; refusing to overwrite it')
-  }
-  try {
-    const storedById = new Map<string, Record<string, unknown>>()
-    for (const raw of (await readRawEntries()) ?? []) {
-      if (raw && typeof raw === 'object' && typeof (raw as { id?: unknown }).id === 'string') {
-        storedById.set((raw as { id: string }).id, raw as Record<string, unknown>)
-      }
-    }
-    const serialized = JSON.stringify(connections.map((c) => encryptEntry(c, storedById.get(c.id))), null, 2)
-    // Escritura atómica: temporal + renombrado, guardando antes la versión anterior en .bak
-    const tmpPath = `${STORE_PATH}.tmp`
-    await fs.writeFile(tmpPath, serialized, 'utf-8')
-    await fs.copyFile(STORE_PATH, `${STORE_PATH}.bak`).catch((error) => {
-      if (error.code !== 'ENOENT') throw error
-    })
-    await fs.rename(tmpPath, STORE_PATH)
-  } catch (error) {
-    console.error('Failed to save connections:', error)
-    throw error
-  }
+// Tras subir las conexiones a la cuenta (migración): el fichero y su copia dejan de existir,
+// porque las credenciales ya no se guardan en el equipo
+export async function removeConnectionsFile(): Promise<void> {
+  await Promise.all([STORE_PATH, `${STORE_PATH}.bak`].map((file) => fs.rm(file, { force: true })))
+  unreadableCredentials = 0
 }
 
 interface Settings {
