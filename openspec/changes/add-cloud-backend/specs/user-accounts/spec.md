@@ -34,7 +34,7 @@ Una persona registrada SHALL poder iniciar sesión con su email y contraseña de
 
 #### Scenario: Sesión caducada o desconocida
 - **WHEN** se llama a la API con un token caducado, revocado o inexistente
-- **THEN** la respuesta es un error 401 `unauthorized`
+- **THEN** la respuesta es un error 401 `unauthenticated`
 
 ### Requirement: Cierre de sesión
 Una persona SHALL poder cerrar la sesión del dispositivo actual, lo que revoca su token, sin afectar a sus otras sesiones.

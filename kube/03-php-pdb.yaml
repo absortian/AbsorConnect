@@ -1,0 +1,14 @@
+# Presupuesto de interrupción: ante un drenaje de nodo (mantenimiento, upgrade
+# del cluster) Kubernetes no puede dejar menos de dos pods en pie.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  labels:
+    app: absorconnect-php
+  name: absorconnect-php
+  namespace: absorconnect
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: absorconnect-php

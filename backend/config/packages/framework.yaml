@@ -1,0 +1,15 @@
+# see https://symfony.com/doc/current/reference/configuration/framework.html
+framework:
+    secret: '%env(APP_SECRET)%'
+
+    # API sin estado: la app se autentica con un token en cada petición, sin cookies.
+    session: false
+
+    # El TLS termina en Cloudflare y el proxy: la IP del cliente (para los límites
+    # de intentos) llega en X-Forwarded-For y solo se acepta de estos proxies.
+    trusted_proxies: '%env(TRUSTED_PROXIES)%'
+    trusted_headers: ['x-forwarded-for', 'x-forwarded-proto', 'x-forwarded-port']
+
+when@test:
+    framework:
+        test: true

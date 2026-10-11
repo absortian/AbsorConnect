@@ -1,0 +1,30 @@
+---
+# Entorno de DESARROLLO (docker compose lo aplica automáticamente).
+# API en :8020 y Postgres en :5434: distintos de AbsorQuiz (8000/5432) y
+# Politinder (8010/5433) para poder tener los proyectos levantados a la vez.
+services:
+  php:
+    image: absorconnect-php-dev
+    build:
+      context: ./backend
+      target: frankenphp_dev
+    environment:
+      SERVER_NAME: ${SERVER_NAME:-http://localhost, http://php}
+      DEFAULT_URI: ${DEFAULT_URI:-http://localhost:8020}
+      FRANKENPHP_WORKER_CONFIG: watch
+      XDEBUG_MODE: "${XDEBUG_MODE:-off}"
+      APP_ENV: "${APP_ENV:-dev}"
+    volumes:
+      - ./backend:/app
+      - ./backend/frankenphp/Caddyfile:/etc/frankenphp/Caddyfile:ro
+      - ./backend/frankenphp/conf.d/20-app.dev.ini:/usr/local/etc/php/app.conf.d/20-app.dev.ini:ro
+    ports:
+      - "8020:80"
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    tty: true
+
+  database:
+    ports:
+      # Para inspeccionar la BD desde el host (TablePlus, DBeaver…)
+      - "127.0.0.1:5434:5432"

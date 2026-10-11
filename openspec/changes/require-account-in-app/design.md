@@ -63,7 +63,7 @@ Tras un login o registro correcto, el proceso principal lee el fichero con el `s
 - **Con entradas:** el renderer muestra un diálogo de la app (no `window.confirm`) con el número de conexiones y dos botones, "Subir a mi cuenta" y "Ahora no".
 
 Al subir:
-1. Fusión: entradas de la nube y, a continuación, las locales cuyo `id` no esté ya en la nube, conservando sus carpetas.
+1. Fusión: entradas de la nube y, a continuación, las locales cuyo `id` no esté ya en la nube, conservando sus carpetas. Una entrada local cuyo `parentId` no apunte a una carpeta de la lista fusionada pasa a la raíz, porque el servidor rechaza padres inexistentes (`connections_invalid`). Las versiones antiguas podían dejar huérfanos invisibles en la barra lateral.
 2. `PUT` con la revisión actual.
 3. Solo si el `PUT` va bien, se borran `connections.json` y `connections.json.bak`.
 4. Las entradas locales con credenciales ilegibles se suben con los secretos vacíos y sin la marca. En la nube no hay un secreto antiguo que conservar, así que la conexión queda sin credenciales y la persona las reintroduce al editarla.
@@ -84,7 +84,7 @@ La nota de Linux sobre el almacén no disponible pasa a decir que la **sesión**
 - **Importar** valida con `normalizeEntry` y reemplaza la lista de la cuenta con un `PUT`, igual que antes reemplazaba la local.
 
 ### D8. Configuración de compilación
-- `MAIN_VITE_API_URL` en `.env.production` (electron-vite), con el dominio que cree el propietario. Mientras no exista, un valor provisional documentado.
+- `MAIN_VITE_API_URL=https://absorconnect.absor.top` en `.env.production` (electron-vite). El propietario crea ese dominio en Cloudflare, apuntando al NodePort 30081.
 - En `release.yml` se puede sobrescribir con una variable del repositorio.
 - En desarrollo: `http://localhost:8020` (compose del backend).
 

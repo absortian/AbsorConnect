@@ -30,6 +30,7 @@ Aplicación de escritorio para gestionar archivos entre el sistema de archivos l
 | Persistencia | electron-store |
 | Iconos | lucide-react |
 | Empaquetado | electron-builder |
+| Backend (cuentas en la nube) | Symfony 8.1 · PHP 8.5 · PostgreSQL 16 · FrankenPHP |
 
 ## Desarrollo
 
@@ -43,6 +44,55 @@ npm run dev
 # Compilar para producción
 npm run build
 ```
+
+## Backend (cuentas y conexiones en la nube)
+
+`backend/` es la API con la que la app guardará las conexiones en una cuenta (registro con email y contraseña). En producción vive en `https://absorconnect.absor.top`. Las credenciales de las conexiones se guardan cifradas con una clave del servicio (`CONNECTIONS_KEY`), y de los tokens de sesión solo se guarda su hash.
+
+### Desarrollo
+
+Requisito único: **Docker** (no hace falta PHP en local).
+
+```bash
+# API en http://localhost:8020 y PostgreSQL en localhost:5434 (datos en ./.docker/)
+docker compose up -d --wait
+
+# Primera vez: esquema de la base de datos
+docker compose exec php php bin/console doctrine:migrations:migrate -n
+
+# Tests (la primera vez crean la base de datos app_test; cada test se deshace al acabar)
+docker compose exec php sh -c "php bin/console --env=test doctrine:database:create --if-not-exists -n && php bin/console --env=test doctrine:migrations:migrate -n && php bin/phpunit"
+```
+
+Para resetear la base de datos: `docker compose down && rm -rf .docker/postgres`.
+
+### API
+
+| Método y ruta | Uso |
+|---|---|
+| `POST /api/auth/register` · `POST /api/auth/login` | `{email, password, deviceName}` → `{token, user}` |
+| `POST /api/auth/logout` | Cierra la sesión de este dispositivo |
+| `GET /api/me` · `PUT /api/me/password` · `DELETE /api/me` | Cuenta: datos, cambio de contraseña (cierra las demás sesiones) y borrado |
+| `GET /api/connections` · `PUT /api/connections` | Lista `{revision, entries}`; el `PUT` la reemplaza entera y responde 409 si otra sesión guardó antes |
+| `GET /api/health` | Comprobación de PHP y PostgreSQL |
+
+Las rutas autenticadas llevan `Authorization: Bearer <token>`. Los errores son `{"error": {"code": "…"}}` con códigos estables (`email_taken`, `invalid_credentials`, `connections_conflict`…). El contrato completo está en `openspec/changes/add-cloud-backend/design.md` (D4).
+
+### Comandos de operación
+
+```bash
+# No hay recuperación por correo: el operador genera una contraseña nueva (cierra todas las sesiones)
+docker compose exec php php bin/console app:user:reset-password persona@correo.com
+
+# Cuentas con su número de conexiones y de sesiones activas (sin secretos)
+docker compose exec php php bin/console app:user:list
+```
+
+En producción, los mismos comandos con `kubectl exec -n absorconnect deploy/absorconnect-php -- php bin/console …`.
+
+### Despliegue
+
+Jenkins construye la imagen `absortian/absortian:php-absorconnect-1.0.0` (`docker/prod/php/Dockerfile`), aplica las migraciones con un Job y despliega 3 réplicas en Kubernetes (`kube/`, NodePort 30081). El primer despliegue necesita pasos manuales: crear la base de datos, el Secret `absorconnect-env`, el job de Jenkins y el dominio en Cloudflare. Están detallados en [`kube/AGENTS.md`](kube/AGENTS.md#primer-despliegue).
 
 ## Plataformas soportadas
 

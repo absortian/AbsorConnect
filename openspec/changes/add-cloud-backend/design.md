@@ -52,7 +52,7 @@ Se usa el autenticador nativo `access_token` de Symfony con un `AccessTokenHandl
 *Alternativa descartada:* JWT con tokens de refresco (lexik + gesdinet, como en AbsorShopCatalog). Añade dos bundles y la complejidad de la rotación, y un JWT no se puede revocar antes de caducar. Aquí cada petición puede consultar la sesión en Postgres sin coste apreciable.
 
 ### D4. Contrato de la API
-Todas las rutas son JSON. Los errores tienen la forma `{ "error": "<code>", ...detalle }`.
+Todas las rutas son JSON. Los errores siguen la convención de Politinder: `{ "error": { "code": "<code>", "details": {…} } }`. El 409 de conflicto añade `revision` y `entries` en la raíz del cuerpo.
 
 | Método y ruta | Auth | Cuerpo | Respuesta |
 |---|---|---|---|
@@ -63,10 +63,15 @@ Todas las rutas son JSON. Los errores tienen la forma `{ "error": "<code>", ...d
 | `PUT /api/me/password` | token | `{currentPassword, newPassword}` | 204 |
 | `DELETE /api/me` | token | `{password}` | 204 |
 | `GET /api/connections` | token | — | 200 `{revision, entries: [...]}` |
-| `PUT /api/connections` | token | `{revision, entries: [...]}` | 200 `{revision, entries}` o 409 `{error: connections_conflict, revision, entries}` |
+| `PUT /api/connections` | token | `{revision, entries: [...]}` | 200 `{revision, entries}` o 409 `{error: {code: connections_conflict}, revision, entries}` |
 | `GET /api/health` | — | — | 200 si PHP y Postgres responden (readiness) |
 
-- **Códigos de error:** `email_invalid`, `email_taken`, `password_too_short`, `password_too_long` (>4096), `invalid_credentials`, `password_incorrect`, `unauthorized` (401), `too_many_attempts` (429), `connections_conflict` (409), `connections_invalid` (400, con `{index, reason}`) y `invalid_json`.
+- **Códigos de error por estado:**
+  - 400: `email_invalid`, `password_too_short`, `password_too_long` (>4096 bytes), `invalid_json` y `connections_invalid` (`details: {index, reason, field?}`, o `{reason: invalid_revision}` si falta la revisión).
+  - 401: `invalid_credentials` (solo en el login) y `unauthenticated` (token ausente, caducado o revocado).
+  - 403: `password_incorrect`. No es un 401 para que la app no lo confunda con una sesión caducada.
+  - 409: `email_taken` y `connections_conflict`.
+  - 429: `too_many_attempts`, con cabecera `Retry-After`.
 - **Formato de las entradas:** el mismo que usa hoy la app (`ConnectionEntry` de `src/shared/types.ts`), con los secretos en claro (por HTTPS) y `credentialsUnavailable` cuando aplique. El servidor separa los secretos (`accessKeyId`, `secretAccessKey`, `password`, `passphrase`) en `secrets` y el resto en `data`, y conserva el orden recibido en `position`.
 
 ### D5. Guardado de la lista: reemplazo completo con revisión
@@ -97,7 +102,9 @@ Se porta a PHP la lógica de `normalizeEntry` (`src/shared/connections.ts`):
 - `port` entre 1 y 65535.
 - `authMethod` válido y `privateKeyPath` obligatorio con clave privada.
 
-Además: `id` único y de 64 caracteres como máximo, `parentId` que apunte a una carpeta de la misma lista, 1000 entradas como máximo, campos de texto de 1000 caracteres como máximo y secretos de 16 KB como máximo.
+Además: `id` único y de 64 caracteres como máximo, `parentId` que apunte a una carpeta de la misma lista y sin ciclos, 1000 entradas como máximo, campos de texto de 1000 caracteres como máximo y secretos de 16 KB como máximo.
+
+Como `normalizeEntry`, se conservan los campos que la app no conoce, siempre que sean escalares (como mucho 32 campos por entrada). Un `parentId` vacío equivale a la raíz.
 
 ### D8. Límites de intentos compartidos entre réplicas
 Se usa `symfony/rate-limiter` con almacenamiento en un pool de caché sobre Postgres (`cache.adapter.doctrine_dbal`). Así el límite es global y no 3 veces mayor, que es lo que pasa en Politinder con la caché local de cada pod.
@@ -108,7 +115,7 @@ Se usa `symfony/rate-limiter` con almacenamiento en un pool de caché sobre Post
 | Inicio de sesión por email | 5 intentos fallidos por minuto |
 | Inicio de sesión por IP | 30 por minuto |
 
-En `test` no hay límite, salvo en el test que los comprueba. La IP se toma de `X-Forwarded-For` a través de proxies de confianza (`trusted_proxies` configurable por entorno, porque el TLS termina en el proxy).
+En `test` los límites son los mismos, pero cada test empieza con los contadores a cero, porque `cache_items` se deshace con el rollback de dama/doctrine-test-bundle. La IP se toma de `X-Forwarded-For` a través de proxies de confianza (`trusted_proxies` configurable por entorno, porque el TLS termina en el proxy).
 
 ### D9. Comandos de consola
 - `app:user:reset-password <email>`: genera una contraseña aleatoria, la muestra una vez y revoca las sesiones.
@@ -133,6 +140,8 @@ Imagen `absortian/absortian:php-absorconnect-1.0.0`.
 
 **Secret `absorconnect-env`:** `APP_SECRET`, `DATABASE_URL`, `CONNECTIONS_KEY` (`CONNECTIONS_KEY_PREVIOUS` opcional) y `TRUSTED_PROXIES`.
 
+**URL pública:** `https://absorconnect.absor.top`. El TLS termina en Cloudflare y en el proxy, y el pod sirve HTTP plano en `:80`.
+
 ### D11. Logs
 Ningún log incluye contraseñas, tokens ni secretos de conexión. Los errores de descifrado solo registran el id de la entrada y el de la cuenta.
 
@@ -153,5 +162,5 @@ Ningún log incluye contraseñas, tokens ni secretos de conexión. Los errores d
    - Crear el job de Jenkins.
    - Crear el dominio en Cloudflare hacia el NodePort 30081.
 3. Lanzar el pipeline: construye, migra y despliega.
-4. Comprobar `GET https://<dominio>/api/health`.
+4. Comprobar `GET https://absorconnect.absor.top/api/health` (el dominio lo crea el propietario en Cloudflare, apuntando al NodePort 30081).
 5. **Rollback:** `kubectl rollout undo`. Las migraciones de este change solo crean tablas nuevas.

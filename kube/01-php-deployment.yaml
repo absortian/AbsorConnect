@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: absorconnect-php
+  name: absorconnect-php
+  namespace: absorconnect
+spec:
+  # Una réplica por nodo: si un nodo cae, las otras siguen sirviendo. Todo el
+  # estado (cuentas, sesiones, conexiones y contadores de intentos) vive en el
+  # Postgres externo, así que el pod es stateless y replicar es gratis.
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: absorconnect-php
+  template:
+    metadata:
+      labels:
+        app: absorconnect-php
+    spec:
+      imagePullSecrets:
+      - name: absortian
+      # Reparto estricto por nodo (igual que Politinder): con maxSkew 1 y
+      # DoNotSchedule, replicas = nº de nodos da exactamente uno en cada uno.
+      # Con un nodo caído, su pod se queda en Pending y los otros dos sirven.
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: DoNotSchedule
+        labelSelector:
+          matchLabels:
+            app: absorconnect-php
+        # El reparto se calcula solo entre pods de la MISMA revisión, para que un
+        # rollout no acabe 2-1-0 (requiere Kubernetes >= 1.25).
+        matchLabelKeys:
+        - pod-template-hash
+      # 10s de preStop + margen para que el servidor cierre lo que tenga en curso.
+      terminationGracePeriodSeconds: 45
+      containers:
+      - name: absorconnect-php
+        image: absortian/absortian:php-absorconnect-1.0.0
+        imagePullPolicy: Always
+        # Config y secretos de runtime (DATABASE_URL, APP_SECRET, CONNECTIONS_KEY,
+        # TRUSTED_PROXIES): Secret absorconnect-env, creado desde backend/.env_prod
+        # con kube/make-env-secret.sh.
+        envFrom:
+        - secretRef:
+            name: absorconnect-env
+        ports:
+        - containerPort: 80
+        # Requests para no ser BestEffort (el primero en morir si falta memoria).
+        # Sin límite de CPU; el de memoria es la red de seguridad ante una fuga.
+        resources:
+          requests:
+            cpu: 100m
+            memory: 192Mi
+          limits:
+            memory: 512Mi
+        lifecycle:
+          preStop:
+            exec:
+              # kubelet manda SIGTERM a la vez que kube-proxy retira el endpoint:
+              # la espera evita cortar peticiones que se acaban de enrutar al pod.
+              command: ["sleep", "10"]
+        readinessProbe:
+          # Atraviesa PHP y Postgres: el pod no recibe tráfico hasta que sirve de verdad.
+          httpGet:
+            path: /api/health
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          failureThreshold: 3
+        livenessProbe:
+          # Ruta estática de Caddy: "¿sigue en pie el proceso?". Si preguntara
+          # por PHP o Postgres, una caída de la BD reiniciaría los pods sin motivo.
+          httpGet:
+            path: /healthz
+            port: 80
+          initialDelaySeconds: 90
+          periodSeconds: 20
+          failureThreshold: 3

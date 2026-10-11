@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: absorconnect-php
+  name: absorconnect-php
+  namespace: absorconnect
+spec:
+  type: NodePort
+  selector:
+    app: absorconnect-php
+  ports:
+  # NodePort 30081: siguiente hueco del cluster tras AbsorDofus (8067/30080). El
+  # puerto interno 8068 sigue la misma numeración correlativa.
+  - port: 8068
+    targetPort: 80
+    nodePort: 30081
+    name: absorconnect-php

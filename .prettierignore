@@ -4,3 +4,10 @@ pnpm-lock.yaml
 LICENSE.md
 tsconfig.json
 tsconfig.*.json
+# Backend y despliegue: PHP/Symfony y manifiestos con su propio estilo
+backend
+.docker
+docker
+kube
+compose.yaml
+compose.override.yaml
