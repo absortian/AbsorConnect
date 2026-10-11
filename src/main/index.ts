@@ -2,7 +2,7 @@ import { app, shell, BrowserWindow, ipcMain, dialog, clipboard } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { getConnections, saveConnections, getTheme, saveTheme, getLanguage, saveLanguage } from './store'
+import { getConnections, saveConnections, getStoreStatus, isEncryptionAvailable, getTheme, saveTheme, getLanguage, saveLanguage } from './store'
 import { listBuckets, listObjects, uploadFile, downloadFile, createFolder, deleteObject, deleteFolder } from './s3'
 import { ConnectionEntry, S3Connection, SshConnection } from '../shared/types'
 import { normalizeEntry } from '../shared/connections'
@@ -63,6 +63,9 @@ app.whenReady().then(() => {
   ipcMain.handle('get-connections', async () => {
     return await getConnections()
   })
+
+  ipcMain.handle('get-store-status', () => getStoreStatus())
+  ipcMain.handle('is-encryption-available', () => isEncryptionAvailable())
 
   ipcMain.handle('save-connections', async (_, connections: ConnectionEntry[]) => {
     await saveConnections(connections)

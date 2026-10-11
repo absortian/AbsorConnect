@@ -15,6 +15,8 @@ declare global {
     electron: ElectronAPI
     api: {
       getConnections: () => Promise<ConnectionEntry[]>
+      getStoreStatus: () => Promise<{ unreadableCredentials: number; recoveredFile: string | null }>
+      isEncryptionAvailable: () => Promise<boolean>
       saveConnections: (connections: ConnectionEntry[]) => Promise<void>
       listBuckets: (conn: S3Connection) => Promise<string[]>
       listObjects: (conn: S3Connection, bucket: string, prefix: string) => Promise<{ folders: string[], files: Array<{key: string, size: number, lastModified: string}> }>

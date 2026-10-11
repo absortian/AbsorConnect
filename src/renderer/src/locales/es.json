@@ -166,5 +166,12 @@
     "reconnect": "Reconectar",
     "reconnecting": "reconectando",
     "retry": "Reintentar"
+  },
+  "store": {
+    "credentialsUnavailable": "Las credenciales guardadas de esta conexión no se pueden leer. Edítala y vuelve a introducirlas.",
+    "unreadableCredentials": "Las credenciales guardadas de {{count}} conexión(es) no se pueden leer en este sistema (por ejemplo, si cambió el llavero del sistema). Se conservan: edita esas conexiones para volver a introducirlas.",
+    "corruptRecovered": "El fichero de conexiones estaba dañado y no se pudo leer. Se ha guardado una copia en: {{path}}",
+    "reenterCredentials": "Las credenciales guardadas no se pueden leer. Vuelve a introducirlas o déjalas vacías para conservar las guardadas.",
+    "encryptionUnavailable": "Este sistema no tiene un almacén seguro disponible (por ejemplo, Linux sin keyring): las credenciales se guardan sin cifrar."
   }
 }

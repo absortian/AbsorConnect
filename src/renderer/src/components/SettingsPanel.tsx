@@ -26,6 +26,11 @@ export default function SettingsPanel({ theme, onThemeChange, onClose, onConnect
   const [exportSuccess, setExportSuccess] = useState(false)
   const [appVersion, setAppVersion] = useState<string>('')
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>({ status: 'idle' })
+  const [encryptionAvailable, setEncryptionAvailable] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    window.api.isEncryptionAvailable().then(setEncryptionAvailable)
+  }, [])
 
   useEffect(() => {
     window.api.getAppVersion().then(setAppVersion)
@@ -273,6 +278,12 @@ export default function SettingsPanel({ theme, onThemeChange, onClose, onConnect
               {t('settings.exportWarning')}
             </span>
           </div>
+          {encryptionAvailable === false && (
+            <div className="settings-warning encryption-unavailable">
+              <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: '1px', color: '#eab308' }} />
+              <span>{t('store.encryptionUnavailable')}</span>
+            </div>
+          )}
         </div>
       </div>
     </div>
