@@ -30,6 +30,15 @@ declare global {
       sftpUpload: (conn: SshConnection, localPath: string, remotePath: string, jobId?: string) => Promise<void>
       sftpDownload: (conn: SshConnection, remotePath: string, localDestPath: string, jobId?: string) => Promise<void>
       showOpenFileDialog: (defaultPath?: string) => Promise<string | null>
+      openTerminal: (conn: SshConnection, cols: number, rows: number) => Promise<string>
+      closeTerminal: (sessionId: string) => Promise<void>
+      terminalInput: (sessionId: string, data: string) => void
+      terminalResize: (sessionId: string, cols: number, rows: number) => void
+      onTerminalData: (callback: (_event: unknown, data: { sessionId: string; data: Uint8Array }) => void) => () => void
+      onTerminalExit: (callback: (_event: unknown, data: { sessionId: string; reason: 'exit' | 'connection-lost'; code?: number }) => void) => () => void
+      clipboardReadText: () => Promise<string>
+      clipboardWriteText: (text: string) => Promise<void>
+      platform: string
       getPathForFile: (file: File) => string
       showSaveDialog: (defaultPath: string) => Promise<string | null>
       getLocalHome: () => Promise<string>

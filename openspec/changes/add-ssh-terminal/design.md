@@ -60,14 +60,16 @@ Ver proposal.md (Why). Este change parte del estado que deja `add-sftp-connectio
 
 - Crea `Terminal` y `FitAddon` al montar y los destruye al desmontar (cerrar la pestaña). Llama a `ssh-terminal-open` con el tamaño inicial tras el primer `fit`.
 - Un `ResizeObserver` sobre el contenedor (con `requestAnimationFrame` como debounce) hace `fit` y envía `ssh-terminal-resize` solo si cambian filas o columnas. Cubre ventana, barra lateral y pestañas.
-- `term.onData` → `ssh-terminal-input`.
+- `term.onData` → `ssh-terminal-input`, y `term.onResize` → `ssh-terminal-resize` (el evento salta cuando xterm aplica el tamaño nuevo; además se reenvía el tamaño al abrir la sesión).
+- La salida que llega antes de conocer el `sessionId` (el prompt puede adelantarse a la respuesta de `ssh-terminal-open`) se guarda y se vuelca al recibirlo.
+- Conectar y reconectar leen la versión guardada más reciente de la conexión, para que un reintento aplique las credenciales corregidas.
 - Con `status: 'ended' | 'error'` muestra una franja superpuesta con el motivo (i18n, mismos textos `SSH_*` que SFTP) y el botón "Reconectar". Reconectar abre una sesión nueva en la misma `Terminal` tras escribir una línea separadora; no se borra el buffer.
 - **Tema:** los colores del tema oscuro y claro de la app (variables de `main.css`) se pasan como `ITheme` al cambiar el tema.
 - **Fuente:** pila monoespaciada por sistema. En macOS `SF Mono, Menlo`; en Windows `Cascadia Mono, Consolas`; en Linux `DejaVu Sans Mono, Ubuntu Mono`; y `monospace` como último recurso.
 
 ### D5. Copiar y pegar por sistema
 
-Se usa `term.attachCustomKeyEventHandler`, y el portapapeles se expone desde el preload con el módulo `clipboard` de Electron. Así funciona igual con `file://` en producción que con el servidor de desarrollo, sin depender de los permisos de `navigator.clipboard`.
+Se usa `term.attachCustomKeyEventHandler`, y el portapapeles lo gestiona el módulo `clipboard` de Electron en el proceso principal; el preload lo expone mediante IPC (`clipboard-read-text` / `clipboard-write-text`). Así funciona igual con `file://` en producción que con el servidor de desarrollo, sin depender de los permisos de `navigator.clipboard` ni de que el módulo esté disponible en el renderer.
 
 | Sistema | Copiar | Pegar | Ctrl+C |
 |---|---|---|---|

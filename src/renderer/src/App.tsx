@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Menu, Settings } from 'lucide-react'
+import { Menu, Settings, SquareTerminal, FolderOpen, X } from 'lucide-react'
 import './assets/main.css'
 import ConnectionsSidebar from './components/ConnectionsSidebar'
 import S3Explorer from './components/S3Explorer'
@@ -8,8 +8,15 @@ import SftpExplorer from './components/SftpExplorer'
 import LocalExplorer from './components/LocalExplorer'
 import TransferQueueBar from './components/TransferQueueBar'
 import SettingsPanel from './components/SettingsPanel'
-import { Connection, RemoteLocation } from '../../shared/types'
+import TerminalView from './components/TerminalView'
+import { Connection, RemoteLocation, SshConnection } from '../../shared/types'
 import logo from './assets/icon.png'
+
+interface TerminalTab {
+  id: string
+  connection: SshConnection
+  title: string
+}
 
 function App(): React.JSX.Element {
   const { t, i18n } = useTranslation()
@@ -21,6 +28,9 @@ function App(): React.JSX.Element {
   const [showSettings, setShowSettings] = useState(false)
   const [connectionsKey, setConnectionsKey] = useState(0)
   const [splitRatio, setSplitRatio] = useState(0.5)
+  // Pestañas: "files" (doble panel) o el id de una terminal; las terminales siguen vivas al cambiar
+  const [terminals, setTerminals] = useState<TerminalTab[]>([])
+  const [activeTab, setActiveTab] = useState<string>('files')
   const splitRef = useRef<HTMLDivElement>(null)
   const draggingRef = useRef(false)
 
@@ -69,13 +79,31 @@ function App(): React.JSX.Element {
   const handleSelectConnection = (conn: Connection) => {
     setActiveConnection(conn)
     setRemoteLocation(null)
+    setActiveTab('files')
     setSidebarOpen(false) // Auto-hide menu once selected
+  }
+
+  const openTerminalTab = (conn: SshConnection): void => {
+    const id = crypto.randomUUID()
+    setTerminals((prev) => {
+      const titles = new Set(prev.map((tab) => tab.title))
+      let title = conn.name
+      for (let n = 2; titles.has(title); n++) title = `${conn.name} (${n})`
+      return [...prev, { id, connection: conn, title }]
+    })
+    setActiveTab(id)
+    setSidebarOpen(false)
+  }
+
+  const closeTerminalTab = (id: string): void => {
+    setTerminals((prev) => prev.filter((tab) => tab.id !== id))
+    setActiveTab((current) => (current === id ? 'files' : current))
   }
 
   return (
     <div className={`app-layout ${!sidebarOpen ? 'sidebar-closed' : ''}`}>
       {/* Sidebar for Connections */}
-      <ConnectionsSidebar key={connectionsKey} isOpen={sidebarOpen} onSelectConnection={handleSelectConnection} />
+      <ConnectionsSidebar key={connectionsKey} isOpen={sidebarOpen} onSelectConnection={handleSelectConnection} onOpenTerminal={openTerminalTab} />
 
       {/* Main Content Area */}
       <main className="main-content">
@@ -93,12 +121,47 @@ function App(): React.JSX.Element {
                </>
              )}
           </div>
-          <button className="btn-icon" onClick={() => setShowSettings(true)} title={t('app.settings')}>
-            <Settings size={20} />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {activeConnection?.type === 'ssh' && (
+              <button className="btn-icon" onClick={() => openTerminalTab(activeConnection)} title={t('terminal.open')}>
+                <SquareTerminal size={20} />
+              </button>
+            )}
+            <button className="btn-icon" onClick={() => setShowSettings(true)} title={t('app.settings')}>
+              <Settings size={20} />
+            </button>
+          </div>
         </header>
 
-        <section className="content-area animate-fade-in" style={{ padding: activeConnection ? 0 : '24px' }}>
+        <section className="content-area animate-fade-in workspace" style={{ padding: 0 }}>
+          {terminals.length > 0 && (
+            <div className="workspace-tabs">
+              <button className={`workspace-tab ${activeTab === 'files' ? 'active' : ''}`} onClick={() => setActiveTab('files')}>
+                <FolderOpen size={14} />
+                <span>{t('terminal.files')}</span>
+              </button>
+              {terminals.map((tab) => (
+                <div
+                  key={tab.id}
+                  className={`workspace-tab ${activeTab === tab.id ? 'active' : ''}`}
+                  onClick={() => setActiveTab(tab.id)}
+                  title={tab.title}
+                >
+                  <SquareTerminal size={14} />
+                  <span>{tab.title}</span>
+                  <button
+                    className="workspace-tab-close"
+                    title={t('terminal.close')}
+                    onClick={(e) => { e.stopPropagation(); closeTerminalTab(tab.id) }}
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="workspace-body">
+          <div className="workspace-pane" style={{ display: activeTab === 'files' ? 'flex' : 'none', padding: activeConnection ? 0 : '24px' }}>
           {!activeConnection ? (
             <div className="glass-panel" style={{ padding: '40px', textAlign: 'center', marginTop: '10vh' }}>
               <img src={logo} alt="Absor" style={{ height: '64px', borderRadius: '12px', marginBottom: '20px' }} />
@@ -132,6 +195,11 @@ function App(): React.JSX.Element {
               </div>
             </div>
           )}
+          </div>
+          {terminals.map((tab) => (
+            <TerminalView key={tab.id} connection={tab.connection} active={activeTab === tab.id} theme={theme} />
+          ))}
+          </div>
         </section>
       </main>
       
