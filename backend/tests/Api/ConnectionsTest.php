@@ -165,6 +165,27 @@ final class ConnectionsTest extends ApiTestCase
         self::assertSame('nueva', $final['entries'][1]['password']);
     }
 
+    public function testMissingCredentialsStayMarkedUntilEntered(): void
+    {
+        $token = $this->register()['token'];
+        // Como llega de la migración de un equipo que no podía descifrarla
+        $entry = ['id' => 'ssh1', 'name' => 'Servidor', 'type' => 'ssh', 'host' => 'example.com', 'username' => 'root', 'authMethod' => 'password', 'password' => '', 'credentialsUnavailable' => true];
+
+        $saved = $this->putJson('/api/connections', ['revision' => 0, 'entries' => [$entry]], self::auth($token));
+        self::assertTrue($saved['entries'][0]['credentialsUnavailable']);
+        self::assertSame('', $saved['entries'][0]['password']);
+
+        // Guardar sin introducirlas mantiene la marca
+        $again = $this->putJson('/api/connections', $saved, self::auth($token));
+        self::assertTrue($again['entries'][0]['credentialsUnavailable']);
+
+        unset($entry['credentialsUnavailable']);
+        $entry['password'] = 'por-fin';
+        $final = $this->putJson('/api/connections', ['revision' => $again['revision'], 'entries' => [$entry]], self::auth($token));
+        self::assertArrayNotHasKey('credentialsUnavailable', $final['entries'][0]);
+        self::assertSame('por-fin', $final['entries'][0]['password']);
+    }
+
     /** @return list<array<string, mixed>> */
     private static function sampleEntries(): array
     {
