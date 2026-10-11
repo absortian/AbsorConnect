@@ -30,8 +30,8 @@
 - [x] 6.1 `npm run typecheck` pasa y los ficheros nuevos o tocados no añaden errores de lint respecto a `main`.
 - [x] 6.2 (manual, `npm run dev` en macOS, contra el servidor SSH de pruebas de `add-sftp-connections`) Recorrer los escenarios de `specs/ssh-terminal/spec.md`: abrir desde la cabecera y desde la barra lateral, ausencia en S3, dos terminales al mismo servidor, cambio de pestaña y de conexión, `vim`/`htop`, `printf 'ñandú €\n'`, Ctrl+C sobre `sleep 100`, `tput cols` tras redimensionar, copiar y pegar, `exit` + Reconectar, parar el contenedor (conexión perdida) + Reconectar al arrancarlo, y cerrar la pestaña (un bucle que escribe un latido en un fichero del servidor deja de actualizarse; en este servidor de pruebas `ps` no ve los procesos de otras sesiones).
 - [x] 6.3 (manual) Error al abrir: contraseña errónea y host inexistente muestran en la pestaña el mismo texto que el explorador SFTP, y "Reintentar" funciona tras corregir.
-- [ ] 6.4 Empaquetado: `npm run build:mac` y la terminal funciona en la app empaquetada (CSS de xterm incluido, fuente correcta). En Linux (VM de OrbStack con xvfb, por CDP) y Windows (workflow temporal en GitHub Actions, por CDP), comprobar en el paquete instalado que se abre una pestaña de terminal y que, contra un host inexistente, muestra `SSH_UNREACHABLE`. En Linux, además, que `echo` contra el servidor de pruebas devuelve la salida.
-- [ ] 6.5 (manual, Windows o Linux con escritorio) Copiar y pegar con Ctrl+Shift+C y Ctrl+Shift+V, y Ctrl+C como interrupción.
+- [x] 6.4 Empaquetado: `npm run build:mac` y la terminal funciona en la app empaquetada (CSS de xterm incluido, fuente correcta). En Linux (VM de OrbStack con xvfb, por CDP) y Windows (workflow temporal en GitHub Actions, por CDP), comprobar en el paquete instalado que se abre una pestaña de terminal y que, contra un host inexistente, muestra `SSH_UNREACHABLE`. En Linux, además, que `echo` contra el servidor de pruebas devuelve la salida.
+- [x] 6.5 (manual, Windows o Linux con escritorio) Copiar y pegar con Ctrl+Shift+C y Ctrl+Shift+V, y Ctrl+C como interrupción.
 
 ## Workflow follow-up
 
