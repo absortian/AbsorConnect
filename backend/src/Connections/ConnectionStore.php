@@ -15,6 +15,14 @@ use Psr\Log\LoggerInterface;
  */
 final class ConnectionStore
 {
+    /**
+     * Secreto "ilegible" sin valor detrás: lo guarda una entrada que llega con
+     * credentialsUnavailable sin secretos y sin nada guardado (p. ej. migrada desde un
+     * equipo que no podía descifrarla). No se puede descifrar, así que la entrada sale
+     * marcada hasta que la persona introduzca credenciales nuevas.
+     */
+    private const string UNAVAILABLE = 'unavailable';
+
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly ConnectionEntryRepository $entries,
@@ -88,8 +96,8 @@ final class ConnectionStore
         }
         $stored = $existing?->getSecrets();
         // Secreto ilegible que la persona no ha reemplazado: se conserva tal cual
-        if ($valid->credentialsUnavailable && [] === $valid->secrets && null !== $stored) {
-            return $stored;
+        if ($valid->credentialsUnavailable && [] === $valid->secrets) {
+            return $stored ?? self::UNAVAILABLE;
         }
         if ([] === $valid->secrets) {
             return null;
@@ -122,8 +130,10 @@ final class ConnectionStore
         if (null !== $stored) {
             $decrypted = $this->crypto->decrypt($stored);
             if (null === $decrypted) {
-                // Solo ids: nunca el valor cifrado ni nada de los secretos
-                $this->logger->warning('Connection secrets could not be decrypted', ['user' => $user->getUserIdentifier(), 'entry' => $entry->getId()]);
+                if (self::UNAVAILABLE !== $stored) {
+                    // Solo ids: nunca el valor cifrado ni nada de los secretos
+                    $this->logger->warning('Connection secrets could not be decrypted', ['user' => $user->getUserIdentifier(), 'entry' => $entry->getId()]);
+                }
                 foreach ($kind->secretFields() as $field) {
                     $result[$field] = '';
                 }

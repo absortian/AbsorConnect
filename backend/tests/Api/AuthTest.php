@@ -98,6 +98,19 @@ final class AuthTest extends ApiTestCase
         self::assertSame('Portátil', $row['device_name']);
     }
 
+    public function testStaleTokenDoesNotBlockLoginOrRegistration(): void
+    {
+        $this->register();
+        $stale = self::auth('acs_'.str_repeat('x', 43));
+
+        $this->postJson('/api/auth/login', ['email' => 'ana@ejemplo.com', 'password' => self::PASSWORD, 'deviceName' => 'x'], $stale);
+        self::assertResponseIsSuccessful();
+        $this->postJson('/api/auth/register', ['email' => 'luis@ejemplo.com', 'password' => self::PASSWORD, 'deviceName' => 'x'], $stale);
+        self::assertResponseStatusCodeSame(201);
+        $this->getJson('/api/health', $stale);
+        self::assertResponseIsSuccessful();
+    }
+
     public function testLogoutRevokesOnlyThatDevice(): void
     {
         $laptop = $this->register()['token'];

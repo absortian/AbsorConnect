@@ -91,6 +91,7 @@ Encaja con cómo guarda hoy la app: la barra lateral envía la lista completa en
 - **Formato:** `v1:` + base64(nonce ‖ ciphertext). El contenido es el JSON de los secretos de la entrada.
 - **Rotación:** se admite `CONNECTIONS_KEY_PREVIOUS`. Si el descifrado con la clave actual falla, se prueba con la previa, y el siguiente guardado vuelve a cifrar con la actual.
 - **Fallo de descifrado:** la entrada sale con los secretos vacíos y `credentialsUnavailable: true`. Si el cliente la devuelve así, se conserva el `secrets` guardado, con la misma semántica que el almacén local de `harden-connection-store`.
+- **Credenciales que faltan desde el principio:** una entrada que llega con `credentialsUnavailable`, sin secretos y sin nada guardado (por ejemplo, migrada desde un equipo que no podía descifrarla) guarda el marcador `unavailable` en `secrets`. Como no se puede descifrar, la entrada sale marcada hasta que la persona introduce credenciales nuevas.
 
 *Por qué no `APP_SECRET`:* rotar `APP_SECRET` (por ejemplo, ante una filtración) no debe dejar ilegibles las credenciales de todos los usuarios, como pasa con `SecretCrypto` en Politinder.
 
