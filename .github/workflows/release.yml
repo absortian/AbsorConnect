@@ -49,14 +49,17 @@ jobs:
           body: |
             ## Absor Connect ${{ github.ref_name }} 🚀
 
-            Explorador de archivos dual-panel para transferir archivos entre el sistema de archivos local y almacenamiento compatible con S3 (AWS S3, MinIO, DigitalOcean Spaces, etc.).
+            Gestor de conexiones remotas de escritorio: explorador de doble panel para almacenamiento compatible con S3 (AWS S3, MinIO, DigitalOcean Spaces, etc.) y servidores SSH (SFTP), y terminal SSH integrada.
 
             ### Características
-            - Explorador local y S3 en paneles duales
-            - Arrastrar y soltar para transferencias entre paneles
-            - Gestión de conexiones S3 persistentes
-            - Cola de transferencias en tiempo real con progreso
-            - Soporte para cualquier almacenamiento compatible con S3
+            - Explorador local y remoto en paneles duales (S3 o SFTP)
+            - Conexiones SSH con contraseña o clave privada (con passphrase opcional)
+            - Terminal SSH interactiva en pestañas, sobre la misma conexión
+            - Arrastrar y soltar entre paneles y desde el sistema operativo
+            - Cola de transferencias en tiempo real con progreso y reintento
+            - Credenciales guardadas cifradas con el almacén seguro del sistema
+
+            > La clave de host de los servidores SSH no se verifica en esta versión; úsala en redes de confianza.
 
             ### Descargas
             | Plataforma | Archivo |
