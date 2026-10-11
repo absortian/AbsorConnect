@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog, clipboard } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -6,7 +6,7 @@ import { getConnections, saveConnections, getTheme, saveTheme, getLanguage, save
 import { listBuckets, listObjects, uploadFile, downloadFile, createFolder, deleteObject, deleteFolder } from './s3'
 import { ConnectionEntry, S3Connection, SshConnection } from '../shared/types'
 import { normalizeEntry } from '../shared/connections'
-import { closeAllSsh, sftpCreateDir, sftpDelete, sftpDownload, sftpHome, sftpListDir, sftpUpload } from './ssh'
+import { closeAllSsh, closeTerminal, openTerminal, resizeTerminal, sftpCreateDir, sftpDelete, sftpDownload, sftpHome, sftpListDir, sftpUpload, writeTerminal } from './ssh'
 import { getLocalHome, listLocalDir, createLocalDir, deleteLocalItem } from './localFs'
 import { initUpdater, checkForUpdates, downloadUpdate, quitAndInstall } from './updater'
 import * as fs from 'fs/promises'
@@ -113,6 +113,14 @@ app.whenReady().then(() => {
     if (canceled || filePaths.length === 0) return null
     return filePaths[0]
   })
+
+  // SSH terminal IPC handlers (input y resize son send: sin esperar respuesta por cada tecla)
+  ipcMain.handle('ssh-terminal-open', async (event, conn: SshConnection, cols: number, rows: number) => await openTerminal(conn, cols, rows, event.sender))
+  ipcMain.handle('ssh-terminal-close', (event, sessionId: string) => closeTerminal(sessionId, event.sender))
+  ipcMain.on('ssh-terminal-input', (event, sessionId: string, data: string) => writeTerminal(sessionId, data, event.sender))
+  ipcMain.on('ssh-terminal-resize', (event, sessionId: string, cols: number, rows: number) => resizeTerminal(sessionId, cols, rows, event.sender))
+  ipcMain.handle('clipboard-read-text', () => clipboard.readText())
+  ipcMain.handle('clipboard-write-text', (_, text: string) => clipboard.writeText(text))
 
   // Local FS IPC handlers
   ipcMain.handle('local-get-home', async () => await getLocalHome())

@@ -405,3 +405,132 @@ body, html, #root {
 .spin {
   animation: spin 1s linear infinite;
 }
+
+/* Workspace tabs (Archivos + terminales SSH) */
+.content-area.workspace {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.workspace-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 6px 8px 0;
+  background: var(--bg-sidebar);
+  border-bottom: 1px solid var(--border-light);
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+
+.workspace-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 220px;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.workspace-tab span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.workspace-tab:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.workspace-tab.active {
+  background: var(--bg-base);
+  color: var(--text-primary);
+  border-color: var(--border-light);
+}
+
+.workspace-tab-close {
+  display: flex;
+  padding: 2px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.workspace-tab-close:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.workspace-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.workspace-pane {
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  overflow-y: auto;
+}
+
+.workspace-pane > .split-view {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Terminal SSH */
+.terminal-view {
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg-base);
+}
+
+.terminal-container {
+  flex: 1;
+  min-height: 0;
+  margin: 8px 4px 4px 12px; /* margen y no padding: FitAddon mide el contenedor */
+}
+
+.terminal-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.terminal-banner.ended {
+  background: rgba(234, 179, 8, 0.12);
+  color: #ca8a04;
+}
+
+.terminal-banner.error {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.terminal-banner.connecting {
+  color: var(--text-muted);
+}
+
+.terminal-banner button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: inherit;
+}

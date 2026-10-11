@@ -155,5 +155,16 @@
     "SFTP_PERMISSION_DENIED": "Permission denied on the server.",
     "SFTP_NOT_FOUND": "The file or folder no longer exists on the server.",
     "SSH_ERROR": "SSH error: {{detail}}"
+  },
+  "terminal": {
+    "open": "Open terminal",
+    "files": "Files",
+    "close": "Close terminal",
+    "connecting": "Connecting…",
+    "sessionEnded": "The session has ended.",
+    "connectionLost": "The connection to the server was lost.",
+    "reconnect": "Reconnect",
+    "reconnecting": "reconnecting",
+    "retry": "Retry"
   }
 }

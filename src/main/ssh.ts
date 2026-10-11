@@ -1,5 +1,6 @@
-import { Client, ConnectConfig, FileEntryWithStats, SFTPWrapper, Stats } from 'ssh2'
-import { createHash } from 'crypto'
+import { Client, ClientChannel, ConnectConfig, FileEntryWithStats, SFTPWrapper, Stats } from 'ssh2'
+import { createHash, randomUUID } from 'crypto'
+import type { WebContents } from 'electron'
 import * as fs from 'fs/promises'
 import * as os from 'os'
 import * as path from 'path'
@@ -118,8 +119,9 @@ export async function getClient(conn: SshConnection): Promise<Client> {
   const existing = pool.get(conn.id)
   if (existing?.key === key) return existing.ready
   if (existing) {
+    // Parámetros cambiados: la conexión vieja solo se cierra si no tiene terminales abiertas
     pool.delete(conn.id)
-    existing.client.end()
+    if (!sessionCount.get(existing.client)) existing.client.end()
   }
 
   const config = await buildConfig(conn)
@@ -321,4 +323,93 @@ export async function sftpDownload(
     await fs.rm(partialDestPath, { force: true }).catch(() => undefined)
     throw toSshError(err)
   }
+}
+
+// ---------------------------------------------------------------------------
+// Terminal: sesiones shell sobre la misma conexión del pool
+// ---------------------------------------------------------------------------
+
+interface TerminalSession {
+  channel: ClientChannel
+  client: Client
+  owner: WebContents
+}
+
+const sessions = new Map<string, TerminalSession>()
+const sessionCount = new Map<Client, number>()
+
+export type TerminalExitReason = 'exit' | 'connection-lost'
+
+export async function openTerminal(conn: SshConnection, cols: number, rows: number, owner: WebContents): Promise<string> {
+  const client = await getClient(conn)
+  const channel = await new Promise<ClientChannel>((resolve, reject) => {
+    client.shell({ term: 'xterm-256color', cols, rows }, (err, ch) => (err ? reject(toSshError(err)) : resolve(ch)))
+  })
+  const sessionId = randomUUID()
+  sessions.set(sessionId, { channel, client, owner })
+  sessionCount.set(client, (sessionCount.get(client) ?? 0) + 1)
+
+  const send = (event: string, payload: unknown): void => {
+    if (!owner.isDestroyed()) owner.send(event, payload)
+  }
+  const onData = (data: Buffer): void => send('ssh-terminal-data', { sessionId, data: new Uint8Array(data) })
+  channel.on('data', onData)
+  channel.stderr.on('data', onData)
+
+  // Con `exit` el servidor informa del fin de la shell; si el canal se cierra sin él, se perdió la conexión
+  let exitCode: number | undefined
+  let exited = false
+  channel.on('exit', (code: number | null) => {
+    exited = true
+    exitCode = code ?? undefined
+  })
+  const onOwnerDestroyed = (): void => closeTerminal(sessionId, owner)
+  owner.once('destroyed', onOwnerDestroyed)
+
+  let ended = false
+  const end = (reason: TerminalExitReason): void => {
+    if (ended) return
+    ended = true
+    client.removeListener('close', onClientClose)
+    if (!owner.isDestroyed()) owner.removeListener('destroyed', onOwnerDestroyed)
+    if (sessions.delete(sessionId)) send('ssh-terminal-exit', { sessionId, reason, code: exitCode })
+    releaseClient(client)
+  }
+  const onClientClose = (): void => end('connection-lost')
+  client.once('close', onClientClose)
+  channel.on('close', () => end(exited ? 'exit' : 'connection-lost'))
+  return sessionId
+}
+
+// Una conexión que ya no está en el pool (porque se editó) se cierra al terminar su última sesión
+function releaseClient(client: Client): void {
+  const remaining = (sessionCount.get(client) ?? 1) - 1
+  if (remaining > 0) {
+    sessionCount.set(client, remaining)
+    return
+  }
+  sessionCount.delete(client)
+  const inPool = [...pool.values()].some((entry) => entry.client === client)
+  if (!inPool) client.end()
+}
+
+function ownedSession(sessionId: string, sender: WebContents): TerminalSession | undefined {
+  const session = sessions.get(sessionId)
+  return session && session.owner === sender ? session : undefined
+}
+
+export function writeTerminal(sessionId: string, data: string, sender: WebContents): void {
+  ownedSession(sessionId, sender)?.channel.write(data)
+}
+
+export function resizeTerminal(sessionId: string, cols: number, rows: number, sender: WebContents): void {
+  ownedSession(sessionId, sender)?.channel.setWindow(rows, cols, 0, 0)
+}
+
+// Cierre pedido por el usuario: no se notifica `exit` porque la pestaña ya no existe
+export function closeTerminal(sessionId: string, sender: WebContents): void {
+  const session = ownedSession(sessionId, sender)
+  if (!session) return
+  sessions.delete(sessionId)
+  session.channel.close()
 }

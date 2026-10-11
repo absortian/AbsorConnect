@@ -20,6 +20,21 @@ const api = {
   sftpUpload: (conn: SshConnection, localPath: string, remotePath: string, jobId?: string) => ipcRenderer.invoke('sftp-upload-file', conn, localPath, remotePath, jobId),
   sftpDownload: (conn: SshConnection, remotePath: string, localDestPath: string, jobId?: string) => ipcRenderer.invoke('sftp-download-file', conn, remotePath, localDestPath, jobId),
   showOpenFileDialog: (defaultPath?: string) => ipcRenderer.invoke('show-open-file-dialog', defaultPath),
+  openTerminal: (conn: SshConnection, cols: number, rows: number) => ipcRenderer.invoke('ssh-terminal-open', conn, cols, rows),
+  closeTerminal: (sessionId: string) => ipcRenderer.invoke('ssh-terminal-close', sessionId),
+  terminalInput: (sessionId: string, data: string) => ipcRenderer.send('ssh-terminal-input', sessionId, data),
+  terminalResize: (sessionId: string, cols: number, rows: number) => ipcRenderer.send('ssh-terminal-resize', sessionId, cols, rows),
+  onTerminalData: (callback: (_event: unknown, data: { sessionId: string; data: Uint8Array }) => void) => {
+    ipcRenderer.on('ssh-terminal-data', callback)
+    return () => ipcRenderer.removeListener('ssh-terminal-data', callback)
+  },
+  onTerminalExit: (callback: (_event: unknown, data: { sessionId: string; reason: 'exit' | 'connection-lost'; code?: number }) => void) => {
+    ipcRenderer.on('ssh-terminal-exit', callback)
+    return () => ipcRenderer.removeListener('ssh-terminal-exit', callback)
+  },
+  clipboardReadText: () => ipcRenderer.invoke('clipboard-read-text'),
+  clipboardWriteText: (text: string) => ipcRenderer.invoke('clipboard-write-text', text),
+  platform: process.platform,
   getPathForFile: (file: File) => webUtils.getPathForFile(file),
   showSaveDialog: (defaultPath: string) => ipcRenderer.invoke('show-save-dialog', defaultPath),
   getLocalHome: () => ipcRenderer.invoke('local-get-home'),

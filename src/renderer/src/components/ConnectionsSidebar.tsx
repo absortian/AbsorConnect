@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Plus, HardDrive, Server, Trash2, X, FolderPlus, Folder, ChevronDown, ChevronRight, Pencil } from 'lucide-react'
-import { Connection, ConnectionDraft, ConnectionEntry, ConnectionType, FolderEntry, SshAuthMethod } from '../../../shared/types'
+import { Plus, HardDrive, Server, Trash2, X, FolderPlus, Folder, ChevronDown, ChevronRight, Pencil, SquareTerminal } from 'lucide-react'
+import { Connection, ConnectionDraft, ConnectionEntry, ConnectionType, FolderEntry, SshAuthMethod, SshConnection } from '../../../shared/types'
 import { DEFAULT_SSH_PORT } from '../../../shared/connections'
 
-export default function ConnectionsSidebar({ isOpen, onSelectConnection }: { isOpen: boolean, onSelectConnection: (conn: Connection) => void }) {
+export default function ConnectionsSidebar({ isOpen, onSelectConnection, onOpenTerminal }: { isOpen: boolean, onSelectConnection: (conn: Connection) => void, onOpenTerminal: (conn: SshConnection) => void }) {
   const { t } = useTranslation()
   const [connections, setConnections] = useState<ConnectionEntry[]>([])
   const [showModal, setShowModal] = useState(false)
@@ -164,6 +164,11 @@ export default function ConnectionsSidebar({ isOpen, onSelectConnection }: { isO
           <span style={{ fontSize: '0.9rem' }}>{conn.name}</span>
         </div>
         <div className="actions-group" style={{ display: 'flex', gap: '4px', opacity: 0.7 }}>
+          {conn.type === 'ssh' && (
+            <button className="btn-icon" title={t('terminal.open')} onClick={(e) => { e.stopPropagation(); onOpenTerminal(conn) }} style={{ padding: '4px' }}>
+              <SquareTerminal size={14} />
+            </button>
+          )}
           <button className="btn-icon" onClick={(e) => handleEditConnection(conn, e)} style={{ padding: '4px' }}>
             <Pencil size={14} />
           </button>
