@@ -57,6 +57,10 @@ appImage:
 rpm:
   artifactName: absor-connect-${version}.${ext}
 npmRebuild: false
+toolsets:
+  # NSIS 3.12: el NSIS 3.0.4.1 por defecto se cuelga (System.dll, 0xc0000005) en ~20 % de las
+  # instalaciones en Windows Server 2025 / Windows 11 24H2
+  nsis: '1.2.1'
 publish:
   provider: github
   owner: absortian

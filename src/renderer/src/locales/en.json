@@ -166,5 +166,12 @@
     "reconnect": "Reconnect",
     "reconnecting": "reconnecting",
     "retry": "Retry"
+  },
+  "store": {
+    "credentialsUnavailable": "The saved credentials for this connection cannot be read. Edit it and enter them again.",
+    "unreadableCredentials": "The saved credentials of {{count}} connection(s) cannot be read on this system (for example, if the system keychain changed). They are kept: edit those connections to enter the credentials again.",
+    "corruptRecovered": "The connections file was damaged and could not be read. A copy was kept at: {{path}}",
+    "reenterCredentials": "The saved credentials cannot be read. Enter them again, or leave them empty to keep the saved ones.",
+    "encryptionUnavailable": "This system has no secure storage available (for example, no keyring on Linux): credentials are saved without encryption."
   }
 }

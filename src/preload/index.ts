@@ -5,6 +5,8 @@ import { ConnectionEntry, S3Connection, SshConnection } from '../shared/types'
 // Custom APIs for renderer
 const api = {
   getConnections: () => ipcRenderer.invoke('get-connections'),
+  getStoreStatus: () => ipcRenderer.invoke('get-store-status'),
+  isEncryptionAvailable: () => ipcRenderer.invoke('is-encryption-available'),
   saveConnections: (connections: ConnectionEntry[]) => ipcRenderer.invoke('save-connections', connections),
   listBuckets: (conn: S3Connection) => ipcRenderer.invoke('s3-list-buckets', conn),
   listObjects: (conn: S3Connection, bucket: string, prefix: string) => ipcRenderer.invoke('s3-list-objects', conn, bucket, prefix),

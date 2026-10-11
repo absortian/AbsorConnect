@@ -5,6 +5,8 @@ interface EntryBase {
   name: string
   parentId?: string | null
   _encrypted?: boolean
+  // Solo en tiempo de ejecución: algún secreto guardado no se pudo descifrar (nunca se persiste)
+  credentialsUnavailable?: boolean
 }
 
 export interface FolderEntry extends EntryBase {

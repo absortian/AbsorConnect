@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Plus, HardDrive, Server, Trash2, X, FolderPlus, Folder, ChevronDown, ChevronRight, Pencil, SquareTerminal } from 'lucide-react'
+import { Plus, HardDrive, Server, Trash2, X, FolderPlus, Folder, ChevronDown, ChevronRight, Pencil, SquareTerminal, AlertTriangle } from 'lucide-react'
 import { Connection, ConnectionDraft, ConnectionEntry, ConnectionType, FolderEntry, SshAuthMethod, SshConnection } from '../../../shared/types'
-import { DEFAULT_SSH_PORT } from '../../../shared/connections'
+import { DEFAULT_SSH_PORT, SECRET_FIELDS } from '../../../shared/connections'
 
 export default function ConnectionsSidebar({ isOpen, onSelectConnection, onOpenTerminal }: { isOpen: boolean, onSelectConnection: (conn: Connection) => void, onOpenTerminal: (conn: SshConnection) => void }) {
   const { t } = useTranslation()
@@ -14,9 +14,14 @@ export default function ConnectionsSidebar({ isOpen, onSelectConnection, onOpenT
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [dragOverId, setDragOverId] = useState<string | null>(null)
 
-  // Load existing connections
+  const [recoveredFile, setRecoveredFile] = useState<string | null>(null)
+
+  // Load existing connections (and whether the store had to set a damaged file aside)
   useEffect(() => {
-    window.api.getConnections().then(setConnections)
+    window.api.getConnections().then(async (list) => {
+      setConnections(list)
+      setRecoveredFile((await window.api.getStoreStatus()).recoveredFile)
+    })
   }, [])
 
   if (!isOpen) return null
@@ -109,6 +114,7 @@ export default function ConnectionsSidebar({ isOpen, onSelectConnection, onOpenT
   }
 
   const folders = connections.filter((c): c is FolderEntry => c.isFolder === true)
+  const unreadableCount = connections.filter((c) => !c.isFolder && c.credentialsUnavailable).length
   const rootItems = connections.filter(c => !c.parentId)
 
   const renderConnection = (conn: Connection, indent = 0) => {
@@ -162,6 +168,11 @@ export default function ConnectionsSidebar({ isOpen, onSelectConnection, onOpenT
             ? <Server size={16} color="var(--accent-primary)" />
             : <HardDrive size={16} color="var(--accent-primary)" />}
           <span style={{ fontSize: '0.9rem' }}>{conn.name}</span>
+          {conn.credentialsUnavailable && (
+            <span className="credentials-unavailable" title={t('store.credentialsUnavailable')} style={{ display: 'flex' }}>
+              <AlertTriangle size={14} color="#eab308" />
+            </span>
+          )}
         </div>
         <div className="actions-group" style={{ display: 'flex', gap: '4px', opacity: 0.7 }}>
           {conn.type === 'ssh' && (
@@ -283,6 +294,15 @@ export default function ConnectionsSidebar({ isOpen, onSelectConnection, onOpenT
                await handleMoveItem(draggedId, null)
              }}
         >
+          {(unreadableCount > 0 || recoveredFile) && (
+            <div className="settings-warning store-warning" style={{ marginBottom: '12px' }}>
+              <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: '1px', color: '#eab308' }} />
+              <span>
+                {unreadableCount > 0 && <span style={{ display: 'block' }}>{t('store.unreadableCredentials', { count: unreadableCount })}</span>}
+                {recoveredFile && <span style={{ display: 'block', wordBreak: 'break-all' }}>{t('store.corruptRecovered', { path: recoveredFile })}</span>}
+              </span>
+            </div>
+          )}
           {connections.length === 0 ? (
             <div className="empty-state" style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
               <HardDrive size={32} style={{ marginBottom: '12px', opacity: 0.5 }} />
@@ -321,6 +341,8 @@ function ConnectionModal({ folders, editingConnection, onClose, onSave }: { fold
   const { t } = useTranslation()
   const editingS3 = editingConnection?.type === 's3' ? editingConnection : null
   const editingSsh = editingConnection?.type === 'ssh' ? editingConnection : null
+  // Credenciales ilegibles: no se obliga a reintroducirlas; si se dejan vacías se conservan las guardadas
+  const unavailable = !!editingConnection?.credentialsUnavailable
   const [type, setType] = useState<ConnectionType>(editingConnection?.type ?? 's3')
   const [name, setName] = useState(editingConnection?.name || '')
   const [parentId, setParentId] = useState<string>(editingConnection?.parentId || '')
@@ -342,7 +364,9 @@ function ConnectionModal({ folders, editingConnection, onClose, onSave }: { fold
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    const common = { name, parentId: parentId || null }
+    const secrets: Record<string, string> = { accessKeyId, secretAccessKey, password, passphrase }
+    const keepUnavailable = unavailable && SECRET_FIELDS[type].every((field) => !secrets[field])
+    const common = { name, parentId: parentId || null, ...(keepUnavailable ? { credentialsUnavailable: true } : {}) }
     if (type === 's3') {
       onSave({ ...common, type, endpoint, accessKeyId, secretAccessKey, bucket, region })
       return
@@ -383,6 +407,12 @@ function ConnectionModal({ folders, editingConnection, onClose, onSave }: { fold
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {unavailable && (
+            <div className="settings-warning">
+              <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: '1px', color: '#eab308' }} />
+              <span>{t('store.reenterCredentials')}</span>
+            </div>
+          )}
           {field(t('sidebar.connectionType'), (
             <div style={{ display: 'flex', gap: '8px' }}>
               {(['s3', 'ssh'] as const).map((option) => (
@@ -420,8 +450,8 @@ function ConnectionModal({ folders, editingConnection, onClose, onSave }: { fold
             <>
               {field(t('sidebar.endpointUrl'), <input required type="url" value={endpoint} onChange={e => setEndpoint(e.target.value)} placeholder="https://..." style={inputStyle} />)}
               {field(t('sidebar.region'), <input type="text" value={region} onChange={e => setRegion(e.target.value)} placeholder="us-east-1" style={inputStyle} />)}
-              {field(t('sidebar.accessKeyId'), <input required type="text" value={accessKeyId} onChange={e => setAccessKeyId(e.target.value)} style={inputStyle} />)}
-              {field(t('sidebar.secretAccessKey'), <input required type="password" value={secretAccessKey} onChange={e => setSecretAccessKey(e.target.value)} style={inputStyle} />)}
+              {field(t('sidebar.accessKeyId'), <input required={!unavailable} type="text" value={accessKeyId} onChange={e => setAccessKeyId(e.target.value)} style={inputStyle} />)}
+              {field(t('sidebar.secretAccessKey'), <input required={!unavailable} type="password" value={secretAccessKey} onChange={e => setSecretAccessKey(e.target.value)} style={inputStyle} />)}
               {field(t('sidebar.defaultBucket'), <input type="text" value={bucket} onChange={e => setBucket(e.target.value)} style={inputStyle} />)}
             </>
           ) : (
