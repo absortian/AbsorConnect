@@ -1,0 +1,27 @@
+# Solo afecta al build con contexto = raíz del repo (docker/prod/php/Dockerfile).
+# El compose de desarrollo usa ./backend como contexto y backend/.dockerignore.
+#
+# La raíz es sobre todo la app de Electron (node_modules, src, out…): se excluye
+# todo y solo entra backend/, para que nada nuevo de la raíz acabe en la imagen.
+*
+!backend/
+
+backend/var/
+backend/vendor/
+backend/tests/
+backend/.phpunit.cache/
+backend/phpunit.xml
+backend/phpunit.dist.xml
+backend/Dockerfile
+backend/.dockerignore
+# Configuración que no es de producción, y NUNCA el .env_prod: la config real
+# llega del Secret absorconnect-env, no de la imagen.
+backend/.env.local
+backend/.env.*.local
+backend/.env.local.php
+backend/.env.dev
+backend/.env.test
+backend/.env_prod
+backend/.env_prod.*
+**/.DS_Store
+**/*.log

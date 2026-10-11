@@ -1,0 +1,29 @@
+# Límites contra abusos del registro abierto y del inicio de sesión. Se guardan
+# en Postgres (pool app.rate_limiter_cache) para que el límite sea uno solo para
+# todas las réplicas y no uno por pod.
+framework:
+    rate_limiter:
+        register_ip:
+            policy: sliding_window
+            limit: 5
+            interval: '1 hour'
+            cache_pool: app.rate_limiter_cache
+        # Cada intento consume y un inicio de sesión correcto lo reinicia: cuenta
+        # los fallos seguidos de un email.
+        login_email:
+            policy: sliding_window
+            limit: 5
+            interval: '1 minute'
+            cache_pool: app.rate_limiter_cache
+        login_ip:
+            policy: sliding_window
+            limit: 30
+            interval: '1 minute'
+            cache_pool: app.rate_limiter_cache
+
+    cache:
+        pools:
+            # Tabla cache_items (la crea la migración). En test, el rollback de
+            # dama/doctrine-test-bundle la deja limpia para cada test.
+            app.rate_limiter_cache:
+                adapter: cache.adapter.doctrine_dbal
