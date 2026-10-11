@@ -1,11 +1,29 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-import { ConnectionEntry, S3Connection, SshConnection } from '../shared/types'
+import { ConnectionEntry, ConnectionsChangedEvent, S3Connection, SshConnection } from '../shared/types'
 
 // Custom APIs for renderer
 const api = {
+  // Cuenta en la nube: el token se queda en el proceso principal
+  getSession: () => ipcRenderer.invoke('get-session'),
+  login: (email: string, password: string) => ipcRenderer.invoke('login', email, password),
+  register: (email: string, password: string) => ipcRenderer.invoke('register', email, password),
+  logout: () => ipcRenderer.invoke('logout'),
+  changePassword: (currentPassword: string, newPassword: string) => ipcRenderer.invoke('change-password', currentPassword, newPassword),
+  deleteAccount: (password: string) => ipcRenderer.invoke('delete-account', password),
+  getMigrationOffer: () => ipcRenderer.invoke('get-migration-offer'),
+  migrateLocalConnections: () => ipcRenderer.invoke('migrate-local-connections'),
+  onSessionExpired: (callback: () => void) => {
+    const listener = (): void => callback()
+    ipcRenderer.on('session-expired', listener)
+    return () => ipcRenderer.removeListener('session-expired', listener)
+  },
+  onConnectionsChanged: (callback: (event: ConnectionsChangedEvent) => void) => {
+    const listener = (_event: unknown, data: ConnectionsChangedEvent): void => callback(data)
+    ipcRenderer.on('connections-changed', listener)
+    return () => ipcRenderer.removeListener('connections-changed', listener)
+  },
   getConnections: () => ipcRenderer.invoke('get-connections'),
-  getStoreStatus: () => ipcRenderer.invoke('get-store-status'),
   isEncryptionAvailable: () => ipcRenderer.invoke('is-encryption-available'),
   saveConnections: (connections: ConnectionEntry[]) => ipcRenderer.invoke('save-connections', connections),
   listBuckets: (conn: S3Connection) => ipcRenderer.invoke('s3-list-buckets', conn),

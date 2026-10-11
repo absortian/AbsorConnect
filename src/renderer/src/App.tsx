@@ -1,68 +1,27 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Menu, Settings, SquareTerminal, FolderOpen, X } from 'lucide-react'
+import { AlertTriangle, CheckCircle, Loader2, RefreshCw, X } from 'lucide-react'
 import './assets/main.css'
-import ConnectionsSidebar from './components/ConnectionsSidebar'
-import S3Explorer from './components/S3Explorer'
-import SftpExplorer from './components/SftpExplorer'
-import LocalExplorer from './components/LocalExplorer'
-import TransferQueueBar from './components/TransferQueueBar'
-import SettingsPanel from './components/SettingsPanel'
-import TerminalView from './components/TerminalView'
-import { Connection, RemoteLocation, SshConnection } from '../../shared/types'
+import AuthScreen from './components/AuthScreen'
+import MigrationDialog from './components/MigrationDialog'
+import Workspace from './components/Workspace'
+import { TransferQueueProvider } from './context/TransferQueueContext'
+import { MigrationOffer, SessionState } from '../../shared/types'
 import logo from './assets/icon.png'
 
-interface TerminalTab {
-  id: string
-  connection: SshConnection
-  title: string
-}
+// Puerta de sesión: sin una sesión válida solo se ve la pantalla de acceso
+type Gate =
+  | { view: 'loading' }
+  | { view: 'auth'; expired: boolean }
+  | { view: 'unreachable' }
+  | { view: 'app'; email: string }
 
 function App(): React.JSX.Element {
   const { t, i18n } = useTranslation()
-  const [activeConnection, setActiveConnection] = useState<Connection | null>(null)
-  const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [remoteLocation, setRemoteLocation] = useState<RemoteLocation | null>(null)
-  const [localCurrentPath, setLocalCurrentPath] = useState('')
+  const [gate, setGate] = useState<Gate>({ view: 'loading' })
   const [theme, setTheme] = useState('dark')
-  const [showSettings, setShowSettings] = useState(false)
-  const [connectionsKey, setConnectionsKey] = useState(0)
-  const [splitRatio, setSplitRatio] = useState(0.5)
-  // Pestañas: "files" (doble panel) o el id de una terminal; las terminales siguen vivas al cambiar
-  const [terminals, setTerminals] = useState<TerminalTab[]>([])
-  const [activeTab, setActiveTab] = useState<string>('files')
-  const splitRef = useRef<HTMLDivElement>(null)
-  const draggingRef = useRef(false)
-
-  const handleDividerMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault()
-    draggingRef.current = true
-    document.body.style.cursor = 'col-resize'
-    document.body.style.userSelect = 'none'
-
-    const onMouseMove = (ev: MouseEvent) => {
-      if (!draggingRef.current || !splitRef.current) return
-      const rect = splitRef.current.getBoundingClientRect()
-      const minPx = 200
-      const x = Math.max(minPx, Math.min(ev.clientX - rect.left, rect.width - minPx))
-      setSplitRatio(x / rect.width)
-    }
-
-    const onMouseUp = () => {
-      draggingRef.current = false
-      document.body.style.cursor = ''
-      document.body.style.userSelect = ''
-      document.removeEventListener('mousemove', onMouseMove)
-      document.removeEventListener('mouseup', onMouseUp)
-    }
-
-    document.addEventListener('mousemove', onMouseMove)
-    document.addEventListener('mouseup', onMouseUp)
-  }, [])
-
-  const handleDividerDoubleClick = useCallback(() => {
-    setSplitRatio(0.5)
-  }, [])
+  const [migration, setMigration] = useState<MigrationOffer | null>(null)
+  const [migrated, setMigrated] = useState(false)
 
   useEffect(() => {
     window.api.getTheme().then((saved) => {
@@ -76,146 +35,102 @@ function App(): React.JSX.Element {
     })
   }, [])
 
-  const handleSelectConnection = (conn: Connection) => {
-    setActiveConnection(conn)
-    setRemoteLocation(null)
-    setActiveTab('files')
-    setSidebarOpen(false) // Auto-hide menu once selected
+  const applySession = useCallback((session: SessionState) => {
+    if (session.state === 'signed-in') setGate({ view: 'app', email: session.email })
+    else if (session.state === 'unreachable') setGate({ view: 'unreachable' })
+    else setGate({ view: 'auth', expired: session.expired === true })
+  }, [])
+
+  const fetchSession = (): Promise<SessionState> => window.api.getSession().catch((): SessionState => ({ state: 'unreachable' }))
+
+  const retry = (): void => {
+    setGate({ view: 'loading' })
+    fetchSession().then(applySession)
   }
 
-  const openTerminalTab = (conn: SshConnection): void => {
-    const id = crypto.randomUUID()
-    setTerminals((prev) => {
-      const titles = new Set(prev.map((tab) => tab.title))
-      let title = conn.name
-      for (let n = 2; titles.has(title); n++) title = `${conn.name} (${n})`
-      return [...prev, { id, connection: conn, title }]
+  useEffect(() => {
+    fetchSession().then(applySession)
+    // Sesión revocada o caducada en mitad del uso: el proceso principal ya ha cerrado las
+    // conexiones SSH; al desmontar el espacio de trabajo se cierran terminales y cola
+    return window.api.onSessionExpired(() => {
+      setMigration(null)
+      setGate({ view: 'auth', expired: true })
     })
-    setActiveTab(id)
-    setSidebarOpen(false)
+  }, [])
+
+  // Tras iniciar sesión se ofrece subir las conexiones de connections.json, si las hay
+  const handleSignedIn = async (email: string): Promise<void> => {
+    setGate({ view: 'app', email })
+    const offer = await window.api.getMigrationOffer().catch(() => null)
+    if (offer && (offer.count > 0 || offer.recoveredFile)) setMigration(offer)
   }
 
-  const closeTerminalTab = (id: string): void => {
-    setTerminals((prev) => prev.filter((tab) => tab.id !== id))
-    setActiveTab((current) => (current === id ? 'files' : current))
+  const handleSignedOut = (): void => {
+    setMigration(null)
+    setMigrated(false)
+    setGate({ view: 'auth', expired: false })
+  }
+
+  if (gate.view === 'loading') {
+    return (
+      <div className="auth-screen">
+        <Loader2 size={28} className="spin" color="var(--text-muted)" />
+      </div>
+    )
+  }
+
+  if (gate.view === 'auth') {
+    return <AuthScreen expired={gate.expired} onSignedIn={handleSignedIn} />
+  }
+
+  if (gate.view === 'unreachable') {
+    return (
+      <div className="auth-screen">
+        <div className="auth-card animate-fade-in">
+          <div className="auth-brand">
+            <img src={logo} alt="Absor" />
+            <h1>{t('unreachable.title')}</h1>
+            <p>{t('unreachable.description')}</p>
+          </div>
+          <button type="button" className="btn-primary" style={{ width: '100%' }} onClick={retry}>
+            <RefreshCw size={16} /> {t('unreachable.retry')}
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className={`app-layout ${!sidebarOpen ? 'sidebar-closed' : ''}`}>
-      {/* Sidebar for Connections */}
-      <ConnectionsSidebar key={connectionsKey} isOpen={sidebarOpen} onSelectConnection={handleSelectConnection} onOpenTerminal={openTerminalTab} />
-
-      {/* Main Content Area */}
-      <main className="main-content">
-        <header className="topbar">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-             <button className="btn-icon" onClick={() => setSidebarOpen(!sidebarOpen)} title={t('app.toggleConnections')}>
-               <Menu size={20} />
-             </button>
-             <img src={logo} alt="Absor" style={{ height: '28px', borderRadius: '6px' }} />
-             <h2 style={{ fontSize: '1.2rem', fontWeight: 600 }}>{t('app.title')}</h2>
-             {activeConnection && (
-               <>
-                 <span style={{ color: 'var(--text-muted)' }}>/</span>
-                 <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{activeConnection.name}</span>
-               </>
-             )}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {activeConnection?.type === 'ssh' && (
-              <button className="btn-icon" onClick={() => openTerminalTab(activeConnection)} title={t('terminal.open')}>
-                <SquareTerminal size={20} />
-              </button>
-            )}
-            <button className="btn-icon" onClick={() => setShowSettings(true)} title={t('app.settings')}>
-              <Settings size={20} />
-            </button>
-          </div>
-        </header>
-
-        <section className="content-area animate-fade-in workspace" style={{ padding: 0 }}>
-          {terminals.length > 0 && (
-            <div className="workspace-tabs">
-              <button className={`workspace-tab ${activeTab === 'files' ? 'active' : ''}`} onClick={() => setActiveTab('files')}>
-                <FolderOpen size={14} />
-                <span>{t('terminal.files')}</span>
-              </button>
-              {terminals.map((tab) => (
-                <div
-                  key={tab.id}
-                  className={`workspace-tab ${activeTab === tab.id ? 'active' : ''}`}
-                  onClick={() => setActiveTab(tab.id)}
-                  title={tab.title}
-                >
-                  <SquareTerminal size={14} />
-                  <span>{tab.title}</span>
-                  <button
-                    className="workspace-tab-close"
-                    title={t('terminal.close')}
-                    onClick={(e) => { e.stopPropagation(); closeTerminalTab(tab.id) }}
-                  >
-                    <X size={12} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-          <div className="workspace-body">
-          <div className="workspace-pane" style={{ display: activeTab === 'files' ? 'flex' : 'none', padding: activeConnection ? 0 : '24px' }}>
-          {!activeConnection ? (
-            <div className="glass-panel" style={{ padding: '40px', textAlign: 'center', marginTop: '10vh' }}>
-              <img src={logo} alt="Absor" style={{ height: '64px', borderRadius: '12px', marginBottom: '20px' }} />
-              <h1 style={{ fontSize: '1.8rem', marginBottom: '12px' }}>{t('app.welcomeTitle')}</h1>
-              <p style={{ color: 'var(--text-secondary)', maxWidth: '500px', margin: '0 auto', lineHeight: '1.6' }}>
-                {t('app.welcomeDescription')}
-              </p>
-            </div>
-          ) : (
-            <div className="split-view" ref={splitRef} style={{ display: 'flex', height: '100%', width: '100%' }}>
-              <div style={{ flexBasis: `${splitRatio * 100}%`, flexShrink: 0, flexGrow: 0, minWidth: 200, overflow: 'hidden' }}>
-                <LocalExplorer activeConnection={activeConnection} remoteLocation={remoteLocation} onPathChange={setLocalCurrentPath} />
-              </div>
-              <div className="split-divider" onMouseDown={handleDividerMouseDown} onDoubleClick={handleDividerDoubleClick} />
-              <div style={{ flex: 1, minWidth: 200, overflow: 'hidden' }}>
-                {activeConnection.type === 's3' ? (
-                  <S3Explorer
-                    key={activeConnection.id}
-                    connection={activeConnection}
-                    localCurrentPath={localCurrentPath}
-                    onLocationChange={(bucket, prefix) => setRemoteLocation({ kind: 's3', bucket, prefix })}
-                  />
-                ) : (
-                  <SftpExplorer
-                    key={activeConnection.id}
-                    connection={activeConnection}
-                    localCurrentPath={localCurrentPath}
-                    onLocationChange={(path) => setRemoteLocation({ kind: 'sftp', path })}
-                  />
-                )}
-              </div>
-            </div>
-          )}
-          </div>
-          {terminals.map((tab) => (
-            <TerminalView key={tab.id} connection={tab.connection} active={activeTab === tab.id} theme={theme} />
-          ))}
-          </div>
-        </section>
-      </main>
-      
-      {/* Bottom Queue Bar */}
-      <TransferQueueBar />
-
-      {/* Settings Panel */}
-      {showSettings && (
-        <SettingsPanel
-          theme={theme}
-          onThemeChange={setTheme}
-          onClose={() => setShowSettings(false)}
-          onConnectionsImported={() => setConnectionsKey((k) => k + 1)}
+    <TransferQueueProvider key={gate.email}>
+      <Workspace email={gate.email} theme={theme} onThemeChange={setTheme} onSignedOut={handleSignedOut} />
+      {migration && migration.count > 0 && (
+        <MigrationDialog
+          count={migration.count}
+          onClose={(done) => {
+            setMigration(migration.recoveredFile ? { count: 0, recoveredFile: migration.recoveredFile } : null)
+            setMigrated(done)
+          }}
         />
       )}
-    </div>
+      {migration && migration.count === 0 && migration.recoveredFile && (
+        <div className="cloud-notice app-toast" role="status">
+          <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: '1px', color: '#eab308' }} />
+          <span style={{ wordBreak: 'break-all' }}>{t('store.corruptRecovered', { path: migration.recoveredFile })}</span>
+          <button title={t('cloud.dismiss')} onClick={() => setMigration(null)}>
+            <X size={14} />
+          </button>
+        </div>
+      )}
+      {migrated && !migration && (
+        <div className="cloud-notice success app-toast" role="status">
+          <CheckCircle size={14} style={{ flexShrink: 0, marginTop: '1px', color: '#22c55e' }} />
+          <span>{t('migration.done')}</span>
+          <button title={t('cloud.dismiss')} onClick={() => setMigrated(false)}>
+            <X size={14} />
+          </button>
+        </div>
+      )}
+    </TransferQueueProvider>
   )
 }
 

@@ -1,5 +1,5 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
-import { ConnectionEntry, S3Connection, SshConnection } from '../shared/types'
+import { CloudResult, ConnectionEntry, ConnectionsChangedEvent, MigrationOffer, S3Connection, SessionState, SignInResult, SshConnection } from '../shared/types'
 
 interface UpdateStatusEvent {
   status: 'checking' | 'available' | 'up-to-date' | 'downloading' | 'downloaded' | 'error'
@@ -14,8 +14,17 @@ declare global {
   interface Window {
     electron: ElectronAPI
     api: {
+      getSession: () => Promise<SessionState>
+      login: (email: string, password: string) => Promise<SignInResult>
+      register: (email: string, password: string) => Promise<SignInResult>
+      logout: () => Promise<CloudResult>
+      changePassword: (currentPassword: string, newPassword: string) => Promise<CloudResult>
+      deleteAccount: (password: string) => Promise<CloudResult>
+      getMigrationOffer: () => Promise<MigrationOffer>
+      migrateLocalConnections: () => Promise<CloudResult>
+      onSessionExpired: (callback: () => void) => () => void
+      onConnectionsChanged: (callback: (event: ConnectionsChangedEvent) => void) => () => void
       getConnections: () => Promise<ConnectionEntry[]>
-      getStoreStatus: () => Promise<{ unreadableCredentials: number; recoveredFile: string | null }>
       isEncryptionAvailable: () => Promise<boolean>
       saveConnections: (connections: ConnectionEntry[]) => Promise<void>
       listBuckets: (conn: S3Connection) => Promise<string[]>

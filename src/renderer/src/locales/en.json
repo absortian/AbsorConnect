@@ -169,9 +169,73 @@
   },
   "store": {
     "credentialsUnavailable": "The saved credentials for this connection cannot be read. Edit it and enter them again.",
-    "unreadableCredentials": "The saved credentials of {{count}} connection(s) cannot be read on this system (for example, if the system keychain changed). They are kept: edit those connections to enter the credentials again.",
+    "unreadableCredentials": "The credentials of {{count}} connection(s) are not available: they could not be read on the computer they were uploaded from, or the service cannot decrypt them. They are kept: edit those connections to enter them again.",
     "corruptRecovered": "The connections file was damaged and could not be read. A copy was kept at: {{path}}",
     "reenterCredentials": "The saved credentials cannot be read. Enter them again, or leave them empty to keep the saved ones.",
-    "encryptionUnavailable": "This system has no secure storage available (for example, no keyring on Linux): credentials are saved without encryption."
+    "encryptionUnavailable": "This system has no secure storage available (for example, Linux without a keyring): your account session is stored unencrypted on this computer."
+  },
+  "auth": {
+    "subtitle": "Sign in to have your connections on all your computers.",
+    "login": "Sign in",
+    "register": "Create account",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Repeat the password",
+    "passwordHint": "At least 10 characters.",
+    "submitLogin": "Sign in",
+    "submitRegister": "Create account",
+    "working": "One moment…",
+    "expired": "Your session has expired or was closed elsewhere. Please sign in again.",
+    "errors": {
+      "invalid_credentials": "The email or password is incorrect.",
+      "email_taken": "An account with that email already exists. Sign in instead.",
+      "email_invalid": "The email is not valid.",
+      "password_too_short": "The password must be at least 10 characters long.",
+      "password_too_long": "The password is too long.",
+      "password_mismatch": "The passwords do not match.",
+      "password_incorrect": "The password is incorrect.",
+      "too_many_attempts": "Too many attempts. Wait a little and try again.",
+      "connections_conflict": "Another computer saved changes in the meantime.",
+      "connections_invalid": "The service rejected the connection list.",
+      "network_error": "Cannot reach the service. Check your internet connection.",
+      "server_error": "The service is not available right now. Try again later.",
+      "unknown": "Something went wrong. Please try again."
+    }
+  },
+  "unreachable": {
+    "title": "Cannot reach the service",
+    "description": "Absor Connect keeps your connections in your account. Check your internet connection and try again.",
+    "retry": "Retry"
+  },
+  "migration": {
+    "title": "Connections on this computer",
+    "description_one": "There is 1 connection saved on this computer by a previous version. Do you want to upload it to your account? It will then be removed from this computer.",
+    "description_other": "There are {{count}} connections saved on this computer by a previous version. Do you want to upload them to your account? They will then be removed from this computer.",
+    "upload": "Upload to my account",
+    "later": "Not now",
+    "uploading": "Uploading…",
+    "failed": "The migration could not be completed: {{reason}} Your connections are still on this computer and you will be asked again the next time you sign in.",
+    "done": "Connections uploaded to your account and removed from this computer."
+  },
+  "cloud": {
+    "conflict": "Another computer changed your connections. The current list has been loaded and your last change was not saved: please repeat it.",
+    "saveFailed": "The change could not be saved: {{reason}}",
+    "dismiss": "Close"
+  },
+  "account": {
+    "title": "Account",
+    "signedInAs": "Signed in as",
+    "changePassword": "Change password",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "confirmNewPassword": "Repeat the new password",
+    "save": "Save",
+    "cancel": "Cancel",
+    "passwordChanged": "Password changed. Your sessions on other computers have been closed.",
+    "logout": "Sign out",
+    "deleteAccount": "Delete account",
+    "deleteWarning": "Your account and all your saved connections will be deleted, on all your computers. This cannot be undone.",
+    "deletePassword": "Type your password to confirm",
+    "deleteConfirm": "Delete my account"
   }
 }

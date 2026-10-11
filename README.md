@@ -9,7 +9,8 @@ Aplicación de escritorio para gestionar archivos entre el sistema de archivos l
 ## Características
 
 - **Explorador dual** — Panel izquierdo para el sistema de archivos local y panel derecho para el servicio remoto (buckets S3 o directorios SFTP), permitiendo navegar ambos simultáneamente.
-- **Gestión de conexiones** — Crear, organizar en carpetas y persistir conexiones S3 y SSH. Las credenciales (claves de acceso, contraseñas y passphrases) se guardan cifradas con el almacén seguro del sistema.
+- **Cuenta en la nube** — Registro con email y contraseña. Las conexiones se guardan en tu cuenta y las ves en todos tus equipos; la sesión de cada equipo se recuerda entre reinicios.
+- **Gestión de conexiones** — Crear, organizar en carpetas y guardar conexiones S3 y SSH en tu cuenta. Las credenciales (claves de acceso, contraseñas y passphrases) se guardan cifradas en el servicio; los cambios hechos desde otro equipo aparecen al volver a la ventana.
 - **Conexiones SSH / SFTP** — Autenticación por contraseña o por clave privada (ruta al fichero, con passphrase opcional; la clave no se copia a la app) y directorio inicial opcional.
 - **Terminal SSH** — Terminales interactivas en pestañas junto al explorador, sobre la misma conexión SSH (sin volver a autenticarse). Varias a la vez, del mismo o de distintos servidores, con colores, UTF-8, programas a pantalla completa, redimensionado automático y reconexión. Copiar y pegar: **Cmd+C / Cmd+V** en macOS y **Ctrl+Shift+C / Ctrl+Shift+V** en Windows y Linux (Ctrl+C envía la interrupción al servidor).
 - **Transferencias drag-and-drop** — Arrastrar archivos entre paneles para subir o descargar. También disponible mediante menú contextual.
@@ -27,7 +28,7 @@ Aplicación de escritorio para gestionar archivos entre el sistema de archivos l
 | AWS SDK | @aws-sdk/client-s3 |
 | SSH / SFTP | ssh2 |
 | Terminal | xterm.js (@xterm/xterm) |
-| Persistencia | electron-store |
+| Persistencia | API de cuentas (conexiones) y ficheros JSON locales (sesión y ajustes) |
 | Iconos | lucide-react |
 | Empaquetado | electron-builder |
 | Backend (cuentas en la nube) | Symfony 8.1 · PHP 8.5 · PostgreSQL 16 · FrankenPHP |
@@ -45,9 +46,11 @@ npm run dev
 npm run build
 ```
 
+La app necesita el backend: `npm run dev` usa el de desarrollo en `http://localhost:8020` (`docker compose up -d --wait`, ver más abajo) y los builds de producción usan `https://absorconnect.absor.top`. La URL se incrusta al compilar desde `MAIN_VITE_API_URL` (`.env.development` y `.env.production`; en `release.yml` la sustituye la variable del repositorio del mismo nombre). Para apuntar cualquier build a otro backend sin recompilar: `ABSOR_CONNECT_API_URL=http://localhost:8020` al arrancar la app.
+
 ## Backend (cuentas y conexiones en la nube)
 
-`backend/` es la API con la que la app guardará las conexiones en una cuenta (registro con email y contraseña). En producción vive en `https://absorconnect.absor.top`. Las credenciales de las conexiones se guardan cifradas con una clave del servicio (`CONNECTIONS_KEY`), y de los tokens de sesión solo se guarda su hash.
+`backend/` es la API con la que la app guarda las conexiones en una cuenta (registro con email y contraseña). En producción vive en `https://absorconnect.absor.top`. Las credenciales de las conexiones se guardan cifradas con una clave del servicio (`CONNECTIONS_KEY`), y de los tokens de sesión solo se guarda su hash.
 
 ### Desarrollo
 
@@ -102,8 +105,19 @@ Jenkins construye la imagen `absortian/absortian:php-absorconnect-1.0.0` (`docke
 
 ## Seguridad
 
+- **Credenciales en el servicio:** las claves y contraseñas de las conexiones viajan por HTTPS y se guardan cifradas con una clave del servicio (`CONNECTIONS_KEY`). Quien tuviera a la vez la base de datos y esa clave podría leerlas. De las claves privadas SSH solo se guarda la ruta del fichero, nunca su contenido.
+- **Sesión en el equipo:** el token de sesión se guarda cifrado con el almacén seguro del sistema (Llavero, DPAPI o libsecret/kwallet). En Linux sin keyring se guarda sin cifrar y Ajustes lo indica. Cambiar la contraseña cierra las sesiones de los demás equipos.
+
 - **Host key SSH sin verificar:** Absor Connect acepta la clave de host de cualquier servidor SSH sin comprobarla. Es una decisión consciente para esta versión, pero implica que en una red no confiable un atacante podría suplantar al servidor (man-in-the-middle) y capturar la contraseña o los datos transferidos. Usa autenticación por clave privada y redes de confianza siempre que puedas.
 - **Exportación de conexiones:** el fichero exportado contiene todas las credenciales sin cifrar.
+
+## Actualizar desde una versión sin cuenta
+
+Hasta la v0.1.1 las conexiones se guardaban en el equipo (`connections.json`). Al actualizar hay que crear una cuenta o iniciar sesión, y la app ofrece subir esas conexiones a la cuenta:
+
+- **Subir a mi cuenta:** se añaden a las que ya tuviera la cuenta y, solo si la subida va bien, se borran `connections.json` y `connections.json.bak` del equipo. Las credenciales que el equipo no podía leer se suben marcadas para volver a introducirlas.
+- **Ahora no:** el fichero queda intacto y se vuelve a preguntar en el siguiente inicio de sesión.
+- Si el fichero está dañado, se aparta a `connections.json.corrupt-<fecha>` y la app indica dónde está la copia.
 
 ## Historial
 

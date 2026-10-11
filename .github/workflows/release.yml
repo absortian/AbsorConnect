@@ -40,6 +40,10 @@ jobs:
 
       - name: Build and package
         run: ${{ matrix.build_cmd }}
+        env:
+          # URL de la API de cuentas. Nunca vacía: Vite da prioridad a las variables del proceso
+          # sobre .env.production aunque estén vacías, y la app quedaría sin servicio.
+          MAIN_VITE_API_URL: ${{ vars.MAIN_VITE_API_URL || 'https://absorconnect.absor.top' }}
 
       - name: Upload release assets
         uses: softprops/action-gh-release@v2

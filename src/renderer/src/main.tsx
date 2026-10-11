@@ -13,12 +13,10 @@ window.addEventListener('unhandledrejection', (event) => {
 })
 
 import App from './App'
-import { TransferQueueProvider } from './context/TransferQueueContext'
 
+// La cola de transferencias la monta App con la sesión iniciada: al cerrarla se vacía
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <TransferQueueProvider>
-      <App />
-    </TransferQueueProvider>
+    <App />
   </StrictMode>
 )

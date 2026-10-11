@@ -19,7 +19,7 @@ Hoy el renderer usa `window.api.getConnections()` / `saveConnections(list)` desd
 
 ### D1. Cliente de la API en el proceso principal (`src/main/cloud/`)
 - `apiClient.ts` usa el `fetch` de Node, con timeout de 15 s.
-- La URL base se lee de `import.meta.env.MAIN_VITE_API_URL` (electron-vite la incrusta al compilar). En desarrollo se puede sobrescribir con la variable de entorno `ABSOR_CONNECT_API_URL`.
+- La URL base se lee de `import.meta.env.MAIN_VITE_API_URL` (electron-vite la incrusta al compilar). Cualquier build, también la empaquetada, se puede apuntar a otro backend con la variable de entorno `ABSOR_CONNECT_API_URL` al arrancar (desarrollo y pruebas).
 - Los errores se traducen al formato del renderer con un código estable: los de la API (`invalid_credentials`, `email_taken`…) más `network_error`.
 - **Un 401 en cualquier llamada autenticada** borra la sesión local y emite `session-expired` al renderer.
 
@@ -45,7 +45,7 @@ El nombre del dispositivo que se envía al iniciar sesión es `os.hostname()`.
 - **Consumidores sin cambios:** la cola de transferencias, la terminal y el explorador siguen llamando a `getConnections()`, que ahora sale de memoria y no hace una petición por operación.
 
 ### D4. Puerta de sesión en el renderer
-`App.tsx` pide `window.api.getSession()` al arrancar:
+`App.tsx` pide `window.api.getSession()` al arrancar (la interfaz con sesión pasa a `components/Workspace.tsx`, y la cola de transferencias se monta dentro de la puerta, así que se vacía al cerrar sesión):
 - `{state: 'signed-out'}` → muestra `AuthScreen`.
 - `{state: 'signed-in', email}` → precarga las conexiones y muestra la interfaz actual.
 - `{state: 'unreachable'}` → pantalla de error con "Reintentar".
@@ -66,7 +66,7 @@ Al subir:
 1. Fusión: entradas de la nube y, a continuación, las locales cuyo `id` no esté ya en la nube, conservando sus carpetas. Una entrada local cuyo `parentId` no apunte a una carpeta de la lista fusionada pasa a la raíz, porque el servidor rechaza padres inexistentes (`connections_invalid`). Las versiones antiguas podían dejar huérfanos invisibles en la barra lateral.
 2. `PUT` con la revisión actual.
 3. Solo si el `PUT` va bien, se borran `connections.json` y `connections.json.bak`.
-4. Las entradas locales con credenciales ilegibles se suben con los secretos vacíos y sin la marca. En la nube no hay un secreto antiguo que conservar, así que la conexión queda sin credenciales y la persona las reintroduce al editarla.
+4. Las entradas locales con credenciales ilegibles se suben con los secretos vacíos y con la marca `credentialsUnavailable`. El servicio guarda entonces un marcador de secreto ilegible (`add-cloud-backend` D6), así que la conexión sigue marcada en todos los equipos hasta que la persona reintroduce sus credenciales al editarla.
 
 "Ahora no" no toca nada, y el diálogo vuelve a salir en el siguiente inicio de sesión.
 
