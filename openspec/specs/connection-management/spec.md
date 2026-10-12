@@ -40,31 +40,16 @@ Una conexión SSH SHALL autenticarse con uno de dos métodos: contraseña, o cla
 - **WHEN** el servidor rechaza la autenticación
 - **THEN** la aplicación muestra un error de autenticación distinto de los errores de red
 
-### Requirement: Protección de secretos
-Los secretos de cualquier tipo de conexión (claves de acceso S3, contraseña SSH y passphrase) MUST guardarse cifrados en disco con el mismo mecanismo que las credenciales S3. La aplicación MUST NOT copiar a su almacenamiento el contenido de las claves privadas, solo su ruta. Si el sistema no ofrece almacén seguro, los secretos se guardan sin cifrar, MUST NOT marcarse como cifrados y la aplicación MUST informar de ello al usuario.
-
-#### Scenario: Contraseña SSH en disco
-- **WHEN** el usuario guarda una conexión SSH con contraseña en un sistema con cifrado disponible
-- **THEN** el fichero de conexiones no contiene la contraseña en claro
-
-#### Scenario: Clave privada referenciada
-- **WHEN** el usuario guarda una conexión SSH con clave privada
-- **THEN** el fichero de conexiones contiene la ruta de la clave y no su contenido
-
-#### Scenario: Sistema sin almacén seguro
-- **WHEN** el usuario guarda conexiones en un sistema sin almacén seguro (por ejemplo, Linux sin keyring)
-- **THEN** los secretos se guardan sin la marca de cifrado y Ajustes indica que las credenciales se guardan sin cifrar en este sistema
-
 ### Requirement: Compatibilidad con conexiones existentes
-Las conexiones guardadas o exportadas por versiones anteriores, que no indican tipo, MUST tratarse como conexiones S3 y conservar todos sus datos y credenciales.
+Las conexiones guardadas o exportadas por versiones anteriores, que no indican tipo, MUST tratarse como conexiones S3 y conservar todos sus datos y credenciales, tanto al migrarlas desde el equipo como al importarlas.
 
 #### Scenario: Actualizar con conexiones S3 guardadas
-- **WHEN** un usuario con conexiones S3 creadas en una versión anterior abre la versión con SSH
-- **THEN** ve las mismas conexiones como S3 y puede usarlas sin cambios
+- **WHEN** un usuario con conexiones S3 creadas en una versión anterior actualiza, inicia sesión y acepta subir sus conexiones locales
+- **THEN** ve las mismas conexiones como S3 en su cuenta y puede usarlas sin cambios
 
 #### Scenario: Importar una exportación antigua
 - **WHEN** el usuario importa un fichero de conexiones exportado por una versión anterior
-- **THEN** todas sus entradas se importan como conexiones S3
+- **THEN** todas sus entradas se importan a su cuenta como conexiones S3
 
 ### Requirement: Exportación e importación con tipo
 La exportación SHALL incluir el tipo y todos los campos de cada conexión, y la importación MUST restaurarlos. La importación MUST rechazar un fichero cuyas entradas no sean conexiones o carpetas reconocibles, sin modificar las conexiones actuales.
@@ -81,31 +66,47 @@ La exportación SHALL incluir el tipo y todos los campos de cada conexión, y la
 Si un secreto guardado no se puede descifrar, la aplicación SHALL mostrar igualmente la conexión con el resto de sus datos, marcada como "credenciales no disponibles", y MUST NOT eliminar ni sobrescribir el secreto guardado hasta que el usuario introduzca uno nuevo.
 
 #### Scenario: Clave de cifrado del sistema perdida
-- **WHEN** la aplicación arranca y no puede descifrar las credenciales de una conexión
+- **WHEN** el servicio no puede descifrar las credenciales de una conexión de la cuenta
 - **THEN** la conexión aparece en la lista con un aviso de credenciales no disponibles, junto al resto de conexiones
 
 #### Scenario: Guardar otros cambios no borra el secreto ilegible
 - **WHEN** hay una conexión con credenciales no disponibles y el usuario crea, mueve o renombra cualquier conexión
-- **THEN** el secreto ilegible sigue intacto en disco
+- **THEN** el secreto ilegible sigue intacto en el servicio
 
 #### Scenario: Volver a introducir las credenciales
 - **WHEN** el usuario edita la conexión afectada e introduce credenciales nuevas
-- **THEN** se guardan cifradas, desaparece el aviso y la conexión vuelve a funcionar
+- **THEN** se guardan, desaparece el aviso y la conexión vuelve a funcionar
 
-### Requirement: Fichero de conexiones dañado
-Si el fichero de conexiones existe pero no se puede interpretar, la aplicación SHALL apartarlo a una copia con fecha antes de escribir nada y SHALL avisar al usuario indicando dónde está la copia. Nunca MUST sobrescribirlo en silencio.
+### Requirement: Credenciales fuera del equipo
+Las conexiones y sus credenciales SHALL guardarse en la cuenta del servicio en la nube y no en el disco del equipo. La aplicación MUST NOT escribir secretos de conexión en ningún fichero local, salvo el fichero de versiones anteriores que ya existiera hasta que se migre. De las claves privadas solo se guarda la ruta, nunca su contenido.
 
-#### Scenario: JSON corrupto
-- **WHEN** `connections.json` contiene datos que no son JSON válido y el usuario abre la aplicación
-- **THEN** el fichero se conserva como `connections.json.corrupt-<fecha>`, la barra lateral muestra un aviso con esa ruta y las conexiones nuevas se guardan sin tocar la copia
+#### Scenario: Contraseña SSH guardada
+- **WHEN** el usuario guarda una conexión SSH con contraseña
+- **THEN** la conexión queda en su cuenta, y en la carpeta de datos de la aplicación no se crea ni modifica ningún fichero de conexiones
 
-### Requirement: Secretos guardados en claro por versiones anteriores
-Los secretos que versiones anteriores guardaron sin cifrar (estén o no marcados como cifrados) SHALL leerse correctamente, y MUST quedar cifrados en el siguiente guardado si el sistema dispone de almacén seguro.
+#### Scenario: Clave privada referenciada
+- **WHEN** el usuario guarda una conexión SSH con clave privada
+- **THEN** la cuenta guarda la ruta de la clave y no su contenido
 
-#### Scenario: Secreto en claro marcado como cifrado
-- **WHEN** el fichero contiene una conexión con `_encrypted: true` cuyos secretos están en claro (guardados en un sistema sin almacén seguro)
-- **THEN** la conexión se carga con sus credenciales correctas
+### Requirement: Migración de las conexiones locales
+Tras iniciar sesión en un equipo que tenga el fichero de conexiones de una versión anterior con alguna entrada legible, la aplicación SHALL preguntar si subirlas a la cuenta. Si se acepta, MUST añadirlas a las de la cuenta (sin duplicar las que ya estén por identificador) y, solo tras confirmarse el guardado, borrar el fichero local y su copia `.bak`. Si se rechaza, el fichero se conserva y se vuelve a preguntar en el siguiente inicio de sesión.
 
-#### Scenario: Cifrado al aparecer el almacén seguro
-- **WHEN** ese mismo fichero se usa en un sistema con almacén seguro y el usuario guarda cualquier cambio
-- **THEN** los secretos quedan cifrados en disco
+#### Scenario: Subir las conexiones del equipo
+- **WHEN** un usuario con 3 conexiones locales inicia sesión y acepta subirlas
+- **THEN** las 3 aparecen en su cuenta junto a las que ya tuviera, y `connections.json` y `connections.json.bak` ya no existen en el equipo
+
+#### Scenario: Aplazar la migración
+- **WHEN** el usuario elige "Ahora no"
+- **THEN** el fichero local sigue intacto, no se sube nada, y en el siguiente inicio de sesión se le vuelve a preguntar
+
+#### Scenario: Fallo al subir
+- **WHEN** la subida falla (servicio no disponible o conflicto)
+- **THEN** el fichero local no se borra y la aplicación indica que no se pudo completar la migración
+
+#### Scenario: Fichero local dañado
+- **WHEN** el fichero local no es JSON válido
+- **THEN** se aparta a `connections.json.corrupt-<fecha>`, no se ofrece la migración y la aplicación indica dónde está la copia
+
+#### Scenario: Secretos locales en claro o ilegibles
+- **WHEN** el fichero local contiene secretos en claro marcados como cifrados, o secretos que el equipo ya no puede descifrar
+- **THEN** los primeros se suben con sus credenciales correctas y los segundos se suben sin secreto, marcados para volver a introducirlos

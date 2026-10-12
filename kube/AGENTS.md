@@ -25,10 +25,18 @@ selector y nombre de contenedor.
 No hay worker: la API no tiene trabajo asíncrono.
 
 ## Networking
-Un único punto de entrada externo: NodePort 30081. El TLS de
-`https://absorconnect.absor.top` termina en Cloudflare y el proxy upstream;
-dentro del cluster es HTTP plano (`SERVER_NAME=:80`). Solo se sirven `/api/*` y
+Camino de una petición: Cloudflare (registro `absorconnect.absor.top` con proxy)
+→ HAProxy de `head0` (contenedor `infra-haproxy-and-certs_haproxy_1`, TLS con el
+certificado comodín `*.absor.top`) → NodePort **30081** de worker0-2 → pod :80.
+Dentro del cluster es HTTP plano (`SERVER_NAME=:80`). Solo se sirven `/api/*` y
 `/healthz`. Sin SSE ni WebSockets.
+
+La ruta de HAProxy está en `head0:/root/infra-haproxy-and-certs/conf/haproxy.cfg`
+(acl `absorconnect_host`, `use_backend absorconnect_backend` y el backend con
+`option forwardfor` y `option httpchk GET /healthz`). Ese fichero está montado en
+el contenedor como fichero suelto: hay que editarlo sin cambiar su inodo (no
+`sed -i`), validarlo con `docker exec infra-haproxy-and-certs_haproxy_1 haproxy -c
+-f /etc/haproxy/haproxy.cfg` y recargar con `reload.sh`.
 
 ## Configuración
 Sin ConfigMaps ni volúmenes. La config de producción es el Secret
@@ -53,10 +61,12 @@ cabecera de los saltos de confianza, recorriéndola de derecha a izquierda. Sin
 ninguno, todas las peticiones parecen venir de la IP del nodo y los límites se
 aplicarían a todo el mundo a la vez. Valor recomendado: `REMOTE_ADDR` (el salto
 inmediato) más los rangos de Cloudflare (<https://www.cloudflare.com/ips/>),
-separados por comas. Si el proxy ya reescribe `X-Forwarded-For` con
-`CF-Connecting-IP`, basta con `REMOTE_ADDR`. Si el NodePort se puede alcanzar
-desde internet sin pasar por el proxy, alguien podría falsear su IP en los
-límites por IP; el límite por email sigue valiendo.
+separados por comas. Comprobado en producción: llega `REMOTE_ADDR` = IP interna
+del nodo y `X-Forwarded-For: <cliente>, <Cloudflare>` (Cloudflare añade al
+cliente y HAProxy, con `option forwardfor`, la IP de Cloudflare), así que Symfony
+ve la IP real. Los NodePort también responden desde internet sin pasar por
+HAProxy: por ahí alguien podría falsear su IP en los límites por IP; el límite
+por email sigue valiendo.
 
 Todo el estado vive en el Postgres externo: cuentas, sesiones (solo el hash del
 token), conexiones (secretos cifrados) y los contadores de los límites de
@@ -77,11 +87,14 @@ complete y hace `rollout restart` de `absorconnect-php`. Con tag estable,
 imagen nueva.
 
 ## Primer despliegue
-1. **Crear la base de datos** en el Postgres externo (`data0.absor.top:25432`):
-   `CREATE DATABASE absorconnect ENCODING 'UTF8';`. Las tablas las crea el Job.
+1. **Crear la base de datos** en el Postgres externo (`data0.absor.top:25432`),
+   con un usuario propio que solo es dueño de ella (no `postgres`):
+   `CREATE ROLE absorconnect LOGIN PASSWORD '…'; CREATE DATABASE absorconnect OWNER absorconnect ENCODING 'UTF8';`.
+   Las tablas las crea el Job.
 2. **Rellenar `backend/.env_prod`** (tabla de arriba) y lanzar `kube/make-env-secret.sh`.
 3. **Crear el job de Jenkins** con este `Jenkinsfile` y lanzarlo.
-4. **Crear el dominio** `absorconnect.absor.top` en Cloudflare hacia el NodePort 30081.
+4. **Crear el dominio** `absorconnect.absor.top` en Cloudflare (con proxy) y su
+   ruta en el HAProxy de `head0` hacia el NodePort 30081 (ver Networking).
 5. Comprobar: `curl https://absorconnect.absor.top/api/health` → `{"status":"ok"}`.
 
 ## Operación
