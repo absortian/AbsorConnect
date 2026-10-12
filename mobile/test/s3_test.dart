@@ -81,4 +81,54 @@ void main() {
     await fs.delete(folder);
     expect((await fs.list('$bucket/')).where((i) => i.name == 'fotos'), isEmpty);
   }, skip: skip);
+
+  // Sin servidor de pruebas: errores que en el móvil acababan en "Algo ha fallado"
+  test('endpoint sin https:// se completa; uno inválido da un error claro', () async {
+    expect(S3Client.normalizeEndpoint(' s3.ejemplo.com/ '), 'https://s3.ejemplo.com');
+    expect(S3Client.normalizeEndpoint('http://10.0.2.2:7070'), 'http://10.0.2.2:7070');
+    expect(S3Client.isValidEndpoint('s3.ejemplo.com'), isTrue);
+    expect(S3Client.isValidEndpoint('ftp://s3.ejemplo.com'), isFalse);
+    expect(S3Client.isValidEndpoint('https://'), isFalse);
+    final invalid = S3Client(endpoint: 'ftp://s3.ejemplo.com', region: 'us-east-1', accessKey: 'a', secretKey: 'b');
+    await expectLater(invalid.listBuckets(), throwsA(isA<S3Error>().having((e) => e.code, 'code', 's3_invalid_endpoint')));
+  });
+
+  test('una redirección (http → https) no se sigue: dice adónde redirige', () async {
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    server.listen((request) {
+      request.response
+        ..statusCode = HttpStatus.movedPermanently
+        ..headers.set('location', 'https://s3.ejemplo.com/')
+        ..close();
+    });
+    final redirected = S3Client(endpoint: 'http://127.0.0.1:${server.port}', region: 'us-east-1', accessKey: 'a', secretKey: 'b');
+    await expectLater(
+      redirected.listBuckets(),
+      throwsA(isA<S3Error>().having((e) => e.code, 'code', 's3_redirect').having((e) => e.detail, 'detail', 'https://s3.ejemplo.com/')),
+    );
+    await server.close(force: true);
+  });
+
+  test('un certificado no válido da un error de conexión segura', () async {
+    // Servidor HTTPS con un certificado que el cliente no reconoce
+    final server = await SecureServerSocket.bind(InternetAddress.loopbackIPv4, 0, _selfSignedContext());
+    server.listen((socket) => socket.destroy(), onError: (_) {});
+    final client = S3Client(endpoint: 'https://127.0.0.1:${server.port}', region: 'us-east-1', accessKey: 'a', secretKey: 'b');
+    await expectLater(client.listBuckets(), throwsA(isA<S3Error>().having((e) => e.code, 'code', 's3_tls_error')));
+    await server.close();
+  }, skip: Process.runSync('which', ['openssl']).exitCode != 0 ? 'sin openssl' : null);
+}
+
+/// Certificado autofirmado de un solo uso para el servidor HTTPS de la prueba.
+SecurityContext _selfSignedContext() {
+  final dir = Directory.systemTemp.createTempSync('tls');
+  Process.runSync('openssl', [
+    'req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-days', '1', '-subj', '/CN=localhost', //
+    '-keyout', '${dir.path}/key.pem', '-out', '${dir.path}/cert.pem',
+  ]);
+  final context = SecurityContext()
+    ..useCertificateChain('${dir.path}/cert.pem')
+    ..usePrivateKey('${dir.path}/key.pem');
+  dir.deleteSync(recursive: true);
+  return context;
 }

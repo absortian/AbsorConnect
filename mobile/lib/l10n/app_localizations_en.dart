@@ -400,5 +400,19 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String err_s3_redirect(String location) {
+    return 'The server redirects to $location. Use that address as the endpoint.';
+  }
+
+  @override
+  String err_s3_tls_error(String detail) {
+    return 'Could not open a secure connection to the server (the certificate is invalid or not trusted by this phone): $detail';
+  }
+
+  @override
+  String get err_s3_invalid_endpoint =>
+      'The endpoint is not a valid address. Enter it in full, for example https://s3.example.com';
+
+  @override
   String get err_unknown => 'Something went wrong. Please try again.';
 }

@@ -115,5 +115,8 @@
   "err_s3_access_denied": "Acceso denegado: revisa las claves y los permisos.",
   "err_s3_not_found": "El bucket o el fichero no existe.",
   "err_s3_error": "El servicio de almacenamiento devolvió un error: {detail}",
+  "err_s3_redirect": "El servidor redirige a {location}. Usa esa dirección como endpoint.",
+  "err_s3_tls_error": "No se pudo abrir una conexión segura con el servidor (certificado no válido o no reconocido por el móvil): {detail}",
+  "err_s3_invalid_endpoint": "El endpoint no es una dirección válida. Escríbela completa, por ejemplo https://s3.ejemplo.com",
   "err_unknown": "Algo ha fallado. Inténtalo de nuevo."
 }
