@@ -69,7 +69,8 @@ El estado se maneja con `ChangeNotifier` y `ListenableBuilder` de Flutter, sin l
 ### D6. Cliente S3 propio
 Un cliente pequeño (unas 300 líneas) sobre `http`, con firma SigV4 y estilo de ruta (`forcePathStyle`, como el escritorio):
 - **Operaciones:** `ListBuckets`, `ListObjectsV2` con delimitador, `GetObject` en streaming, `PutObject` en streaming con `UNSIGNED-PAYLOAD`, `PutObject` vacío para "carpetas", y `DeleteObject` y `DeleteObjects` para borrar carpetas.
-- **Endpoint y región:** el endpoint y la región son los de la conexión (región por defecto `us-east-1`).
+- **Endpoint y región:** el endpoint y la región son los de la conexión (región por defecto `us-east-1`). Un endpoint sin esquema se completa con `https://` al guardarlo y al usarlo (el escritorio ya exige la URL completa), y las claves se recortan por si se pegaron con un salto de línea.
+- **Errores comprensibles:** las redirecciones no se siguen, porque la petición perdería la firma y S3 respondería "acceso denegado": el error dice adónde redirige el servidor. Los fallos de TLS tienen su propio código (`s3_tls_error`), y un error inesperado muestra su detalle. Se añadió en la v0.3.1, tras un fallo real con un MinIO propio.
 - **Por qué no un paquete:** los clientes S3 de Dart disponibles o no permiten endpoints arbitrarios con estilo de ruta, o llevan tiempo sin mantenimiento. Este cubre justo lo que usa la app y se prueba contra un servidor S3 que valida las firmas (Versity Gateway).
 
 ### D7. Interfaz
