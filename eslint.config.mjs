@@ -6,8 +6,8 @@ import eslintPluginReactHooks from 'eslint-plugin-react-hooks'
 import eslintPluginReactRefresh from 'eslint-plugin-react-refresh'
 
 export default defineConfig(
-  // backend/ (PHP, con JS de terceros en vendor/) y .docker/ (datos de compose) no son de la app
-  { ignores: ['**/node_modules', '**/dist', '**/out', 'backend', '.docker'] },
+  // backend/ (PHP, con JS de terceros en vendor/), mobile/ (Flutter) y .docker/ no son de la app de escritorio
+  { ignores: ['**/node_modules', '**/dist', '**/out', 'backend', 'mobile', '.docker'] },
   tseslint.configs.recommended,
   eslintPluginReact.configs.flat.recommended,
   eslintPluginReact.configs.flat['jsx-runtime'],

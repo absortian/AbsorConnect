@@ -9,8 +9,9 @@ Lee primero el `README.md` (qué es, stack, comandos). Aquí va lo que no se ded
 
 ## Estructura
 - `src/`: app Electron (`main`, `preload`, `renderer`, `shared`).
+- `mobile/`: apps de Android e iPhone (Flutter). Desarrollo, pruebas y firma en `mobile/README.md`.
 - `backend/`: API Symfony de cuentas y conexiones en la nube. Su desarrollo y despliegue: `compose*.yaml`, `docker/`, `kube/` y `Jenkinsfile` (ver `docker/AGENTS.md` y `kube/AGENTS.md`).
-- Nada del backend ni de `openspec/` entra en el paquete de Electron: lo excluye `electron-builder.yml`. Si se añade algo en la raíz que no sea de la app, hay que excluirlo ahí también.
+- Nada del backend, de `mobile/` ni de `openspec/` entra en el paquete de Electron: lo excluye `electron-builder.yml`. Si se añade algo en la raíz que no sea de la app, hay que excluirlo ahí también.
 
 ## Decisiones que conviene no romper
 
@@ -22,6 +23,13 @@ Lee primero el `README.md` (qué es, stack, comandos). Aquí va lo que no se ded
 - **Windows**: el instalador se construye con NSIS 3.12 (`toolsets.nsis: '1.2.1'` en `electron-builder.yml`); el 3.0.4.1 por defecto se cuelga en parte de las instalaciones.
 - **Paquetes `.deb`**: se construyen en Linux; el `ar` de macOS genera paquetes rotos.
 
+### Apps móviles
+- **Misma lista de conexiones que el escritorio**: la app conserva los campos que no conoce al editar una entrada, y cualquier cambio de campos de una conexión hay que hacerlo en el escritorio, el backend (`EntryValidator`) y `mobile/lib/ui/connection_form.dart` a la vez.
+- **Claves privadas por dispositivo** (`mobile/lib/src/keys.dart`): en la cuenta solo va `privateKeyPath` (el nombre del fichero); el contenido se importa en cada móvil y nunca se sube.
+- **Clave de firma de Android única**: si cambia, Android no instala la versión nueva encima de la anterior. Vive en los secrets `ANDROID_KEYSTORE_*` y el propietario guarda una copia; no generar otra.
+- **iOS sin firmar**: no hay cuenta de Apple Developer. La IPA la firma AltStore/SideStore/Sideloadly en cada iPhone, así que nada que necesite capabilities de pago (push, iCloud, App Groups).
+- **El `versionCode` lo pone CI** (`github.run_number`): una release compilada en local con un número menor no se instalaría encima.
+
 ### Backend
 - **Tokens opacos por dispositivo** (`acs_…`, `SessionManager`): en BD solo su SHA-256. La caducidad (90 días) se desliza y se escribe como mucho una vez por hora. La app trata cualquier 401 como sesión caducada, por eso `password_incorrect` es un 403.
 - **`PUT /api/connections` reemplaza la lista entera** con control de revisión y la fila de la cuenta bloqueada (`SELECT … FOR UPDATE`). `ConnectionStore::replace()` no usa `wrapInTransaction()`: cierra el EntityManager al fallar, y tras un conflicto hay que leer la lista actual para el 409.
@@ -29,10 +37,12 @@ Lee primero el `README.md` (qué es, stack, comandos). Aquí va lo que no se ded
 - **La validación es un port de `normalizeEntry`** (`src/shared/connections.ts` → `EntryValidator`). Si cambian los campos o los secretos de una conexión en la app, hay que cambiar también `EntryValidator` y `EntryKind::secretFields()` (los mismos que `SECRET_FIELDS`).
 - **Límites de intentos en Postgres** (`cache_items`, pool `app.rate_limiter_cache`): son uno para todas las réplicas. No aceptar un `migrations:diff` que borre esa tabla.
 - **Fechas en UTC sin zona horaria**: en SQL escrito a mano se pasa la hora desde PHP, no `NOW()` (el Postgres compartido puede tener otra zona).
-- **Puertos de desarrollo**: 8020 (API) y 5434 (Postgres), distintos de AbsorQuiz y Politinder.
+- **Puertos de desarrollo**: 8020 (API) y 5434 (Postgres), distintos de AbsorQuiz y Politinder. Caddy escucha en `:80` con cualquier nombre de host (`SERVER_NAME`), porque el emulador de Android llega a la API como `10.0.2.2`.
 
 ## Verificación mínima antes de dar algo por hecho
 ```bash
 npm run typecheck
 docker compose exec php php bin/phpunit
+# Si se toca mobile/ (con el entorno de mobile/tool/test_env.sh)
+(cd mobile && flutter analyze && flutter test)
 ```

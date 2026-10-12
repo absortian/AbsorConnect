@@ -1,0 +1,196 @@
+{
+  "@@locale": "en",
+  "appTitle": "Absor Connect",
+  "authSubtitle": "Sign in to have your connections on all your devices.",
+  "authLogin": "Sign in",
+  "authRegister": "Create account",
+  "authEmail": "Email",
+  "authPassword": "Password",
+  "authConfirmPassword": "Repeat the password",
+  "authPasswordHint": "At least 10 characters.",
+  "authExpired": "Your session has expired or was closed elsewhere. Please sign in again.",
+  "connectionsTitle": "Connections",
+  "connectionsEmpty": "No connections yet.",
+  "connectionsEmptyHint": "Tap + to add an S3 or SSH connection. Connections created on your computer appear here too.",
+  "connectionsConflict": "Another device changed your connections. The current list has been loaded and your last change was not saved: please repeat it.",
+  "saveFailed": "The change could not be saved: {reason}",
+  "@saveFailed": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "loadFailed": "Your connections could not be loaded: {reason}",
+  "@loadFailed": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "retry": "Retry",
+  "credentialsUnavailable": "The saved credentials of this connection are not available. Edit it to enter them again.",
+  "addConnection": "New connection",
+  "addFolder": "New folder",
+  "editConnection": "Edit connection",
+  "folderName": "Folder name",
+  "typeS3": "S3",
+  "typeSsh": "SSH / SFTP",
+  "connectionName": "Connection name",
+  "folder": "Folder",
+  "folderNone": "None",
+  "endpoint": "Endpoint URL",
+  "region": "Region",
+  "accessKeyId": "Access Key ID",
+  "secretAccessKey": "Secret Access Key",
+  "defaultBucket": "Default bucket (optional)",
+  "host": "Host",
+  "port": "Port",
+  "username": "Username",
+  "authMethod": "Authentication",
+  "authMethodPassword": "Password",
+  "authMethodKey": "Private key",
+  "password": "Password",
+  "privateKey": "Private key",
+  "importKey": "Import key file",
+  "keyImported": "Key imported: {name}",
+  "@keyImported": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "keyNotImported": "No key imported on this device",
+  "keyStaysHere": "The key stays on this device: only its file name is saved in your account.",
+  "keyInvalid": "That file is not a valid private key, or the passphrase is wrong.",
+  "passphrase": "Passphrase (optional)",
+  "initialPath": "Initial directory (optional)",
+  "required": "Required",
+  "invalidPort": "Port between 1 and 65535",
+  "keepUnavailable": "Leave the secret fields empty to keep the saved credentials.",
+  "save": "Save",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "edit": "Edit",
+  "moveTo": "Move to folder",
+  "root": "No folder",
+  "openTerminal": "Open terminal",
+  "openFiles": "Browse files",
+  "deleteConnectionConfirm": "Delete \"{name}\"?",
+  "@deleteConnectionConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteFolderConfirm": "The folder and everything inside it will be deleted from your account on all your devices.",
+  "deleteConnectionBody": "The connection will be deleted from your account on all your devices.",
+  "upload": "Upload",
+  "uploadFromFiles": "From Files",
+  "uploadFromPhotos": "From Photos",
+  "newRemoteFolder": "New folder",
+  "download": "Download and share",
+  "deleteItemConfirm": "Delete \"{name}\"?",
+  "@deleteItemConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteItemFolderBody": "The folder will be deleted with all its contents.",
+  "deleteItemBody": "This cannot be undone.",
+  "emptyFolder": "This folder is empty.",
+  "buckets": "Buckets",
+  "refresh": "Refresh",
+  "transfers": "Transfers",
+  "transferUploading": "Uploading",
+  "transferDownloading": "Downloading",
+  "transferDone": "Done",
+  "transferFailed": "Failed: {reason}",
+  "@transferFailed": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "share": "Share",
+  "clearFinished": "Clear finished",
+  "terminals": "Terminals",
+  "noTerminals": "No open terminals. Open one from an SSH connection.",
+  "reconnect": "Reconnect",
+  "closeTerminal": "Close terminal",
+  "terminalClosed": "The session ended.",
+  "terminalConnecting": "Connecting…",
+  "settings": "Settings",
+  "signedInAs": "Signed in as",
+  "logout": "Sign out",
+  "version": "Version {version}",
+  "@version": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "checkUpdates": "Check for updates",
+  "upToDate": "You have the latest version.",
+  "updateAvailable": "Version {version} is available.",
+  "@updateAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateDownload": "Download",
+  "website": "Website and help",
+  "keyMissingTitle": "Import the private key",
+  "keyMissingBody": "This connection uses the private key \"{name}\". Import that file on this device to connect; it will stay only on this device.",
+  "@keyMissingBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "err_invalid_credentials": "The email or password is incorrect.",
+  "err_email_taken": "An account with that email already exists. Sign in instead.",
+  "err_email_invalid": "The email is not valid.",
+  "err_password_too_short": "The password must be at least 10 characters long.",
+  "err_password_too_long": "The password is too long.",
+  "err_password_mismatch": "The passwords do not match.",
+  "err_too_many_attempts": "Too many attempts. Wait a little and try again.",
+  "err_network_error": "Cannot reach the service. Check your internet connection.",
+  "err_server_error": "The service is not available right now. Try again later.",
+  "err_connections_invalid": "The service rejected the connection list.",
+  "err_ssh_auth_failed": "Authentication failed: check the username, password or key.",
+  "err_ssh_unreachable": "Cannot reach the server. Check the host, the port and your network.",
+  "err_ssh_timeout": "The server took too long to answer.",
+  "err_ssh_key_missing": "The private key is not imported on this device.",
+  "err_ssh_key_invalid": "The private key could not be read (wrong passphrase?).",
+  "err_ssh_disconnected": "The connection with the server was lost.",
+  "err_sftp_error": "The server rejected the operation: {detail}",
+  "@err_sftp_error": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "err_s3_access_denied": "Access denied: check the keys and permissions.",
+  "err_s3_not_found": "The bucket or file does not exist.",
+  "err_s3_error": "The storage service returned an error: {detail}",
+  "@err_s3_error": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "err_unknown": "Something went wrong. Please try again."
+}
