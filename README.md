@@ -2,7 +2,7 @@
 
 *(antes Absor S3 Explorer)*
 
-**Descarga e instrucciones de instalación: [absorconnect.absor.top](https://absorconnect.absor.top)** · gratis para macOS, Windows y Linux.
+**Descarga e instrucciones de instalación: [absorconnect.absor.top](https://absorconnect.absor.top)** · gratis para macOS, Windows, Linux, Android e iPhone.
 
 Aplicación de escritorio para gestionar archivos entre el sistema de archivos local y servicios remotos (almacenamiento compatible con S3, como AWS S3, MinIO o DigitalOcean Spaces, y servidores SSH mediante SFTP) desde una interfaz unificada de doble panel.
 
@@ -34,6 +34,7 @@ Aplicación de escritorio para gestionar archivos entre el sistema de archivos l
 | Iconos | lucide-react |
 | Empaquetado | electron-builder |
 | Backend (cuentas en la nube) | Symfony 8.1 · PHP 8.5 · PostgreSQL 16 · FrankenPHP |
+| Apps móviles (`mobile/`) | Flutter · dartssh2 · xterm · cliente S3 propio |
 
 ## Desarrollo
 
@@ -49,6 +50,10 @@ npm run build
 ```
 
 La app necesita el backend: `npm run dev` usa el de desarrollo en `http://localhost:8020` (`docker compose up -d --wait`, ver más abajo) y los builds de producción usan `https://absorconnect.absor.top`. La URL se incrusta al compilar desde `MAIN_VITE_API_URL` (`.env.development` y `.env.production`; en `release.yml` la sustituye la variable del repositorio del mismo nombre). Para apuntar cualquier build a otro backend sin recompilar: `ABSOR_CONNECT_API_URL=http://localhost:8020` al arrancar la app.
+
+## Apps para Android e iPhone
+
+`mobile/` es la app de Flutter con la misma cuenta y las mismas conexiones: explorador SFTP y S3 y terminal SSH. No está en las tiendas (no hay cuentas de desarrollador): en Android se instala el APK firmado de la release y en iPhone la IPA sin firmar con AltStore, SideStore o Sideloadly. Cada release adjunta el APK, la IPA y `altstore-source.json` (la fuente de AltStore/SideStore). Desarrollo, pruebas y firma: [`mobile/README.md`](mobile/README.md).
 
 ## Backend (cuentas y conexiones en la nube)
 
@@ -104,10 +109,12 @@ Jenkins construye la imagen `absortian/absortian:php-absorconnect-1.0.0` (`docke
 - **macOS** — ARM64 (Apple Silicon), formatos DMG y ZIP
 - **Windows** — Instalador NSIS
 - **Linux** — AppImage, Snap y DEB
+- **Android** — 7.0 o posterior, APK (fuera de Google Play)
+- **iPhone y iPad** — iOS 15 o posterior, IPA para instalar con AltStore, SideStore o Sideloadly (fuera de la App Store)
 
 ## Seguridad
 
-- **Credenciales en el servicio:** las claves y contraseñas de las conexiones viajan por HTTPS y se guardan cifradas con una clave del servicio (`CONNECTIONS_KEY`). Quien tuviera a la vez la base de datos y esa clave podría leerlas. De las claves privadas SSH solo se guarda la ruta del fichero, nunca su contenido.
+- **Credenciales en el servicio:** las claves y contraseñas de las conexiones viajan por HTTPS y se guardan cifradas con una clave del servicio (`CONNECTIONS_KEY`). Quien tuviera a la vez la base de datos y esa clave podría leerlas. De las claves privadas SSH solo se guarda la ruta del fichero, nunca su contenido; en el móvil la clave se importa en cada dispositivo y se guarda en su almacén seguro (Keychain o Keystore).
 - **Sesión en el equipo:** el token de sesión se guarda cifrado con el almacén seguro del sistema (Llavero, DPAPI o libsecret/kwallet). En Linux sin keyring se guarda sin cifrar y Ajustes lo indica. Cambiar la contraseña cierra las sesiones de los demás equipos.
 
 - **Host key SSH sin verificar:** Absor Connect acepta la clave de host de cualquier servidor SSH sin comprobarla. Es una decisión consciente para esta versión, pero implica que en una red no confiable un atacante podría suplantar al servidor (man-in-the-middle) y capturar la contraseña o los datos transferidos. Usa autenticación por clave privada y redes de confianza siempre que puedas.

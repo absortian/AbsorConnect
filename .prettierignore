@@ -6,6 +6,7 @@ tsconfig.json
 tsconfig.*.json
 # Backend y despliegue: PHP/Symfony y manifiestos con su propio estilo
 backend
+mobile
 .docker
 docker
 kube

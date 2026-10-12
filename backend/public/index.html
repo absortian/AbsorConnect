@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Absor Connect · Tus conexiones S3, SFTP y SSH, gratis y en todos tus equipos</title>
-  <meta name="description" content="Aplicación gratuita y de código abierto para macOS, Windows y Linux: explora buckets S3 y servidores SFTP en doble panel, abre terminales SSH y lleva tus conexiones a todos tus equipos con una cuenta gratis.">
+  <meta name="description" content="Aplicación gratuita y de código abierto para macOS, Windows, Linux, Android e iOS: explora buckets S3 y servidores SFTP en doble panel, abre terminales SSH y lleva tus conexiones a todos tus equipos con una cuenta gratis.">
   <meta name="theme-color" content="#121214">
   <link rel="icon" type="image/png" href="/icon.png">
   <link rel="apple-touch-icon" href="/icon.png">
@@ -162,7 +162,9 @@
     .downloads { background: linear-gradient(180deg, transparent, rgba(99, 102, 241, 0.06) 40%, transparent); }
     .release-line { text-align: center; color: var(--text-3); font-size: 0.9rem; margin: -26px 0 34px; }
     .release-line a { color: var(--accent-2); }
-    .os-tabs { display: flex; justify-content: center; gap: 6px; margin: 0 auto 26px; padding: 5px; width: fit-content; max-width: 100%; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-soft); }
+    .os-tabs { display: flex; justify-content: flex-start; gap: 6px; margin: 0 auto 26px; padding: 5px; width: fit-content; max-width: 100%; overflow-x: auto; scrollbar-width: none; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-soft); }
+    .os-tabs::-webkit-scrollbar { display: none; }
+    .os-tab { flex-shrink: 0; }
     .os-tab { display: flex; align-items: center; gap: 8px; padding: 9px 18px; border-radius: 8px; border: none; background: transparent; color: var(--text-2); font: inherit; font-size: 0.95rem; font-weight: 600; cursor: pointer; }
     .os-tab svg { width: 17px; height: 17px; }
     .os-tab[aria-selected="true"] { background: var(--accent); color: #fff; }
@@ -244,6 +246,8 @@
       <symbol id="i-github" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></symbol>
       <symbol id="i-apple" viewBox="0 0 24 24" fill="currentColor"><path d="M16.37 12.6c-.02-2.2 1.8-3.26 1.88-3.31-1.02-1.5-2.62-1.7-3.19-1.72-1.36-.14-2.65.8-3.34.8-.69 0-1.75-.78-2.88-.76-1.48.02-2.85.86-3.61 2.19-1.54 2.67-.39 6.62 1.11 8.79.73 1.06 1.6 2.25 2.75 2.21 1.1-.04 1.52-.71 2.85-.71 1.33 0 1.71.71 2.88.69 1.19-.02 1.94-1.08 2.67-2.14.84-1.23 1.19-2.42 1.21-2.48-.03-.01-2.32-.89-2.33-3.56ZM14.17 6.13c.61-.74 1.02-1.76.91-2.78-.88.04-1.94.59-2.57 1.32-.56.65-1.06 1.69-.93 2.69.98.08 1.98-.5 2.59-1.23Z"/></symbol>
       <symbol id="i-windows" viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.1 10.4 4v7.1H3V5.1Zm0 13.8 7.4 1.1v-7H3v5.9ZM11.3 3.9 21 2.5v8.6h-9.7V3.9Zm0 16.2 9.7 1.4v-8.5h-9.7v7.1Z"/></symbol>
+      <symbol id="i-android" viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 9.48 19.44 6.3a.38.38 0 0 0-.66-.38l-1.86 3.22A11.4 11.4 0 0 0 12 8.1c-1.76 0-3.42.38-4.92 1.04L5.22 5.92a.38.38 0 0 0-.66.38L6.4 9.48A10.7 10.7 0 0 0 1 18h22a10.7 10.7 0 0 0-5.4-8.52ZM7 15.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5Zm10 0a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5Z"/></symbol>
+      <symbol id="i-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="3"/><path d="M11 18h2"/></symbol>
       <symbol id="i-linux" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5c-2.2 0-3.4 1.9-3.4 4.4 0 1.5.3 2.4-.6 3.9-1 1.7-2.6 3.6-2.6 6.2 0 .9.2 1.6.6 2.2"/><path d="M12 2.5c2.2 0 3.4 1.9 3.4 4.4 0 1.5-.3 2.4.6 3.9 1 1.7 2.6 3.6 2.6 6.2 0 .9-.2 1.6-.6 2.2"/><path d="M8.8 21.5c1-.4 2-.6 3.2-.6s2.2.2 3.2.6"/><path d="M5 19.5c-.9.9-1.6 1.5-1.2 2 .5.5 2.4-.2 3.8-.6 1-.3 1.4-1.1 1-2-.5-1.2-1.6-2.4-2.4-1.7-.4.4-.6 1.5-1.2 2.3Z"/><path d="M19 19.5c.9.9 1.6 1.5 1.2 2-.5.5-2.4-.2-3.8-.6-1-.3-1.4-1.1-1-2 .5-1.2 1.6-2.4 2.4-1.7.4.4.6 1.5 1.2 2.3Z"/><path d="M10.5 7h.01M13.5 7h.01"/><path d="M10.8 9.2c.4.4.8.6 1.2.6s.8-.2 1.2-.6"/></symbol>
     </defs>
   </svg>
@@ -263,9 +267,9 @@
   <main id="inicio">
     <div class="hero">
       <div class="container">
-        <span class="badge"><span class="dot"></span>Gratis · macOS, Windows y Linux · Código abierto</span>
+        <span class="badge"><span class="dot"></span>Gratis · Escritorio, Android e iPhone · Código abierto</span>
         <h1>Tus buckets S3 y servidores SSH, <span class="grad">en una sola app</span></h1>
-        <p class="lead">Explora almacenamiento S3 y servidores SFTP en doble panel, abre terminales SSH en pestañas y lleva tus conexiones a todos tus equipos con una cuenta gratuita.</p>
+        <p class="lead">Explora almacenamiento S3 y servidores SFTP, abre terminales SSH y lleva tus conexiones a todos tus equipos —ordenador, Android e iPhone— con una cuenta gratuita.</p>
         <div class="hero-cta">
           <a class="btn btn-primary" id="hero-download" href="#descargas"><svg><use href="#i-download"/></svg><span>Descargar gratis</span></a>
           <a class="btn btn-ghost" href="#descargas">Todas las descargas</a>
@@ -337,7 +341,7 @@
           <article class="card"><div class="icon"><svg><use href="#i-drive"/></svg></div><h3>Almacenamiento S3</h3><p>Navega por buckets y carpetas de cualquier servicio compatible con S3: crea carpetas, sube, descarga y borra objetos.</p></article>
           <article class="card"><div class="icon"><svg><use href="#i-server"/></svg></div><h3>Servidores SFTP</h3><p>Conecta por SSH con contraseña o con clave privada (y passphrase), elige un directorio inicial y gestiona tus archivos remotos.</p></article>
           <article class="card"><div class="icon"><svg><use href="#i-terminal"/></svg></div><h3>Terminal SSH en pestañas</h3><p>Abre varias terminales sobre la misma conexión, sin volver a autenticarte. Colores, programas a pantalla completa y reconexión.</p></article>
-          <article class="card"><div class="icon"><svg><use href="#i-cloud"/></svg></div><h3>Tus conexiones, en todos tus equipos</h3><p>Con tu cuenta gratuita, las conexiones y carpetas se guardan en la nube: crea una en el portátil y aparece en el sobremesa.</p></article>
+          <article class="card"><div class="icon"><svg><use href="#i-cloud"/></svg></div><h3>Tus conexiones, en todos tus equipos</h3><p>Con tu cuenta gratuita, las conexiones y carpetas se guardan en la nube: crea una en el portátil y aparece en el sobremesa y en el móvil.</p></article>
           <article class="card"><div class="icon"><svg><use href="#i-download"/></svg></div><h3>Cola de transferencias</h3><p>Sigue cada subida y descarga en tiempo real, con su progreso, y reintenta las que fallen con un clic.</p></article>
         </div>
       </div>
@@ -350,7 +354,7 @@
           <h2>En marcha en dos minutos</h2>
         </div>
         <div class="steps">
-          <div class="step"><h3>Descarga e instala</h3><p>Elige tu sistema más abajo. La app se actualiza sola cuando sale una versión nueva.</p></div>
+          <div class="step"><h3>Descarga e instala</h3><p>Elige tu sistema más abajo: macOS, Windows, Linux, Android o iPhone. Cada uno con sus pasos.</p></div>
           <div class="step"><h3>Crea tu cuenta gratis</h3><p>Solo un email y una contraseña. Sin verificaciones ni datos de pago.</p></div>
           <div class="step"><h3>Añade tus conexiones</h3><p>Pulsa <b>+</b> y añade tus buckets S3 o servidores SSH. ¿Venías de una versión anterior? Al entrar podrás subir las que ya tenías.</p></div>
         </div>
@@ -370,6 +374,8 @@
           <button class="os-tab" role="tab" id="tab-mac" aria-controls="panel-mac" aria-selected="true"><svg><use href="#i-apple"/></svg><span>macOS</span></button>
           <button class="os-tab" role="tab" id="tab-win" aria-controls="panel-win" aria-selected="false"><svg><use href="#i-windows"/></svg><span>Windows</span></button>
           <button class="os-tab" role="tab" id="tab-linux" aria-controls="panel-linux" aria-selected="false"><svg><use href="#i-linux"/></svg><span>Linux</span></button>
+          <button class="os-tab" role="tab" id="tab-android" aria-controls="panel-android" aria-selected="false"><svg><use href="#i-android"/></svg><span>Android</span></button>
+          <button class="os-tab" role="tab" id="tab-ios" aria-controls="panel-ios" aria-selected="false"><svg><use href="#i-phone"/></svg><span>iPhone</span></button>
         </div>
 
         <div class="os-panel" id="panel-mac" role="tabpanel" aria-labelledby="tab-mac">
@@ -426,6 +432,55 @@
             <div class="note"><svg><use href="#i-alert"/></svg><span>La sesión se guarda cifrada con el llavero del sistema (GNOME Keyring o KWallet). Sin llavero se guarda sin cifrar, y la app lo indica en Ajustes.</span></div>
           </div>
         </div>
+
+        <div class="os-panel" id="panel-android" role="tabpanel" aria-labelledby="tab-android" hidden>
+          <div class="box">
+            <h3>Android</h3>
+            <p class="req">Android 7.0 o posterior · se instala desde aquí, sin Google Play</p>
+            <div class="files" data-os="android"><a class="file" href="https://github.com/absortian/AbsorConnect/releases/latest" target="_blank" rel="noopener"><span><b>Ver el APK para Android</b><small>github.com/absortian/AbsorConnect/releases</small></span><span class="dl">Abrir<svg><use href="#i-download"/></svg></span></a></div>
+            <ul class="checks" style="margin-top:18px">
+              <li><svg><use href="#i-check"/></svg><span>Misma cuenta y mismas conexiones que en el ordenador.</span></li>
+              <li><svg><use href="#i-check"/></svg><span>Explorador SFTP y S3: sube desde Archivos o Fotos, descarga y comparte.</span></li>
+              <li><svg><use href="#i-check"/></svg><span>Terminal SSH con teclas Esc, Tab, Ctrl y flechas.</span></li>
+            </ul>
+          </div>
+          <div class="box">
+            <h3>Cómo instalarla</h3>
+            <ol class="howto">
+              <li>Desde el móvil, descarga el <b>APK</b> y ábrelo (desde la notificación de descarga o la app Archivos).</li>
+              <li>Android te pedirá permiso para instalar apps de esa fuente: pulsa <b>Ajustes</b>, activa <b>Permitir de esta fuente</b> y vuelve atrás.</li>
+              <li>Si Play Protect avisa de una app desconocida, pulsa <b>Más detalles</b> › <b>Instalar igualmente</b>: la app no está en Google Play, pero es la misma que publicamos en GitHub.</li>
+              <li>Ábrela, crea tu cuenta gratis o inicia sesión, y verás tus conexiones.</li>
+            </ol>
+            <div class="note"><svg><use href="#i-alert"/></svg><span>Cuando haya una versión nueva, la app te avisará. Instala el APK nuevo encima: conservas la sesión y tus datos.</span></div>
+          </div>
+        </div>
+
+        <div class="os-panel" id="panel-ios" role="tabpanel" aria-labelledby="tab-ios" hidden>
+          <div class="box">
+            <h3>iPhone y iPad</h3>
+            <p class="req">iOS 15 o posterior · se instala con AltStore o SideStore y tu Apple ID</p>
+            <div class="files">
+              <a class="file rec" id="altstore-link" href="altstore://source?url=https%3A%2F%2Fgithub.com%2Fabsortian%2FAbsorConnect%2Freleases%2Flatest%2Fdownload%2Faltstore-source.json"><span><b>Añadir a AltStore<span class="tag">Recomendado</span></b><small>Abre AltStore con la fuente de Absor Connect</small></span><span class="dl">Abrir<svg><use href="#i-download"/></svg></span></a>
+              <a class="file" href="sidestore://source?url=https%3A%2F%2Fgithub.com%2Fabsortian%2FAbsorConnect%2Freleases%2Flatest%2Fdownload%2Faltstore-source.json"><span><b>Añadir a SideStore</b><small>Abre SideStore con la fuente de Absor Connect</small></span><span class="dl">Abrir<svg><use href="#i-download"/></svg></span></a>
+            </div>
+            <p class="req" style="margin:16px 0 8px">O añade la fuente a mano con esta dirección:</p>
+            <span class="cmd" id="source-url">https://github.com/absortian/AbsorConnect/releases/latest/download/altstore-source.json</span>
+            <div class="files" data-os="ios" style="margin-top:16px"><a class="file" href="https://github.com/absortian/AbsorConnect/releases/latest" target="_blank" rel="noopener"><span><b>IPA para Sideloadly</b><small>github.com/absortian/AbsorConnect/releases</small></span><span class="dl">Abrir<svg><use href="#i-download"/></svg></span></a></div>
+          </div>
+          <div class="box">
+            <h3>Cómo instalarla</h3>
+            <p class="req">Absor Connect aún no está en la App Store. Mientras tanto, cada persona la instala con su propio Apple ID (gratis) mediante AltStore o SideStore.</p>
+            <ol class="howto">
+              <li>Instala <a href="https://altstore.io" target="_blank" rel="noopener"><b>AltStore</b></a> o <a href="https://sidestore.io" target="_blank" rel="noopener"><b>SideStore</b></a> en tu iPhone siguiendo su guía (la primera vez necesitas un ordenador).</li>
+              <li>Desde el iPhone, pulsa <b>Añadir a AltStore</b> (o a SideStore) aquí al lado, o añade la fuente a mano en <b>Fuentes › +</b>.</li>
+              <li>En la fuente de Absor Connect, pulsa <b>Instalar</b> e inicia sesión con tu Apple ID si te lo pide.</li>
+              <li>En iOS 16 o posterior, activa <b>Ajustes › Privacidad y seguridad › Modo de desarrollador</b> y reinicia cuando te lo pida.</li>
+              <li>Abre Absor Connect, crea tu cuenta gratis o inicia sesión.</li>
+            </ol>
+            <div class="note"><svg><use href="#i-alert"/></svg><span>Con un Apple ID gratuito, la firma dura <b>7 días</b>: AltStore y SideStore la renuevan solas en segundo plano (abre la app de vez en cuando). Apple permite como mucho <b>3 apps</b> instaladas así a la vez.</span></div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -469,6 +524,9 @@
           <details><summary>¿De verdad es gratis?</summary><div><p>Sí. La app y la cuenta son gratuitas, sin límite de conexiones ni periodo de prueba. El código es abierto (licencia MIT) y está en <a href="https://github.com/absortian/AbsorConnect" target="_blank" rel="noopener">GitHub</a>.</p></div></details>
           <details><summary>¿Por qué necesito una cuenta?</summary><div><p>Para que tus conexiones vivan en la nube y no en un solo equipo: las ves en todos tus ordenadores y no las pierdes si cambias de equipo. La cuenta solo pide un email y una contraseña.</p></div></details>
           <details><summary>Usaba una versión anterior (o Absor S3 Explorer). ¿Pierdo mis conexiones?</summary><div><p>No. Al actualizar e iniciar sesión, la app te ofrece subir a tu cuenta las conexiones que tenías guardadas en el equipo. Si eliges «Ahora no», siguen en el equipo y te lo vuelve a preguntar la próxima vez.</p></div></details>
+          <details><summary>¿Hay app para el móvil?</summary><div><p>Sí, para Android y para iPhone, con la misma cuenta y las mismas conexiones que el escritorio: explorador SFTP y S3 y terminal SSH. En Android se instala el APK desde esta web; en iPhone, con AltStore o SideStore (más abajo te contamos por qué).</p></div></details>
+          <details><summary>¿Por qué en iPhone hay que usar AltStore o SideStore?</summary><div><p>Apple solo deja instalar apps de la App Store o firmadas por un desarrollador. Mientras Absor Connect no esté en la App Store, AltStore y SideStore la firman con tu propio Apple ID, gratis. Con un Apple ID gratuito la firma dura 7 días y ellas la renuevan solas.</p></div></details>
+          <details><summary>En el móvil, ¿cómo uso mis claves privadas SSH?</summary><div><p>La primera vez que abras una conexión por clave privada, la app te pedirá importar el fichero de la clave en ese teléfono. Se guarda solo en el almacén seguro del dispositivo y nunca se envía a ningún sitio.</p></div></details>
           <details><summary>¿Funciona sin conexión a internet?</summary><div><p>Necesitas conexión para entrar y cargar tus conexiones, porque se guardan en tu cuenta. Si el servicio no responde, la app te lo indica y puedes reintentarlo.</p></div></details>
           <details><summary>He olvidado mi contraseña</summary><div><p>Por ahora no hay recuperación automática por correo. <a href="https://github.com/absortian/AbsorConnect/issues" target="_blank" rel="noopener">Abre una incidencia en GitHub</a> (sin incluir contraseñas) y te ayudamos a restablecerla. Tus conexiones se conservan.</p></div></details>
           <details><summary>¿Qué servicios S3 son compatibles?</summary><div><p>Cualquiera que hable el protocolo S3: AWS S3, MinIO, DigitalOcean Spaces, Cloudflare R2, Wasabi, Contabo Object Storage y otros. Solo necesitas la URL del endpoint y tus claves de acceso.</p></div></details>
@@ -515,6 +573,8 @@
           { re: /-x64\.zip$/, title: 'Intel · comprimido', kind: '.zip' }
         ],
         win: [{ re: /-setup\.exe$/, title: 'Instalador para Windows', kind: '.exe', key: 'win' }],
+        android: [{ re: /\.apk$/, title: 'APK para Android', kind: '.apk', key: 'android' }],
+        ios: [{ re: /\.ipa$/, title: 'IPA para Sideloadly', kind: '.ipa' }],
         linux: [
           { re: /\.AppImage$/, title: 'AppImage · cualquier distribución', kind: '.AppImage', key: 'linux' },
           { re: /amd64\.deb$/, title: 'Debian, Ubuntu y derivadas', kind: '.deb' },
@@ -522,7 +582,8 @@
           { re: /\.tar\.gz$/, title: 'Genérico', kind: '.tar.gz' }
         ]
       }
-      var LABEL = { mac: 'macOS', win: 'Windows', linux: 'Linux' }
+      var LABEL = { mac: 'macOS', win: 'Windows', linux: 'Linux', android: 'Android', ios: 'iPhone' }
+      var OSES = ['mac', 'win', 'linux', 'android', 'ios']
 
       function el(tag, attrs, children) {
         var node = document.createElement(tag)
@@ -543,23 +604,41 @@
       function detectOs() {
         var ua = navigator.userAgent || ''
         var platform = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || ''
-        if (/Mac|iPhone|iPad/i.test(platform + ua)) return 'mac'
+        if (/Android/i.test(ua)) return 'android'
+        // El iPad con Safari se presenta como un Mac: se distingue por la pantalla táctil
+        if (/iPhone|iPad|iPod/i.test(ua) || (/Mac/i.test(platform) && navigator.maxTouchPoints > 1)) return 'ios'
+        if (/Mac/i.test(platform + ua)) return 'mac'
         if (/Win/i.test(platform + ua)) return 'win'
         if (/Linux|X11/i.test(platform + ua) && !/Android/i.test(ua)) return 'linux'
         return null
       }
 
       function selectTab(os) {
-        ;['mac', 'win', 'linux'].forEach(function (name) {
+        OSES.forEach(function (name) {
           document.getElementById('tab-' + name).setAttribute('aria-selected', String(name === os))
           document.getElementById('panel-' + name).hidden = name !== os
         })
+        revealTab(os)
       }
-      ;['mac', 'win', 'linux'].forEach(function (name) {
+      // En móvil la barra de pestañas se desplaza: la elegida queda a la vista
+      function revealTab(os) {
+        var tab = document.getElementById('tab-' + os)
+        tab.parentNode.scrollLeft = tab.offsetLeft - tab.parentNode.offsetLeft - 8
+      }
+      OSES.forEach(function (name) {
         document.getElementById('tab-' + name).addEventListener('click', function () { selectTab(name) })
       })
       var userOs = detectOs()
-      if (userOs) selectTab(userOs)
+      if (userOs) {
+        selectTab(userOs)
+        // Con las fuentes ya cargadas cambia el ancho de las pestañas
+        window.addEventListener('load', function () { revealTab(userOs) })
+      }
+      // En iPhone la instalación pasa por AltStore/SideStore: el botón lleva a sus pasos
+      if (userOs === 'ios') {
+        var heroIos = document.getElementById('hero-download')
+        heroIos.querySelector('span').textContent = 'Instalar en iPhone'
+      }
 
       function render(release) {
         var byKey = {}

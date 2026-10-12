@@ -9,7 +9,8 @@ services:
       context: ./backend
       target: frankenphp_dev
     environment:
-      SERVER_NAME: ${SERVER_NAME:-http://localhost, http://php}
+      # Cualquier nombre en :80: el emulador de Android llega por 10.0.2.2 y las pruebas por 127.0.0.1
+      SERVER_NAME: ${SERVER_NAME:-:80}
       DEFAULT_URI: ${DEFAULT_URI:-http://localhost:8020}
       FRANKENPHP_WORKER_CONFIG: watch
       XDEBUG_MODE: "${XDEBUG_MODE:-off}"

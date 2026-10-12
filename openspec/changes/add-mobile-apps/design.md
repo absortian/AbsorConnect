@@ -70,7 +70,7 @@ El estado se maneja con `ChangeNotifier` y `ListenableBuilder` de Flutter, sin l
 Un cliente pequeño (unas 300 líneas) sobre `http`, con firma SigV4 y estilo de ruta (`forcePathStyle`, como el escritorio):
 - **Operaciones:** `ListBuckets`, `ListObjectsV2` con delimitador, `GetObject` en streaming, `PutObject` en streaming con `UNSIGNED-PAYLOAD`, `PutObject` vacío para "carpetas", y `DeleteObject` y `DeleteObjects` para borrar carpetas.
 - **Endpoint y región:** el endpoint y la región son los de la conexión (región por defecto `us-east-1`).
-- **Por qué no un paquete:** los clientes S3 de Dart disponibles o no permiten endpoints arbitrarios con estilo de ruta, o llevan tiempo sin mantenimiento. Este cubre justo lo que usa la app y se prueba contra MinIO.
+- **Por qué no un paquete:** los clientes S3 de Dart disponibles o no permiten endpoints arbitrarios con estilo de ruta, o llevan tiempo sin mantenimiento. Este cubre justo lo que usa la app y se prueba contra un servidor S3 que valida las firmas (Versity Gateway).
 
 ### D7. Interfaz
 - **Navegación:** acceso → lista de conexiones (con carpetas plegables) → explorador o terminal. Ajustes con la cuenta (email, cerrar sesión), la versión y la búsqueda de actualizaciones.
@@ -110,7 +110,7 @@ Un cliente pequeño (unas 300 líneas) sobre `http`, con firma SigV4 y estilo de
 - **[Avisos de seguridad en Android]** Play Protect puede advertir de una app de desarrollador desconocido. → La web explica cómo continuar; desaparece si algún día se publica en Google Play.
 - **[Clave de firma de Android]** Si se pierde, las actualizaciones ya no se instalan encima. → Copia en `CLAUDE_AUTH` y en secrets de GitHub.
 - **[iOS sin probar en simulador aquí]** Este Mac no tiene Xcode. → Se compila en CI. Se prueba en Android (misma base de código) y el propietario la prueba en un iPhone; si instala Xcode, también en el simulador.
-- **[Cliente S3 propio]** → Cubierto con pruebas contra MinIO (listar, subir, descargar, carpetas, borrar).
+- **[Cliente S3 propio]** → Cubierto con pruebas contra Versity Gateway, que valida las firmas (listar, subir, descargar, carpetas, borrar).
 
 ## Migration Plan
 
