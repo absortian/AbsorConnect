@@ -2,6 +2,8 @@
 
 *(antes Absor S3 Explorer)*
 
+**Descarga e instrucciones de instalación: [absorconnect.absor.top](https://absorconnect.absor.top)** · gratis para macOS, Windows y Linux.
+
 Aplicación de escritorio para gestionar archivos entre el sistema de archivos local y servicios remotos (almacenamiento compatible con S3, como AWS S3, MinIO o DigitalOcean Spaces, y servidores SSH mediante SFTP) desde una interfaz unificada de doble panel.
 
 > **Nota:** Este proyecto es un experimento de *vibe coding*. Fue desarrollado íntegramente utilizando VS Code con GitHub Copilot, sin instrucciones precisas preconfiguradas, con el objetivo de explorar cómo responde el editor y su agente de IA ante peticiones abiertas y progresivas. El resultado es esta aplicación funcional construida de forma conversacional.
