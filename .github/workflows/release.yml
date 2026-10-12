@@ -169,11 +169,12 @@ jobs:
                       "size": size,
                       "minOSVersion": "15.0",
                   }],
+                  # Los mismos textos que mobile/ios/Runner/Info.plist
                   "appPermissions": {
                       "entitlements": [],
                       "privacy": {
-                          "NSLocalNetworkUsageDescription": "Para conectar con los servidores SSH y S3 de tu red local.",
-                          "NSPhotoLibraryUsageDescription": "Para subir a tus servidores las fotos y vídeos que elijas.",
+                          "NSLocalNetworkUsageDescription": "Absor Connect se conecta a los servidores SSH y S3 de tu red local que añadas.",
+                          "NSPhotoLibraryUsageDescription": "Absor Connect sube a tus servidores las fotos y vídeos que elijas.",
                       },
                   },
               }],
