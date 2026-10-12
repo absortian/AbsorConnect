@@ -22,6 +22,7 @@ Lee primero el `README.md` (qué es, stack, comandos). Aquí va lo que no se ded
 - **`safeStorage` solo con sesión**: en macOS cada acceso puede abrir el diálogo del Llavero. Sin `session.json` la app arranca sin tocarlo; se usa para el token de sesión (`src/main/cloud/session.ts`) y, una vez, para leer `connections.json` en la migración.
 - **Windows**: el instalador se construye con NSIS 3.12 (`toolsets.nsis: '1.2.1'` en `electron-builder.yml`); el 3.0.4.1 por defecto se cuelga en parte de las instalaciones.
 - **Paquetes `.deb`**: se construyen en Linux; el `ar` de macOS genera paquetes rotos.
+- **macOS sin certificado de Apple**: `identity: '-'` en `electron-builder.yml` firma el paquete ad-hoc. Sin ella macOS dice que la app «está dañada» (firma rota) en vez de ofrecer «Abrir igualmente». Con firma ad-hoc, `hardenedRuntime` sigue en `false`, y las actualizaciones automáticas no pueden instalarse solas en Mac (Squirrel exige el mismo certificado).
 
 ### Apps móviles
 - **Misma lista de conexiones que el escritorio**: la app conserva los campos que no conoce al editar una entrada, y cualquier cambio de campos de una conexión hay que hacerlo en el escritorio, el backend (`EntryValidator`) y `mobile/lib/ui/connection_form.dart` a la vez.

@@ -34,6 +34,11 @@ mac:
         - arm64
         - x64
   minimumSystemVersion: '11.0'
+  # Sin certificado de Apple: firma ad-hoc de todo el paquete. Sin ella el binario solo
+  # lleva la firma del enlazador, el paquete no tiene recursos sellados y macOS dice que la
+  # app «está dañada» en vez de ofrecer «Abrir igualmente». Con firma ad-hoc,
+  # hardenedRuntime debe seguir en false (o haría falta disable-library-validation).
+  identity: '-'
   hardenedRuntime: false
   gatekeeperAssess: false
   entitlements: build/entitlements.mac.plist
