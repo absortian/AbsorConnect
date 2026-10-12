@@ -53,15 +53,18 @@ jobs:
           body: |
             ## Absor Connect ${{ github.ref_name }} 🚀
 
-            Gestor de conexiones remotas de escritorio: explorador de doble panel para almacenamiento compatible con S3 (AWS S3, MinIO, DigitalOcean Spaces, etc.) y servidores SSH (SFTP), y terminal SSH integrada.
+            Gestor de conexiones remotas de escritorio, gratuito y de código abierto: explorador de doble panel para almacenamiento compatible con S3 (AWS S3, MinIO, DigitalOcean Spaces, etc.) y servidores SSH (SFTP), terminal SSH integrada y tus conexiones guardadas en tu cuenta para usarlas en todos tus equipos.
+
+            **Web, descargas e instrucciones de instalación:** https://absorconnect.absor.top
 
             ### Características
+            - Cuenta gratuita: tus conexiones y carpetas en todos tus equipos
             - Explorador local y remoto en paneles duales (S3 o SFTP)
             - Conexiones SSH con contraseña o clave privada (con passphrase opcional)
             - Terminal SSH interactiva en pestañas, sobre la misma conexión
             - Arrastrar y soltar entre paneles y desde el sistema operativo
             - Cola de transferencias en tiempo real con progreso y reintento
-            - Credenciales guardadas cifradas con el almacén seguro del sistema
+            - Credenciales cifradas en el servicio; la sesión de cada equipo, en el almacén seguro del sistema
 
             > La clave de host de los servidores SSH no se verifica en esta versión; úsala en redes de confianza.
 
@@ -76,8 +79,14 @@ jobs:
             | Linux (Universal) | `.AppImage` |
             | Linux (Genérico) | `.tar.gz` |
 
+            ### Cuentas en la nube (desde la v0.2.0)
+            La app pide crear una cuenta gratuita (email y contraseña) o iniciar sesión, y guarda las conexiones en ella en vez de en el equipo.
+            - Al iniciar sesión, ofrece subir las conexiones que tenías guardadas en el equipo. Si eliges "Ahora no", siguen en el equipo y te lo vuelve a preguntar la próxima vez.
+            - Necesita conexión a internet para cargar tus conexiones.
+            - En macOS y Windows la app no está firmada: la primera vez el sistema avisará. Los pasos para abrirla están en https://absorconnect.absor.top/#descargas
+
             ### Migración desde Absor S3 Explorer
-            Absor Connect es el nuevo nombre de Absor S3 Explorer. Tus conexiones y ajustes se conservan al actualizar.
+            Absor Connect es el nuevo nombre de Absor S3 Explorer. Tus ajustes se conservan al actualizar, y tus conexiones se pueden subir a tu cuenta al iniciar sesión.
             - **Windows y Linux (deb/rpm):** la nueva versión sustituye a la anterior automáticamente.
             - **macOS:** tras instalar "Absor Connect.app" puedes borrar "Absor S3 Explorer.app" de Aplicaciones; ambas comparten los mismos datos.
           files: |

@@ -26,9 +26,11 @@
 	@healthz path /healthz
 	respond @healthz "OK" 200
 
+	# Lo que existe en public/ lo sirve Caddy sin PHP: la landing (index.html en /),
+	# su icono y robots.txt. El resto (la API) va a Symfony.
 	@phpRoute {
 		not path /healthz
-		not file {path}
+		not file {path} {path}/index.html
 	}
 	rewrite @phpRoute index.php
 
