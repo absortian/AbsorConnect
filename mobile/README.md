@@ -5,7 +5,8 @@ App de Flutter con la misma cuenta y las mismas conexiones que el escritorio: ex
 No hay cuenta de Google Play ni de Apple Developer, así que la app no está en las tiendas:
 
 - **Android:** APK firmado con una clave propia, descargable desde la web y la release de GitHub. La app avisa en Ajustes cuando hay una versión nueva.
-- **iPhone:** IPA **sin firmar** que AltStore, SideStore o Sideloadly firman con el Apple ID de cada persona. Con un Apple ID gratuito la app caduca a los 7 días (AltStore/SideStore la renuevan solos) y hay un máximo de 3 apps instaladas así. La fuente de AltStore/SideStore es `altstore-source.json` en la última release.
+- **iPhone:** IPA **sin firmar** que SideStore, AltStore Classic o Sideloadly firman con el Apple ID de cada persona. Con un Apple ID gratuito la app caduca a los 7 días (SideStore y AltStore Classic la renuevan solos) y hay un máximo de 3 apps instaladas así. La fuente es `altstore-source.json` en la última release (formato de AltStore, que también lee SideStore).
+- **AltStore PAL no sirve:** la versión de AltStore para la UE (la que se instala sin ordenador) solo instala apps notarizadas por Apple y rechaza la fuente con «missing a marketplaceID». Notarizar exige la cuenta de Apple Developer de pago.
 
 ## Estructura
 

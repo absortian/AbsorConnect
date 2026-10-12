@@ -33,5 +33,5 @@
 
 ## Workflow follow-up
 
-- **Propietario:** probar la IPA en un iPhone con AltStore o SideStore.
+- **Propietario:** probar la IPA en un iPhone con SideStore o AltStore Classic (no AltStore PAL).
 - Archivar el change tras verificarlo.

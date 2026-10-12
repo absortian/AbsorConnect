@@ -79,12 +79,12 @@ jobs:
             | Linux (Universal) | `.AppImage` |
             | Linux (Genérico) | `.tar.gz` |
             | Android 7.0+ | `.apk` |
-            | iPhone y iPad (iOS 15+) | `.ipa` sin firmar, para AltStore, SideStore o Sideloadly |
+            | iPhone y iPad (iOS 15+) | `.ipa` sin firmar, para SideStore, AltStore Classic o Sideloadly |
 
             ### Android e iPhone (desde la v0.3.0)
             Las mismas conexiones en el móvil: explorador SFTP y S3 (subir desde Archivos o Fotos, descargar y compartir) y terminal SSH con barra de teclas. Las apps no están en Google Play ni en la App Store:
             - **Android:** descarga el `.apk` y ábrelo; Android pedirá permitir instalar apps de esa fuente. La app avisa en Ajustes de las versiones nuevas.
-            - **iPhone:** añade la fuente `https://github.com/absortian/AbsorConnect/releases/latest/download/altstore-source.json` en AltStore o SideStore (o instala el `.ipa` con Sideloadly). Con un Apple ID gratuito la app se renueva cada 7 días.
+            - **iPhone:** añade la fuente `https://github.com/absortian/AbsorConnect/releases/latest/download/altstore-source.json` en SideStore o AltStore Classic (o instala el `.ipa` con Sideloadly). Con un Apple ID gratuito la app se renueva cada 7 días. AltStore PAL (la versión de la UE sin ordenador) no sirve: solo instala apps notarizadas por Apple.
             - Las claves privadas SSH se importan en cada móvil y no se suben a la cuenta.
 
             Pasos detallados: https://absorconnect.absor.top/#descargas
@@ -151,6 +151,7 @@ jobs:
               "iconURL": "https://absorconnect.absor.top/icon.png",
               "website": "https://absorconnect.absor.top",
               "tintColor": "#6366F1",
+              "nsfw": False,
               "apps": [{
                   "name": "Absor Connect",
                   "bundleIdentifier": "com.absor.connect",

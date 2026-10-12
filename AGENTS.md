@@ -27,7 +27,7 @@ Lee primero el `README.md` (qué es, stack, comandos). Aquí va lo que no se ded
 - **Misma lista de conexiones que el escritorio**: la app conserva los campos que no conoce al editar una entrada, y cualquier cambio de campos de una conexión hay que hacerlo en el escritorio, el backend (`EntryValidator`) y `mobile/lib/ui/connection_form.dart` a la vez.
 - **Claves privadas por dispositivo** (`mobile/lib/src/keys.dart`): en la cuenta solo va `privateKeyPath` (el nombre del fichero); el contenido se importa en cada móvil y nunca se sube.
 - **Clave de firma de Android única**: si cambia, Android no instala la versión nueva encima de la anterior. Vive en los secrets `ANDROID_KEYSTORE_*` y el propietario guarda una copia; no generar otra.
-- **iOS sin firmar**: no hay cuenta de Apple Developer. La IPA la firma AltStore/SideStore/Sideloadly en cada iPhone, así que nada que necesite capabilities de pago (push, iCloud, App Groups).
+- **iOS sin firmar**: no hay cuenta de Apple Developer. La IPA la firma SideStore/AltStore Classic/Sideloadly en cada iPhone, así que nada que necesite capabilities de pago (push, iCloud, App Groups). AltStore PAL no sirve (exige apps notarizadas con `marketplaceID`). La fuente debe declarar los mismos `UsageDescription` que el `Info.plist`, o AltStore no instala la app.
 - **El `versionCode` lo pone CI** (`github.run_number`): una release compilada en local con un número menor no se instalaría encima.
 
 ### Backend

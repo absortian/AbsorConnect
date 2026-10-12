@@ -109,6 +109,7 @@ Un cliente pequeño (unas 300 líneas) sobre `http`, con firma SigV4 y estilo de
 - **[iOS caduca a los 7 días]** Con un Apple ID gratuito, si AltStore/SideStore no renueva la firma, la app deja de abrir. → La web lo explica; AltStore/SideStore la renuevan en segundo plano. La solución definitiva es la cuenta de desarrollador.
 - **[Avisos de seguridad en Android]** Play Protect puede advertir de una app de desarrollador desconocido. → La web explica cómo continuar; desaparece si algún día se publica en Google Play.
 - **[Clave de firma de Android]** Si se pierde, las actualizaciones ya no se instalan encima. → Copia en `CLAUDE_AUTH` y en secrets de GitHub.
+- **[AltStore PAL]** La versión de AltStore para la UE, la que se instala sin ordenador, solo admite apps notarizadas por Apple: rechaza la fuente con «missing a marketplaceID». Notarizar exige la cuenta de Apple Developer. → La web recomienda SideStore y AltStore Classic y avisa de que PAL no sirve.
 - **[iOS sin probar en simulador aquí]** Este Mac no tiene Xcode. → Se compila en CI. Se prueba en Android (misma base de código) y el propietario la prueba en un iPhone; si instala Xcode, también en el simulador.
 - **[Cliente S3 propio]** → Cubierto con pruebas contra Versity Gateway, que valida las firmas (listar, subir, descargar, carpetas, borrar).
 
