@@ -62,6 +62,17 @@ La app SHALL permitir navegar por los directorios de un servidor SFTP y por los 
 - **WHEN** alguien borra una carpeta y confirma
 - **THEN** se borra con todo su contenido y desaparece del listado
 
+### Requirement: Endpoint y errores de S3
+Un endpoint S3 escrito sin esquema SHALL completarse con `https://`. Los fallos de S3 (acceso denegado, redirección, certificado no válido, dirección no válida) MUST explicarse con su causa en vez de con un error genérico.
+
+#### Scenario: Endpoint S3 sin https://
+- **WHEN** alguien guarda una conexión S3 con el endpoint `s3.ejemplo.com`
+- **THEN** se guarda como `https://s3.ejemplo.com` y el explorador lista sus buckets
+
+#### Scenario: El servidor S3 redirige
+- **WHEN** el endpoint usa `http://` y el servidor redirige a `https://`
+- **THEN** el explorador dice a qué dirección redirige el servidor, en vez de mostrar "acceso denegado"
+
 ### Requirement: Terminal SSH
 La app SHALL abrir terminales interactivas sobre conexiones SSH, con colores, programas a pantalla completa, ajuste al tamaño de la pantalla y una barra de teclas especiales (Esc, Tab, Ctrl, flechas). MUST permitir tener varias sesiones abiertas a la vez, cambiar entre ellas y reconectar una sesión cerrada.
 
