@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import '../src/connections.dart';
+import '../src/s3.dart';
 import '../src/services.dart';
 import 'errors.dart';
 import 'key_import.dart';
@@ -103,10 +104,10 @@ class _ConnectionFormState extends State<ConnectionForm> {
       data = {
         ...base,
         'type': 's3',
-        'endpoint': _endpoint.text.trim(),
+        'endpoint': S3Client.normalizeEndpoint(_endpoint.text),
         'region': _region.text.trim(),
         'accessKeyId': _accessKey.text.trim(),
-        'secretAccessKey': _secretKey.text,
+        'secretAccessKey': _secretKey.text.trim(),
         'bucket': _bucket.text.trim(),
       };
     } else {
@@ -187,11 +188,19 @@ class _ConnectionFormState extends State<ConnectionForm> {
             ),
             const SizedBox(height: 12),
             if (_type == 's3') ...[
-              TextFormField(key: const Key('form-endpoint'), controller: _endpoint, keyboardType: TextInputType.url, autocorrect: false, decoration: InputDecoration(labelText: t.endpoint, hintText: 'https://…'), validator: required),
+              TextFormField(
+                key: const Key('form-endpoint'),
+                controller: _endpoint,
+                keyboardType: TextInputType.url,
+                autocorrect: false,
+                enableSuggestions: false,
+                decoration: InputDecoration(labelText: t.endpoint, hintText: 'https://…'),
+                validator: (v) => required(v) ?? (S3Client.isValidEndpoint(v!) ? null : t.err_s3_invalid_endpoint),
+              ),
               const SizedBox(height: 12),
               TextFormField(controller: _region, autocorrect: false, decoration: InputDecoration(labelText: t.region, hintText: 'us-east-1')),
               const SizedBox(height: 12),
-              TextFormField(key: const Key('form-access-key'), controller: _accessKey, autocorrect: false, decoration: InputDecoration(labelText: t.accessKeyId), validator: secretRequired),
+              TextFormField(key: const Key('form-access-key'), controller: _accessKey, autocorrect: false, enableSuggestions: false, decoration: InputDecoration(labelText: t.accessKeyId), validator: secretRequired),
               const SizedBox(height: 12),
               TextFormField(key: const Key('form-secret-key'), controller: _secretKey, obscureText: true, decoration: InputDecoration(labelText: t.secretAccessKey), validator: secretRequired),
               const SizedBox(height: 12),

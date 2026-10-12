@@ -788,6 +788,24 @@ abstract class AppLocalizations {
   /// **'The storage service returned an error: {detail}'**
   String err_s3_error(String detail);
 
+  /// No description provided for @err_s3_redirect.
+  ///
+  /// In en, this message translates to:
+  /// **'The server redirects to {location}. Use that address as the endpoint.'**
+  String err_s3_redirect(String location);
+
+  /// No description provided for @err_s3_tls_error.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open a secure connection to the server (the certificate is invalid or not trusted by this phone): {detail}'**
+  String err_s3_tls_error(String detail);
+
+  /// No description provided for @err_s3_invalid_endpoint.
+  ///
+  /// In en, this message translates to:
+  /// **'The endpoint is not a valid address. Enter it in full, for example https://s3.example.com'**
+  String get err_s3_invalid_endpoint;
+
   /// No description provided for @err_unknown.
   ///
   /// In en, this message translates to:

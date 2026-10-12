@@ -40,15 +40,34 @@ class S3Listing {
 /// escritorio), válido para AWS, MinIO, DigitalOcean Spaces, R2, Wasabi…
 class S3Client {
   S3Client({required String endpoint, required this.region, required this.accessKey, required this.secretKey, http.Client? client})
-      : endpoint = Uri.parse(endpoint.trim().replaceAll(RegExp(r'/+$'), '')),
+      : endpoint = Uri.tryParse(normalizeEndpoint(endpoint)) ?? Uri(),
         _http = client ?? http.Client();
 
+  /// Las claves de S3 nunca llevan espacios: se recortan por si se pegaron con un salto de línea.
   factory S3Client.fromConnection(Entry c) => S3Client(
         endpoint: c.str('endpoint'),
         region: c.str('region').trim().isEmpty ? 'us-east-1' : c.str('region').trim(),
-        accessKey: c.str('accessKeyId'),
-        secretKey: c.str('secretAccessKey'),
+        accessKey: c.str('accessKeyId').trim(),
+        secretKey: c.str('secretAccessKey').trim(),
       );
+
+  /// Endpoint tal como se guarda: sin espacios ni barras finales y con `https://` si se
+  /// escribió solo el nombre del servidor (`s3.ejemplo.com`).
+  static String normalizeEndpoint(String raw) {
+    var value = raw.trim();
+    if (value.isEmpty) return value;
+    if (!value.contains('://')) value = 'https://$value';
+    while (value.endsWith('/') && !value.endsWith('://')) {
+      value = value.substring(0, value.length - 1);
+    }
+    return value;
+  }
+
+  /// Si el endpoint es una dirección http(s) con servidor.
+  static bool isValidEndpoint(String raw) {
+    final uri = Uri.tryParse(normalizeEndpoint(raw));
+    return uri != null && (uri.scheme == 'http' || uri.scheme == 'https') && uri.host.isNotEmpty;
+  }
 
   static const _timeout = Duration(seconds: 30);
 
@@ -168,6 +187,9 @@ class S3Client {
     int? contentLength,
     Map<String, String> extraHeaders = const {},
   }) async {
+    if ((endpoint.scheme != 'http' && endpoint.scheme != 'https') || endpoint.host.isEmpty) {
+      throw S3Error('s3_invalid_endpoint');
+    }
     final basePath = endpoint.path;
     final canonicalPath = '$basePath/${path.split('/').map(_encode).join('/')}';
     final sortedQuery = query.entries.toList()..sort((a, b) => a.key.compareTo(b.key));
@@ -203,6 +225,8 @@ class S3Client {
     } else {
       request = http.Request(method, uri)..bodyBytes = bytes ?? Uint8List(0);
     }
+    // Una redirección perdería la firma y S3 respondería "acceso denegado": mejor decirlo
+    request.followRedirects = false;
     request.headers.addAll({...headers..remove('host'), 'authorization': 'AWS4-HMAC-SHA256 Credential=$accessKey/$scope, SignedHeaders=$signedHeaders, Signature=$signature'});
 
     http.StreamedResponse response;
@@ -210,10 +234,19 @@ class S3Client {
       response = await _http.send(request).timeout(_timeout);
     } on TimeoutException {
       throw S3Error('network_error', 'timeout');
+    } on TlsException catch (error) {
+      throw S3Error('s3_tls_error', error.osError?.message ?? error.message);
     } on SocketException catch (error) {
       throw S3Error('network_error', error.message);
     } on http.ClientException catch (error) {
-      throw S3Error('network_error', error.message);
+      final tls = error.message.contains('CERTIFICATE') || error.message.contains('Handshake');
+      throw S3Error(tls ? 's3_tls_error' : 'network_error', error.message);
+    } on IOException catch (error) {
+      throw S3Error('network_error', error.toString());
+    }
+    if (response.isRedirect || (response.statusCode >= 300 && response.statusCode < 400)) {
+      await response.stream.drain<void>();
+      throw S3Error('s3_redirect', response.headers['location'] ?? 'HTTP ${response.statusCode}');
     }
     if (response.statusCode >= 300) {
       final text = await response.stream.bytesToString();

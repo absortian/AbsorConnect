@@ -10,8 +10,15 @@ String errorText(BuildContext context, Object? error) {
   final t = AppLocalizations.of(context);
   if (error is ApiError) return codeText(t, error.code);
   if (error is SshError) return codeText(t, error.code, error.detail);
-  if (error is S3Error) return codeText(t, error.code, error.detail);
-  return t.err_unknown;
+  if (error is S3Error) {
+    final text = codeText(t, error.code, error.detail);
+    // "Sin conexión" no basta para saber qué pasó (DNS, puerto, tiempo de espera…)
+    return error.code == 'network_error' && error.detail != null ? '$text\n${error.detail}' : text;
+  }
+  if (error == null) return t.err_unknown;
+  // Error inesperado: se muestra su texto para poder diagnosticarlo
+  final detail = error.toString();
+  return '${t.err_unknown}\n${detail.length > 300 ? '${detail.substring(0, 300)}…' : detail}';
 }
 
 String codeText(AppLocalizations t, String code, [String? detail]) => switch (code) {
@@ -35,5 +42,8 @@ String codeText(AppLocalizations t, String code, [String? detail]) => switch (co
       's3_access_denied' => t.err_s3_access_denied,
       's3_not_found' => t.err_s3_not_found,
       's3_error' || 's3_bad_response' => t.err_s3_error(detail ?? ''),
+      's3_redirect' => t.err_s3_redirect(detail ?? ''),
+      's3_tls_error' => t.err_s3_tls_error(detail ?? ''),
+      's3_invalid_endpoint' => t.err_s3_invalid_endpoint,
       _ => t.err_unknown,
     };
