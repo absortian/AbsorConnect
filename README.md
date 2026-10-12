@@ -53,7 +53,7 @@ La app necesita el backend: `npm run dev` usa el de desarrollo en `http://localh
 
 ## Apps para Android e iPhone
 
-`mobile/` es la app de Flutter con la misma cuenta y las mismas conexiones: explorador SFTP y S3 y terminal SSH. No está en las tiendas (no hay cuentas de desarrollador): en Android se instala el APK firmado de la release y en iPhone la IPA sin firmar con AltStore, SideStore o Sideloadly. Cada release adjunta el APK, la IPA y `altstore-source.json` (la fuente de AltStore/SideStore). Desarrollo, pruebas y firma: [`mobile/README.md`](mobile/README.md).
+`mobile/` es la app de Flutter con la misma cuenta y las mismas conexiones: explorador SFTP y S3 y terminal SSH. No está en las tiendas (no hay cuentas de desarrollador): en Android se instala el APK firmado de la release y en iPhone la IPA sin firmar con SideStore, AltStore Classic o Sideloadly (AltStore PAL, la versión de la UE, no sirve: solo instala apps notarizadas por Apple). Cada release adjunta el APK, la IPA y `altstore-source.json` (la fuente de SideStore/AltStore). Desarrollo, pruebas y firma: [`mobile/README.md`](mobile/README.md).
 
 ## Backend (cuentas y conexiones en la nube)
 
@@ -110,7 +110,7 @@ Jenkins construye la imagen `absortian/absortian:php-absorconnect-1.0.0` (`docke
 - **Windows** — Instalador NSIS
 - **Linux** — AppImage, Snap y DEB
 - **Android** — 7.0 o posterior, APK (fuera de Google Play)
-- **iPhone y iPad** — iOS 15 o posterior, IPA para instalar con AltStore, SideStore o Sideloadly (fuera de la App Store)
+- **iPhone y iPad** — iOS 15 o posterior, IPA para instalar con SideStore, AltStore Classic o Sideloadly (fuera de la App Store; AltStore PAL no sirve)
 
 ## Seguridad
 

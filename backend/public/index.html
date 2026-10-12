@@ -459,26 +459,27 @@
         <div class="os-panel" id="panel-ios" role="tabpanel" aria-labelledby="tab-ios" hidden>
           <div class="box">
             <h3>iPhone y iPad</h3>
-            <p class="req">iOS 15 o posterior · se instala con AltStore o SideStore y tu Apple ID</p>
+            <p class="req">iOS 15 o posterior · se instala con SideStore o AltStore Classic y tu Apple ID</p>
             <div class="files">
-              <a class="file rec" id="altstore-link" href="altstore://source?url=https%3A%2F%2Fgithub.com%2Fabsortian%2FAbsorConnect%2Freleases%2Flatest%2Fdownload%2Faltstore-source.json"><span><b>Añadir a AltStore<span class="tag">Recomendado</span></b><small>Abre AltStore con la fuente de Absor Connect</small></span><span class="dl">Abrir<svg><use href="#i-download"/></svg></span></a>
-              <a class="file" href="sidestore://source?url=https%3A%2F%2Fgithub.com%2Fabsortian%2FAbsorConnect%2Freleases%2Flatest%2Fdownload%2Faltstore-source.json"><span><b>Añadir a SideStore</b><small>Abre SideStore con la fuente de Absor Connect</small></span><span class="dl">Abrir<svg><use href="#i-download"/></svg></span></a>
+              <a class="file rec" href="sidestore://source?url=https%3A%2F%2Fgithub.com%2Fabsortian%2FAbsorConnect%2Freleases%2Flatest%2Fdownload%2Faltstore-source.json"><span><b>Añadir a SideStore<span class="tag">Recomendado</span></b><small>Abre SideStore con la fuente de Absor Connect · se renueva desde el iPhone</small></span><span class="dl">Abrir<svg><use href="#i-download"/></svg></span></a>
+              <a class="file" href="altstore://source?url=https%3A%2F%2Fgithub.com%2Fabsortian%2FAbsorConnect%2Freleases%2Flatest%2Fdownload%2Faltstore-source.json"><span><b>Añadir a AltStore Classic</b><small>Abre AltStore con la fuente de Absor Connect · necesita AltServer en tu ordenador</small></span><span class="dl">Abrir<svg><use href="#i-download"/></svg></span></a>
             </div>
+            <div class="note" style="margin-top:16px"><svg><use href="#i-alert"/></svg><span><b>AltStore PAL no sirve.</b> La versión de AltStore para la Unión Europea, la que se instala sin ordenador, solo admite apps notarizadas por Apple y da el error «missing a marketplaceID». Usa SideStore o AltStore Classic.</span></div>
             <p class="req" style="margin:16px 0 8px">O añade la fuente a mano con esta dirección:</p>
             <span class="cmd" id="source-url">https://github.com/absortian/AbsorConnect/releases/latest/download/altstore-source.json</span>
             <div class="files" data-os="ios" style="margin-top:16px"><a class="file" href="https://github.com/absortian/AbsorConnect/releases/latest" target="_blank" rel="noopener"><span><b>IPA para Sideloadly</b><small>github.com/absortian/AbsorConnect/releases</small></span><span class="dl">Abrir<svg><use href="#i-download"/></svg></span></a></div>
           </div>
           <div class="box">
             <h3>Cómo instalarla</h3>
-            <p class="req">Absor Connect aún no está en la App Store. Mientras tanto, cada persona la instala con su propio Apple ID (gratis) mediante AltStore o SideStore.</p>
+            <p class="req">Absor Connect aún no está en la App Store. Mientras tanto, cada persona la instala con su propio Apple ID (gratis) mediante SideStore o AltStore Classic.</p>
             <ol class="howto">
-              <li>Instala <a href="https://altstore.io" target="_blank" rel="noopener"><b>AltStore</b></a> o <a href="https://sidestore.io" target="_blank" rel="noopener"><b>SideStore</b></a> en tu iPhone siguiendo su guía (la primera vez necesitas un ordenador).</li>
-              <li>Desde el iPhone, pulsa <b>Añadir a AltStore</b> (o a SideStore) aquí al lado, o añade la fuente a mano en <b>Fuentes › +</b>.</li>
-              <li>En la fuente de Absor Connect, pulsa <b>Instalar</b> e inicia sesión con tu Apple ID si te lo pide.</li>
+              <li>Instala <a href="https://docs.sidestore.io/docs/installation/prerequisites" target="_blank" rel="noopener"><b>SideStore</b></a> (recomendado: luego renueva la app desde el propio iPhone) o <b>AltStore Classic</b> desde un <a href="https://faq.altstore.io/altstore-classic/how-to-install-altstore-macos" target="_blank" rel="noopener">Mac</a> o un <a href="https://faq.altstore.io/altstore-classic/how-to-install-altstore-windows" target="_blank" rel="noopener">PC con Windows</a>, siguiendo su guía. La primera vez necesitas un ordenador. <b>AltStore PAL no sirve.</b></li>
+              <li>Desde el iPhone, pulsa <b>Añadir a SideStore</b> (o a AltStore Classic) aquí al lado, o añade la fuente a mano en <b>Fuentes › +</b>.</li>
+              <li>En la fuente de Absor Connect, pulsa <b>Instalar</b> e inicia sesión con tu Apple ID si te lo pide. Con AltStore Classic, AltServer tiene que estar abierto en el ordenador y el iPhone en la misma wifi o conectado por cable; si no, sale «AltServer could not be found».</li>
               <li>En iOS 16 o posterior, activa <b>Ajustes › Privacidad y seguridad › Modo de desarrollador</b> y reinicia cuando te lo pida.</li>
               <li>Abre Absor Connect, crea tu cuenta gratis o inicia sesión.</li>
             </ol>
-            <div class="note"><svg><use href="#i-alert"/></svg><span>Con un Apple ID gratuito, la firma dura <b>7 días</b>: AltStore y SideStore la renuevan solas en segundo plano (abre la app de vez en cuando). Apple permite como mucho <b>3 apps</b> instaladas así a la vez.</span></div>
+            <div class="note"><svg><use href="#i-alert"/></svg><span>Con un Apple ID gratuito, la firma dura <b>7 días</b>: SideStore la renueva desde el propio iPhone, y AltStore Classic cuando el iPhone y el ordenador con AltServer están en la misma wifi (abre la app de vez en cuando). Apple permite como mucho <b>3 apps</b> instaladas así a la vez.</span></div>
           </div>
         </div>
       </div>
@@ -524,8 +525,8 @@
           <details><summary>¿De verdad es gratis?</summary><div><p>Sí. La app y la cuenta son gratuitas, sin límite de conexiones ni periodo de prueba. El código es abierto (licencia MIT) y está en <a href="https://github.com/absortian/AbsorConnect" target="_blank" rel="noopener">GitHub</a>.</p></div></details>
           <details><summary>¿Por qué necesito una cuenta?</summary><div><p>Para que tus conexiones vivan en la nube y no en un solo equipo: las ves en todos tus ordenadores y no las pierdes si cambias de equipo. La cuenta solo pide un email y una contraseña.</p></div></details>
           <details><summary>Usaba una versión anterior (o Absor S3 Explorer). ¿Pierdo mis conexiones?</summary><div><p>No. Al actualizar e iniciar sesión, la app te ofrece subir a tu cuenta las conexiones que tenías guardadas en el equipo. Si eliges «Ahora no», siguen en el equipo y te lo vuelve a preguntar la próxima vez.</p></div></details>
-          <details><summary>¿Hay app para el móvil?</summary><div><p>Sí, para Android y para iPhone, con la misma cuenta y las mismas conexiones que el escritorio: explorador SFTP y S3 y terminal SSH. En Android se instala el APK desde esta web; en iPhone, con AltStore o SideStore (más abajo te contamos por qué).</p></div></details>
-          <details><summary>¿Por qué en iPhone hay que usar AltStore o SideStore?</summary><div><p>Apple solo deja instalar apps de la App Store o firmadas por un desarrollador. Mientras Absor Connect no esté en la App Store, AltStore y SideStore la firman con tu propio Apple ID, gratis. Con un Apple ID gratuito la firma dura 7 días y ellas la renuevan solas.</p></div></details>
+          <details><summary>¿Hay app para el móvil?</summary><div><p>Sí, para Android y para iPhone, con la misma cuenta y las mismas conexiones que el escritorio: explorador SFTP y S3 y terminal SSH. En Android se instala el APK desde esta web; en iPhone, con SideStore o AltStore Classic (más abajo te contamos por qué).</p></div></details>
+          <details><summary>¿Por qué en iPhone hay que usar SideStore o AltStore Classic?</summary><div><p>Apple solo deja instalar apps de la App Store o firmadas por un desarrollador. Mientras Absor Connect no esté en la App Store, SideStore y AltStore Classic la firman con tu propio Apple ID, gratis. Con un Apple ID gratuito la firma dura 7 días y ellas la renuevan solas.</p><p>AltStore PAL, la versión para la Unión Europea, no sirve: solo instala apps notarizadas por Apple, y para eso hace falta una cuenta de desarrollador de pago.</p></div></details>
           <details><summary>En el móvil, ¿cómo uso mis claves privadas SSH?</summary><div><p>La primera vez que abras una conexión por clave privada, la app te pedirá importar el fichero de la clave en ese teléfono. Se guarda solo en el almacén seguro del dispositivo y nunca se envía a ningún sitio.</p></div></details>
           <details><summary>¿Funciona sin conexión a internet?</summary><div><p>Necesitas conexión para entrar y cargar tus conexiones, porque se guardan en tu cuenta. Si el servicio no responde, la app te lo indica y puedes reintentarlo.</p></div></details>
           <details><summary>He olvidado mi contraseña</summary><div><p>Por ahora no hay recuperación automática por correo. <a href="https://github.com/absortian/AbsorConnect/issues" target="_blank" rel="noopener">Abre una incidencia en GitHub</a> (sin incluir contraseñas) y te ayudamos a restablecerla. Tus conexiones se conservan.</p></div></details>
@@ -574,7 +575,8 @@
         ],
         win: [{ re: /-setup\.exe$/, title: 'Instalador para Windows', kind: '.exe', key: 'win' }],
         android: [{ re: /\.apk$/, title: 'APK para Android', kind: '.apk', key: 'android' }],
-        ios: [{ re: /\.ipa$/, title: 'IPA para Sideloadly', kind: '.ipa' }],
+        // En iPhone lo recomendado es SideStore (arriba); la IPA es la alternativa
+        ios: [{ re: /\.ipa$/, title: 'IPA para Sideloadly', kind: '.ipa', plain: true }],
         linux: [
           { re: /\.AppImage$/, title: 'AppImage · cualquier distribución', kind: '.AppImage', key: 'linux' },
           { re: /amd64\.deb$/, title: 'Debian, Ubuntu y derivadas', kind: '.deb' },
@@ -634,7 +636,7 @@
         // Con las fuentes ya cargadas cambia el ancho de las pestañas
         window.addEventListener('load', function () { revealTab(userOs) })
       }
-      // En iPhone la instalación pasa por AltStore/SideStore: el botón lleva a sus pasos
+      // En iPhone la instalación pasa por SideStore/AltStore Classic: el botón lleva a sus pasos
       if (userOs === 'ios') {
         var heroIos = document.getElementById('hero-download')
         heroIos.querySelector('span').textContent = 'Instalar en iPhone'
@@ -651,8 +653,8 @@
             if (!asset) return
             if (target.key) byKey[target.key] = asset
             var title = el('b', {}, [target.title])
-            if (index === 0) title.appendChild(el('span', { class: 'tag' }, ['Recomendado']))
-            items.push(el('a', { class: 'file' + (index === 0 ? ' rec' : ''), href: asset.browser_download_url, download: '' }, [
+            if (index === 0 && !target.plain) title.appendChild(el('span', { class: 'tag' }, ['Recomendado']))
+            items.push(el('a', { class: 'file' + (index === 0 && !target.plain ? ' rec' : ''), href: asset.browser_download_url, download: '' }, [
               el('span', {}, [title, el('small', {}, [target.kind + ' · ' + mb(asset.size) + ' · ' + asset.name])]),
               el('span', { class: 'dl' }, ['Descargar', icon('download')])
             ]))

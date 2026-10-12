@@ -25,10 +25,10 @@ La app de Android SHALL comprobar al arrancar si hay una release más reciente e
 - **THEN** la app muestra un aviso con un botón para descargar el APK nuevo
 
 ### Requirement: Instalación en iOS sin cuenta de desarrollador
-Cada versión SHALL publicar una `.ipa` sin firmar y mantener una fuente de AltStore/SideStore con la última versión, para que cada persona la instale y la renueve con su propio Apple ID. La web MUST explicar el proceso y sus límites (renovación cada 7 días y máximo de 3 apps con un Apple ID gratuito).
+Cada versión SHALL publicar una `.ipa` sin firmar y mantener una fuente de AltStore/SideStore con la última versión, para que cada persona la instale y la renueve con su propio Apple ID. La web MUST explicar el proceso y sus límites (renovación cada 7 días y máximo de 3 apps con un Apple ID gratuito) y avisar de que AltStore PAL no sirve, porque solo instala apps notarizadas por Apple.
 
 #### Scenario: Añadir la fuente
-- **WHEN** alguien añade la fuente de Absor Connect en AltStore o SideStore
+- **WHEN** alguien añade la fuente de Absor Connect en SideStore o AltStore Classic
 - **THEN** ve la app con la última versión y puede instalarla
 
 #### Scenario: Versión nueva en iOS
