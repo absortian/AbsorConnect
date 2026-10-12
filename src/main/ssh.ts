@@ -135,6 +135,9 @@ export async function getClient(conn: SshConnection): Promise<Client> {
   client.on('keyboard-interactive', (_name, _instructions, _lang, prompts, finish) => {
     finish(prompts.map(() => conn.password ?? ''))
   })
+  // Sin Nagle: cada tecla de la terminal sale al momento en vez de esperar el ACK de la
+  // anterior (con Nagle el eco llega a ráfagas). OpenSSH hace lo mismo en sesiones interactivas
+  client.once('connect', () => client.setNoDelay(true))
   client.on('error', () => dropEntry(conn.id, entry))
   client.on('close', () => dropEntry(conn.id, entry))
   pool.set(conn.id, entry)

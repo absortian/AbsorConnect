@@ -1,6 +1,6 @@
 {
   "name": "absor-file-explorer",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "A dual-panel desktop file manager for transferring files between local filesystem and S3-compatible storage",
   "license": "MIT",
   "main": "./out/main/index.js",

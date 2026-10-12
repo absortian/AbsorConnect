@@ -6,6 +6,7 @@ import '@xterm/xterm/css/xterm.css'
 import { RotateCcw } from 'lucide-react'
 import { SshConnection } from '../../../shared/types'
 import { remoteErrorMessage } from '../remoteErrors'
+import { createTerminalInput } from '../terminalInput'
 
 export type TerminalStatus = 'connecting' | 'open' | 'ended' | 'error'
 
@@ -44,6 +45,8 @@ export default function TerminalView({ connection, active, theme, onStatusChange
   // Salida que llega antes de conocer el id de la sesión (el prompt puede adelantarse a la respuesta)
   const pendingRef = useRef(new Map<string, Uint8Array[]>())
   const disposedRef = useRef(false)
+  // Lo tecleado mientras la sesión se abre se envía al abrirse, en orden (no se pierde)
+  const inputRef = useRef(createTerminalInput())
   const [status, setStatus] = useState<TerminalStatus>('connecting')
   const [message, setMessage] = useState('')
 
@@ -69,6 +72,7 @@ export default function TerminalView({ connection, active, theme, onStatusChange
     const term = termRef.current
     if (!term || openingRef.current) return
     openingRef.current = true
+    inputRef.current.opening()
     updateStatus('connecting')
     fitAndSync()
     try {
@@ -77,6 +81,7 @@ export default function TerminalView({ connection, active, theme, onStatusChange
       const latest = saved && !saved.isFolder && saved.type === 'ssh' ? saved : connection
       const sessionId = await window.api.openTerminal(latest, term.cols, term.rows)
       if (disposedRef.current) {
+        inputRef.current.close()
         window.api.closeTerminal(sessionId)
         return
       }
@@ -84,9 +89,11 @@ export default function TerminalView({ connection, active, theme, onStatusChange
       // El tamaño pudo cambiar mientras se abría la sesión
       window.api.terminalResize(sessionId, term.cols, term.rows)
       for (const chunk of pendingRef.current.get(sessionId) ?? []) term.write(chunk)
+      inputRef.current.open((data) => window.api.terminalInput(sessionId, data))
       updateStatus('open')
       term.focus()
     } catch (err) {
+      inputRef.current.close()
       updateStatus('error', err instanceof Error ? remoteErrorMessage(err.message, t) : String(err))
     } finally {
       pendingRef.current.clear()
@@ -96,6 +103,7 @@ export default function TerminalView({ connection, active, theme, onStatusChange
 
   useEffect(() => {
     disposedRef.current = false
+    const input = inputRef.current
     const term = new Terminal({
       fontFamily: FONT_FAMILY[window.api.platform] ?? 'monospace',
       fontSize: 13,
@@ -109,9 +117,7 @@ export default function TerminalView({ connection, active, theme, onStatusChange
     termRef.current = term
     fitRef.current = fit
 
-    term.onData((data) => {
-      if (sessionRef.current) window.api.terminalInput(sessionRef.current, data)
-    })
+    term.onData((data) => input.write(data))
     term.onResize(({ cols, rows }) => {
       if (sessionRef.current) window.api.terminalResize(sessionRef.current, cols, rows)
     })
@@ -147,6 +153,7 @@ export default function TerminalView({ connection, active, theme, onStatusChange
     const offExit = window.api.onTerminalExit((_event, { sessionId, reason }) => {
       if (sessionId !== sessionRef.current) return
       sessionRef.current = null
+      input.close()
       updateStatus('ended', reason === 'connection-lost' ? t('terminal.connectionLost') : t('terminal.sessionEnded'))
     })
 
@@ -156,6 +163,7 @@ export default function TerminalView({ connection, active, theme, onStatusChange
       frame = requestAnimationFrame(fitAndSync)
     })
     observer.observe(containerRef.current!)
+    input.opening() // ya se puede escribir antes del primer frame
     requestAnimationFrame(() => connect())
 
     return () => {
@@ -164,6 +172,7 @@ export default function TerminalView({ connection, active, theme, onStatusChange
       observer.disconnect()
       offData()
       offExit()
+      input.close()
       if (sessionRef.current) window.api.closeTerminal(sessionRef.current)
       sessionRef.current = null
       term.dispose()
