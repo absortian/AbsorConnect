@@ -95,7 +95,7 @@ En producción, los mismos comandos con `kubectl exec -n absorconnect deploy/abs
 
 ### Despliegue
 
-Jenkins construye la imagen `absortian/absortian:php-absorconnect-1.0.0` (`docker/prod/php/Dockerfile`), aplica las migraciones con un Job y despliega 3 réplicas en Kubernetes (`kube/`, NodePort 30081). El primer despliegue necesita pasos manuales: crear la base de datos, el Secret `absorconnect-env`, el job de Jenkins y el dominio en Cloudflare. Están detallados en [`kube/AGENTS.md`](kube/AGENTS.md#primer-despliegue).
+Jenkins construye la imagen `absortian/absortian:php-absorconnect-1.0.0` (`docker/prod/php/Dockerfile`), aplica las migraciones con un Job y despliega 3 réplicas en Kubernetes (`kube/`, NodePort 30081). Un proyecto nuevo necesita además, una sola vez: la base de datos, el Secret `absorconnect-env`, el job de Jenkins (`Deploy AbsorConnect`), el registro en Cloudflare y la ruta en el HAProxy de `head0`. Todo eso ya está hecho para AbsorConnect; los pasos están en [`kube/AGENTS.md`](kube/AGENTS.md#primer-despliegue).
 
 ## Plataformas soportadas
 
