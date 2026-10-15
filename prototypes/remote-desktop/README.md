@@ -9,6 +9,7 @@ Pruebas de los puntos de riesgo del grupo 1 de `openspec/changes/add-remote-desk
 | `capture` | 1.1 y 1.2 | Captura de la pantalla principal en una ventana oculta, sin ventana principal, enviada por WebRTC a otra ventana oculta: imágenes por segundo y sonido del sistema. |
 | `input-check/` | 4.6 | La inyección de entrada real (`src/main/remote/input`): clics en las esquinas de cada pantalla, teclas por posición, texto Unicode, atajos, doble clic, botones, arrastre y rueda. Ver [más abajo](#prueba-de-entrada-input-check). |
 | `input-check/ --mode=support` | 4.7 | El estado del control remoto en el equipo (`src/main/remote/platformSupport.ts`): Wayland en Linux; en macOS, los permisos, sus paneles de Ajustes del Sistema y la notificación de permisos perdidos. |
+| `input-check/test-mac.sh background` | 4.1 y 4.2 | La app empaquetada en macOS (AbsorCheck.app): barra de menús y su menú, Dock, cerrar a la bandeja, instancia única, arranque oculto, abrir al iniciar sesión y aviso de versión nueva. |
 
 Al abrirlo sin argumentos se ejecuta todo, y el resultado se guarda en `Descargas/absor-remote-prototype-<sistema>-<arquitectura>-<prueba>.json` (un fichero por prueba) y se muestra en una ventana. Durante la prueba aparece una ventanita en la esquina inferior derecha y suena un pitido suave. El ratón salta unos píxeles al principio y vuelve a su sitio. Nada sale del equipo.
 
@@ -79,3 +80,15 @@ El JSON se guarda siempre, también cuando algo falla (`error`). `--out=fichero`
   - si llega la notificación de permisos perdidos.
 
   Lanzado desde Terminal, los permisos que cuentan son los de Terminal.
+
+### Segundo plano en macOS (tareas 4.1 y 4.2)
+
+`test-mac.sh background` empaqueta la app de verdad como `dist/check/mac-<arquitectura>/AbsorCheck.app`, con otro nombre, otro appId y otra carpeta de datos (`absor-connect-check`), así que no toca Absor Connect si está instalado. Su versión es 0.0.1, para que la última release de GitHub cuente como versión nueva. Después la maneja con System Events y `lsappinfo` (`background-check.mjs`):
+
+- arranque con ventana, Dock e icono en la barra de menús;
+- el menú (abrir, estado del control remoto, salir) y la entrada para descargar la versión nueva;
+- cerrar a la bandeja (sin Dock), abrir desde la bandeja, abrir la app otra vez (misma instancia) y salir;
+- arranque con `--hidden`;
+- que «Abrir al iniciar sesión» la añade a Ítems de inicio.
+
+La notificación de versión nueva y lo que se ve en Ítems de inicio se preguntan con diálogos. La primera vez macOS pide permiso para que Terminal controle System Events. Después hay que cerrar la sesión del Mac, volver a entrar sin abrir nada y lanzar `test-mac.sh background-login`. Esa segunda fase comprueba que la app arrancó sola y oculta, y que desactivar la opción la quita de Ítems de inicio.
