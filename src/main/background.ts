@@ -25,12 +25,21 @@ let activeController: string | null = null
 // Salida real (menú "Salir" o app.quit()): deja de ocultar la ventana en 'close'.
 let quitting = false
 
+/** Entrada opcional de actualización en el menú de la bandeja (la alimenta el updater). */
+interface TrayUpdate {
+  version: string
+  action: () => void
+}
+let trayUpdate: TrayUpdate | null = null
+
 interface TrayLabels {
   open: string
   quit: string
   remoteOff: string
   remoteAvailable: string
   remoteActiveFrom: (name: string) => string
+  updateAvailable: (version: string) => string
+  updateReady: (version: string) => string
 }
 
 const LABELS: Record<'es' | 'en', TrayLabels> = {
@@ -39,14 +48,18 @@ const LABELS: Record<'es' | 'en', TrayLabels> = {
     quit: 'Salir',
     remoteOff: 'Control remoto: desactivado',
     remoteAvailable: 'Control remoto: disponible',
-    remoteActiveFrom: (name) => `Controlado ahora desde ${name}`
+    remoteActiveFrom: (name) => `Controlado ahora desde ${name}`,
+    updateAvailable: (version) => `Descargar la versión ${version}`,
+    updateReady: (version) => `Instalar la versión ${version} al salir`
   },
   en: {
     open: 'Open Absor Connect',
     quit: 'Quit',
     remoteOff: 'Remote control: off',
     remoteAvailable: 'Remote control: available',
-    remoteActiveFrom: (name) => `Controlled now from ${name}`
+    remoteActiveFrom: (name) => `Controlled now from ${name}`,
+    updateAvailable: (version) => `Download version ${version}`,
+    updateReady: (version) => `Install version ${version} on quit`
   }
 }
 
@@ -128,21 +141,29 @@ async function rebuildTrayMenu(): Promise<void> {
       : remoteStatus === 'available'
         ? t.remoteAvailable
         : t.remoteOff
-  tray.setContextMenu(
-    Menu.buildFromTemplate([
-      { label: t.open, click: showMainWindow },
-      { type: 'separator' },
-      { label: statusLabel, enabled: false },
-      { type: 'separator' },
-      {
-        label: t.quit,
-        click: () => {
-          beginQuitting()
-          app.quit()
-        }
+  const items: Electron.MenuItemConstructorOptions[] = [
+    { label: t.open, click: showMainWindow },
+    { type: 'separator' },
+    { label: statusLabel, enabled: false }
+  ]
+  if (trayUpdate) {
+    const label =
+      trayUpdate.action === NO_OP
+        ? t.updateReady(trayUpdate.version)
+        : t.updateAvailable(trayUpdate.version)
+    items.push({ type: 'separator' }, { label, click: () => trayUpdate?.action() })
+  }
+  items.push(
+    { type: 'separator' },
+    {
+      label: t.quit,
+      click: () => {
+        beginQuitting()
+        app.quit()
       }
-    ])
+    }
   )
+  tray.setContextMenu(Menu.buildFromTemplate(items))
   tray.setToolTip(remoteStatus === 'active' ? `Absor Connect — ${statusLabel}` : 'Absor Connect')
 }
 
@@ -150,6 +171,20 @@ async function rebuildTrayMenu(): Promise<void> {
 export function setRemoteStatus(status: RemoteStatus, controller: string | null = null): void {
   remoteStatus = status
   activeController = controller
+  void rebuildTrayMenu()
+}
+
+/** Hay una sesión de control remoto en curso en ESTE PC (para no reinstalar durante ella). */
+export function isRemoteControlActive(): boolean {
+  return remoteStatus === 'active'
+}
+
+/** Entrada de la bandeja marcada como "ya descargada, se instala al salir" (sin acción directa). */
+const NO_OP = (): void => {}
+
+/** El updater fija la entrada de actualización de la bandeja: null la quita. */
+export function setTrayUpdate(update: { version: string; action?: () => void } | null): void {
+  trayUpdate = update ? { version: update.version, action: update.action ?? NO_OP } : null
   void rebuildTrayMenu()
 }
 

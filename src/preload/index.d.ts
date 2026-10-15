@@ -105,9 +105,7 @@ declare global {
       getPathForFile: (file: File) => string
       showSaveDialog: (defaultPath: string) => Promise<string | null>
       getLocalHome: () => Promise<string>
-      listLocalDir: (
-        dirPath: string
-      ) => Promise<{
+      listLocalDir: (dirPath: string) => Promise<{
         currentPath: string
         folders: string[]
         files: Array<{ name: string; path: string; size: number; lastModified: string }>
@@ -126,7 +124,7 @@ declare global {
       getAppVersion: () => Promise<string>
       checkForUpdates: () => Promise<void>
       downloadUpdate: () => Promise<void>
-      installUpdate: () => void
+      installUpdate: () => Promise<boolean>
       onUpdateStatus: (callback: (_event: unknown, data: UpdateStatusEvent) => void) => () => void
       onTransferProgress: (
         callback: (_event: unknown, data: { jobId: string; loaded: number; total: number }) => void

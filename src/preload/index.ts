@@ -113,7 +113,7 @@ const api = {
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
   downloadUpdate: () => ipcRenderer.invoke('download-update'),
-  installUpdate: () => ipcRenderer.invoke('install-update'),
+  installUpdate: () => ipcRenderer.invoke('install-update') as Promise<boolean>,
   onUpdateStatus: (callback: (_event: unknown, data: unknown) => void) => {
     ipcRenderer.on('update-status', callback)
     return () => ipcRenderer.removeListener('update-status', callback)

@@ -40,7 +40,13 @@ import {
   writeTerminal
 } from './ssh'
 import { getLocalHome, listLocalDir, createLocalDir, deleteLocalItem } from './localFs'
-import { initUpdater, checkForUpdates, downloadUpdate, quitAndInstall } from './updater'
+import {
+  initUpdater,
+  checkForUpdates,
+  downloadUpdate,
+  quitAndInstall,
+  startBackgroundUpdateChecks
+} from './updater'
 import {
   acquireSingleInstance,
   attachCloseToTray,
@@ -358,6 +364,8 @@ app.whenReady().then(async () => {
   })
 
   initUpdater()
+  // La app puede pasar días abierta: busca actualizaciones al arrancar y cada 6 h (app-updates)
+  startBackgroundUpdateChecks()
   // Arrancada por el sistema al iniciar sesión: solo bandeja, sin abrir la ventana (background-mode)
   if (!startedHidden()) createWindow()
 
