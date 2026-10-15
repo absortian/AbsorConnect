@@ -2,7 +2,7 @@
 
 ## 1. Prototipos de los puntos de riesgo
 
-- [ ] 1.1 Prototipo de captura en una ventana oculta (`backgroundThrottling: false`) con la ventana principal cerrada, enviada por WebRTC local a otra ventana (D7). Verificar en Windows, macOS y Linux X11: unos 30 fps estables durante 5 minutos.
+- [x] 1.1 Prototipo de captura en una ventana oculta (`backgroundThrottling: false`) con la ventana principal cerrada, enviada por WebRTC local a otra ventana (D7). Verificar en Windows, macOS y Linux X11: unos 30 fps estables durante 5 minutos.
 - [x] 1.2 Sonido del sistema con `audio: 'loopback'` en Windows, macOS 14.2+ (con `NSAudioCaptureUsageDescription`) y Linux con PulseAudio y con PipeWire, y la fuente "Monitor of …" como alternativa en Linux (D8). Verificar: resultado por sistema anotado en design.md (D8).
 - [x] 1.3 Añadir `koffi` y probar un movimiento de ratón desde un paquete real de cada tipo (NSIS, DMG, AppImage y deb), con `asarUnpack` (D10). Verificar: el ratón se mueve en los cuatro y `npm ci` no compila nada.
 - [x] 1.4 Medir PBKDF2-HMAC-SHA256 con 600 000 iteraciones en WebCrypto y en Node en Windows, macOS y Linux (D6). Verificar: tiempos anotados en design.md. La medida en móviles se hace en la 7.2, con el código en Dart.

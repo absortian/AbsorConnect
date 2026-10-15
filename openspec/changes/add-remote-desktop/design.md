@@ -300,7 +300,7 @@ Hecho con `prototypes/remote-desktop/` (ver su README). Los móviles se miden en
 
 | Prueba | Linux X11 (Mint, PipeWire, 2 × 4K al 200 %) | Windows | macOS |
 |---|---|---|---|
-| 1.1 Captura en ventana oculta, sin ventana principal, 5 min | 3840×2160 a 29 fps de media (percentil 5: 27), sin limitación de CPU ni de ancho de banda | VM sin GPU, 1280×800: 28 fps de media (percentil 5: 22) | 3024×1964 a 29 fps (mínimo 28) en 60 s; los 5 min, pendientes |
+| 1.1 Captura en ventana oculta, sin ventana principal, 5 min | 3840×2160 a 29 fps de media (percentil 5: 27), sin limitación de CPU ni de ancho de banda | VM sin GPU, 1280×800: 28 fps de media (percentil 5: 22) | 3024×1964 a 29 fps de media (percentil 5: 29) en 5 min, sin limitación |
 | 1.2 Sonido del sistema | `loopback`: pista vacía. Fuente virtual con `pactl`: llega con el nivel del origen | `loopback` funciona: llega con el nivel del origen. Con sonido, la VM baja a 18 fps por falta de CPU | `loopback` funciona (54 de 54 s con sonido), con el permiso de grabación de pantalla y audio del sistema |
 | 1.3 koffi (mover el ratón) | Funciona en desarrollo, AppImage y deb, con `koffi` desempaquetado del asar. `npm ci` sin compilar | Funciona desde el NSIS instalado en silencio (`/S`), ejecutado sin elevar | Funciona desde la app dentro del DMG (CGEvent) con el permiso de Accesibilidad; sin él, `koffi` carga pero el ratón no se mueve |
 | 1.4 PBKDF2, 600 000 iteraciones | 58 ms (WebCrypto y Node) | 63 ms (WebCrypto), 80 ms (Node) | 36 ms (WebCrypto), 57 ms (Node) |
