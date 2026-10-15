@@ -25,7 +25,8 @@
     "build:mac": "electron-vite build && electron-builder --mac --publish never",
     "build:mac-arm64": "electron-vite build && electron-builder --mac --arm64 --publish never",
     "build:mac-x64": "electron-vite build && electron-builder --mac --x64 --publish never",
-    "build:linux": "electron-vite build && electron-builder --linux --publish never"
+    "build:linux": "electron-vite build && electron-builder --linux --publish never",
+    "test": "vitest run"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1019.0",
@@ -61,6 +62,7 @@
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "typescript": "^5.9.3",
-    "vite": "^7.2.6"
+    "vite": "^7.2.6",
+    "vitest": "^5.0.5"
   }
 }

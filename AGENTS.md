@@ -45,6 +45,7 @@ Lee primero el `README.md` (qué es, stack, comandos). Aquí va lo que no se ded
 ## Verificación mínima antes de dar algo por hecho
 ```bash
 npm run typecheck          # sin Node en el host: bin/dev npm run typecheck
+npm test                   # Vitest: módulos puros del proceso principal (bin/dev npm test)
 docker compose exec php php bin/phpunit
 # Si se toca mobile/ (con el entorno de mobile/tool/test_env.sh)
 (cd mobile && flutter analyze && flutter test)
