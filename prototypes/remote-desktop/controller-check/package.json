@@ -1,0 +1,8 @@
+{
+  "name": "absor-controller-check",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Controlador de prueba del PC controlado (tarea 4.8 de add-remote-desktop). No forma parte de la app.",
+  "main": "out/main.cjs",
+  "license": "MIT"
+}
