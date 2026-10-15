@@ -3,9 +3,9 @@
 ## 1. Prototipos de los puntos de riesgo
 
 - [ ] 1.1 Prototipo de captura en una ventana oculta (`backgroundThrottling: false`) con la ventana principal cerrada, enviada por WebRTC local a otra ventana (D7). Verificar en Windows, macOS y Linux X11: unos 30 fps estables durante 5 minutos.
-- [ ] 1.2 Sonido del sistema con `audio: 'loopback'` en Windows, macOS 14.2+ (con `NSAudioCaptureUsageDescription`) y Linux con PulseAudio y con PipeWire, y la fuente "Monitor of …" como alternativa en Linux (D8). Verificar: resultado por sistema anotado en design.md (D8).
-- [ ] 1.3 Añadir `koffi` y probar un movimiento de ratón desde un paquete real de cada tipo (NSIS, DMG, AppImage y deb), con `asarUnpack` (D10). Verificar: el ratón se mueve en los cuatro y `npm ci` no compila nada.
-- [ ] 1.4 Medir PBKDF2-HMAC-SHA256 con 600 000 iteraciones en WebCrypto y en Node en Windows, macOS y Linux (D6). Verificar: tiempos anotados en design.md. La medida en móviles se hace en la 7.2, con el código en Dart.
+- [x] 1.2 Sonido del sistema con `audio: 'loopback'` en Windows, macOS 14.2+ (con `NSAudioCaptureUsageDescription`) y Linux con PulseAudio y con PipeWire, y la fuente "Monitor of …" como alternativa en Linux (D8). Verificar: resultado por sistema anotado en design.md (D8).
+- [x] 1.3 Añadir `koffi` y probar un movimiento de ratón desde un paquete real de cada tipo (NSIS, DMG, AppImage y deb), con `asarUnpack` (D10). Verificar: el ratón se mueve en los cuatro y `npm ci` no compila nada.
+- [x] 1.4 Medir PBKDF2-HMAC-SHA256 con 600 000 iteraciones en WebCrypto y en Node en Windows, macOS y Linux (D6). Verificar: tiempos anotados en design.md. La medida en móviles se hace en la 7.2, con el código en Dart.
 
 ## 2. Backend (`backend/`)
 
@@ -32,7 +32,7 @@
 - [ ] 4.7 Detección de los permisos de Grabación de pantalla y Accesibilidad en macOS (con apertura de sus paneles) y de Wayland en Linux, con estado `missing_permissions` o `unsupported` y notificación al perder permisos (D8). Verificar: un Mac sin permisos queda en `missing_permissions` y una sesión Wayland en `unsupported`.
 - [ ] 4.8 `hostService` (D7):
   - registro del equipo y consulta cada 3 s;
-  - rechazos tempranos y ventana oculta `host`;
+  - rechazos tempranos y ventana oculta `host`, con un tiempo máximo para empezar la captura (en macOS, sin permiso, se queda esperando; D8);
   - `setDisplayMediaRequestHandler` con elección de pantalla y audio (`loopback` en Windows y macOS; en Linux, fuente virtual temporal con `pactl`, D8);
   - en Windows, conexión WebRTC local al activar el control remoto para que el aviso del cortafuegos salga con alguien delante (D7);
   - aviso siempre encima con `setContentProtection` y notificaciones;
