@@ -118,6 +118,15 @@ export async function removeConnectionsFile(): Promise<void> {
 interface Settings {
   theme: 'dark' | 'light'
   language: 'en' | 'es'
+  // Segundo plano (add-remote-desktop, background-mode): ambos desactivados por defecto.
+  keepInBackground: boolean
+  openAtLogin: boolean
+}
+
+const SETTINGS_DEFAULTS: Pick<Settings, 'theme' | 'keepInBackground' | 'openAtLogin'> = {
+  theme: 'dark',
+  keepInBackground: false,
+  openAtLogin: false
 }
 
 function getSystemLanguage(): 'en' | 'es' {
@@ -129,9 +138,9 @@ async function readSettings(): Promise<Settings> {
   try {
     const data = await fs.readFile(SETTINGS_PATH, 'utf-8')
     const parsed = JSON.parse(data)
-    return { theme: 'dark', language: getSystemLanguage(), ...parsed }
+    return { ...SETTINGS_DEFAULTS, language: getSystemLanguage(), ...parsed }
   } catch {
-    return { theme: 'dark', language: getSystemLanguage() }
+    return { ...SETTINGS_DEFAULTS, language: getSystemLanguage() }
   }
 }
 
@@ -159,4 +168,23 @@ export async function saveLanguage(language: string): Promise<void> {
   const settings = await readSettings()
   settings.language = language as 'en' | 'es'
   await writeSettings(settings)
+}
+
+export interface BackgroundSettings {
+  keepInBackground: boolean
+  openAtLogin: boolean
+}
+
+export async function getBackgroundSettings(): Promise<BackgroundSettings> {
+  const { keepInBackground, openAtLogin } = await readSettings()
+  return { keepInBackground, openAtLogin }
+}
+
+export async function saveBackgroundSettings(
+  values: Partial<BackgroundSettings>
+): Promise<BackgroundSettings> {
+  const settings = await readSettings()
+  Object.assign(settings, values)
+  await writeSettings(settings)
+  return { keepInBackground: settings.keepInBackground, openAtLogin: settings.openAtLogin }
 }
