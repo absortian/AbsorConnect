@@ -161,7 +161,10 @@ Errores con el formato habitual `{"error": {"code", "details"}}`.
   - Sonido con `audio: 'loopback'`. Electron 39 usa la API CoreAudio Tap, disponible desde macOS 14.2, que exige `NSAudioCaptureUsageDescription` en el `Info.plist` (`extendInfo` de `electron-builder.yml`). Sin esa clave el audio llega en silencio y sin error. En versiones anteriores de macOS no hay sonido.
 - **Linux X11:**
   - Pantalla con `desktopCapturer` (X11).
-  - Sonido: primero `audio: 'loopback'`. Si Electron no lo admite, el renderer usa como micrófono la fuente "Monitor of …" que PulseAudio/PipeWire-Pulse expone en `enumerateDevices()`. Si no existe, el sonido no está disponible.
+  - Sonido: **`audio: 'loopback'` no sirve en Linux**. Crea la pista "System audio", pero llega vacía (nivel 0 en origen; prototipo 1.2). Chromium tampoco lista los monitores de PulseAudio/PipeWire en `enumerateDevices()`.
+  - Lo que sí funciona: al empezar una sesión con sonido, el proceso principal crea una fuente virtual que reenvía el monitor de la salida por defecto (`pactl load-module module-remap-source master=<salida por defecto>.monitor source_name=absor_connect_audio source_properties=device.description="Absor Connect"`). El renderer `host` la abre con `getUserMedia({audio: {deviceId}})`, sin cancelación de eco, supresión de ruido ni control de ganancia. La fuente se quita al terminar la sesión, y también al arrancar si quedó alguna de una sesión anterior.
+  - Si la salida por defecto cambia durante la sesión (por ejemplo, al conectar unos auriculares), la fuente se vuelve a crear.
+  - Sin `pactl` (paquete `pulseaudio-utils`) o sin servidor compatible con PulseAudio, el sonido no está disponible.
 - **Linux Wayland:** no se admite como PC controlado. Se detecta con `XDG_SESSION_TYPE=wayland` o `WAYLAND_DISPLAY`. La captura pasa por el portal, que pide aceptar cada vez, y XTest no actúa sobre las apps de Wayland.
 
 ### D9. Protocolo de los canales de datos (v1)
@@ -183,7 +186,9 @@ Errores con el formato habitual `{"error": {"code", "details"}}`.
   - Las dos direcciones admiten `file-cancel`.
 
 ### D10. Inyección de entrada con `koffi`
-`koffi` es una FFI con binarios N-API precompilados (Windows, macOS y Linux; x64 y arm64). Funciona en Electron sin recompilar. Sus `.node` se desempaquetan del asar (`asarUnpack`).
+`koffi` es una FFI con binarios N-API precompilados (Windows, macOS y Linux; x64 y arm64). Funciona en Electron sin recompilar y `npm ci` no compila nada (prototipo 1.3).
+- **Binarios por plataforma:** desde la versión 3 van en paquetes opcionales `@koromix/koffi-<so>-<arch>`, y npm solo instala el del sistema donde corre. El job de macOS de `release.yml` (runner arm64) empaqueta también x64, así que debe instalar `@koromix/koffi-darwin-x64` (sin guardarlo) antes de empaquetar.
+- **Empaquetado:** `asarUnpack` de `**/node_modules/koffi/**` y `**/node_modules/@koromix/**`.
 
 Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Una tabla compartida (`src/shared/remote/keymap.ts`) las traduce al código de cada sistema, con datos de `dom_code_data.inc` de Chromium (licencia BSD, con su atribución). Así manda la distribución del PC controlado, como en Chrome Remote Desktop.
 
@@ -198,7 +203,8 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
 - **Linux X11 (`libXtst`, `libX11`):**
   - `XTestFakeMotionEvent`, `XTestFakeButtonEvent` (1–3 y rueda 4–7) y `XTestFakeKeyEvent` con el código evdev + 8.
   - El texto se escribe buscando el keysym (Unicode `0x01000000 + cp`). Si no está en el mapa, se reasigna temporalmente un keycode libre con `XChangeKeyboardMapping`, como hace xdotool.
-  - Las coordenadas van en píxeles físicos: los DIP de Electron por `scaleFactor`.
+  - Las coordenadas van en píxeles físicos: `screen.dipToScreenPoint()`, que en X11 equivale a multiplicar por `scaleFactor`.
+  - `screen.getCursorScreenPoint()` devuelve una posición antigua cuando el puntero lo mueve otro proceso. Para leer la posición real se usa `XQueryPointer` (prototipo 1.3).
 - **Conversión común:** `(x, y)` normalizados × `bounds` de la pantalla elegida → coordenadas del sistema, con la conversión de escala de cada SO.
 - **Alternativas:**
   - `nut.js`: escribe el texto según la distribución local y es una dependencia grande.
@@ -217,7 +223,7 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
 
 ### D12. App móvil
 - **WebRTC:** `flutter_webrtc` (`RTCPeerConnection`, `RTCVideoView`, canales de datos). Mismo protocolo (D9).
-- **PBKDF2:** paquete `cryptography`, en un isolate. Las iteraciones vienen en `hello`, así que se pueden ajustar sin cambiar el protocolo.
+- **PBKDF2:** paquete `cryptography`, en un isolate. Las iteraciones vienen en `hello`, así que se pueden ajustar sin cambiar el protocolo. En el escritorio, 600 000 iteraciones tardan unos 58 ms tanto en WebCrypto como en Node (prototipo 1.4, Ryzen con Linux); falta medir los móviles.
 - **Gestos:**
   - Modo ratón (trackpad): un dedo mueve el puntero, toque es clic, dos dedos son clic derecho y desplazamiento, y tocar y arrastrar arrastra.
   - Modo táctil: el toque hace clic donde se toca.
@@ -271,7 +277,7 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
 - **[macOS 15]** Pide reconfirmar la grabación de pantalla cada mes, y alguien tiene que aceptarlo delante del Mac → documentado en Ajustes y en la web. No hay forma oficial de evitarlo.
 - **[Windows]** Pantalla bloqueada, UAC y ventanas elevadas no se pueden controlar → Ajustes lo explica. Un servicio del sistema queda fuera de alcance.
 - **[Linux Wayland]** No se admite como PC controlado → se detecta y se explica, sugiriendo una sesión X11.
-- **[Linux, sonido]** No está confirmado que `loopback` funcione en Linux → la tarea de prototipo lo comprueba antes de construir encima, con la fuente "Monitor of …" como alternativa.
+- **[Linux, sonido]** `loopback` no funciona en Linux (prototipo 1.2) → fuente virtual temporal con `pactl` (D8), que deja visible a otras apps una entrada "Absor Connect" mientras dura la sesión. Sin `pactl`, no hay sonido.
 - **[Carga de la API]** Cada PC con el control remoto activado hace una consulta cada 3 s (unas 33 por segundo con 100 PCs, por índice) → límites por equipo y consulta mínima. Si crece, servicio WebSocket (D3).
 - **[Abuso del TURN]** Un relé abierto sirve para reenviar tráfico ajeno o entrar en redes internas → credenciales temporales firmadas, `denied-peer-ip`, cuotas y límite de ancho de banda.
 - **[Coste del relé]** Una sesión por relé puede gastar varios Mbit/s en el host del TURN → `max-bps`, cuotas y vigilancia del tráfico del host.
@@ -280,6 +286,17 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
 - **[Empaquetado nativo]** `koffi` debe quedar fuera del asar en los tres sistemas → probar los paquetes reales (NSIS, DMG, AppImage, deb) antes de publicar.
 - **[Móvil]** 600 000 iteraciones de PBKDF2 en Dart puro pueden tardar varios segundos en un móvil modesto → medirlo. El número viaja en `hello`, así que se puede bajar al definir la contraseña sin tocar el protocolo.
 - **[Tamaño de la app móvil]** `flutter_webrtc` añade el binario de libwebrtc (≈ 10–20 MB) → aceptado.
+
+## Resultados de los prototipos (grupo 1)
+
+Hecho con `prototypes/remote-desktop/` (ver su README). Faltan Windows, macOS y los móviles.
+
+| Prueba | Linux X11 (Mint, PipeWire, 2 × 4K al 200 %) | Windows | macOS |
+|---|---|---|---|
+| 1.1 Captura en ventana oculta, sin ventana principal, 5 min | 3840×2160 a 29 fps de media (percentil 5: 27), sin limitación de CPU ni de ancho de banda | Pendiente | Pendiente |
+| 1.2 Sonido del sistema | `loopback`: pista vacía. Fuente virtual con `pactl`: llega con el nivel del origen | Pendiente | Pendiente |
+| 1.3 koffi (mover el ratón) | Funciona en desarrollo, AppImage y deb, con `koffi` desempaquetado del asar. `npm ci` sin compilar | Pendiente (NSIS) | Pendiente (DMG) |
+| 1.4 PBKDF2, 600 000 iteraciones | 58 ms (WebCrypto y Node) | Pendiente | Pendiente |
 
 ## Migration Plan
 

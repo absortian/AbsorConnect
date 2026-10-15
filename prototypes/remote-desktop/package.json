@@ -1,0 +1,33 @@
+{
+  "name": "absor-remote-prototype",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Prototipos de riesgo del cambio add-remote-desktop (grupo 1 de tasks.md). No forma parte de la app.",
+  "main": "main.js",
+  "author": "absortian",
+  "homepage": "https://github.com/absortian/AbsorConnect",
+  "license": "MIT",
+  "dependencies": {
+    "koffi": "3.3.2"
+  },
+  "build": {
+    "appId": "com.absor.remote-prototype",
+    "productName": "Absor Remote Prototype",
+    "electronVersion": "39.8.5",
+    "directories": { "output": "dist" },
+    "files": ["*.js", "*.html", "package.json"],
+    "asarUnpack": ["**/node_modules/koffi/**", "**/node_modules/@koromix/**"],
+    "npmRebuild": false,
+    "win": { "target": "nsis" },
+    "nsis": { "oneClick": true },
+    "mac": {
+      "target": "dmg",
+      "identity": "-",
+      "hardenedRuntime": false,
+      "extendInfo": {
+        "NSAudioCaptureUsageDescription": "Prototipo: capturar el sonido del sistema."
+      }
+    },
+    "linux": { "target": ["AppImage", "deb"], "maintainer": "absortian", "category": "Utility" }
+  }
+}

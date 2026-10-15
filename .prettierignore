@@ -7,6 +7,7 @@ tsconfig.*.json
 # Backend y despliegue: PHP/Symfony y manifiestos con su propio estilo
 backend
 mobile
+prototypes
 .docker
 .node-home
 docker
