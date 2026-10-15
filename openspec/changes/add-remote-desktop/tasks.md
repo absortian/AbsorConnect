@@ -29,7 +29,7 @@
 - [x] 4.4 Prueba de autenticación compartida (`src/shared/remote/auth.ts`) con vectores en `src/shared/remote/auth-vectors.json` (D6). Verificar con tests: los vectores pasan, y cambiar una huella o el nonce cambia la prueba.
 - [x] 4.5 Tabla `code` → scancode, `kVK` y evdev (`src/shared/remote/keymap.ts`) a partir de `dom_code_data.inc` de Chromium, con su atribución (D10). Verificar con tests: letras, `Semicolon` (la Ñ en español), flechas extendidas, teclado numérico y modificadores en los tres sistemas.
 - [x] 4.6 Inyección con koffi en `src/main/remote/input/` para Windows, macOS y X11: ratón absoluto, botones, doble clic, rueda, teclas físicas, texto Unicode, soltar todo y conversión de coordenadas por pantalla y escala (D10). Verificar a mano en cada sistema con un script de prueba: clic en las esquinas de cada monitor (uno al 150 %), "ñ", "¿Año 2026? €" y Ctrl+C.
-- [ ] 4.7 Detección de los permisos de Grabación de pantalla y Accesibilidad en macOS (con apertura de sus paneles) y de Wayland en Linux, con estado `missing_permissions` o `unsupported` y notificación al perder permisos (D8). Verificar: un Mac sin permisos queda en `missing_permissions` y una sesión Wayland en `unsupported`.
+- [x] 4.7 Detección de los permisos de Grabación de pantalla y Accesibilidad en macOS (con apertura de sus paneles) y de Wayland en Linux, con estado `missing_permissions` o `unsupported` y notificación al perder permisos (D8). Verificar: un Mac sin permisos queda en `missing_permissions` y una sesión Wayland en `unsupported`.
 - [ ] 4.8 `hostService` (D7):
   - registro del equipo y consulta cada 3 s;
   - rechazos tempranos y ventana oculta `host`, con un tiempo máximo para empezar la captura (en macOS, sin permiso, se queda esperando; D8);
