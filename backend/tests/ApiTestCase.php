@@ -44,6 +44,40 @@ abstract class ApiTestCase extends WebTestCase
         return ['Authorization' => 'Bearer '.$token];
     }
 
+    protected const string DEVICE_ID = '0199e3a0-1c2d-7a00-8000-0000000000a1';
+    protected const string DEVICE_KEY = 'k-prueba_0123456789abcdefghijABCDEFGHIJ';
+
+    /** @return array<string, string> */
+    protected static function deviceAuth(string $token, string $key = self::DEVICE_KEY): array
+    {
+        return self::auth($token) + ['X-Device-Key' => $key];
+    }
+
+    /** Datos de un equipo como los publica la app, con lo que se quiera cambiar. */
+    protected static function deviceInfo(array $overrides = []): array
+    {
+        return array_replace_recursive([
+            'name' => 'Sobremesa de casa',
+            'platform' => 'linux',
+            'appVersion' => '0.4.0',
+            'remote' => ['state' => 'available', 'features' => ['clipboard' => true, 'files' => true, 'audio' => false]],
+        ], $overrides);
+    }
+
+    protected function putDevice(string $token, string $id = self::DEVICE_ID, string $key = self::DEVICE_KEY, array $info = []): array
+    {
+        return $this->putJson("/api/devices/$id", self::deviceInfo($info), self::deviceAuth($token, $key));
+    }
+
+    /** Fija la última señal de vida de un equipo, con la hora calculada en PHP (UTC). */
+    protected function setLastSeen(string $id, string $modifier): void
+    {
+        $this->db()->executeStatement('UPDATE device SET last_seen_at = ? WHERE id = ?', [
+            (new \DateTimeImmutable($modifier))->format('Y-m-d H:i:s'),
+            $id,
+        ]);
+    }
+
     protected function errorCode(): ?string
     {
         return $this->json()['error']['code'] ?? null;

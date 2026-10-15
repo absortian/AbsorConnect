@@ -9,12 +9,12 @@
 
 ## 2. Backend (`backend/`)
 
-- [ ] 2.1 Entidades `Device` y `RemoteRequest`, repositorios y migración (D4). Verificar: la migración aplica en limpio, `doctrine:schema:validate` pasa y la migración no toca `cache_items`.
-- [ ] 2.2 `GET`, `PUT` y `DELETE` de `/api/devices` con estado en línea (30 s), vínculo a la sesión que registra el equipo, `device_taken` y borrado de equipos sin contacto en 90 días (D4, D5). Verificar con tests de API: alta, actualización, identificador de otra cuenta, otra sesión de la misma cuenta y en línea o sin conexión con la hora controlada.
-- [ ] 2.3 Solicitudes de sesión: alta con comprobación del estado del equipo, consulta del PC como señal de vida, respuesta o rechazo, consulta del controlador (solo su sesión), caducidad a 60 s con limpieza y límites `remote_request_user` y `device_poll` (D5). Verificar con tests de API los escenarios de "Negociación de las sesiones", "Aislamiento entre cuentas" y "Límites de uso".
-- [ ] 2.4 `GET /api/remote/ice-servers` con credenciales temporales de coturn (24 h) a partir de `TURN_SECRET`, `TURN_URLS` y `STUN_URLS`, y solo STUN sin TURN configurado (D13). Verificar con un test unitario contra un vector calculado a mano y un test de API sin TURN.
-- [ ] 2.5 Interruptor `REMOTE_ENABLED` (503 `remote_unavailable`) y borrado de equipos y solicitudes al borrar la cuenta. Verificar con tests de API.
-- [ ] 2.6 Documentar los endpoints en la sección API del README, las variables nuevas en `kube/AGENTS.md` y sus valores de desarrollo en `backend/.env`. Verificar: `docker compose exec php php bin/phpunit` en verde.
+- [x] 2.1 Entidades `Device` y `RemoteRequest`, repositorios y migración (D4). Verificar: la migración aplica en limpio, `doctrine:schema:validate` pasa y la migración no toca `cache_items`.
+- [x] 2.2 `GET`, `PUT` y `DELETE` de `/api/devices` con estado en línea (30 s), clave del equipo (`X-Device-Key`), `device_taken` y borrado de equipos sin contacto en 90 días (D4, D5). Verificar con tests de API: alta, actualización, identificador de otra cuenta, otra sesión de la misma cuenta con y sin la clave, y en línea o sin conexión con la hora controlada.
+- [x] 2.3 Solicitudes de sesión: alta con comprobación del estado del equipo, consulta del PC como señal de vida, respuesta o rechazo, consulta del controlador (solo su sesión), caducidad a 60 s con limpieza y límites `remote_request_user` y `device_poll` (D5). Verificar con tests de API los escenarios de "Negociación de las sesiones", "Aislamiento entre cuentas" y "Límites de uso".
+- [x] 2.4 `GET /api/remote/ice-servers` con credenciales temporales de coturn (24 h) a partir de `TURN_SECRET`, `TURN_URLS` y `STUN_URLS`, y solo STUN sin TURN configurado (D13). Verificar con un test unitario contra un vector calculado a mano y un test de API sin TURN.
+- [x] 2.5 Interruptor `REMOTE_ENABLED` (503 `remote_unavailable`) y borrado de equipos y solicitudes al borrar la cuenta. Verificar con tests de API.
+- [x] 2.6 Documentar los endpoints en la sección API del README, las variables nuevas en `kube/AGENTS.md` y sus valores de desarrollo en `backend/.env`. Verificar: `docker compose exec php php bin/phpunit` en verde.
 
 ## 3. Relé TURN (infraestructura, fuera de este repo)
 
@@ -25,7 +25,7 @@
 
 - [ ] 4.1 Instancia única, bandeja con menú y estado, "Mantener abierta en segundo plano" y "Abrir al iniciar sesión" en cada sistema, con arranque oculto `--hidden` (D14). Verificar a mano en Windows, macOS y Linux los escenarios de `background-mode`, incluido Linux sin bandeja.
 - [ ] 4.2 Actualizaciones en segundo plano: búsqueda cada 6 h, notificación y entrada en la bandeja, sin `quitAndInstall` durante una sesión remota (D15). Verificar con `dev-app-update.yml` apuntando a una versión mayor los dos escenarios de `app-updates`.
-- [ ] 4.3 Añadir Vitest (`npm test`) para los módulos puros, y el almacén `remote-access.json` y `device.json`: identificador del equipo, contraseña derivada con `K` cifrada, fallos y bloqueo persistentes, registro de 50 eventos y vínculo con la cuenta (D6, D14). Verificar con tests: la contraseña no aparece en el fichero, 5 fallos bloquean 15 min aunque se recargue el almacén, y otra cuenta lo borra.
+- [ ] 4.3 Añadir Vitest (`npm test`) para los módulos puros, y el almacén `remote-access.json` y `device.json`: identificador y clave del equipo, contraseña derivada con `K` cifrada, fallos y bloqueo persistentes, registro de 50 eventos y vínculo con la cuenta (D6, D14). Verificar con tests: la contraseña no aparece en el fichero, 5 fallos bloquean 15 min aunque se recargue el almacén, y otra cuenta lo borra.
 - [ ] 4.4 Prueba de autenticación compartida (`src/shared/remote/auth.ts`) con vectores en `src/shared/remote/auth-vectors.json` (D6). Verificar con tests: los vectores pasan, y cambiar una huella o el nonce cambia la prueba.
 - [ ] 4.5 Tabla `code` → scancode, `kVK` y evdev (`src/shared/remote/keymap.ts`) a partir de `dom_code_data.inc` de Chromium, con su atribución (D10). Verificar con tests: letras, `Semicolon` (la Ñ en español), flechas extendidas, teclado numérico y modificadores en los tres sistemas.
 - [ ] 4.6 Inyección con koffi en `src/main/remote/input/` para Windows, macOS y X11: ratón absoluto, botones, doble clic, rueda, teclas físicas, texto Unicode, soltar todo y conversión de coordenadas por pantalla y escala (D10). Verificar a mano en cada sistema con un script de prueba: clic en las esquinas de cada monitor (uno al 150 %), "ñ", "¿Año 2026? €" y Ctrl+C.

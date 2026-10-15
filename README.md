@@ -98,9 +98,13 @@ Para resetear la base de datos: `docker compose down && rm -rf .docker/postgres`
 | `POST /api/auth/logout` | Cierra la sesión de este dispositivo |
 | `GET /api/me` · `PUT /api/me/password` · `DELETE /api/me` | Cuenta: datos, cambio de contraseña (cierra las demás sesiones) y borrado |
 | `GET /api/connections` · `PUT /api/connections` | Lista `{revision, entries}`; el `PUT` la reemplaza entera y responde 409 si otra sesión guardó antes |
+| `GET /api/devices` · `PUT` · `DELETE /api/devices/{id}` | Equipos de la cuenta para el control remoto; el propio equipo se registra y se retira con su clave en `X-Device-Key` |
+| `GET` · `POST /api/devices/{id}/remote-requests` | El equipo recoge las solicitudes de sesión (cada 3 s, y así sigue en línea); un controlador deja la suya con su oferta WebRTC |
+| `GET /api/remote-requests/{id}` · `PUT /api/remote-requests/{id}/answer` | El controlador espera la respuesta; el equipo responde o rechaza (las solicitudes caducan a los 60 s) |
+| `GET /api/remote/ice-servers` | Servidores STUN y TURN, con credenciales TURN que caducan a las 24 h |
 | `GET /api/health` | Comprobación de PHP y PostgreSQL |
 
-Las rutas autenticadas llevan `Authorization: Bearer <token>`. Los errores son `{"error": {"code": "…"}}` con códigos estables (`email_taken`, `invalid_credentials`, `connections_conflict`…). El contrato completo está en `openspec/changes/add-cloud-backend/design.md` (D4).
+Las rutas autenticadas llevan `Authorization: Bearer <token>`. Los errores son `{"error": {"code": "…"}}` con códigos estables (`email_taken`, `invalid_credentials`, `connections_conflict`…). El contrato completo está en `openspec/changes/archive/2026-10-12-add-cloud-backend/design.md` (D4) y, para el control remoto, en `openspec/changes/add-remote-desktop/design.md` (D4 y D5).
 
 ### Comandos de operación
 

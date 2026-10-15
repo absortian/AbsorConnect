@@ -31,7 +31,9 @@ npx electron-builder --win nsis             # en Windows
 npx electron-builder --mac dmg              # en macOS
 ```
 
-En macOS hay que conceder **Accesibilidad** y **Grabación de pantalla** a la app (o a la Terminal, si se lanza con `npx electron`) la primera vez, y volver a abrirla.
+En macOS hay que conceder **Accesibilidad** y **Grabación de pantalla** a la app (o a la Terminal, si se lanza con `npx electron`) la primera vez, y volver a abrirla. `./test-mac.sh` hace todo en un paso: instala, genera el DMG y abre la app que contiene.
+
+Windows se prueba en una VM de Windows 11 Enterprise Evaluation con [dockur/windows](https://github.com/dockur/windows) (fuera del repo, en `~/VMs/absor-windows`): el instalador NSIS se genera dentro de la VM con Node, como en CI.
 
 ## Qué se anota
 

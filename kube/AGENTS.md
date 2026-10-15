@@ -53,6 +53,10 @@ pero las variables del Secret ganan (Dotenv no pisa el entorno real).
 | `CONNECTIONS_KEY` | 32 bytes en base64 (`php -r 'echo base64_encode(random_bytes(32)), PHP_EOL;'`). Cifra las credenciales de las conexiones: **si se pierde, nadie puede volver a leer las suyas**. Guárdala también fuera del cluster. |
 | `CONNECTIONS_KEY_PREVIOUS` | Solo durante una rotación: la clave anterior. Lo cifrado con ella se sigue leyendo y se vuelve a cifrar con la nueva al guardarse. |
 | `TRUSTED_PROXIES` | Obligatorio (el script falla sin él). Ver abajo. |
+| `REMOTE_ENABLED` | `1` (por defecto) o `0`. Con `0`, los endpoints del control remoto (`/api/devices*`, `/api/remote*`) responden 503 `remote_unavailable` y las apps lo muestran como no disponible: sirve para apagarlo sin publicar una versión. |
+| `STUN_URLS` | Servidores STUN para WebRTC, separados por comas. Por defecto, `stun:stun.cloudflare.com:3478`; con el relé propio, también el suyo. |
+| `TURN_URLS` | URLs del relé TURN propio (coturn), separadas por comas, por ejemplo `turn:turn.absor.top:3478?transport=udp,turns:turn.absor.top:5349?transport=tcp`. Vacío: sin relé, y algunas redes no conectarán. |
+| `TURN_SECRET` | El `static-auth-secret` de coturn (`use-auth-secret`). La API firma con él credenciales que caducan a las 24 h. Si se cambia, hay que cambiarlo a la vez en coturn. |
 
 **`TRUSTED_PROXIES`**: los límites por IP (5 registros por hora, 30 inicios de
 sesión por minuto) usan la IP del cliente, que llega en `X-Forwarded-For` a través de

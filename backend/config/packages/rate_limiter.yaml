@@ -21,6 +21,19 @@ framework:
             interval: '1 minute'
             cache_pool: app.rate_limiter_cache
 
+        # Control remoto (add-remote-desktop D5): solicitudes de sesión de cada cuenta y
+        # consultas de cada equipo, que lo normal es que lleguen cada 3 s.
+        remote_request_user:
+            policy: sliding_window
+            limit: 20
+            interval: '1 minute'
+            cache_pool: app.rate_limiter_cache
+        device_poll:
+            policy: sliding_window
+            limit: 1
+            interval: '1 second'
+            cache_pool: app.rate_limiter_cache
+
     cache:
         pools:
             # Tabla cache_items (la crea la migración). En test, el rollback de

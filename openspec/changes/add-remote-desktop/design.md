@@ -80,7 +80,7 @@ En la pista de vídeo se usa `contentHint = 'detail'` y `degradationPreference =
 ### D4. Modelo de datos del backend
 - **`device`**:
   - `id` (UUID generado por la app y guardado en `userData/device.json`);
-  - `user_id` (FK, `ON DELETE CASCADE`) y `session_id` (FK a `user_session`, `ON DELETE SET NULL`), la sesión que lo registró;
+  - `user_id` (FK, `ON DELETE CASCADE`) y `key_hash`, el SHA-256 de la clave del equipo;
   - `name`, `platform` (`windows|macos|linux`), `app_version`;
   - `remote_state` (`disabled|available|missing_permissions|unsupported|busy`) y `features` (JSON `{clipboard, files, audio}`);
   - `last_seen_at`, `created_at`.
@@ -92,7 +92,11 @@ En la pista de vídeo se usa `contentHint = 'detail'` y `degradationPreference =
 - **Limpieza sin worker:**
   - Las solicitudes caducadas se borran en cada alta y en cada consulta del PC.
   - Los equipos sin contacto en 90 días se borran al registrar un equipo.
-- **Las operaciones del PC** (consultar solicitudes, responder, `PUT` y `DELETE` del equipo) solo se aceptan con el token de la sesión que lo registró. Un `PUT` con otra sesión de la misma cuenta lo vuelve a vincular, porque es lo que pasa al iniciar sesión de nuevo. **Leer el estado de una solicitud** solo se acepta con la sesión que la creó.
+- **Clave del equipo:** al registrarse por primera vez, la app genera 32 bytes aleatorios. Los guarda en `device.json` junto al identificador (cifrados con `safeStorage` cuando existe) y el servicio solo guarda su SHA-256.
+  - Las operaciones del PC (`PUT` y `DELETE` del equipo, consultar solicitudes y responder) exigen además la cabecera `X-Device-Key`. Si no coincide, el servicio responde 403 `device_key_invalid`: no es un 401, porque la app trata cualquier 401 como sesión caducada.
+  - **Por qué no basta con la sesión:** otra sesión de la misma cuenta (por ejemplo, un móvil con la cuenta robada) podría registrarse como ese PC y responder a un controlador. El controlador le enviaría la prueba de la contraseña (D6), y esa prueba se puede atacar sin conexión probando contraseñas débiles. Con la clave, hacerse pasar por el PC exige robarla de su disco.
+  - Al cerrar sesión e iniciarla otra vez con la misma cuenta, el PC conserva su identificador y su clave. Con otra cuenta, el identificador ya está cogido (`device_taken`) y la app genera unos nuevos.
+- **Leer el estado de una solicitud** solo se acepta con la sesión que la creó (`controller_session_id`).
 
 ### D5. Contrato de la API
 Errores con el formato habitual `{"error": {"code", "details"}}`.
@@ -100,11 +104,11 @@ Errores con el formato habitual `{"error": {"code", "details"}}`.
 | Método y ruta | Uso | Respuesta | Errores |
 |---|---|---|---|
 | `GET /api/devices` | Lista de la cuenta | `{devices: [{id, name, platform, appVersion, online, lastSeenAt, remote: {state, features}}]}` (`online` = contacto en los últimos 30 s) | — |
-| `PUT /api/devices/{id}` | Alta o actualización del propio equipo | El equipo | `device_taken` 409, `validation_failed` 422 |
-| `DELETE /api/devices/{id}` | Retirarlo (cerrar sesión, otra cuenta) | 204 | `device_not_found` 404 |
-| `GET /api/devices/{id}/remote-requests` | Consulta del PC (señal de vida) | `{requests: [{id, controllerName, offer, createdAt}]}` (sin responder y sin caducar) | `device_not_found` 404, `too_many_requests` 429 |
-| `POST /api/devices/{id}/remote-requests` | El controlador pide sesión con su oferta | 201 `{id, expiresAt}` | `device_not_found` 404, `device_offline` 409, `remote_disabled` 409, `too_many_requests` 429 |
-| `PUT /api/remote-requests/{id}/answer` | El PC responde `{answer}` o `{rejected: {reason, retryAfter?}}` | 204 | `remote_request_not_found` 404, `remote_request_expired` 410 |
+| `PUT /api/devices/{id}` | Alta o actualización del propio equipo (con `X-Device-Key`) | El equipo | `device_taken` 409, `device_key_invalid` 403, `device_invalid` 400 (con el campo) |
+| `DELETE /api/devices/{id}` | Retirarlo (cerrar sesión, otra cuenta), con `X-Device-Key` | 204 | `device_not_found` 404, `device_key_invalid` 403 |
+| `GET /api/devices/{id}/remote-requests` | Consulta del PC (señal de vida), con `X-Device-Key` | `{requests: [{id, controllerName, offer, createdAt}]}` (sin responder y sin caducar) | `device_not_found` 404, `device_key_invalid` 403, `too_many_requests` 429 |
+| `POST /api/devices/{id}/remote-requests` | El controlador pide sesión con su oferta | 201 `{id, expiresAt}` | `device_not_found` 404, `device_offline` 409, `remote_disabled` 409, `remote_request_invalid` 400, `too_many_requests` 429 |
+| `PUT /api/remote-requests/{id}/answer` | El PC responde `{answer}` o `{rejected: {reason, retryAfter?}}`, con `X-Device-Key` | 204 | `remote_request_not_found` 404, `remote_request_expired` 410, `remote_request_answered` 409, `remote_request_invalid` 400, `device_key_invalid` 403 |
 | `GET /api/remote-requests/{id}` | El controlador espera la respuesta | `{status: pending\|answered\|rejected, answer?, rejection?}` | `remote_request_not_found` 404, `remote_request_expired` 410 |
 | `GET /api/remote/ice-servers` | Servidores ICE | `{iceServers: [...], ttl}` | — |
 
@@ -112,6 +116,7 @@ Errores con el formato habitual `{"error": {"code", "details"}}`.
 - **Límites** (`rate_limiter.yaml`, pool `app.rate_limiter_cache`):
   - `remote_request_user`: 20 por minuto;
   - `device_poll`: ventana de 1 s por equipo.
+- **Caducidad:** las solicitudes caducadas se borran en cada alta y en cada consulta del PC. Como su identificador es un UUIDv7, que lleva la hora de creación, una consulta tardía recibe `remote_request_expired` aunque la fila ya no exista.
 - **Interruptor general:** con `REMOTE_ENABLED=0`, todos estos endpoints responden 503 `remote_unavailable`, y la app muestra que el control remoto no está disponible.
 
 ### D6. Contraseña del PC y autenticación por desafío
