@@ -26,6 +26,22 @@ fi
 echo "==> Instalando koffi, Electron y esbuild en $here"
 npm install --no-audit --no-fund --loglevel=error
 
+# El binario de Electron se descarga en su postinstall, y npm no lo ejecuta con ignore-scripts
+# ni en las versiones que no ejecutan los scripts de las dependencias: entonces se lanza a mano
+if ! node -e "require('electron')" >/dev/null 2>&1; then
+  echo "==> Descargando el binario de Electron (npm no ejecutó su script de instalación)"
+  env -u ELECTRON_SKIP_BINARY_DOWNLOAD node node_modules/electron/install.js
+fi
+if ! node -e "require('electron')" >/dev/null 2>&1; then
+  echo "Electron sigue sin su binario: borra $here/node_modules y vuelve a lanzar el script." >&2
+  exit 1
+fi
+# koffi carga su binario del paquete @koromix/koffi-<sistema>: no necesita su script
+if ! node -e "require('koffi')" >/dev/null 2>&1; then
+  echo "koffi no carga: borra $here/node_modules y vuelve a lanzar el script." >&2
+  exit 1
+fi
+
 echo "==> Compilando la prueba con src/main/remote/input"
 node_modules/.bin/esbuild main.ts --bundle --platform=node --format=cjs --target=node22 \
   --external:electron --external:koffi --outfile=out/main.cjs --log-level=warning
@@ -59,7 +75,8 @@ status=$?
 set -e
 
 if [ ! -f "$out" ]; then
-  echo "No se ha generado $out. El error está en $here/out/electron.log" >&2
+  echo "No se ha generado $out. Final de $here/out/electron.log:" >&2
+  tail -n 20 "$here/out/electron.log" >&2
   exit 1
 fi
 pbcopy <"$out"
