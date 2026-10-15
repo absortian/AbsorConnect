@@ -272,6 +272,11 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
 - **Ajustes locales:** `keepInBackground` y `openAtLogin` van en `settings.json`, junto al tema y el idioma.
 - **Fichero `userData/remote-access.json`:** `accountEmail`, `deviceName`, `enabled`, `password` (`salt`, `iterations`, `K` cifrada), `features`, `confirmLocal`, `preventSleep`, `failures`, `lockedUntil` y `log` (50 eventos).
 - **Cuenta:** al iniciar sesión, si `accountEmail` no coincide con la cuenta, se borran la contraseña y el registro y se desactiva el control remoto (spec "Control remoto ligado a la cuenta"). Al cerrar sesión se hace `DELETE` del equipo y se para el servicio, pero se conserva la configuración local.
+- **Verificado (tareas 4.1 y 4.2):**
+  - **Linux X11 (Cinnamon):** la ventana aparece, el icono de la bandeja se registra en el `StatusNotifierWatcher` (y desaparece al salir), cerrar la ventana con "Mantener abierta en segundo plano" la oculta sin terminar la app, la segunda instancia reabre la ventana, y el `.desktop` de autostart se escribe (con `--hidden`) y se borra según el ajuste. El arranque `--hidden` no abre ventana.
+  - **Windows 11:** la ventana aparece, cerrar-a-bandeja la oculta y deja los procesos vivos, y la segunda instancia reabre la misma instancia (mismo PID), con la interfaz en el idioma guardado.
+  - **Pendiente:** la bandeja y el Dock en macOS (app completa, no solo el prototipo) y el caso de Linux sin host de bandeja.
+  - **Nota:** `settings.json` con BOM (p. ej. escrito por PowerShell `Set-Content -Encoding utf8`) hace que `JSON.parse` falle y se usen los valores por defecto; es seguro (los defaults desactivan el segundo plano), pero conviene recordarlo.
 
 ### D15. Actualizaciones en segundo plano
 - **Búsqueda:** un temporizador de 6 h llama a `checkForUpdates()` y otro aviso al arrancar. Si hay versión nueva, notificación del sistema y entrada en el menú de la bandeja.
