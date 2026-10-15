@@ -150,6 +150,7 @@ Errores con el formato habitual `{"error": {"code", "details"}}`.
   - **Windows:** `setContentProtection(true)` la excluye de la captura (Windows 10 2004+), así que el controlador no la ve tapando la pantalla.
   - **macOS:** `setContentProtection(true)` (`sharingType = none`); puede que ScreenCaptureKit no la respete. Se acepta que el controlador la vea.
   - **Linux X11:** no se puede excluir de la captura; el controlador también la ve.
+- **Cortafuegos de Windows:** la primera vez que la app abre WebRTC, Windows pregunta si la deja usar las redes públicas y privadas (prototipo 1.1). Si nadie responde o se cancela, las conexiones que inicia la app siguen funcionando (directas por STUN o por relé), pero se bloquean las entrantes de la red local. Para que el aviso no aparezca en un PC sin nadie delante, la app abre una conexión WebRTC local al **activar** el control remoto, cuando hay alguien en Ajustes, y explica qué responder. El instalador NSIS es por usuario y sin elevar, así que no puede añadir la regla.
 - **Confirmación local:** `dialog.showMessageBox` con `signal` (`AbortSignal.timeout(30 000)`); al vencer el tiempo se rechaza con `declined`.
 - **Mantener despierto:** `powerSaveBlocker.start('prevent-app-suspension')` mientras el control remoto está activado y la opción también.
   - **Windows:** `SetThreadExecutionState(ES_SYSTEM_REQUIRED)`.
@@ -298,10 +299,12 @@ Hecho con `prototypes/remote-desktop/` (ver su README). Faltan Windows, macOS y 
 
 | Prueba | Linux X11 (Mint, PipeWire, 2 × 4K al 200 %) | Windows | macOS |
 |---|---|---|---|
-| 1.1 Captura en ventana oculta, sin ventana principal, 5 min | 3840×2160 a 29 fps de media (percentil 5: 27), sin limitación de CPU ni de ancho de banda | Pendiente | Pendiente |
-| 1.2 Sonido del sistema | `loopback`: pista vacía. Fuente virtual con `pactl`: llega con el nivel del origen | Pendiente | Pendiente |
-| 1.3 koffi (mover el ratón) | Funciona en desarrollo, AppImage y deb, con `koffi` desempaquetado del asar. `npm ci` sin compilar | Pendiente (NSIS) | Pendiente (DMG) |
-| 1.4 PBKDF2, 600 000 iteraciones | 58 ms (WebCrypto y Node) | Pendiente | Pendiente |
+| 1.1 Captura en ventana oculta, sin ventana principal, 5 min | 3840×2160 a 29 fps de media (percentil 5: 27), sin limitación de CPU ni de ancho de banda | VM sin GPU, 1280×800: 28 fps de media (percentil 5: 22) | Pendiente |
+| 1.2 Sonido del sistema | `loopback`: pista vacía. Fuente virtual con `pactl`: llega con el nivel del origen | `loopback` funciona: llega con el nivel del origen. Con sonido, la VM baja a 18 fps por falta de CPU | Pendiente |
+| 1.3 koffi (mover el ratón) | Funciona en desarrollo, AppImage y deb, con `koffi` desempaquetado del asar. `npm ci` sin compilar | Funciona desde el NSIS instalado en silencio (`/S`), ejecutado sin elevar | Pendiente (DMG) |
+| 1.4 PBKDF2, 600 000 iteraciones | 58 ms (WebCrypto y Node) | 63 ms (WebCrypto), 80 ms (Node) | Pendiente |
+
+Windows se probó en una VM de Windows 11 Enterprise Evaluation (dockur/windows, QEMU/KVM, 4 núcleos y sin GPU), con el instalador NSIS generado dentro de la VM con Node 22, como en CI.
 
 ## Migration Plan
 

@@ -33,7 +33,8 @@
 - [ ] 4.8 `hostService` (D7):
   - registro del equipo y consulta cada 3 s;
   - rechazos tempranos y ventana oculta `host`;
-  - `setDisplayMediaRequestHandler` con elección de pantalla y audio;
+  - `setDisplayMediaRequestHandler` con elección de pantalla y audio (`loopback` en Windows y macOS; en Linux, fuente virtual temporal con `pactl`, D8);
+  - en Windows, conexión WebRTC local al activar el control remoto para que el aviso del cortafuegos salga con alguien delante (D7);
   - aviso siempre encima con `setContentProtection` y notificaciones;
   - confirmación local con `AbortSignal`;
   - `powerSaveBlocker`;
@@ -96,7 +97,7 @@
 
 ## 8. Empaquetado, CI y documentación
 
-- [ ] 8.1 `electron-builder.yml`: `asarUnpack` de koffi, `NSAudioCaptureUsageDescription`, iconos de la bandeja (incluida la imagen *template* de macOS) y dependencias de Linux (`libxtst6`) si faltan. Verificar: los paquetes de CI se instalan y el control remoto funciona en cada sistema desde el paquete, no desde `npm run dev`.
+- [ ] 8.1 `electron-builder.yml`: `asarUnpack` de koffi y `@koromix`, `NSAudioCaptureUsageDescription`, iconos de la bandeja (incluida la imagen *template* de macOS) y dependencias de Linux (`libxtst6`, y `pulseaudio-utils` como recomendada) si faltan. En `release.yml`, instalar `@koromix/koffi-darwin-x64` en el job de macOS antes de empaquetar (D10). Verificar: los paquetes de CI se instalan y el control remoto funciona en cada sistema desde el paquete, no desde `npm run dev`.
 - [ ] 8.2 Documentación:
   - README: la función, sus limitaciones por sistema y los permisos de macOS;
   - `AGENTS.md`: decisiones que conviene no romper (token fuera del renderer, nada antes de autenticar, protocolo v1 compartido con el móvil, `backgroundThrottling`);

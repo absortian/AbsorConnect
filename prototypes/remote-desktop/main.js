@@ -177,7 +177,8 @@ async function runCapture({ seconds, audio, tone }) {
         : {
             maxRms: rms.length ? Math.max(...rms) : null,
             maxLocalRms: samples.localAudioRms.length ? Math.max(...steady(samples.localAudioRms)) : null,
-            secondsWithSound: rms.filter((v) => v > 0.005).length,
+            // El silencio mide ~1e-5; el tono de prueba, entre 1e-3 y 3e-2 según el volumen del sistema
+            secondsWithSound: rms.filter((v) => v > 0.001).length,
             secondsMeasured: rms.length
           }
   })
