@@ -7,3 +7,6 @@ out
 
 # Backend (docker compose)
 /.docker/
+
+# Contenedor de desarrollo de Node (bin/dev): su HOME con las cachés
+/.node-home/

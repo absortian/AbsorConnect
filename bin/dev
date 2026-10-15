@@ -1,0 +1,30 @@
+#!/bin/sh
+# Ejecuta un comando en el contenedor de desarrollo (Node 22 + OpenSpec, servicio
+# `node` de compose.override.yaml), sin necesitar Node en el host:
+#
+#   bin/dev npm ci
+#   bin/dev npm run typecheck
+#   bin/dev            # shell dentro del contenedor
+#
+# El repo se monta en la misma ruta que en el host y el comando corre en el
+# directorio actual si está dentro del repo (si no, en la raíz).
+set -eu
+
+root=$(cd "$(dirname "$0")/.." && pwd -P)
+here=$(pwd -P)
+case "$here/" in
+  "$root"/*) workdir=$here ;;
+  *) workdir=$root ;;
+esac
+
+# Sin terminal (scripts, agentes) no se pide TTY: así la salida no lleva \r y el JSON se lee bien
+tty_flag=
+if [ ! -t 0 ] || [ ! -t 1 ]; then
+  tty_flag=-T
+fi
+
+[ $# -gt 0 ] || set -- bash
+
+cd "$root"
+export PWD="$root" DEV_UID="$(id -u)" DEV_GID="$(id -g)"
+exec docker compose run --rm $tty_flag --workdir "$workdir" node "$@"

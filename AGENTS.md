@@ -4,13 +4,14 @@ Lee primero el `README.md` (qué es, stack, comandos). Aquí va lo que no se ded
 
 ## Idioma y estilo
 - Interfaz, comentarios y documentación **en español**; identificadores de código y mensajes de commit en inglés (Conventional Commits: `feat:`, `fix:`, `docs:`…). Los textos de la app van por i18n (`src/renderer/src/locales/es.json` y `en.json`).
-- Cambios con **OpenSpec** (`openspec/`): propuesta en `openspec/changes/<nombre>`, implementación con `/opsx:apply`, archivo con `/opsx:archive`. Las specs vigentes están en `openspec/specs/`.
+- Cambios con **OpenSpec** (`openspec/`): propuesta en `openspec/changes/<nombre>`, implementación con `/opsx:apply`, archivo con `/opsx:archive`. Las specs vigentes están en `openspec/specs/`. Si el host no tiene Node, donde las skills dicen `openspec …` usa `bin/openspec …` (el CLI del contenedor de desarrollo; devuelve las mismas rutas absolutas que en el host).
 - Backend al estilo de Politinder: `final class`, propiedades promovidas `readonly`, atributos (`#[Route]`, `#[Autowire]`), cuerpo JSON leído con `JsonBody::from()` y errores como `ApiException(code, status, details)` con códigos `snake_case` estables y cuerpo `{"error": {"code", "details"}}`.
 
 ## Estructura
 - `src/`: app Electron (`main`, `preload`, `renderer`, `shared`).
 - `mobile/`: apps de Android e iPhone (Flutter). Desarrollo, pruebas y firma en `mobile/README.md`.
 - `backend/`: API Symfony de cuentas y conexiones en la nube. Su desarrollo y despliegue: `compose*.yaml`, `docker/`, `kube/` y `Jenkinsfile` (ver `docker/AGENTS.md` y `kube/AGENTS.md`).
+- `bin/dev` y `bin/openspec`: Node 22 y el CLI de OpenSpec en un contenedor (servicio `node` de `compose.override.yaml`, imagen `docker/dev/node/`), para trabajar sin Node en el host. Ver el README.
 - Nada del backend, de `mobile/` ni de `openspec/` entra en el paquete de Electron: lo excluye `electron-builder.yml`. Si se añade algo en la raíz que no sea de la app, hay que excluirlo ahí también.
 
 ## Decisiones que conviene no romper
@@ -43,7 +44,7 @@ Lee primero el `README.md` (qué es, stack, comandos). Aquí va lo que no se ded
 
 ## Verificación mínima antes de dar algo por hecho
 ```bash
-npm run typecheck
+npm run typecheck          # sin Node en el host: bin/dev npm run typecheck
 docker compose exec php php bin/phpunit
 # Si se toca mobile/ (con el entorno de mobile/tool/test_env.sh)
 (cd mobile && flutter analyze && flutter test)

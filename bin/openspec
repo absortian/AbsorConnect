@@ -1,0 +1,4 @@
+#!/bin/sh
+# El CLI de OpenSpec del contenedor de desarrollo (ver bin/dev). Las skills /opsx:*
+# llaman a `openspec`: sin Node en el host, se usa este script en su lugar.
+exec "$(dirname "$0")/dev" openspec "$@"

@@ -1,5 +1,6 @@
 # Solo afecta al build con contexto = raíz del repo (docker/prod/php/Dockerfile).
-# El compose de desarrollo usa ./backend como contexto y backend/.dockerignore.
+# El compose de desarrollo usa ./backend (con backend/.dockerignore) y
+# ./docker/dev/node como contextos.
 #
 # La raíz es sobre todo la app de Electron (node_modules, src, out…): se excluye
 # todo y solo entra backend/, para que nada nuevo de la raíz acabe en la imagen.

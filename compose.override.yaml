@@ -29,3 +29,23 @@ services:
     ports:
       # Para inspeccionar la BD desde el host (TablePlus, DBeaver…)
       - "127.0.0.1:5434:5432"
+
+  # Node 22 y el CLI de OpenSpec para la app Electron, sin instalar Node en el host.
+  # Se usa con bin/dev y bin/openspec; el profile evita que `docker compose up` lo arranque.
+  node:
+    image: absorconnect-node-dev
+    build:
+      context: ./docker/dev/node
+    profiles: [tools]
+    # Tu usuario (bin/dev pasa uid y gid): node_modules/ y lo que cree openspec no quedan de root
+    user: "${DEV_UID:-1000}:${DEV_GID:-1000}"
+    environment:
+      # Cachés de npm, Electron y electron-builder entre ejecuciones (gitignorado). No va en
+      # ./.docker/ porque Docker crea esa carpeta como root al levantar el backend.
+      HOME: ${PWD}/.node-home
+    volumes:
+      # El repo en la misma ruta que en el host: openspec devuelve rutas absolutas (changeDir,
+      # resolvedOutputPath) que luego se abren fuera del contenedor. ${PWD} debe ser la raíz
+      # del repo: bin/dev la fija; con `docker compose run` a mano, lánzalo desde la raíz.
+      - .:${PWD}
+    working_dir: ${PWD}

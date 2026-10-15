@@ -7,6 +7,14 @@ El backend se lanza desde los compose de la RAÍZ del repo (`compose.yaml` y
 Servicios: `php` (FrankenPHP con la API Symfony, `backend/Dockerfile`, :8020) y
 `database` (Postgres 16, :5434). Los datos viven en `./.docker/` (gitignorado).
 
+`node` (`docker/dev/node/Dockerfile`, profile `tools`) no es del backend: Node 22
+y el CLI de OpenSpec para la app Electron sin Node en el host. Se lanza con
+`bin/dev <comando>` y `bin/openspec`, nunca con `up`. Corre con el uid/gid del
+usuario, monta el repo en la MISMA ruta que en el host (openspec devuelve rutas
+absolutas) y su HOME con las cachés es `./.node-home/` (gitignorado; no cuelga de
+`./.docker/` porque Docker crea esa carpeta como root). Para subir la versión de
+OpenSpec: `OPENSPEC_VERSION` en el Dockerfile y `docker compose build node`.
+
 ## Producción (Kubernetes)
 `docker/prod/php/Dockerfile` construye la única imagen de producción con
 contexto de build = raíz del repo:

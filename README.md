@@ -51,6 +51,20 @@ npm run build
 
 La app necesita el backend: `npm run dev` usa el de desarrollo en `http://localhost:8020` (`docker compose up -d --wait`, ver más abajo) y los builds de producción usan `https://absorconnect.absor.top`. La URL se incrusta al compilar desde `MAIN_VITE_API_URL` (`.env.development` y `.env.production`; en `release.yml` la sustituye la variable del repositorio del mismo nombre). Para apuntar cualquier build a otro backend sin recompilar: `ABSOR_CONNECT_API_URL=http://localhost:8020` al arrancar la app.
 
+### Sin Node en el equipo
+
+`bin/dev` ejecuta cualquier comando en un contenedor con Node 22 y el CLI de OpenSpec (servicio `node` de `compose.override.yaml`; la primera vez construye la imagen). Solo hace falta Docker:
+
+```bash
+bin/dev npm ci
+bin/dev npm run typecheck
+bin/dev npm run lint
+bin/openspec list          # el CLI de OpenSpec que usan las skills /opsx:*
+bin/dev                    # shell dentro del contenedor
+```
+
+`node_modules/` y lo que crea OpenSpec quedan a nombre de tu usuario, y las cachés de npm y Electron se guardan en `.node-home/` (gitignorado). `npm run dev` abre ventanas, así que no funciona en el contenedor: para probar la app a mano hace falta Node en el equipo.
+
 ## Apps para Android e iPhone
 
 `mobile/` es la app de Flutter con la misma cuenta y las mismas conexiones: explorador SFTP y S3 y terminal SSH. No está en las tiendas (no hay cuentas de desarrollador): en Android se instala el APK firmado de la release y en iPhone la IPA sin firmar con SideStore, AltStore Classic o Sideloadly (AltStore PAL, la versión de la UE, no sirve: solo instala apps notarizadas por Apple). Cada release adjunta el APK, la IPA y `altstore-source.json` (la fuente de SideStore/AltStore). Desarrollo, pruebas y firma: [`mobile/README.md`](mobile/README.md).
