@@ -28,7 +28,7 @@
 - [x] 4.3 Añadir Vitest (`npm test`) para los módulos puros, y el almacén `remote-access.json` y `device.json`: identificador y clave del equipo, contraseña derivada con `K` cifrada, fallos y bloqueo persistentes, registro de 50 eventos y vínculo con la cuenta (D6, D14). Verificar con tests: la contraseña no aparece en el fichero, 5 fallos bloquean 15 min aunque se recargue el almacén, y otra cuenta lo borra.
 - [x] 4.4 Prueba de autenticación compartida (`src/shared/remote/auth.ts`) con vectores en `src/shared/remote/auth-vectors.json` (D6). Verificar con tests: los vectores pasan, y cambiar una huella o el nonce cambia la prueba.
 - [x] 4.5 Tabla `code` → scancode, `kVK` y evdev (`src/shared/remote/keymap.ts`) a partir de `dom_code_data.inc` de Chromium, con su atribución (D10). Verificar con tests: letras, `Semicolon` (la Ñ en español), flechas extendidas, teclado numérico y modificadores en los tres sistemas.
-- [ ] 4.6 Inyección con koffi en `src/main/remote/input/` para Windows, macOS y X11: ratón absoluto, botones, doble clic, rueda, teclas físicas, texto Unicode, soltar todo y conversión de coordenadas por pantalla y escala (D10). Verificar a mano en cada sistema con un script de prueba: clic en las esquinas de cada monitor (uno al 150 %), "ñ", "¿Año 2026? €" y Ctrl+C.
+- [x] 4.6 Inyección con koffi en `src/main/remote/input/` para Windows, macOS y X11: ratón absoluto, botones, doble clic, rueda, teclas físicas, texto Unicode, soltar todo y conversión de coordenadas por pantalla y escala (D10). Verificar a mano en cada sistema con un script de prueba: clic en las esquinas de cada monitor (uno al 150 %), "ñ", "¿Año 2026? €" y Ctrl+C.
 - [ ] 4.7 Detección de los permisos de Grabación de pantalla y Accesibilidad en macOS (con apertura de sus paneles) y de Wayland en Linux, con estado `missing_permissions` o `unsupported` y notificación al perder permisos (D8). Verificar: un Mac sin permisos queda en `missing_permissions` y una sesión Wayland en `unsupported`.
 - [ ] 4.8 `hostService` (D7):
   - registro del equipo y consulta cada 3 s;
@@ -109,7 +109,7 @@
 
 - [ ] 9.1 `npm run typecheck` limpio, `npm test` en verde y `npx eslint` sobre los ficheros tocados sin errores nuevos (la deuda previa no cambia).
 - [ ] 9.2 `docker compose exec php php bin/phpunit` y `(cd mobile && flutter analyze && flutter test)` en verde.
-- [ ] 9.3 Matriz manual con paquetes reales: controlador en Windows, macOS, Linux, Android e iPhone frente a PC controlado en Windows, macOS y Linux X11. Incluir al menos una sesión por relé, y revisar el disco y la base de datos según "Contraseña local del PC". Verificar: tabla de resultados en el PR.
+- [ ] 9.3 Matriz manual con paquetes reales: controlador en Windows, macOS, Linux, Android e iPhone frente a PC controlado en Windows, macOS y Linux X11. Incluir al menos una sesión por relé y un PC controlado con dos monitores de escalas distintas (clics en las esquinas de cada uno; la 4.6 se verificó con una sola pantalla), y revisar el disco y la base de datos según "Contraseña local del PC". Verificar: tabla de resultados en el PR.
 
 ## Workflow follow-up
 

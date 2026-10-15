@@ -235,9 +235,12 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
     - `Semicolon` da ";" con us(intl): la tecla va por posición. La Ñ se comprueba en Windows, porque Cinnamon vuelve a la distribución de la ventana activa y la prueba no puede cambiarla.
     - "¿Año 2026? €", Mayús, salto de línea, sin repetición del sistema con la tecla mantenida, repetición del controlador, `release-all`, Ctrl+A y Ctrl+C, doble clic, botones derecho, central, atrás y adelante, arrastre, y rueda vertical y horizontal.
   - **Windows 11 (VM, teclado es-ES):** 14/14 al 100 % (1280×800) y al 150 % (854×534 DIP, menos de 0,7 DIP de error), con "ñ" y "¿Año 2026? €" exactos.
-  - **Pendiente:**
-    - macOS: permiso de Accesibilidad, número de clic, arrastre, Cmd+C y el sentido de la rueda con desplazamiento natural;
-    - un PC con dos monitores de escalas distintas (la VM y este Linux tienen una sola pantalla).
+  - **macOS 27.0.1 (MacBook Pro con Apple Silicon, Retina al 200 %, Español - ISO):** 14/14 con `test-mac.sh`, lanzado desde Terminal con el permiso de Accesibilidad.
+    - Clics con menos de 0,9 DIP de error, y "ñ" y "¿Año 2026? €" exactos.
+    - Cmd+A y Cmd+C funcionan (las marcas de los modificadores), y también el doble clic (`kCGMouseEventClickState`) y el arrastre (eventos de arrastre).
+    - Con el desplazamiento natural activado, la rueda inyectada no se invierte: un `dy` positivo baja, igual que con él desactivado.
+  - **Queda para la matriz de la 9.3:** un PC con dos monitores de escalas distintas. La VM, este Linux y el Mac tienen una sola pantalla; la escala de cada monitor sale de `dipToScreenRect` (Windows) o de `bounds` (macOS), y X11 tiene una sola escala.
+  - **Node 26:** el postinstall de Electron 39 no deja el binario (extract-zip 2.0.1 se corta tras la primera carpeta y sale con código 0). `test-mac.sh` lo instala por su cuenta; afecta igual a `npm ci` del repo con Node 26, así que el desarrollo sigue en Node 22.
 
 ### D11. Ventana del visor (escritorio)
 - **Apertura:** nueva entrada `viewer.html` en `electron.vite.config.ts` (varias entradas de renderer). El proceso principal la abre con el `deviceId`.
