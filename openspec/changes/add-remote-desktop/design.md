@@ -310,7 +310,14 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
   - **Linux sin bandeja:** en un servidor X anidado (Xephyr) con un bus de sesión sin `StatusNotifierWatcher`, la app arranca oculta sin fallar, y abrirla otra vez muestra la ventana de la primera instancia: la segunda termina con 0 y no queda un segundo proceso.
   - **macOS, corregido antes de probarlo:** el icono del Dock no seguía a la ventana. El arranque oculto no lo escondía, y `showMainWindow()` no lo recuperaba al reabrir una ventana cerrada a la bandeja, porque `ready-to-show` no se repite. Ahora se esconde al arrancar oculta (`hideDockForHiddenStart()`) y vuelve al mostrar la ventana.
   - **macOS 13 y posteriores, por comprobar:** `args: ['--hidden']` del elemento de inicio solo se usa en Windows, así que el arranque oculto depende de `wasOpenedAtLogin`. Lo comprueba `test-mac.sh background-login` después de cerrar y abrir sesión. Si no funciona con `SMAppService`, la alternativa es un LaunchAgent en `~/Library/LaunchAgents` con `--hidden` en `ProgramArguments`.
-  - **Pendiente:** la prueba con la app empaquetada en macOS (`test-mac.sh background`).
+  - **macOS 27.0.1 con la app empaquetada (`test-mac.sh background`): 10/10.**
+    - Arranca con ventana, icono en el Dock e icono en la barra de menús. El menú tiene abrir, estado ("Control remoto: desactivado") y salir.
+    - Cerrar la ventana la oculta: sigue el mismo proceso, sin Dock y con el icono de la barra de menús. "Abrir Absor Connect" la muestra y recupera el Dock. Abrir la app otra vez reutiliza la misma instancia (mismo PID). "Salir" la termina.
+    - `--hidden` arranca sin ventana ni Dock, con el icono de la barra de menús.
+    - "Abrir al iniciar sesión" añade la app a Ítems de inicio (`SMAppService`, con firma ad-hoc).
+    - **4.2:** con versión 0.0.1, a los 11 s encuentra la 0.3.3 de GitHub, la barra de menús ofrece "Descargar la versión 0.3.3" y llega la notificación.
+    - En macOS, electron-builder solo escribe `app-update.yml` si se genera un `dmg` o un `zip`, por eso la prueba empaqueta un `zip`. Las releases generan los dos.
+  - **Pendiente:** el arranque al iniciar sesión en macOS (`test-mac.sh background-login`), y los escenarios que necesitan una sesión remota (tarea 4.8): el estado "controlado desde…" en la bandeja y que la app no se reinicie para actualizar durante una sesión.
   - **Nota:** `settings.json` con BOM (p. ej. escrito por PowerShell `Set-Content -Encoding utf8`) hace que `JSON.parse` falle y se usen los valores por defecto; es seguro (los defaults desactivan el segundo plano), pero conviene recordarlo.
 
 ### D15. Actualizaciones en segundo plano
