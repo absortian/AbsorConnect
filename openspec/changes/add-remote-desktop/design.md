@@ -307,7 +307,10 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
 - **Verificado (tareas 4.1 y 4.2):**
   - **Linux X11 (Cinnamon):** la ventana aparece, el icono de la bandeja se registra en el `StatusNotifierWatcher` (y desaparece al salir), cerrar la ventana con "Mantener abierta en segundo plano" la oculta sin terminar la app, la segunda instancia reabre la ventana, y el `.desktop` de autostart se escribe (con `--hidden`) y se borra según el ajuste. El arranque `--hidden` no abre ventana.
   - **Windows 11:** la ventana aparece, cerrar-a-bandeja la oculta y deja los procesos vivos, y la segunda instancia reabre la misma instancia (mismo PID), con la interfaz en el idioma guardado.
-  - **Pendiente:** la bandeja y el Dock en macOS (app completa, no solo el prototipo) y el caso de Linux sin host de bandeja.
+  - **Linux sin bandeja:** en un servidor X anidado (Xephyr) con un bus de sesión sin `StatusNotifierWatcher`, la app arranca oculta sin fallar, y abrirla otra vez muestra la ventana de la primera instancia: la segunda termina con 0 y no queda un segundo proceso.
+  - **macOS, corregido antes de probarlo:** el icono del Dock no seguía a la ventana. El arranque oculto no lo escondía, y `showMainWindow()` no lo recuperaba al reabrir una ventana cerrada a la bandeja, porque `ready-to-show` no se repite. Ahora se esconde al arrancar oculta (`hideDockForHiddenStart()`) y vuelve al mostrar la ventana.
+  - **macOS 13 y posteriores, por comprobar:** `args: ['--hidden']` del elemento de inicio solo se usa en Windows, así que el arranque oculto depende de `wasOpenedAtLogin`. Lo comprueba `test-mac.sh background-login` después de cerrar y abrir sesión. Si no funciona con `SMAppService`, la alternativa es un LaunchAgent en `~/Library/LaunchAgents` con `--hidden` en `ProgramArguments`.
+  - **Pendiente:** la prueba con la app empaquetada en macOS (`test-mac.sh background`).
   - **Nota:** `settings.json` con BOM (p. ej. escrito por PowerShell `Set-Content -Encoding utf8`) hace que `JSON.parse` falle y se usen los valores por defecto; es seguro (los defaults desactivan el segundo plano), pero conviene recordarlo.
 
 ### D15. Actualizaciones en segundo plano

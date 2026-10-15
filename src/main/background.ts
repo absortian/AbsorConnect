@@ -75,6 +75,14 @@ export function showMainWindow(): void {
   if (window.isMinimized()) window.restore()
   window.show()
   window.focus()
+  // La ventana oculta (cerrada a la bandeja) no vuelve a emitir 'ready-to-show': el icono del
+  // Dock que escondió attachCloseToTray se recupera aquí
+  if (process.platform === 'darwin') void app.dock?.show()
+}
+
+/** Arranque oculto en macOS: sin ventana tampoco hay icono en el Dock, solo en la barra de menús. */
+export function hideDockForHiddenStart(): void {
+  if (process.platform === 'darwin') app.dock?.hide()
 }
 
 /** La app empieza oculta (solo bandeja) cuando la arranca el sistema al iniciar sesión. */
