@@ -183,6 +183,7 @@ Errores con el formato habitual `{"error": {"code", "details"}}`.
 | `file` | fiable y ordenado, binario | Trozos de 64 KB con control de presión (`bufferedAmountLowThreshold` 1 MB) |
 
 - **Robustez:** los mensajes llevan `v`, y los tipos desconocidos se ignoran.
+- **Entrada** (`src/shared/remote/input.ts`): `{v: 1, type, …}`, con `button` como el número de `MouseEvent.button` (0 izquierdo, 1 central, 2 derecho, 3 atrás, 4 adelante) y `mode` como `WheelEvent.deltaMode`. El PC vuelve a validar cada mensaje en el proceso principal con `parseInputEvent()`, porque el renderer `host` no es de fiar.
 - **Antes de autenticar** el PC solo procesa `auth` y descarta lo demás.
 - **Teclas pegadas:** al cerrarse la sesión o el canal, el PC suelta todas las teclas y botones pulsados. El visor envía `release-all` al perder el foco.
 - **Pantallas:** `displays` lleva `[{id, name, bounds, scaleFactor, primary}]`.
@@ -201,22 +202,42 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
 
 - **Windows (`user32.dll`):**
   - `SendInput`. Ratón con `MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_VIRTUALDESK`, normalizado a 0–65535 sobre el escritorio virtual (`GetSystemMetrics`).
-  - Teclas con `KEYEVENTF_SCANCODE` (y `EXTENDEDKEY` donde toca). Texto con `KEYEVENTF_UNICODE` por unidad UTF-16.
+  - La coordenada absoluta se redondea hacia arriba (`ceil(píxel × 65536 / ancho)`): Windows la vuelve a convertir con `floor`, y con `/ (ancho − 1)` el clic caía un píxel antes.
+  - Teclas con `KEYEVENTF_SCANCODE` (y `EXTENDEDKEY` donde toca). Pausa va por su tecla virtual (`VK_PAUSE`), porque su scancode 0x45 es el de Bloq Num. Texto con `KEYEVENTF_UNICODE` por unidad UTF-16.
+  - SendInput no repite las teclas pulsadas: la repetición la manda el controlador. Si varias repeticiones llegan a la vez, Windows las junta en un solo `WM_KEYDOWN` y sale una sola letra.
   - Límite: UIPI impide actuar sobre ventanas elevadas.
 - **macOS (CoreGraphics):**
-  - `CGEventCreateMouseEvent` (con `kCGMouseEventClickState` para el doble clic), `CGEventCreateKeyboardEvent` con códigos `kVK_*`, `CGEventKeyboardSetUnicodeString` para el texto y `CGEventCreateScrollWheelEvent` (variádica, que koffi admite).
+  - `CGEventCreateMouseEvent` (con `kCGMouseEventClickState` para el doble clic, que hay que contar: 500 ms y 4 puntos), `CGEventCreateKeyboardEvent` con códigos `kVK_*`, `CGEventKeyboardSetUnicodeString` para el texto (trozos de 20 unidades UTF-16) y `CGEventCreateScrollWheelEvent` (variádica, que koffi admite).
+  - Con un botón pulsado, el movimiento va como evento de arrastre (`kCGEventLeftMouseDragged`…): si no, las apps no ven el arrastre.
+  - Cada evento lleva las marcas de los modificadores pulsados (`CGEventSetFlags`): los eventos inyectados no las heredan, y sin ellas Cmd+C llegaría como una "c".
   - Todo con `CGEventPost(kCGHIDEventTap)`, en puntos globales (los mismos que los DIP de Electron).
   - Requiere el permiso de Accesibilidad (`systemPreferences.isTrustedAccessibilityClient(false)`).
 - **Linux X11 (`libXtst`, `libX11`):**
-  - `XTestFakeMotionEvent`, `XTestFakeButtonEvent` (1–3 y rueda 4–7) y `XTestFakeKeyEvent` con el código evdev + 8.
-  - El texto se escribe buscando el keysym (Unicode `0x01000000 + cp`). Si no está en el mapa, se reasigna temporalmente un keycode libre con `XChangeKeyboardMapping`, como hace xdotool.
-  - Las coordenadas van en píxeles físicos: `screen.dipToScreenPoint()`, que en X11 equivale a multiplicar por `scaleFactor`.
+  - `XTestFakeMotionEvent`, `XTestFakeButtonEvent` (1–3, atrás y adelante 8–9, y rueda 4–7) y `XTestFakeKeyEvent` con el código evdev + 8. Un keycode fuera de `XDisplayKeycodes` se descarta, porque un error de X con el gestor por defecto de Xlib termina el proceso.
+  - X repite las teclas pulsadas con XTest: mientras están pulsadas se les quita la repetición (`XChangeKeyboardControl`), y la manda el controlador, como en Chrome Remote Desktop. Así un retraso de la red al soltar no escribe cientos de letras.
+  - **Texto:** cada carácter se escribe con un keycode libre reasignado a su keysym (Latin-1 con su valor y el resto `0x01000000 + cp`) en los dos niveles, como hace xdotool. Se hace también con los caracteres que ya están en el mapa, para no depender del grupo activo (p. ej. "us,es"), de Bloq Mayús ni de un Mayús pulsado. Detalles (`scratchKeys.ts` y `x11.ts`):
+    - Se reasignan de una vez los keycodes de todo el texto que cabe (hasta 10) y se esperan 50 ms antes de pulsar. Chromium pide el mapa nuevo de forma asíncrona, y sin la espera perdía el primer carácter.
+    - Un keycode no pasa a otro carácter hasta 300 ms después de usarlo, y los caracteres repetidos reutilizan el suyo.
+    - 5 ms entre caracteres: con IBus, las pulsaciones seguidas se desordenan (medido: el "€" de "¿Año 2026? €" se adelantaba en 5 de 8 intentos sin pausa y en ninguno con 1 ms).
+    - Los keycodes vuelven a NoSymbol tras 2 s sin escribir y al terminar la sesión.
+  - Las coordenadas van en píxeles físicos: `bounds × scaleFactor`, la misma escala para todas las pantallas en X11.
   - `screen.getCursorScreenPoint()` devuelve una posición antigua cuando el puntero lo mueve otro proceso. Para leer la posición real se usa `XQueryPointer` (prototipo 1.3).
-- **Conversión común:** `(x, y)` normalizados × `bounds` de la pantalla elegida → coordenadas del sistema, con la conversión de escala de cada SO.
+- **Conversión común** (`src/main/remote/input/`): `(x, y)` normalizados × el rectángulo nativo de la pantalla elegida (`nativeDisplayRect`), recortado al último píxel de esa pantalla. En Windows el rectángulo físico lo da `screen.dipToScreenRect`, también con escalas distintas por monitor, y en macOS son los `bounds` en puntos.
+- **Rueda:** los deltas de `WheelEvent` se pasan a píxeles (un clic de rueda son 100 px, o 3 líneas) y se acumulan hasta completar la unidad de cada sistema: clics de rueda en X11, 1/120 de clic en Windows y píxeles en macOS.
+- **Teclas pegadas:** `InputController` lleva la cuenta de las teclas y botones pulsados, aplica los eventos en fila (el texto puede esperar en X11) y lo suelta todo con `release-all` o al terminar la sesión.
 - **Alternativas:**
   - `nut.js`: escribe el texto según la distribución local y es una dependencia grande.
   - `robotjs`: sin mantenimiento y con compilación nativa.
   - Binarios auxiliares por SO: más piezas que firmar y empaquetar.
+- **Verificado (tarea 4.6)** con `prototypes/remote-desktop/input-check` (14 comprobaciones; ver su README):
+  - **Linux X11 (Cinnamon, una pantalla 4K al 100 %, distribuciones us(intl) y es, IBus):** 14/14.
+    - Clics en las esquinas del área de trabajo y en el centro con menos de 0,5 DIP de error. Son las del área de trabajo porque el panel de Cinnamon sigue encima de una ventana a pantalla completa.
+    - `Semicolon` da ";" con us(intl): la tecla va por posición. La Ñ se comprueba en Windows, porque Cinnamon vuelve a la distribución de la ventana activa y la prueba no puede cambiarla.
+    - "¿Año 2026? €", Mayús, salto de línea, sin repetición del sistema con la tecla mantenida, repetición del controlador, `release-all`, Ctrl+A y Ctrl+C, doble clic, botones derecho, central, atrás y adelante, arrastre, y rueda vertical y horizontal.
+  - **Windows 11 (VM, teclado es-ES):** 14/14 al 100 % (1280×800) y al 150 % (854×534 DIP, menos de 0,7 DIP de error), con "ñ" y "¿Año 2026? €" exactos.
+  - **Pendiente:**
+    - macOS: permiso de Accesibilidad, número de clic, arrastre, Cmd+C y el sentido de la rueda con desplazamiento natural;
+    - un PC con dos monitores de escalas distintas (la VM y este Linux tienen una sola pantalla).
 
 ### D11. Ventana del visor (escritorio)
 - **Apertura:** nueva entrada `viewer.html` en `electron.vite.config.ts` (varias entradas de renderer). El proceso principal la abre con el `deviceId`.
