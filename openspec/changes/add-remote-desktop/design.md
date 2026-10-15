@@ -112,7 +112,7 @@ Errores con el formato habitual `{"error": {"code", "details"}}`.
 | `GET /api/remote-requests/{id}` | El controlador espera la respuesta | `{status: pending\|answered\|rejected, answer?, rejection?}` | `remote_request_not_found` 404, `remote_request_expired` 410 |
 | `GET /api/remote/ice-servers` | Servidores ICE | `{iceServers: [...], ttl}` | — |
 
-- **Motivos de rechazo** que pone el PC: `wrong_password`, `locked`, `busy`, `missing_permissions`, `remote_disabled`, `declined`, `unsupported`. `wrong_password` y `locked` llegan por el canal de datos (D6); el resto, en la respuesta de la API.
+- **Motivos de rechazo** que pone el PC: `wrong_password`, `locked`, `busy`, `missing_permissions`, `remote_disabled`, `declined`, `unsupported`. `wrong_password` llega por el canal de datos (D6). `locked` llega en la respuesta de la API, con `retryAfter`, cuando el PC ya estaba bloqueado (como pide D3). Por el canal de datos solo llega si se bloquea con una conexión ya abierta. El resto va en la respuesta de la API.
 - **Límites** (`rate_limiter.yaml`, pool `app.rate_limiter_cache`):
   - `remote_request_user`: 20 por minuto;
   - `device_poll`: ventana de 1 s por equipo.
@@ -157,6 +157,29 @@ Errores con el formato habitual `{"error": {"code", "details"}}`.
   - **macOS:** aserción `PreventUserIdleSystemSleep`.
   - **Linux:** inhibición de logind o del salvapantallas, según el escritorio.
   - La pantalla sí puede apagarse: la entrada remota la despierta.
+
+- **Hecho (tarea 4.8, bloque A: señalización y control de la sesión, en el proceso principal):**
+  - **Piezas:**
+    - `deviceApi.ts`: las cinco operaciones del equipo, con `X-Device-Key`. `apiRequest` admite ahora cabeceras propias.
+    - `hostPolicy.ts`: reglas puras. El estado publicado da prioridad a `unsupported` sobre `disabled`, para que el controlador vea por qué. También dice qué se rechaza antes de abrir conexión (desactivado, sin permisos, bloqueado con `retryAfter`, ocupado) y cuándo se consulta: activado y en un sistema posible, también sin permisos, para que el controlador vea el motivo y no "sin conexión".
+    - `hostAuth.ts`: `hello` y la verificación en el proceso principal (K no sale de él), con un solo intento por conexión.
+    - `hostService.ts`: el bucle.
+  - **Huella DTLS:** la del valor de la primera línea `a=fingerprint:` de cada descripción, sin espacios (`sdpFingerprint` en `src/shared/remote/auth.ts`). El controlador y la app móvil deben sacarla igual.
+  - **Bucle:**
+    - registra al arrancar, cada 5 min y cuando cambia lo que se publica (estado, nombre o funciones), y consulta cada 3 s;
+    - sin red reintenta a los 3, 6, 12… s (máximo 60 s);
+    - ante un `429` espera el `retryAfter`, y ante `remote_unavailable` (503), 5 min;
+    - con `device_taken` o `device_key_invalid` genera una identidad nueva, y con `device_not_found` se vuelve a registrar.
+  - **Sesiones:**
+    - con una solicitud abriéndose o en curso, las demás reciben `busy`;
+    - una conexión que no llega a autenticarse no cuenta como sesión: no notifica ni queda en el registro;
+    - al empezar y al terminar hay notificación, entrada en el registro (con la duración) y estado en la bandeja;
+    - desactivar, cambiar la contraseña, "Desconectar" o parar el servicio cortan la sesión;
+    - si la solicitud caduca antes de responder, se cierra la conexión creada.
+  - **Verificado:**
+    - 25 tests unitarios;
+    - `hostService.dev.test.ts` contra el backend de desarrollo real (4/4): el equipo aparece en línea con sus funciones, la solicitud recibe la respuesta, la segunda recibe `busy` (con `busy` publicado), sin permisos se rechaza con ese motivo, y desactivar corta la sesión y el servicio responde `remote_disabled`. Se salta sin `ABSOR_DEV_API`.
+  - **Falta (bloque B, con el renderer `host` de 5.1 y 6.3):** la ventana oculta con WebRTC y captura, la elección de pantalla y sonido, el aviso siempre encima, la confirmación local, la conexión previa por el cortafuegos de Windows y la conexión con la app (instancia en `index.ts`, Ajustes, bandeja y `isRemoteControlActive`). La verificación con dos equipos llegará con el visor (6.5).
 
 ### D8. Captura de pantalla y sonido por sistema
 - **Windows:**

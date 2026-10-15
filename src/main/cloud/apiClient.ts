@@ -37,8 +37,8 @@ export function setUnauthorizedHandler(handler: () => void): void {
   onUnauthorized = handler
 }
 
-export async function apiRequest<T>(method: string, path: string, options: { token?: string; body?: unknown } = {}): Promise<T> {
-  const { token, body } = options
+export async function apiRequest<T>(method: string, path: string, options: { token?: string; body?: unknown; headers?: Record<string, string> } = {}): Promise<T> {
+  const { token, body, headers } = options
   const base = apiBaseUrl()
   if (!base) throw new ApiError('network_error', 0)
 
@@ -49,7 +49,9 @@ export async function apiRequest<T>(method: string, path: string, options: { tok
       headers: {
         Accept: 'application/json',
         ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
-        ...(token ? { Authorization: `Bearer ${token}` } : {})
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        // Cabeceras propias de algunas operaciones (X-Device-Key en las del equipo)
+        ...headers
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,
       signal: AbortSignal.timeout(TIMEOUT_MS)

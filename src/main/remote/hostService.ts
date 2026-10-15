@@ -1,0 +1,373 @@
+// Servicio del PC controlado (add-remote-desktop D3/D7): registra el equipo en la cuenta, consulta
+// cada 3 s las solicitudes de sesión (la consulta es también su señal de vida), rechaza sin abrir
+// conexión las que no puede atender y lleva la sesión en curso: una a la vez, con aviso, registro
+// local y corte al desactivar o al cambiar la contraseña.
+//
+// Todo lo que toca Electron o la red llega inyectado: así se prueba con tests y contra el backend
+// de desarrollo. La conexión en sí (ventana oculta `host`, WebRTC, captura) la crea `openSession`.
+import { ApiError } from '../cloud/apiClient'
+import {
+  DeviceApi,
+  DeviceCredentials,
+  DeviceInfo,
+  DevicePlatform,
+  PendingRequest
+} from './deviceApi'
+import {
+  deviceState,
+  EarlyRejection,
+  earlyRejection,
+  HostConditions,
+  shouldPoll
+} from './hostPolicy'
+import { RemoteAccessStore } from './remoteAccessStore'
+import { RemoteSupport } from './support'
+
+export const POLL_INTERVAL_MS = 3_000
+export const REGISTER_INTERVAL_MS = 5 * 60_000
+/** Sin sesión de la cuenta no se hace nada; se vuelve a mirar cada poco por si se inicia. */
+const SIGNED_OUT_RETRY_MS = 10_000
+/** Con REMOTE_ENABLED=0 en el servicio (503 remote_unavailable). */
+const UNAVAILABLE_RETRY_MS = 5 * 60_000
+const MAX_BACKOFF_MS = 60_000
+/** Otros errores (p. ej. 400): no tiene sentido insistir cada 3 s. */
+const OTHER_ERROR_RETRY_MS = 60_000
+
+export type HostCloseReason =
+  | 'local'
+  | 'disabled'
+  | 'password_changed'
+  | 'signed_out'
+  | 'expired'
+  | 'stopped'
+
+/** Una conexión abierta para una solicitud (la crea la ventana `host`, tarea 4.8 bloque B). */
+export interface HostSession {
+  /** Descripción de sesión completa, con candidatos, que se publica como respuesta. */
+  answer: string
+  /** Se resuelve cuando la conexión queda autenticada (y aceptada en el PC si se pide). */
+  started: Promise<void>
+  /** Se resuelve cuando la sesión termina por cualquier motivo. */
+  ended: Promise<void>
+  close(reason: HostCloseReason): void
+}
+
+export type TrayStatus = 'off' | 'available' | 'active'
+
+export interface HostServiceDeps {
+  api: Pick<DeviceApi, 'register' | 'poll' | 'answer' | 'reject'>
+  identity: { get(): Promise<DeviceCredentials>; reset(): Promise<DeviceCredentials> }
+  store: Pick<RemoteAccessStore, 'isEnabled' | 'snapshot' | 'lockRemainingSeconds' | 'addLog'>
+  /** Estado del sistema (permisos de macOS, Wayland): SupportMonitor.check(). */
+  support: () => RemoteSupport
+  /** Hay sesión de la cuenta iniciada (con token). */
+  signedIn: () => boolean
+  platform: DevicePlatform
+  appVersion: string
+  openSession: (request: PendingRequest) => Promise<HostSession>
+  /** Evitar la suspensión (powerSaveBlocker) mientras el control remoto está activado. */
+  setKeepAwake: (on: boolean) => void
+  /** Estado para la bandeja (background.ts). */
+  setStatus: (status: TrayStatus, controller: string | null) => void
+  /** Notificación del sistema al empezar y al terminar cada sesión. */
+  notify: (event: 'session-start' | 'session-end', controller: string) => void
+  now?: () => number
+}
+
+interface Current {
+  request: PendingRequest
+  session: HostSession
+  startedAt: number | null
+}
+
+export class HostService {
+  private running = false
+  private timer: ReturnType<typeof setTimeout> | null = null
+  private ticking: Promise<void> | null = null
+  private registered: { fingerprint: string; at: number } | null = null
+  private registrationDirty = true
+  /** Se pidió mirar ya (refresh) mientras corría una vuelta: la siguiente va sin esperar. */
+  private wakeRequested = false
+  private opening = false
+  private current: Current | null = null
+  private networkFailures = 0
+  private status: string | null = null
+  private keepAwake: boolean | null = null
+  private readonly now: () => number
+
+  constructor(private readonly deps: HostServiceDeps) {
+    this.now = deps.now ?? Date.now
+  }
+
+  start(): void {
+    if (this.running) return
+    this.running = true
+    this.schedule(0)
+  }
+
+  /** Para el servicio y corta la sesión en curso (cerrar sesión de la cuenta, salir de la app). */
+  async stop(reason: HostCloseReason = 'stopped'): Promise<void> {
+    this.running = false
+    if (this.timer) clearTimeout(this.timer)
+    this.timer = null
+    this.current?.session.close(reason)
+    await this.ticking
+    this.setKeepAwake(false)
+    this.setStatus('off', null)
+  }
+
+  /** Algo cambió (Ajustes, permisos, inicio de sesión): registrar y consultar ya. */
+  refresh(): void {
+    this.registrationDirty = true
+    if (this.ticking) this.wakeRequested = true
+    else this.schedule(0)
+  }
+
+  /** Tras cambiar Ajustes. Desactivar el control remoto corta la sesión al momento. */
+  async settingsChanged(): Promise<void> {
+    if (!(await this.deps.store.isEnabled())) this.current?.session.close('disabled')
+    this.refresh()
+  }
+
+  /** Cambiar la contraseña corta las sesiones activas (la siguiente necesita la nueva). */
+  passwordChanged(): void {
+    this.current?.session.close('password_changed')
+    this.refresh()
+  }
+
+  /** Botón "Desconectar" del aviso en el PC controlado. */
+  disconnect(): void {
+    this.current?.session.close('local')
+  }
+
+  /** Alguien controla ahora este PC (para no instalar actualizaciones durante la sesión). */
+  isActive(): boolean {
+    return this.current?.startedAt != null
+  }
+
+  private schedule(delay: number): void {
+    if (!this.running) return
+    if (this.timer) clearTimeout(this.timer)
+    this.timer = setTimeout(() => {
+      this.timer = null
+      this.ticking = this.tick().finally(() => {
+        this.ticking = null
+      })
+    }, delay)
+  }
+
+  private async tick(): Promise<void> {
+    let delay = POLL_INTERVAL_MS
+    try {
+      if (!this.deps.signedIn()) {
+        this.updateLocal(null)
+        delay = SIGNED_OUT_RETRY_MS
+        return
+      }
+      const conditions = await this.conditions()
+      this.updateLocal(conditions)
+      await this.register(conditions)
+      if (!shouldPoll(conditions)) {
+        delay = REGISTER_INTERVAL_MS
+        return
+      }
+      const requests = await this.poll()
+      if (requests === null) {
+        delay = 0
+        return
+      }
+      for (const request of requests) await this.handle(request)
+      this.networkFailures = 0
+    } catch (error) {
+      delay = this.retryDelay(error)
+    } finally {
+      this.schedule(this.wakeRequested ? 0 : delay)
+      this.wakeRequested = false
+    }
+  }
+
+  private async conditions(): Promise<HostConditions> {
+    return {
+      enabled: await this.deps.store.isEnabled(),
+      support: this.deps.support(),
+      lockRemainingSeconds: await this.deps.store.lockRemainingSeconds(this.now()),
+      busy: this.opening || this.current !== null
+    }
+  }
+
+  /** Bandeja y "mantener despierto" según el estado; solo avisa cuando cambian. */
+  private updateLocal(conditions: HostConditions | null): void {
+    void this.applyKeepAwake(conditions)
+    if (this.current?.startedAt != null) {
+      this.setStatus('active', this.current.request.controllerName)
+      return
+    }
+    const state = conditions ? deviceState(conditions) : 'disabled'
+    this.setStatus(state === 'available' || state === 'busy' ? 'available' : 'off', null)
+  }
+
+  private async applyKeepAwake(conditions: HostConditions | null): Promise<void> {
+    const on =
+      conditions !== null && conditions.enabled && (await this.deps.store.snapshot()).preventSleep
+    this.setKeepAwake(on && this.running)
+  }
+
+  private setKeepAwake(on: boolean): void {
+    if (this.keepAwake === on) return
+    this.keepAwake = on
+    this.deps.setKeepAwake(on)
+  }
+
+  private setStatus(status: TrayStatus, controller: string | null): void {
+    const key = `${status}:${controller ?? ''}`
+    if (this.status === key) return
+    this.status = key
+    this.deps.setStatus(status, controller)
+  }
+
+  /** Registro al empezar, cada 5 min y cuando cambia lo que se publica (estado, nombre, funciones). */
+  private async register(conditions: HostConditions): Promise<void> {
+    const snapshot = await this.deps.store.snapshot()
+    const info: DeviceInfo = {
+      name: snapshot.deviceName,
+      platform: this.deps.platform,
+      appVersion: this.deps.appVersion,
+      remote: { state: deviceState(conditions), features: snapshot.features }
+    }
+    const fingerprint = JSON.stringify(info)
+    const fresh =
+      this.registered !== null &&
+      this.registered.fingerprint === fingerprint &&
+      this.now() - this.registered.at < REGISTER_INTERVAL_MS
+    if (fresh && !this.registrationDirty) return
+
+    let device = await this.deps.identity.get()
+    try {
+      await this.deps.api.register(device, info)
+    } catch (error) {
+      // El identificador es de otra cuenta, o esta cuenta lo tiene con otra clave: identidad nueva
+      if (!isCode(error, 'device_taken', 'device_key_invalid')) throw error
+      device = await this.deps.identity.reset()
+      await this.deps.api.register(device, info)
+    }
+    this.registered = { fingerprint, at: this.now() }
+    this.registrationDirty = false
+  }
+
+  /** Solicitudes pendientes; null si hay que volver a registrar el equipo antes. */
+  private async poll(): Promise<PendingRequest[] | null> {
+    try {
+      return await this.deps.api.poll(await this.deps.identity.get())
+    } catch (error) {
+      if (isCode(error, 'device_key_invalid')) {
+        await this.deps.identity.reset()
+        this.registrationDirty = true
+        return null
+      }
+      if (isCode(error, 'device_not_found')) {
+        this.registrationDirty = true
+        return null
+      }
+      throw error
+    }
+  }
+
+  private async handle(request: PendingRequest): Promise<void> {
+    const device = await this.deps.identity.get()
+    const rejection = earlyRejection(await this.conditions())
+    if (rejection) {
+      await this.reject(device, request.id, rejection)
+      return
+    }
+
+    this.opening = true
+    this.registrationDirty = true
+    let session: HostSession
+    try {
+      session = await this.deps.openSession(request)
+    } catch {
+      this.opening = false
+      await this.reject(device, request.id, { reason: 'unsupported' })
+      return
+    }
+    try {
+      await this.deps.api.answer(device, request.id, session.answer)
+    } catch {
+      // Caducada (más de 60 s) o ya respondida: la conexión no llegará a usarse
+      this.opening = false
+      session.close('expired')
+      return
+    }
+    this.opening = false
+    const current: Current = { request, session, startedAt: null }
+    this.current = current
+    session.started.then(
+      () => this.onStarted(current),
+      () => undefined
+    )
+    session.ended.then(
+      () => this.onEnded(current),
+      () => this.onEnded(current)
+    )
+  }
+
+  private async reject(
+    device: DeviceCredentials,
+    requestId: string,
+    rejection: EarlyRejection
+  ): Promise<void> {
+    try {
+      await this.deps.api.reject(device, requestId, rejection.reason, rejection.retryAfter)
+    } catch {
+      // Ya caducó o la respondió otra instancia: nada que hacer
+    }
+  }
+
+  private onStarted(current: Current): void {
+    if (this.current !== current) return
+    current.startedAt = this.now()
+    const controller = current.request.controllerName
+    this.setStatus('active', controller)
+    this.deps.notify('session-start', controller)
+    void this.deps.store.addLog({ at: current.startedAt, type: 'session-start', controller })
+    this.refresh()
+  }
+
+  private onEnded(current: Current): void {
+    if (this.current !== current) return
+    this.current = null
+    if (current.startedAt !== null) {
+      const controller = current.request.controllerName
+      const at = this.now()
+      this.deps.notify('session-end', controller)
+      void this.deps.store.addLog({
+        at,
+        type: 'session-end',
+        controller,
+        durationMs: at - current.startedAt
+      })
+    }
+    this.status = null
+    this.refresh()
+  }
+
+  private retryDelay(error: unknown): number {
+    if (isCode(error, 'too_many_requests')) {
+      const retryAfter = (error as ApiError).body as {
+        error?: { details?: { retryAfter?: unknown } }
+      }
+      const seconds = Number(retryAfter?.error?.details?.retryAfter)
+      return Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : POLL_INTERVAL_MS
+    }
+    if (isCode(error, 'remote_unavailable')) return UNAVAILABLE_RETRY_MS
+    if (error instanceof ApiError && (error.status === 0 || error.status >= 500)) {
+      this.networkFailures++
+      return Math.min(MAX_BACKOFF_MS, POLL_INTERVAL_MS * 2 ** (this.networkFailures - 1))
+    }
+    return OTHER_ERROR_RETRY_MS
+  }
+}
+
+function isCode(error: unknown, ...codes: string[]): boolean {
+  return error instanceof ApiError && codes.includes(error.code)
+}

@@ -20,6 +20,16 @@ export interface ProofInput {
   answerFingerprint: string
 }
 
+/**
+ * Huella DTLS de una descripción de sesión: el valor de su primera línea `a=fingerprint:` (p. ej.
+ * "sha-256 AB:CD:…"), sin espacios alrededor. Las dos partes la sacan del mismo texto, que el
+ * servicio entrega sin tocar; la app móvil sigue la misma regla.
+ */
+export function sdpFingerprint(sdp: string): string | null {
+  const match = /^a=fingerprint:(.+)$/m.exec(sdp.replace(/\r\n/g, '\n'))
+  return match ? match[1].trim() : null
+}
+
 /** Mensaje firmado: campos separados por saltos de línea (ni las huellas ni el base64 los contienen). */
 function message(input: ProofInput): Uint8Array {
   return new TextEncoder().encode(
