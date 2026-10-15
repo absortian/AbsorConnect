@@ -1,0 +1,15 @@
+{
+  "name": "absor-input-check",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Prueba manual de la inyección de entrada (tarea 4.6 de add-remote-desktop). No forma parte de la app.",
+  "main": "out/main.cjs",
+  "license": "MIT",
+  "dependencies": {
+    "koffi": "3.3.2"
+  },
+  "devDependencies": {
+    "electron": "39.8.5",
+    "esbuild": "0.25.12"
+  }
+}

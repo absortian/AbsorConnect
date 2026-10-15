@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Absor Connect — prueba de entrada</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        font: 16px system-ui, sans-serif;
+        background: #1d2433;
+        color: #e6e9ef;
+        user-select: none;
+      }
+      #info {
+        position: absolute;
+        left: 50%;
+        top: 8%;
+        transform: translateX(-50%);
+        text-align: center;
+        opacity: 0.8;
+      }
+      .box {
+        position: absolute;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid #5b8def;
+        border-radius: 8px;
+        background: #26304a;
+      }
+      #text {
+        left: 10%;
+        top: 25%;
+        width: 35%;
+        height: 25%;
+        font: 22px monospace;
+        user-select: text;
+      }
+      #dbl {
+        left: 55%;
+        top: 25%;
+        width: 15%;
+        height: 10%;
+      }
+      #buttons {
+        left: 75%;
+        top: 25%;
+        width: 15%;
+        height: 10%;
+      }
+      #drag {
+        left: 55%;
+        top: 45%;
+        width: 35%;
+        height: 10%;
+      }
+      #scroll {
+        left: 10%;
+        top: 60%;
+        width: 35%;
+        height: 25%;
+        overflow: auto;
+        display: block;
+      }
+      #scroll div {
+        width: 4000px;
+        height: 4000px;
+        background: repeating-linear-gradient(45deg, #26304a 0 20px, #2f3b5a 20px 40px);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="info">Prueba de entrada de Absor Connect: no toques el ratón ni el teclado.</div>
+    <script>
+      // Todo lo que llega se apunta; el proceso principal lo lee con executeJavaScript
+      window.__events = []
+      const note = (e) =>
+        window.__events.push({
+          type: e.type,
+          target: e.target.id || e.target.tagName,
+          button: e.button,
+          buttons: e.buttons,
+          screenX: e.screenX,
+          screenY: e.screenY,
+          detail: e.detail
+        })
+      for (const type of ['mousedown', 'mouseup', 'dblclick', 'auxclick', 'contextmenu']) {
+        window.addEventListener(type, (e) => {
+          note(e)
+          if (type === 'contextmenu') e.preventDefault()
+        })
+      }
+      window.addEventListener('mousemove', (e) => {
+        if (e.buttons) note(e)
+      })
+      // Atrás y adelante no deben navegar
+      window.addEventListener('mouseup', (e) => {
+        if (e.button === 3 || e.button === 4) e.preventDefault()
+      })
+
+      if (new URLSearchParams(location.search).get('primary') === '1') {
+        document.body.insertAdjacentHTML(
+          'beforeend',
+          `<textarea id="text" class="box" spellcheck="false"></textarea>
+           <div id="dbl" class="box">doble clic</div>
+           <div id="buttons" class="box">botones</div>
+           <div id="drag" class="box">arrastrar</div>
+           <div id="scroll" class="box"><div></div></div>`
+        )
+      }
+    </script>
+  </body>
+</html>
