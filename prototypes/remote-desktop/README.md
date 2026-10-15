@@ -8,7 +8,7 @@ Pruebas de los puntos de riesgo del grupo 1 de `openspec/changes/add-remote-desk
 | `pbkdf2` | 1.4 | Lo que tarda PBKDF2-HMAC-SHA256 en WebCrypto y en Node. |
 | `capture` | 1.1 y 1.2 | Captura de la pantalla principal en una ventana oculta, sin ventana principal, enviada por WebRTC a otra ventana oculta: imágenes por segundo y sonido del sistema. |
 
-Al abrirlo sin argumentos se ejecuta todo, y el resultado se guarda en `Descargas/absor-remote-prototype-<sistema>-<arquitectura>.json` y se muestra en una ventana. Durante la prueba aparece una ventanita en la esquina inferior derecha y suena un pitido suave. El ratón salta unos píxeles al principio y vuelve a su sitio. Nada sale del equipo.
+Al abrirlo sin argumentos se ejecuta todo, y el resultado se guarda en `Descargas/absor-remote-prototype-<sistema>-<arquitectura>-<prueba>.json` (un fichero por prueba) y se muestra en una ventana. Durante la prueba aparece una ventanita en la esquina inferior derecha y suena un pitido suave. El ratón salta unos píxeles al principio y vuelve a su sitio. Nada sale del equipo.
 
 ## Ejecutarlo
 
@@ -26,12 +26,12 @@ Sin Node en Linux, con el contenedor de desarrollo (`bin/dev`): `bin/dev sh -c '
 Como paquete (lo que pide la tarea 1.3), desde esta carpeta y con `npm install` hecho:
 
 ```bash
-npx electron-builder --linux AppImage deb   # en Linux
-npx electron-builder --win nsis             # en Windows
-npx electron-builder --mac dmg              # en macOS
+npx --yes electron-builder@26.15.3 --linux AppImage deb   # en Linux
+npx --yes electron-builder@26.15.3 --win nsis             # en Windows
+npx --yes electron-builder@26.15.3 --mac dmg              # en macOS
 ```
 
-En macOS hay que conceder **Accesibilidad** y **Grabación de pantalla** a la app (o a la Terminal, si se lanza con `npx electron`) la primera vez, y volver a abrirla. `./test-mac.sh` hace todo en un paso: instala, genera el DMG y abre la app que contiene.
+En macOS, `./test-mac.sh` genera el DMG la primera vez, lo monta y abre la app desde dentro; `./test-mac.sh capture` hace la captura de 5 minutos. La primera vez hay que conceder **Accesibilidad**, **Grabación de pantalla** y la grabación del sonido del sistema a la app, y volver a ejecutar el script. En la prueba de sonido suena además un sonido del sistema desde otro proceso (`afplay`), por si macOS deja fuera de la captura el de la propia app.
 
 Windows se prueba en una VM de Windows 11 Enterprise Evaluation con [dockur/windows](https://github.com/dockur/windows) (fuera del repo, en `~/VMs/absor-windows`): el instalador NSIS se genera dentro de la VM con Node, como en CI.
 

@@ -316,4 +316,4 @@ Windows se probó en una VM de Windows 11 Enterprise Evaluation (dockur/windows,
 ## Open Questions
 
 - Qué host aloja coturn (`head0` u otro con IP pública), el rango final de puertos del relé y las cuotas. No cambia el diseño.
-- El número final de iteraciones de PBKDF2, tras medirlo en un Android modesto y en un iPhone (D12).
+- El número final de iteraciones de PBKDF2, tras medirlo en un Android modesto y en un iPhone (D12, tarea 7.2).

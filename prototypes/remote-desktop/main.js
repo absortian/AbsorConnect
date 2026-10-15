@@ -8,6 +8,7 @@
 // Cada medida sale como una línea JSON en stdout. Al terminar, el resumen se guarda en
 // Descargas/absor-remote-prototype-<sistema>.json y se muestra en una ventana.
 const { app, BrowserWindow, clipboard, desktopCapturer, ipcMain, screen, session, systemPreferences } = require('electron')
+const { spawn } = require('child_process')
 const crypto = require('crypto')
 const fs = require('fs')
 const os = require('os')
@@ -115,6 +116,12 @@ async function runCapture({ seconds, audio, tone }) {
 
   const config = { audio, tone }
   const marker = markerWindow(config)
+  // En macOS, además, un sonido del sistema desde otro proceso: la captura del sonido del sistema
+  // podría dejar fuera el de la propia app
+  const player =
+    tone && process.platform === 'darwin'
+      ? setInterval(() => spawn('afplay', ['-v', '0.4', '/System/Library/Sounds/Submarine.aiff']), 1500)
+      : null
   const host = hiddenWindow('host.html', config)
   const viewer = hiddenWindow('viewer.html', config)
   const windows = { host, viewer }
@@ -152,6 +159,7 @@ async function runCapture({ seconds, audio, tone }) {
   ipcMain.off('signal', onSignal)
   ipcMain.off('stat', onStat)
   ipcMain.off('info', onInfo)
+  if (player) clearInterval(player)
   for (const win of [host, viewer, marker]) if (!win.isDestroyed()) win.destroy()
 
   // Los primeros 5 s son de arranque (negociación, primer fotograma clave)
@@ -237,7 +245,9 @@ async function runPbkdf2({ iterations }) {
 }
 
 async function showResults() {
-  const file = path.join(app.getPath('downloads'), `absor-remote-prototype-${process.platform}-${process.arch}.json`)
+  // Un fichero por prueba, para que una ejecución no pise el resultado de otra
+  const mode = args.mode ? [args.mode, args.audio].filter(Boolean).join('-') : 'suite'
+  const file = path.join(app.getPath('downloads'), `absor-remote-prototype-${process.platform}-${process.arch}-${mode}.json`)
   const text = JSON.stringify(results, null, 2)
   fs.writeFileSync(file, text)
   log({ summary: results, file })

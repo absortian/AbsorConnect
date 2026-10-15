@@ -5,7 +5,7 @@
 - [ ] 1.1 Prototipo de captura en una ventana oculta (`backgroundThrottling: false`) con la ventana principal cerrada, enviada por WebRTC local a otra ventana (D7). Verificar en Windows, macOS y Linux X11: unos 30 fps estables durante 5 minutos.
 - [ ] 1.2 Sonido del sistema con `audio: 'loopback'` en Windows, macOS 14.2+ (con `NSAudioCaptureUsageDescription`) y Linux con PulseAudio y con PipeWire, y la fuente "Monitor of …" como alternativa en Linux (D8). Verificar: resultado por sistema anotado en design.md (D8).
 - [ ] 1.3 Añadir `koffi` y probar un movimiento de ratón desde un paquete real de cada tipo (NSIS, DMG, AppImage y deb), con `asarUnpack` (D10). Verificar: el ratón se mueve en los cuatro y `npm ci` no compila nada.
-- [ ] 1.4 Medir PBKDF2-HMAC-SHA256 con 600 000 iteraciones en WebCrypto y en Dart (`cryptography`) en un Android modesto y en un iPhone (D12). Verificar: tiempos y número de iteraciones final anotados en design.md, cerrando esa Open Question.
+- [ ] 1.4 Medir PBKDF2-HMAC-SHA256 con 600 000 iteraciones en WebCrypto y en Node en Windows, macOS y Linux (D6). Verificar: tiempos anotados en design.md. La medida en móviles se hace en la 7.2, con el código en Dart.
 
 ## 2. Backend (`backend/`)
 
@@ -85,7 +85,7 @@
 ## 7. App móvil (`mobile/`)
 
 - [ ] 7.1 Dependencias `flutter_webrtc` y `cryptography`, permisos de Android e iOS que hagan falta (D12) y fuente de AltStore con los mismos `UsageDescription` que el `Info.plist`. Verificar: `flutter build apk` y la IPA compilan, y la fuente coincide con el `Info.plist`.
-- [ ] 7.2 Cliente de la API de equipos y solicitudes, autenticación y protocolo v1 en Dart. Verificar con `flutter test`, usando los vectores de `src/shared/remote/auth-vectors.json`, y con pruebas de integración contra el backend de desarrollo.
+- [ ] 7.2 Cliente de la API de equipos y solicitudes, autenticación y protocolo v1 en Dart. Verificar con `flutter test`, usando los vectores de `src/shared/remote/auth-vectors.json`, y con pruebas de integración contra el backend de desarrollo. Medir PBKDF2 con 600 000 iteraciones en un Android modesto y en un iPhone, y fijar el número de iteraciones (cierra esa Open Question de design.md).
 - [ ] 7.3 Pantalla "Equipos" y visor móvil:
   - imagen y rotación;
   - modos ratón y táctil, gestos, teclado y barra de teclas;
