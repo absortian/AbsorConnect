@@ -172,7 +172,12 @@ Errores con el formato habitual `{"error": {"code", "details"}}`.
   - Lo que sí funciona: al empezar una sesión con sonido, el proceso principal crea una fuente virtual que reenvía el monitor de la salida por defecto (`pactl load-module module-remap-source master=<salida por defecto>.monitor source_name=absor_connect_audio source_properties=device.description="Absor Connect"`). El renderer `host` la abre con `getUserMedia({audio: {deviceId}})`, sin cancelación de eco, supresión de ruido ni control de ganancia. La fuente se quita al terminar la sesión, y también al arrancar si quedó alguna de una sesión anterior.
   - Si la salida por defecto cambia durante la sesión (por ejemplo, al conectar unos auriculares), la fuente se vuelve a crear.
   - Sin `pactl` (paquete `pulseaudio-utils`) o sin servidor compatible con PulseAudio, el sonido no está disponible.
-- **Linux Wayland:** no se admite como PC controlado. Se detecta con `XDG_SESSION_TYPE=wayland` o `WAYLAND_DISPLAY`. La captura pasa por el portal, que pide aceptar cada vez, y XTest no actúa sobre las apps de Wayland.
+- **Linux Wayland:** no se admite como PC controlado. Se detecta con `XDG_SESSION_TYPE=wayland` o `WAYLAND_DISPLAY`: manda `XDG_SESSION_TYPE`, que pone logind, y `WAYLAND_DISPLAY` solo cuenta si falta. La captura pasa por el portal, que pide aceptar cada vez, y XTest no actúa sobre las apps de Wayland.
+- **Estado del equipo** (`src/main/remote/support.ts` y `platformSupport.ts`, tarea 4.7): `available`, `missing_permissions` (con los permisos que faltan) o `unsupported` (Wayland). Los estados `disabled` y `busy` los pone `hostService`.
+  - **macOS:** `getMediaAccessStatus('screen')` e `isTrustedAccessibilityClient(false)`.
+  - **Botones de Ajustes:** cada uno pide primero el permiso, que es lo que añade la app a la lista del panel (macOS muestra su aviso la primera vez), y después abre el panel con `x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture` o `Privacy_Accessibility`.
+  - **`SupportMonitor`:** avisa con una notificación una vez por cada permiso que se pierde. No repite el aviso mientras siga faltando, y vuelve a avisar si se recupera y se pierde otra vez. Ajustes lo consulta en modo silencioso.
+  - **Cuándo se consulta:** lo hace `hostService` (tarea 4.8) al registrar el equipo y con cada solicitud de sesión, y un cambio de estado vuelve a registrar el equipo.
 
 ### D9. Protocolo de los canales de datos (v1)
 | Canal | Modo | Contenido |
