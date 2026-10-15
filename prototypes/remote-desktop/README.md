@@ -83,7 +83,7 @@ El JSON se guarda siempre, también cuando algo falla (`error`). `--out=fichero`
 
 ### Segundo plano en macOS (tareas 4.1 y 4.2)
 
-`test-mac.sh background` empaqueta la app de verdad como `dist/check/mac-<arquitectura>/AbsorCheck.app`, con otro nombre, otro appId y otra carpeta de datos (`absor-connect-check`), así que no toca Absor Connect si está instalado. Su versión es 0.0.1, para que la última release de GitHub cuente como versión nueva. Después la maneja con System Events y `lsappinfo` (`background-check.mjs`):
+`test-mac.sh background` empaqueta la app de verdad como `dist/check/mac-<arquitectura>/AbsorCheck.app`, con otro nombre, otro appId y otra carpeta de datos (`absor-connect-check`), así que no toca Absor Connect si está instalado. Su versión es 0.0.1, para que la última release de GitHub cuente como versión nueva. Después la maneja con System Events, que también lee los iconos del propio Dock (`background-check.mjs`). La salida de la app, con el registro del actualizador, queda en `out/absorcheck-app.log` y las líneas de la actualización van al JSON. Comprueba:
 
 - arranque con ventana, Dock e icono en la barra de menús;
 - el menú (abrir, estado del control remoto, salir) y la entrada para descargar la versión nueva;

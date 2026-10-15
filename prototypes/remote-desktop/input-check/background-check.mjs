@@ -1,14 +1,15 @@
 // Prueba de las tareas 4.1 y 4.2 de add-remote-desktop en macOS con la app empaquetada de verdad
 // (AbsorCheck.app, que genera `test-mac.sh background`): icono en la barra de menús y su menú, icono
 // del Dock, cerrar a la bandeja, instancia única, arranque oculto, abrir al iniciar sesión y aviso
-// de versión nueva. La app se maneja con System Events (osascript) y lsappinfo; lo que no se puede
-// leer desde fuera (notificaciones, Ítems de inicio) se pregunta con un diálogo.
+// de versión nueva. La app se maneja con System Events (osascript), que también lee los iconos del
+// Dock; lo que no se puede leer desde fuera (notificaciones, Ítems de inicio) se pregunta con un
+// diálogo. La salida de la app (con el registro de electron-updater) va a --log.
 //
-//   node background-check.mjs --app=<AbsorCheck.app> --phase=main|login --out=<fichero.json>
+//   node background-check.mjs --app=<AbsorCheck.app> --phase=main|login --out=<fichero.json> --log=<fichero>
 //
 // El paquete de prueba tiene otro nombre, appId y carpeta de datos que Absor Connect: no toca la app
 // instalada. Su versión es 0.0.1, así que la última release de GitHub cuenta como versión nueva.
-import { spawnSync } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -25,6 +26,9 @@ const EXE = path.join(APP, 'Contents', 'MacOS', NAME)
 const USER_DATA = path.join(os.homedir(), 'Library', 'Application Support', 'absor-connect-check')
 const SETTINGS = path.join(USER_DATA, 'settings.json')
 const LOGIN_ITEMS_PANE = 'x-apple.systempreferences:com.apple.LoginItems-Settings.extension'
+const APP_LOG = args.log ?? path.join(os.tmpdir(), 'absorcheck-app.log')
+/** Lo que tarda como mucho en aparecer la versión nueva en la bandeja. */
+const UPDATE_TIMEOUT_MS = 120_000
 const phase = args.phase === 'login' ? 'login' : 'main'
 
 const report = { phase, app: APP, args, checks: [], notes: [], error: null }
@@ -56,12 +60,22 @@ function mainProcesses() {
 }
 const mainPids = () => mainProcesses().map((p) => p.pid)
 
-/** "Foreground" con icono en el Dock; "UIElement" sin él (app.dock.hide()). */
-function dockType() {
-  const match = run('lsappinfo', ['info', '-only', 'ApplicationType', NAME]).out.match(
-    /"ApplicationType"="([^"]+)"/
-  )
-  return match ? match[1] : null
+/** Si el Dock muestra el icono de la app (lo lee de los elementos del propio Dock). */
+function dockHasIcon() {
+  try {
+    const names = osa(
+      [
+        'tell application "System Events" to tell process "Dock"',
+        '  set dockNames to name of every UI element of list 1',
+        'end tell',
+        "set AppleScript's text item delimiters to linefeed",
+        'return dockNames as text'
+      ].join('\n')
+    )
+    return names.split('\n').includes(NAME)
+  } catch {
+    return null
+  }
 }
 
 function windowCount() {
@@ -84,7 +98,7 @@ function trayPresent() {
 }
 
 function state() {
-  return { pids: mainPids(), windows: windowCount(), dock: dockType(), tray: trayPresent() }
+  return { pids: mainPids(), windows: windowCount(), dock: dockHasIcon(), tray: trayPresent() }
 }
 
 // Abrir un menú de la barra de menús con System Events se queda esperando unos segundos; el truco
@@ -143,6 +157,26 @@ function ask(question, detail = '') {
   return answer === 'Sí'
 }
 
+/** Lanza el ejecutable directamente, con su salida en APP_LOG (como `open`, pero con registro). */
+function launchLogged(appArgs = []) {
+  const fd = fs.openSync(APP_LOG, 'a')
+  spawn(EXE, appArgs, { detached: true, stdio: ['ignore', fd, fd] }).unref()
+  fs.closeSync(fd)
+}
+
+/** Líneas del registro de la app sobre actualizaciones. */
+function updateLog() {
+  try {
+    return fs
+      .readFileSync(APP_LOG, 'utf8')
+      .split('\n')
+      .filter((line) => /update|versi[oó]n|latest|github/i.test(line))
+      .slice(-20)
+  } catch {
+    return []
+  }
+}
+
 function launch(appArgs = [], newInstance = false) {
   run('open', [
     ...(newInstance ? ['-n'] : []),
@@ -188,7 +222,7 @@ async function stopRunning() {
 /** Lanza la app oculta, deja que aplique «Abrir al iniciar sesión» y la cierra desde la bandeja. */
 async function applyLoginSetting(openAtLogin) {
   writeSettings({ openAtLogin })
-  launch(['--hidden'])
+  launchLogged(['--hidden'])
   await waitFor(trayPresent, 20_000)
   await sleep(3000)
   await quitFromTray()
@@ -199,35 +233,42 @@ async function applyLoginSetting(openAtLogin) {
 async function mainPhase() {
   await stopRunning()
   fs.rmSync(USER_DATA, { recursive: true, force: true })
+  fs.rmSync(APP_LOG, { force: true })
   // «Mantener abierta en segundo plano» activado, como lo dejaría Ajustes
   writeSettings({})
 
   // 1. Arranque normal
-  launch()
+  const startedAt = Date.now()
+  launchLogged()
   await waitFor(() => windowCount() >= 1, 30_000)
   await sleep(1500)
   const pid = mainPids()[0]
   let s = state()
   check(
     'arranca con ventana, icono en el Dock y en la barra de menús',
-    s.pids.length === 1 && s.windows >= 1 && s.dock === 'Foreground' && s.tray,
+    s.pids.length === 1 && s.windows >= 1 && s.dock === true && s.tray,
     s
   )
 
   // 2. Menú de la bandeja y aviso de versión nueva (la búsqueda empieza al arrancar)
   let items = []
-  const deadline = Date.now() + 45_000
+  const deadline = startedAt + UPDATE_TIMEOUT_MS
   do {
-    await sleep(4000)
+    await sleep(5000)
     items = trayMenuItems()
   } while (!items.some((item) => item.startsWith('Descargar la versión')) && Date.now() < deadline)
+  const updateSeconds = Math.round((Date.now() - startedAt) / 1000)
   check(
     'menú de la bandeja: abrir, estado del control remoto y salir',
     ['Abrir Absor Connect', 'Control remoto: desactivado', 'Salir'].every((l) => items.includes(l)),
     { items }
   )
   const update = items.find((item) => item.startsWith('Descargar la versión')) ?? null
-  check('4.2: el menú de la bandeja ofrece descargar la versión nueva', update !== null, { item: update })
+  check('4.2: el menú de la bandeja ofrece descargar la versión nueva', update !== null, {
+    item: update,
+    secondsSinceStart: updateSeconds,
+    log: updateLog()
+  })
   check(
     '4.2: notificación de versión nueva',
     ask(
@@ -242,7 +283,7 @@ async function mainPhase() {
   s = state()
   check(
     'cerrar la ventana la oculta: sigue en marcha, sin Dock y con icono en la barra de menús',
-    s.pids.length === 1 && s.pids[0] === pid && s.windows === 0 && s.dock === 'UIElement' && s.tray,
+    s.pids.length === 1 && s.pids[0] === pid && s.windows === 0 && s.dock === false && s.tray,
     s
   )
 
@@ -253,7 +294,7 @@ async function mainPhase() {
   s = state()
   check(
     '«Abrir Absor Connect» en la bandeja muestra la ventana y recupera el Dock',
-    s.pids[0] === pid && s.windows >= 1 && s.dock === 'Foreground',
+    s.pids[0] === pid && s.windows >= 1 && s.dock === true,
     s
   )
 
@@ -265,7 +306,7 @@ async function mainPhase() {
   s = state()
   check(
     'abrir la app otra vez muestra la ventana de la instancia que ya estaba, sin otro proceso',
-    s.pids.length === 1 && s.pids[0] === pid && s.windows >= 1 && s.dock === 'Foreground',
+    s.pids.length === 1 && s.pids[0] === pid && s.windows >= 1 && s.dock === true,
     s
   )
 
@@ -273,13 +314,13 @@ async function mainPhase() {
   check('«Salir» en la bandeja termina la app', await quitFromTray(), { pids: mainPids() })
 
   // 7. Arranque oculto, como al iniciar sesión
-  launch(['--hidden'])
+  launchLogged(['--hidden'])
   await waitFor(trayPresent, 20_000)
   await sleep(3000)
   s = state()
   check(
     'arranque con --hidden: sin ventana ni Dock, con icono en la barra de menús',
-    s.pids.length === 1 && s.windows === 0 && s.dock === 'UIElement' && s.tray,
+    s.pids.length === 1 && s.windows === 0 && s.dock === false && s.tray,
     s
   )
   await quitFromTray()
@@ -308,7 +349,7 @@ async function loginPhase() {
   })
   check(
     'al iniciar sesión arranca oculta: sin ventana ni Dock, con icono en la barra de menús',
-    s.pids.length === 1 && s.windows === 0 && s.dock === 'UIElement' && s.tray,
+    s.pids.length === 1 && s.windows === 0 && s.dock === false && s.tray,
     s
   )
   if (s.pids.length > 0) await quitFromTray()

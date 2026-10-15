@@ -185,7 +185,8 @@ case "$mode" in
       phase=login
     fi
     set +e
-    node background-check.mjs "--app=$app" "--phase=$phase" "--macos=$macos" "--out=$out" 2>"$log"
+    node background-check.mjs "--app=$app" "--phase=$phase" "--macos=$macos" "--out=$out" \
+      "--log=$here/out/absorcheck-app.log" 2>"$log"
     status=$?
     set -e
     ;;
