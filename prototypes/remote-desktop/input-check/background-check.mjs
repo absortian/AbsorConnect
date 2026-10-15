@@ -146,10 +146,13 @@ function ask(question, detail = '') {
   const text = detail ? `${question}\n\n${detail}` : question
   const answer = osa(
     [
-      'tell application "System Events"',
-      '  activate',
-      `  set r to display dialog "${text.replace(/"/g, '\\"')}" buttons {"No", "Sí"} default button "Sí" with title "Prueba de Absor Connect"`,
-      'end tell',
+      // Sin límite: por defecto un AppleEvent sin respuesta caduca a los 2 minutos
+      'with timeout of 86400 seconds',
+      '  tell application "System Events"',
+      '    activate',
+      `    set r to display dialog "${text.replace(/"/g, '\\"')}" buttons {"No", "Sí"} default button "Sí" with title "Prueba de Absor Connect"`,
+      '  end tell',
+      'end timeout',
       'return button returned of r'
     ].join('\n'),
     0
@@ -269,12 +272,15 @@ async function mainPhase() {
     secondsSinceStart: updateSeconds,
     log: updateLog()
   })
+  // La notificación sale a la vez que la entrada de la bandeja: sin entrada no hay nada que preguntar
   check(
     '4.2: notificación de versión nueva',
-    ask(
-      '¿Ha salido una notificación de AbsorCheck que dice «Hay una versión nueva disponible»?',
-      'Puede que macOS haya preguntado antes si AbsorCheck puede enviar notificaciones. Responde según si al final la has visto, en pantalla o en el Centro de notificaciones.'
-    )
+    update !== null &&
+      ask(
+        '¿Ha salido una notificación de AbsorCheck que dice «Hay una versión nueva disponible»?',
+        'En la cabecera de la notificación tiene que poner AbsorCheck, no Absor Connect. Puede que macOS haya preguntado antes si AbsorCheck puede enviar notificaciones: responde según si al final la has visto, en pantalla o en el Centro de notificaciones.'
+      ),
+    update === null ? { skipped: 'no apareció la versión nueva en la bandeja' } : {}
   )
 
   // 3. Cerrar la ventana con «Mantener abierta en segundo plano»

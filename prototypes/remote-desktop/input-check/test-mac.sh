@@ -159,9 +159,11 @@ case "$mode" in
         tail -n 20 "$log" >&2
         exit 1
       }
+      # zip y no dir: en macOS, electron-builder solo escribe app-update.yml (sin él no se buscan
+      # actualizaciones) si se genera un dmg o un zip
       echo "==> Empaquetando AbsorCheck.app (versión 0.0.1)"
       rm -rf dist/check
-      npx electron-builder --mac dir "--$arch" --publish never \
+      npx electron-builder --mac zip "--$arch" --publish never \
         -c.appId=com.absor.connect.check -c.productName=AbsorCheck \
         -c.extraMetadata.name=absor-connect-check -c.extraMetadata.version=0.0.1 \
         -c.electronDist=node_modules/electron/dist -c.directories.output=dist/check >>"$log" 2>&1 || {
