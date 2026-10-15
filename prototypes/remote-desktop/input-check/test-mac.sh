@@ -18,6 +18,16 @@ if [ "$(uname)" != Darwin ]; then
   echo "Este script es para macOS." >&2
   exit 1
 fi
+# Con sudo, node_modules queda a nombre de root y la prueba correría como otro usuario
+if [ "$(id -u)" = 0 ]; then
+  echo "Lánzalo sin sudo." >&2
+  exit 1
+fi
+if [ -n "$(find "$here" ! -user "$(id -u)" -print 2>/dev/null | head -n 1)" ]; then
+  echo "Hay ficheros de otro usuario (¿una ejecución con sudo?). Bórralos y vuelve a lanzarlo:" >&2
+  echo "  sudo rm -rf '$here/node_modules' '$here/out'" >&2
+  exit 1
+fi
 if ! command -v npm >/dev/null 2>&1; then
   echo "Falta Node 22 (npm)." >&2
   exit 1
@@ -26,13 +36,42 @@ fi
 echo "==> Instalando koffi, Electron y esbuild en $here"
 npm install --no-audit --no-fund --loglevel=error
 
-# El binario de Electron se descarga en su postinstall, y npm no lo ejecuta con ignore-scripts
-# ni en las versiones que no ejecutan los scripts de las dependencias: entonces se lanza a mano
-if ! node -e "require('electron')" >/dev/null 2>&1; then
-  echo "==> Descargando el binario de Electron (npm no ejecutó su script de instalación)"
-  env -u ELECTRON_SKIP_BINARY_DOWNLOAD node node_modules/electron/install.js
+# El postinstall de Electron no sirve con Node 26: extract-zip (yauzl 2.10) se corta tras la
+# primera carpeta del zip y sale con código 0, sin path.txt. Si falta el binario, se descarga la
+# misma release, se comprueba con el checksums.json del paquete y se extrae con ditto, que
+# conserva los enlaces y las firmas del .app
+electron_ok() {
+  node -e "process.exit(require('fs').existsSync(require('electron')) ? 0 : 1)" >/dev/null 2>&1
+}
+if ! electron_ok; then
+  version=$(node -p "require('./node_modules/electron/package.json').version")
+  case "$(uname -m)" in
+    arm64) arch=arm64 ;;
+    *) arch=x64 ;;
+  esac
+  zip="electron-v$version-darwin-$arch.zip"
+  sum=$(node -p "require('./node_modules/electron/checksums.json')['$zip']")
+  # El que dejó a medias el postinstall, si está en la caché de Electron
+  cached=$(find "$HOME/Library/Caches/electron" -name "$zip" 2>/dev/null | head -n 1)
+  tmp=$(mktemp -d)
+  trap 'rm -rf "$tmp"' EXIT
+  if [ -n "$cached" ] && echo "$sum  $cached" | shasum -a 256 -c - >/dev/null 2>&1; then
+    echo "==> Usando $zip de la caché de Electron"
+    cp "$cached" "$tmp/$zip"
+  else
+    echo "==> Descargando $zip"
+    curl -fL --progress-bar -o "$tmp/$zip" \
+      "https://github.com/electron/electron/releases/download/v$version/$zip"
+  fi
+  if ! echo "$sum  $tmp/$zip" | shasum -a 256 -c - >/dev/null 2>&1; then
+    echo "La suma SHA-256 de $zip no coincide con la de checksums.json." >&2
+    exit 1
+  fi
+  rm -rf node_modules/electron/dist
+  ditto -x -k "$tmp/$zip" node_modules/electron/dist
+  printf 'Electron.app/Contents/MacOS/Electron' >node_modules/electron/path.txt
 fi
-if ! node -e "require('electron')" >/dev/null 2>&1; then
+if ! electron_ok; then
   echo "Electron sigue sin su binario: borra $here/node_modules y vuelve a lanzar el script." >&2
   exit 1
 fi
