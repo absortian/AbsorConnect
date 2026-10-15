@@ -317,9 +317,17 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
     - "Abrir al iniciar sesión" añade la app a Ítems de inicio (`SMAppService`, con firma ad-hoc).
     - **4.2:** con versión 0.0.1, a los 11 s encuentra la 0.3.3 de GitHub, la barra de menús ofrece "Descargar la versión 0.3.3" y llega la notificación.
     - En macOS, electron-builder solo escribe `app-update.yml` si se genera un `dmg` o un `zip`, por eso la prueba empaqueta un `zip`. Las releases generan los dos.
-  - **Pendiente:**
-    - los escenarios que necesitan una sesión remota (tarea 4.8): el estado "controlado desde…" en la bandeja y que la app no se reinicie para actualizar durante una sesión;
-    - en Windows, el menú de la bandeja y el arranque al iniciar sesión, que en Linux y macOS ya están probados.
+  - **Windows 11, con el código de hoy y el mismo paquete de prueba:** AbsorCheck 0.0.1, empaquetado desde Linux (`win-unpacked`, con `app-update.yml`).
+    - **Cómo se manejó:** desde la pantalla de la VM (noVNC). Se lanzaba con tareas programadas `/it` en la sesión gráfica y se capturaba con un script de PowerShell lanzado por un `.vbs` oculto, para no quitar el foco al menú.
+    - **Menú de la bandeja:** "Abrir Absor Connect", "Control remoto: desactivado" (atenuado), "Descargar la versión 0.3.3" y "Salir". En Windows el actualizador también encuentra la versión nueva.
+    - **Ventana y procesos:**
+      - cerrar la ventana la oculta (desaparece también de la barra de tareas) y deja el mismo proceso;
+      - "Abrir Absor Connect" la vuelve a mostrar;
+      - abrir la app otra vez muestra la ventana sin un segundo proceso;
+      - "Salir" termina todos los procesos.
+    - **Abrir al iniciar sesión:** escribe en `HKCU\…\Run` el valor `com.absor.fileexplorer` (el AppUserModelId que fija la app) con `"…\AbsorConnect.exe" --hidden`. Tras reiniciar, con inicio de sesión automático, la app arranca a los 10 s con `--hidden`, sin ventana ni botón en la barra de tareas y con el icono en la bandeja. Desactivar la opción borra el valor.
+    - **Sin probar en Windows:** la notificación de versión nueva. Windows solo la muestra a apps con un acceso en el menú Inicio con su AppUserModelId (lo crea el instalador NSIS), y el instalador no se puede generar desde Linux sin Wine. En macOS sí se ha visto.
+  - **Pendiente:** los escenarios que necesitan una sesión remota (tarea 4.8): el estado "controlado desde…" en la bandeja y que la app no se reinicie para actualizar durante una sesión.
   - **Nota:** `settings.json` con BOM (p. ej. escrito por PowerShell `Set-Content -Encoding utf8`) hace que `JSON.parse` falle y se usen los valores por defecto; es seguro (los defaults desactivan el segundo plano), pero conviene recordarlo.
 
 ### D15. Actualizaciones en segundo plano
