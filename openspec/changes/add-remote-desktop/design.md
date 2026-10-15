@@ -178,6 +178,10 @@ Errores con el formato habitual `{"error": {"code", "details"}}`.
   - **Botones de Ajustes:** cada uno pide primero el permiso, que es lo que añade la app a la lista del panel (macOS muestra su aviso la primera vez), y después abre el panel con `x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture` o `Privacy_Accessibility`.
   - **`SupportMonitor`:** avisa con una notificación una vez por cada permiso que se pierde. No repite el aviso mientras siga faltando, y vuelve a avisar si se recupera y se pierde otra vez. Ajustes lo consulta en modo silencioso.
   - **Cuándo se consulta:** lo hace `hostService` (tarea 4.8) al registrar el equipo y con cada solicitud de sesión, y un cambio de estado vuelve a registrar el equipo.
+  - **Verificado** con `input-check --mode=support` (tarea 4.7):
+    - **Linux X11:** `available` con la sesión real, y `unsupported` (`wayland`) lanzado con el entorno de una sesión Wayland.
+    - **macOS 27.0.1:** lanzado desde Terminal con los dos permisos, `available`, que coincide con Ajustes del Sistema. Los dos botones abren su panel en macOS 27 (las URL `com.apple.preference.security` siguen valiendo) y la notificación llega.
+    - **Pendiente:** ver `missing_permissions` en un Mac real, con Terminal sin alguno de los dos permisos.
 
 ### D9. Protocolo de los canales de datos (v1)
 | Canal | Modo | Contenido |
