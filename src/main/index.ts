@@ -63,8 +63,15 @@ import {
 } from './background'
 import * as fs from 'fs/promises'
 import * as os from 'os'
+import { startRemoteHost, stopRemoteHost } from './remote/hostRuntime'
+
+// Si la ventana principal se cerró (no ocultó): solo entonces cerrar la última ventana termina la
+// app. Las ventanas ocultas de las sesiones de control remoto y su aviso no cuentan: con la app
+// arrancada en segundo plano, que terminara una sesión cerraría la app.
+let mainWindowClosed = false
 
 function createWindow(): BrowserWindow {
+  mainWindowClosed = false
   // Create the browser window.
   const mainWindow = new BrowserWindow({
     width: 900,
@@ -85,6 +92,9 @@ function createWindow(): BrowserWindow {
 
   // Segundo plano: cerrar la ventana la oculta cuando ese ajuste está activado (background-mode)
   attachCloseToTray(mainWindow)
+  mainWindow.on('closed', () => {
+    mainWindowClosed = true
+  })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
@@ -119,6 +129,8 @@ app.whenReady().then(async () => {
   await setupBackground({ createWindow })
   await initTray()
   await syncOpenAtLoginOnStartup()
+  // Control remoto de este PC: registro en la cuenta y solicitudes de sesión (add-remote-desktop)
+  void startRemoteHost()
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.
@@ -382,12 +394,14 @@ app.whenReady().then(async () => {
 app.on('before-quit', () => {
   beginQuitting()
   closeAllSsh()
+  // Corta la sesión de control remoto en curso (el controlador ve que el PC la cerró)
+  void stopRemoteHost('stopped')
 })
 
-// Cerrar la última ventana solo termina la app cuando NO se mantiene en segundo plano. Con el
-// ajuste activado la ventana se oculta (no se cierra), así que este evento no llega a dispararse.
+// Cerrar la última ventana solo termina la app cuando NO se mantiene en segundo plano y la que se
+// cerró fue la principal. Con el ajuste activado la ventana se oculta (no se cierra).
 app.on('window-all-closed', async () => {
-  if (process.platform === 'darwin') return
+  if (process.platform === 'darwin' || !mainWindowClosed) return
   const { keepInBackground } = await getBackgroundState()
   if (!keepInBackground) app.quit()
 })

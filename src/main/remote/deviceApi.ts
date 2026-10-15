@@ -3,6 +3,7 @@
 // llevan la clave del equipo en X-Device-Key; sin ella, otra sesión de la misma cuenta podría
 // hacerse pasar por este PC.
 import { apiRequest } from '../cloud/apiClient'
+import { IceServer } from '../../shared/remote/hostBridge'
 import { RemoteFeatures } from './remoteAccessStore'
 
 export type DevicePlatform = 'windows' | 'macos' | 'linux'
@@ -83,6 +84,14 @@ export class DeviceApi {
       device
     )
     return Array.isArray(data?.requests) ? data.requests : []
+  }
+
+  /** Servidores STUN y TURN, con credenciales TURN temporales (24 h, D13). */
+  async iceServers(): Promise<IceServer[]> {
+    const data = await apiRequest<{ iceServers?: IceServer[] }>('GET', '/api/remote/ice-servers', {
+      token: this.token() ?? undefined
+    })
+    return Array.isArray(data?.iceServers) ? data.iceServers : []
   }
 
   async answer(device: DeviceCredentials, requestId: string, answer: string): Promise<void> {

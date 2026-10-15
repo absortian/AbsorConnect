@@ -39,6 +39,14 @@ export class DeviceIdentity {
     return this.create()
   }
 
+  /**
+   * Identidad nueva: el identificador ya es de otra cuenta (`device_taken`) o esta cuenta lo tiene
+   * con otra clave (D4).
+   */
+  async reset(): Promise<DeviceIdentityValue> {
+    return this.create()
+  }
+
   private async create(): Promise<DeviceIdentityValue> {
     const id = randomUUID()
     const keyBytes = randomBytes(32)

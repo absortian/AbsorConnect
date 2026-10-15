@@ -40,6 +40,8 @@ export type HostCloseReason =
   | 'signed_out'
   | 'expired'
   | 'stopped'
+  | 'capture_failed'
+  | 'ended'
 
 /** Una conexión abierta para una solicitud (la crea la ventana `host`, tarea 4.8 bloque B). */
 export interface HostSession {
@@ -58,8 +60,11 @@ export interface HostServiceDeps {
   api: Pick<DeviceApi, 'register' | 'poll' | 'answer' | 'reject'>
   identity: { get(): Promise<DeviceCredentials>; reset(): Promise<DeviceCredentials> }
   store: Pick<RemoteAccessStore, 'isEnabled' | 'snapshot' | 'lockRemainingSeconds' | 'addLog'>
-  /** Estado del sistema (permisos de macOS, Wayland): SupportMonitor.check(). */
-  support: () => RemoteSupport
+  /**
+   * Estado del sistema (permisos de macOS, Wayland): SupportMonitor.check(). Con el control remoto
+   * desactivado se mira sin notificar la pérdida de permisos.
+   */
+  support: (enabled: boolean) => RemoteSupport
   /** Hay sesión de la cuenta iniciada (con token). */
   signedIn: () => boolean
   platform: DevicePlatform
@@ -187,9 +192,10 @@ export class HostService {
   }
 
   private async conditions(): Promise<HostConditions> {
+    const enabled = await this.deps.store.isEnabled()
     return {
-      enabled: await this.deps.store.isEnabled(),
-      support: this.deps.support(),
+      enabled,
+      support: this.deps.support(enabled),
       lockRemainingSeconds: await this.deps.store.lockRemainingSeconds(this.now()),
       busy: this.opening || this.current !== null
     }

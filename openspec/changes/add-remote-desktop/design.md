@@ -179,7 +179,43 @@ Errores con el formato habitual `{"error": {"code", "details"}}`.
   - **Verificado:**
     - 25 tests unitarios;
     - `hostService.dev.test.ts` contra el backend de desarrollo real (4/4): el equipo aparece en línea con sus funciones, la solicitud recibe la respuesta, la segunda recibe `busy` (con `busy` publicado), sin permisos se rechaza con ese motivo, y desactivar corta la sesión y el servicio responde `remote_disabled`. Se salta sin `ABSOR_DEV_API`.
-  - **Falta (bloque B, con el renderer `host` de 5.1 y 6.3):** la ventana oculta con WebRTC y captura, la elección de pantalla y sonido, el aviso siempre encima, la confirmación local, la conexión previa por el cortafuegos de Windows y la conexión con la app (instancia en `index.ts`, Ajustes, bandeja y `isRemoteControlActive`). La verificación con dos equipos llegará con el visor (6.5).
+- **Hecho (tarea 4.8, bloque B: la conexión).**
+  - **Piezas:**
+    - `src/renderer/host.html` y `host/main.ts`, con su preload `src/preload/host.ts`, que solo expone los canales de la sesión y va con `sandbox`. Son entradas propias en `electron.vite.config.ts`.
+    - `hostSession.ts`: la ventana, el IPC (solo atiende a ventanas `host`), la captura y la entrada.
+    - `hostNotice.ts`: el aviso, la confirmación y las notificaciones.
+    - `hostRuntime.ts`: monta el servicio con las piezas reales. `index.ts` lo arranca al iniciar y lo para al salir.
+    - Los mensajes del canal `control` y el puente con la ventana están en `src/shared/remote/protocol.ts` y `hostBridge.ts`.
+  - **Orden de una sesión:**
+    1. El renderer responde a la oferta con los transceptores en `sendonly` y sin pista, y espera los candidatos.
+    2. Al abrirse `control` envía `hello`, y `auth` va al proceso principal.
+    3. Si sale bien (y se acepta en el PC, si se pide), captura con `getDisplayMedia` y pone las pistas con `replaceTrack`.
+    4. Envía `features` y `displays`.
+    5. `select-display` vuelve a capturar la pantalla nueva.
+    6. Antes de autenticar, la entrada se descarta en el renderer y otra vez en el proceso principal.
+  - **Captura:**
+    - va en su propia partición (`remote-host`), con un `setDisplayMediaRequestHandler` que no da nada a una ventana que no esté autenticada;
+    - en Electron 39 se deniega con `callback(null)`: `callback({})` lanza un error si se pidió vídeo;
+    - la sesión se reconoce por el marco principal de su ventana (`processId` y `routingId`), porque `webContents.fromFrame` no la encontraba.
+  - **X11 sin monitores RandR** (Xvnc, xrdp, y el Linux de pruebas, que tenía una pantalla virtual): `desktopCapturer.getSources` devuelve la lista vacía, pero el escritorio completo (`screen:-1:0`) sí se captura, y Electron ve entonces una sola pantalla que lo cubre todo. Se usa como último recurso. Con `thumbnailSize` de 0×0 tampoco hay fuentes.
+  - **Límites de tiempo:** la respuesta en 15 s, la autenticación en 60 s y el inicio de la captura en 15 s; si no, se corta (en macOS sin permiso, `getDisplayMedia` se queda esperando).
+  - **Aviso:** ventana sin marco, siempre encima (`screen-saver`), sin foco y con `setContentProtection`, con el título "Absor Connect — aviso". "Desconectar" cierra la ventana, y eso corta la sesión. No necesita preload.
+  - **Cortafuegos de Windows:** `primeFirewall()` abre y cierra una conexión WebRTC local en una ventana `host` (modo `loopback`). La llamará Ajustes al activar el control remoto (6.2).
+  - **Corregido en la app:** con la app arrancada oculta y sin "Mantener abierta en segundo plano", cerrar la ventana `host` al terminar una sesión disparaba `window-all-closed` y cerraba la app. Ahora solo la termina cerrar la ventana principal.
+  - **Verificado** con `prototypes/remote-desktop/controller-check` en un Linux X11, contra el backend de desarrollo. La app de verdad (`out/`) hace de PC controlado, arrancada con `--hidden` y su propia carpeta de datos. Pasa 12/12:
+    - aparece en línea y disponible;
+    - con una contraseña incorrecta llega `wrong_password` sin ninguna imagen, y el PC cierra;
+    - con la correcta llega la imagen (3840×2160 a 11–17 fps con la pantalla casi quieta), además de `features` y `displays`;
+    - el canal `pointer` lleva el ratón exactamente al centro pedido;
+    - el aviso aparece y el PC se publica como `busy`, y otra solicitud recibe "ocupado";
+    - un clic en "Desconectar" (con la propia entrada remota) corta la sesión con `bye:local`, y el PC vuelve a estar disponible;
+    - la confirmación local sin respuesta da `declined` a los 33 s, sin imagen;
+    - tras 5 fallos se rechaza con `locked` y 896 s restantes, aunque la contraseña sea correcta.
+  - **Falta:**
+    - el sonido en Linux (fuente virtual con `pactl`, D8), el portapapeles y los ficheros (tarea 6.3);
+    - los ajustes y la llamada a `primeFirewall` (6.2);
+    - en Windows y macOS: el sonido `loopback`, `setContentProtection`, el aviso del cortafuegos y la captura sin permiso en macOS;
+    - la prueba con dos equipos y el visor (6.5).
 
 ### D8. Captura de pantalla y sonido por sistema
 - **Windows:**
