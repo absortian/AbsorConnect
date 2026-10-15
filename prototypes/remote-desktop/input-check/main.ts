@@ -10,6 +10,9 @@
 // no se puede cambiar de distribución desde la prueba (vuelve a la de la ventana activa).
 // Todos los `--clave=valor` se guardan en el JSON (`args`): test-mac.sh anota así la
 // distribución, el desplazamiento natural y la versión de macOS.
+//
+// Con `--mode=support` comprueba en su lugar el estado del control remoto (tarea 4.7,
+// supportCheck.ts).
 import { app, BrowserWindow, clipboard, Display, screen, systemPreferences } from 'electron'
 import * as fs from 'fs'
 import * as os from 'os'
@@ -20,6 +23,7 @@ import {
   nativeDisplayRect
 } from '../../../src/main/remote/input'
 import { InputEvent, MouseButton } from '../../../src/shared/remote/input'
+import { runSupportCheck } from './supportCheck'
 
 interface Check {
   name: string
@@ -51,6 +55,7 @@ const report = {
   sessionType: process.env.XDG_SESSION_TYPE ?? null,
   args,
   displays: [] as unknown[],
+  support: null as unknown,
   checks,
   error: null as string | null
 }
@@ -367,9 +372,12 @@ async function runChecks(
   for (const w of windows.values()) w.destroy()
 }
 
+const mode = args.mode === 'support' ? 'support' : 'input'
+
 app.whenReady().then(async () => {
   try {
-    await run()
+    if (mode === 'support') report.support = await runSupportCheck(check)
+    else await run()
   } catch (error) {
     report.error = String(error instanceof Error ? (error.stack ?? error) : error)
     console.error(error)
@@ -377,7 +385,7 @@ app.whenReady().then(async () => {
   // El JSON se guarda siempre, también si algo falla, para poder revisarlo después
   const file =
     args.out ??
-    path.join(app.getPath('downloads'), `absor-input-check-${process.platform}-${process.arch}.json`)
+    path.join(app.getPath('downloads'), `absor-${mode}-check-${process.platform}-${process.arch}.json`)
   fs.writeFileSync(file, JSON.stringify(report, null, 2))
   const failed = checks.filter((c) => !c.ok).length
   console.log(`\n${checks.length - failed}/${checks.length} comprobaciones bien. Resultado en ${file}`)

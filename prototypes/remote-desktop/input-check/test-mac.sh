@@ -1,11 +1,12 @@
 #!/bin/sh
-# Prueba de la inyección de entrada en macOS (tarea 4.6 de add-remote-desktop), con Node 22:
+# Pruebas manuales de add-remote-desktop en macOS, con Node 22 o posterior:
 #
-#   prototypes/remote-desktop/input-check/test-mac.sh
+#   prototypes/remote-desktop/input-check/test-mac.sh           # entrada (tarea 4.6)
+#   prototypes/remote-desktop/input-check/test-mac.sh support   # permisos y estado (tarea 4.7)
 #
-# Instala koffi, Electron y esbuild solo en esta carpeta, compila la prueba con el módulo real
-# (src/main/remote/input), la ejecuta y deja el resultado en ~/Downloads/absor-input-check-macos.json
-# y en el portapapeles. Antes de lanzarlo:
+# Instala koffi, Electron y esbuild solo en esta carpeta, compila la prueba con los módulos reales
+# (src/main/remote), la ejecuta y deja el resultado en ~/Downloads/absor-<prueba>-check-macos.json
+# y en el portapapeles. Antes de lanzar la de entrada:
 #   - Accesibilidad (Ajustes del Sistema > Privacidad y seguridad) para la app desde la que se lanza
 #     (Terminal, iTerm…). La primera vez macOS lo pide: se concede y se vuelve a lanzar.
 #   - Para comprobar la Ñ, la distribución activa debe ser Español (o Español - ISO).
@@ -13,6 +14,15 @@
 set -eu
 here=$(cd "$(dirname "$0")" && pwd -P)
 cd "$here"
+
+mode=${1:-input}
+case "$mode" in
+  input | support) ;;
+  *)
+    echo "Uso: $0 [input|support]" >&2
+    exit 1
+    ;;
+esac
 
 if [ "$(uname)" != Darwin ]; then
   echo "Este script es para macOS." >&2
@@ -99,16 +109,20 @@ esac
 # Desplazamiento natural (activado por defecto): por si invierte la rueda inyectada
 natural=$(defaults read -g com.apple.swipescrolldirection 2>/dev/null || echo 1)
 macos=$(sw_vers -productVersion)
-out="$HOME/Downloads/absor-input-check-macos.json"
+out="$HOME/Downloads/absor-$mode-check-macos.json"
 rm -f "$out"
 
 echo
 echo "==> Distribución: ${layout:-desconocida} · desplazamiento natural: $natural · macOS $macos"
-echo "==> La prueba tapa las pantallas unos 20 s: suelta el ratón y el teclado."
-sleep 3
+if [ "$mode" = input ]; then
+  echo "==> La prueba tapa las pantallas unos 20 s: suelta el ratón y el teclado."
+  sleep 3
+else
+  echo "==> Responde a las preguntas que irán saliendo. Se abrirán dos paneles de Ajustes del Sistema."
+fi
 
 set +e
-node_modules/.bin/electron . "--semicolon=$semicolon" "--layout=$layout" \
+node_modules/.bin/electron . "--mode=$mode" "--semicolon=$semicolon" "--layout=$layout" \
   "--natural-scroll=$natural" "--macos=$macos" "--out=$out" 2>"$here/out/electron.log"
 status=$?
 set -e
