@@ -4,6 +4,7 @@
 export interface Target {
   id: string
   type: string
+  title?: string
   url: string
   webSocketDebuggerUrl: string
 }
@@ -44,6 +45,12 @@ export class Page {
       page.ws.onopen = resolve
       page.ws.onerror = reject
     })
+    // Si la ventana se cierra (p. ej. al pulsar un botón que la destruye), lo pendiente no tendrá
+    // respuesta: se resuelve sin valor en vez de esperar para siempre
+    page.ws.onclose = () => {
+      for (const resolve of page.pending.values()) resolve({ closed: true })
+      page.pending.clear()
+    }
     page.ws.onmessage = (event) => {
       const message = JSON.parse(String(event.data))
       if (message.id && page.pending.has(message.id)) {

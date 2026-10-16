@@ -151,7 +151,10 @@ Errores con el formato habitual `{"error": {"code", "details"}}`.
   - **macOS:** `setContentProtection(true)` (`sharingType = none`); puede que ScreenCaptureKit no la respete. Se acepta que el controlador la vea.
   - **Linux X11:** no se puede excluir de la captura; el controlador también la ve.
 - **Cortafuegos de Windows:** la primera vez que la app abre WebRTC, Windows pregunta si la deja usar las redes públicas y privadas (prototipo 1.1). Si nadie responde o se cancela, las conexiones que inicia la app siguen funcionando (directas por STUN o por relé), pero se bloquean las entrantes de la red local. Para que el aviso no aparezca en un PC sin nadie delante, la app abre una conexión WebRTC local al **activar** el control remoto, cuando hay alguien en Ajustes, y explica qué responder. El instalador NSIS es por usuario y sin elevar, así que no puede añadir la regla.
-- **Confirmación local:** `dialog.showMessageBox` con `signal` (`AbortSignal.timeout(30 000)`); al vencer el tiempo se rechaza con `declined`.
+- **Confirmación local:** una ventana propia (`confirmLocally()` en `hostNotice.ts`), siempre encima, con "Permitir", "Rechazar" y la cuenta atrás. A los 30 s se rechaza con `declined`.
+  - Los botones responden cambiando el título de la página, así que no hace falta preload.
+  - En macOS lleva `acceptFirstMouse`, para que el primer clic pulse el botón aunque la app no esté activa.
+  - Antes era `dialog.showMessageBox` con `signal`, pero en macOS, sin ventana padre, ese diálogo es síncrono y no atiende `signal`. Bloqueaba el proceso principal (la consulta a la API y la negociación) y no se rechazaba nunca: lo destapó `lan-check` con el Mac como PC.
 - **Mantener despierto:** `powerSaveBlocker.start('prevent-app-suspension')` mientras el control remoto está activado y la opción también.
   - **Windows:** `SetThreadExecutionState(ES_SYSTEM_REQUIRED)`.
   - **macOS:** aserción `PreventUserIdleSystemSleep`.
@@ -245,8 +248,8 @@ Errores con el formato habitual `{"error": {"code", "details"}}`.
 | Canal | Modo | Contenido |
 |---|---|---|
 | `control` | fiable y ordenado, JSON | `hello`, `auth`, `auth-result`, `displays`, `select-display`, `features`, `clipboard`, metadatos de ficheros, `fs-list`, `bye` |
-| `input` | fiable y ordenado, JSON | `key {code, down}`, `button {button, down}`, `wheel {dx, dy, mode}`, `text {text}`, `release-all` |
-| `pointer` | sin orden, `maxRetransmits: 0` | `move {x, y}` normalizados (0–1) sobre la pantalla elegida; solo importa el último |
+| `input` | fiable y ordenado, JSON | `key {code, down}`, `button {button, down}`, `wheel {dx, dy, mode}`, `text {text}`, `release-all`, y `move {x, y}` con la posición de cada clic y la de reposo |
+| `pointer` | sin orden, `maxRetransmits: 0` | `move {x, y}` normalizados (0–1) sobre la pantalla elegida; solo importa el último. La posición de cada clic, y la última cuando el ratón lleva 120 ms quieto, van además por `input` (fiable y en orden con los botones), porque por `pointer` un paquete perdido dejaba el cursor en otro sitio y el clic podía caer donde no era |
 | `file` | fiable y ordenado, binario | Trozos de 64 KB con control de presión (`bufferedAmountLowThreshold` 1 MB) |
 
 - **Robustez:** los mensajes llevan `v`, y los tipos desconocidos se ignoran.
@@ -354,7 +357,20 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
       - **Corte real de la Wi-Fi del Mac durante 10 s:** a los 11 s el visor muestra "Reconectando…", y a los 22 s la sesión vuelve sola, sin pedir la contraseña ("Directa · 5 ms · 22 fps").
       - Todo lo del ensayo se repite igual entre los dos equipos: aviso y bandeja con "Controlador macOS de prueba", `busy`, ratón exacto, clic, teclado, rueda, pantalla completa, inhibidor de suspensión, los tres cortes desde el PC, rechazo por falta de respuesta a los 34 s y registro.
       - Con la distribución de teclado del Linux, la tecla a la derecha de la L da ";". El texto llega por posición física, como debe.
-    - **Mac como PC (fase 1): pendiente.** La prueba se paró al empezar, como debe: Terminal ya no tenía el permiso de Grabación de pantalla, aunque en la 4.7 lo tenía (macOS pide reconfirmarlo de vez en cuando; ver Risks). Hay que volver a concederlo y lanzar `lan-test.sh <api> pc`.
+    - **Linux controlando el Mac** (`lan-test.sh … pc`; Mac 1512×982 a 2×, por Wi-Fi): 26/32.
+      - **Permiso:** Terminal tenía el permiso de Grabación de pantalla caducado. En Ajustes aparecía activado, pero `getMediaAccessStatus('screen')` daba `denied` incluso en el proceso de la prueba. Se arregló con `tccutil reset ScreenCapture com.apple.Terminal` y concediéndolo otra vez, y ahora la prueba lo pide a macOS y espera.
+      - **Bien:**
+        - conecta en 6,4 s, con 3024×1964 y "Directa · 7 ms";
+        - con la pantalla quieta, ScreenCaptureKit solo manda 1 fps, y unos 7 fps mientras se escribe;
+        - aviso, `busy`, el ratón al 90 %, clic, "hola ñ 2026A" con la distribución española, rueda, pantalla completa;
+        - el sonido llega y se silencia;
+        - los tres cortes desde el PC y el registro.
+      - **Fallos de la app, corregidos:**
+        - **La confirmación local bloqueaba la app en macOS** (ver D7). El PC se quedaba sin conexión ("La red no permite conectar…" a los 48 s, y luego "El PC no está conectado").
+        - **El movimiento al 10 % no llegó:** el cursor siguió donde estaba, por un único `move` por el canal sin reenvío, en Wi-Fi. Ahora la posición de reposo y la de cada clic van también por `input` (D9).
+      - **Fallos de la prueba, corregidos:** el bloqueo de suspensión de macOS es una aserción `NoIdleSleepAssertion`, que la prueba no buscaba. Leer el menú de la barra de menús con `osascript` falló sin dejar ver el error; ahora se guarda.
+      - **Ensayo en un solo Linux con las correcciones: 30/32** (las dos sin probar, las de siempre). La pregunta sale en el PC sin bloquear nada, se rechaza sola a los 33 s, y «Permitir», pulsado por DevTools, conecta.
+      - **Pendiente:** repetir `lan-test.sh … pc` en el Mac con las correcciones, con «Permitir» pulsado por una persona.
   - **Falta (resto de la 6.5):** portapapeles, ficheros, la prueba por relé (sin TURN en desarrollo), y el Mac como PC controlado (con "Permitir" en la confirmación local).
 
 ### D12. App móvil
@@ -464,6 +480,7 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
 
 - **[macOS, firma ad-hoc]** Tras cada actualización macOS puede retirar Grabación de pantalla y Accesibilidad → la app lo detecta al arrancar, marca el equipo como `missing_permissions` y muestra una notificación con el permiso que falta. La solución definitiva es un certificado de Apple Developer (fuera de alcance).
 - **[macOS 15]** Pide reconfirmar la grabación de pantalla cada mes, y alguien tiene que aceptarlo delante del Mac → documentado en Ajustes y en la web. No hay forma oficial de evitarlo.
+- **[macOS 27]** El permiso de Grabación de pantalla puede quedar caducado: aparece activado en Ajustes, pero `getMediaAccessStatus('screen')` da `denied`. Pasó con Terminal en las pruebas, y quitarlo y volver a ponerlo no bastó; lo arregló `tccutil reset ScreenCapture <id>`. → Ajustes ya marca el permiso como "falta" cuando pasa. Conviene que la ayuda explique cómo restablecerlo.
 - **[Windows]** Pantalla bloqueada, UAC y ventanas elevadas no se pueden controlar → Ajustes lo explica. Un servicio del sistema queda fuera de alcance.
 - **[Linux, Cinnamon 6.6.9 / muffin 6.6.3]** En el primer ensayo de `lan-check`, el shell de Cinnamon se cayó (SIGSEGV en `window_may_be_covered_by_above`, al atender una petición de activar una ventana). En ese momento la ventana de prueba, sin marco y siempre encima, tapaba el área de trabajo, y se abría la app del controlador. Linux Mint pasó al modo de emergencia (metacity y mate-panel). La ventana de prueba ya no va siempre encima, y no se ha repetido. `viewer-check`, que también usa el aviso siempre encima de la app, nunca lo provocó. → Vigilarlo en las pruebas con paquetes en Cinnamon (9.3), porque el aviso de la sesión también va siempre encima.
 - **[Linux Wayland]** No se admite como PC controlado → se detecta y se explica, sugiriendo una sesión X11.

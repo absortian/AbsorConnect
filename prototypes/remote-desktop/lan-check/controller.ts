@@ -399,20 +399,28 @@ async function run(): Promise<void> {
   let page = await reopen()
   started = Date.now()
   await page.eval(`(() => { document.getElementById('password').value = ${JSON.stringify(NEW_PC_PASSWORD)}; document.getElementById('login').requestSubmit() })()`)
+  // La pregunta sale en el PC sin bloquear la app: el PC sigue en línea mientras espera
+  let asked = false
+  for (let i = 0; i < 30 && !asked; i++) {
+    asked = (await pc('GET', '/state').catch(() => ({}))).confirm === true
+    if (!asked) await sleep(500)
+  }
   const declined = await page.waitFor<string>(`document.getElementById('message').classList.contains('error') ? document.getElementById('message').textContent : ''`, (t) => !!t, 60_000)
   const declinedAfter = Math.round((Date.now() - started) / 1000)
-  check('confirmación local: si nadie responde en 30 s, se rechaza', declined === 'En el PC han rechazado la conexión, o nadie la aceptó a tiempo.' && declinedAfter >= 28 && declinedAfter <= 45, { declined, seconds: declinedAfter })
+  check('confirmación local: sale la pregunta en el PC y, si nadie responde en 30 s, se rechaza', asked && declined === 'En el PC han rechazado la conexión, o nadie la aceptó a tiempo.' && declinedAfter >= 28 && declinedAfter <= 45, { asked, declined, seconds: declinedAfter })
 
-  if (human) {
-    await waitState(observer, device.id, 'available')
-    await pc('POST', '/say', { text: 'Ahora sí: cuando salga la pregunta de control remoto, pulsa «Permitir».' })
-    await page.eval(`document.getElementById('login').requestSubmit()`)
-    const allowed = await page.waitFor<boolean>(`document.getElementById('overlay').hidden && document.getElementById('status').textContent.includes('fps')`, (v) => v === true, 60_000)
-    check('confirmación local: al pulsar «Permitir» en el Mac se conecta', allowed === true, await page.eval('document.getElementById("message").textContent'))
-    await pc('POST', '/say', { text: 'Gracias. Ya casi está: no toques nada.' })
-  } else {
-    check('confirmación local: al pulsar «Permitir» se conecta', null, 'en este PC no hay nadie para pulsarlo; se prueba con el Mac como PC')
-  }
+  // «Permitir»: en el Mac lo pulsa la persona que está delante; en otro PC, la prueba por DevTools
+  await waitState(observer, device.id, 'available')
+  if (human) await pc('POST', '/say', { text: 'Ahora sí: cuando salga la pregunta de control remoto, pulsa «Permitir».' })
+  await page.eval(`document.getElementById('login').requestSubmit()`)
+  const pressed = human ? Promise.resolve(true) : pc<boolean>('POST', '/app', { action: 'confirm-allow' }).catch(() => false)
+  const allowed = await page.waitFor<boolean>(`document.getElementById('overlay').hidden && document.getElementById('status').textContent.includes('fps')`, (v) => v === true, 60_000)
+  check(
+    `confirmación local: al pulsar «Permitir»${human ? ' en el Mac' : ''} se conecta`,
+    allowed === true && (await pressed) === true,
+    { pressedBy: human ? 'persona' : 'la prueba (DevTools)', message: await page.eval('document.getElementById("message").textContent') }
+  )
+  if (human) await pc('POST', '/say', { text: 'Gracias. Ya casi está: no toques nada.' })
   await pc('POST', '/app', { action: 'confirm-off' })
 
   // --- Desconectar desde el visor y registro del PC ----------------------------------------------------------

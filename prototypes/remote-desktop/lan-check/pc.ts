@@ -49,8 +49,8 @@ const actions: { at: string; action: string; result: unknown }[] = []
 
 function sh(command: string, argv: string[], timeout = 10_000): Promise<string> {
   return new Promise((resolve) =>
-    execFile(command, argv, { timeout, encoding: 'utf8' }, (error, stdout) =>
-      resolve(error ? `ERROR ${error.message.slice(0, 200)}` : stdout.trim())
+    execFile(command, argv, { timeout, encoding: 'utf8' }, (error, stdout, stderr) =>
+      resolve(error ? `ERROR ${(stderr.trim() || error.message).slice(-300)}` : stdout.trim())
     )
   )
 }
@@ -96,10 +96,18 @@ async function inApp<T>(expression: string): Promise<T> {
   }
 }
 
+const NOTICE_TITLE = 'Absor Connect — aviso'
+const CONFIRM_TITLE = 'Absor Connect — confirmación'
+
+/** Ventana de la app de verdad por su título (el aviso de la sesión o la confirmación local). */
+async function windowByTitle(title: string): Promise<Page | null> {
+  const found = (await targets(APP_DEBUG_PORT)).find((t) => t.type === 'page' && t.title === title)
+  return found ? Page.open(found) : null
+}
+
 async function noticeTarget(): Promise<{ title: string; text: string } | null> {
-  const notice = (await targets(APP_DEBUG_PORT)).find((t) => t.type === 'page' && t.url.startsWith('data:text/html'))
-  if (!notice) return null
-  const page = await Page.open(notice)
+  const page = await windowByTitle(NOTICE_TITLE)
+  if (!page) return null
   try {
     return await page.eval<{ title: string; text: string }>(`({ title: document.title, text: document.body.innerText })`)
   } finally {
@@ -107,12 +115,16 @@ async function noticeTarget(): Promise<{ title: string; text: string } | null> {
   }
 }
 
-async function clickNoticeDisconnect(): Promise<boolean> {
-  const notice = (await targets(APP_DEBUG_PORT)).find((t) => t.type === 'page' && t.url.startsWith('data:text/html'))
-  if (!notice) return false
-  const page = await Page.open(notice)
+async function clickIn(title: string, button: string, waitMs = 0): Promise<boolean> {
+  const deadline = Date.now() + waitMs
+  let page = await windowByTitle(title)
+  while (!page && Date.now() < deadline) {
+    await sleep(500)
+    page = await windowByTitle(title)
+  }
+  if (!page) return false
   try {
-    await page.eval(`document.getElementById('disconnect').click()`).catch(() => undefined)
+    await page.eval(`document.getElementById(${JSON.stringify(button)}).click()`).catch(() => undefined)
     return true
   } finally {
     page.close()
@@ -130,8 +142,10 @@ async function keepAwake(): Promise<{ ids: string[]; detail: string }> {
   if (!child?.pid) return { ids: [], detail: 'sin app' }
   if (process.platform === 'darwin') {
     const out = await sh('pmset', ['-g', 'assertions'])
-    const lines = out.split('\n').filter((l) => l.includes(`pid ${child!.pid}(`) && /Prevent\w*SystemSleep/.test(l))
-    return { ids: lines.map((l) => l.match(/\[(0x[0-9a-f]+)\]/i)?.[1] ?? l.trim()), detail: lines.join(' | ') }
+    // 'prevent-app-suspension' es una aserción NoIdleSleepAssertion (o PreventUserIdleSystemSleep)
+    const own = out.split('\n').filter((l) => l.includes(`pid ${child!.pid}(`))
+    const lines = own.filter((l) => /NoIdleSleep|PreventUserIdleSystemSleep|PreventSystemSleep/.test(l))
+    return { ids: lines.map((l) => l.match(/\[(0x[0-9a-f]+)\]/i)?.[1] ?? l.trim()), detail: own.map((l) => l.trim()).join(' | ') }
   }
   if (process.platform === 'linux') {
     // Chromium lo pide al gestor de sesión (GNOME, Cinnamon…), con el ejecutable como AppId
@@ -258,6 +272,7 @@ async function state(): Promise<unknown> {
     displays,
     target: { bounds: target?.getBounds(), ...(await inTarget<object>('window.snapshot()').catch(() => ({}))) },
     notice: await noticeTarget().catch(() => null),
+    confirm: !!(await targets(APP_DEBUG_PORT)).find((t) => t.title === CONFIRM_TITLE),
     keepAwake: await keepAwake(),
     settings: settings?.state ? { enabled: settings.state.enabled, active: settings.state.active, confirmLocal: settings.state.confirmLocal, preventSleep: settings.state.preventSleep, features: settings.state.features, support: settings.state.support } : settings,
     log: settings?.state?.log ?? null
@@ -279,7 +294,10 @@ async function appAction(action: string, body: any): Promise<unknown> {
     case 'sleep-off':
       return inApp(`window.api.updateRemoteSettings({ preventSleep: ${action === 'sleep-on'} }).then((r) => r.ok)`)
     case 'notice-disconnect':
-      return clickNoticeDisconnect()
+      return clickIn(NOTICE_TITLE, 'disconnect')
+    case 'confirm-allow':
+      // Espera a que salga la pregunta (tras la contraseña correcta) y pulsa «Permitir»
+      return clickIn(CONFIRM_TITLE, 'allow', 30_000)
     default:
       throw new Error(`acción desconocida: ${action}`)
   }
