@@ -135,3 +135,21 @@ ELECTRON_RUN_AS_NODE=1 node_modules/electron/dist/electron prototypes/remote-des
 Lleva el ratón al 10 % de la pantalla, una zona que no tapa el visor: si no, el cursor que mueve A caería sobre el visor de B y volvería a A en bucle. No hace clics en el PC.
 
 Usa la misma cuenta de prueba que `controller-check`.
+
+## Prueba de Ajustes (`settings-check/`, tarea 6.2)
+
+La app compilada en un Linux X11, con el backend de desarrollo, manejada por DevTools como una persona. Prueba las secciones "Segundo plano" y "Control remoto de este PC": crear la contraseña, activar, cambiar el nombre y las funciones, cambiar la contraseña, ver el registro y desactivar. Lo que publica el PC lo comprueba en la API, con una segunda sesión de la misma cuenta.
+
+```bash
+bin/dev npx electron-vite build
+bin/dev sh -c 'cd prototypes/remote-desktop/settings-check && npx esbuild main.ts --bundle --platform=node --format=cjs --target=node22 --outfile=out/main.cjs'
+ELECTRON_RUN_AS_NODE=1 node_modules/electron/dist/electron prototypes/remote-desktop/settings-check/out/main.cjs --api=http://127.0.0.1:8020 --work=/tmp/absor-settings-check --out=/tmp/settings-check.json --screenshot=/tmp/settings.png
+```
+
+- Con `--screenshot` guarda dos capturas de la sección del control remoto: `settings.png` y `settings-2.png`.
+- No toca "Abrir al iniciar sesión", porque en Linux escribiría en `~/.config/autostart` del usuario real.
+- Al terminar espera a que la app se cierre (tarda unos 2,5 s), porque la siguiente ejecución usa la misma carpeta y el mismo puerto.
+
+`lib/cdp.ts` tiene lo común para manejar una ventana por DevTools: listar las páginas, evaluar código, esperar a que algo se cumpla y hacer capturas.
+
+Usa la misma cuenta de prueba que `controller-check`.
