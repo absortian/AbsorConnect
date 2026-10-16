@@ -182,4 +182,6 @@ ELECTRON_RUN_AS_NODE=1 node_modules/electron/dist/electron prototypes/remote-des
 
 Para ensayarla en un solo equipo, el PC se anuncia con `--advertise=127.0.0.1`. Así el controlador no lo descarta como propio.
 
+Para el sonido, el PC suena un pitido de 440 Hz durante un segundo y medio, y el controlador mide el nivel de lo que recibe con el visor en silencio. Si el PC es un Linux, la entrada "Monitor of …" de su salida tiene que estar al 100 %. Si está baja, el sonido llega en silencio (ver D8).
+
 Usa la misma cuenta de prueba que `controller-check`.

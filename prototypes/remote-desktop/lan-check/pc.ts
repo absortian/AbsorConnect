@@ -155,7 +155,11 @@ async function keepAwake(): Promise<{ ids: string[]; detail: string }> {
     for (const p of list.match(/'\/[^']+'/g)?.map((x) => x.slice(1, -1)) ?? []) {
       const q = (method: string): Promise<string> =>
         sh('gdbus', ['call', '--session', '--dest', 'org.gnome.SessionManager', '--object-path', p, '--method', `org.gnome.SessionManager.Inhibitor.${method}`])
-      if ((await q('GetAppId')).includes(process.execPath)) ids.push(`${p} flags=${(await q('GetFlags')).replace(/\D+/g, '')}`)
+      // El de powerSaveBlocker lleva el motivo "Electron"; Chromium pide otros propios (p. ej. al
+      // reproducir sonido), y en una prueba en un solo equipo todas las apps son el mismo ejecutable
+      if (!(await q('GetAppId')).includes(process.execPath)) continue
+      if (!(await q('GetReason')).includes("'Electron'")) continue
+      ids.push(`${p} flags=${(await q('GetFlags')).match(/uint32 (\d+)/)?.[1] ?? '?'}`)
     }
     return { ids, detail: `${ids.length} del ejecutable de Electron` }
   }
@@ -273,6 +277,9 @@ async function state(): Promise<unknown> {
     target: { bounds: target?.getBounds(), ...(await inTarget<object>('window.snapshot()').catch(() => ({}))) },
     notice: await noticeTarget().catch(() => null),
     confirm: !!(await targets(APP_DEBUG_PORT)).find((t) => t.title === CONFIRM_TITLE),
+    // Linux: la fuente virtual de sonido de la app (D8) existe solo durante la sesión
+    linuxAudioSource:
+      process.platform === 'linux' ? (await sh('pactl', ['list', 'short', 'sources'])).includes('absor_connect_audio') : null,
     keepAwake: await keepAwake(),
     settings: settings?.state ? { enabled: settings.state.enabled, active: settings.state.active, confirmLocal: settings.state.confirmLocal, preventSleep: settings.state.preventSleep, features: settings.state.features, support: settings.state.support } : settings,
     log: settings?.state?.log ?? null
@@ -293,6 +300,17 @@ async function appAction(action: string, body: any): Promise<unknown> {
     case 'sleep-on':
     case 'sleep-off':
       return inApp(`window.api.updateRemoteSettings({ preventSleep: ${action === 'sleep-on'} }).then((r) => r.ok)`)
+    case 'tone-on':
+      // Un pitido suave por la salida por defecto, para medir en el controlador que llega el sonido
+      return inTarget(`(async () => {
+        window.tone = new AudioContext()
+        const oscillator = window.tone.createOscillator(), gain = window.tone.createGain()
+        oscillator.frequency.value = 440; gain.gain.value = 0.15
+        oscillator.connect(gain).connect(window.tone.destination); oscillator.start()
+        await window.tone.resume(); return window.tone.state
+      })()`)
+    case 'tone-off':
+      return inTarget(`(async () => { await window.tone?.close(); window.tone = null; return true })()`)
     case 'notice-disconnect':
       return clickIn(NOTICE_TITLE, 'disconnect')
     case 'confirm-allow':

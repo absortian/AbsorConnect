@@ -290,21 +290,45 @@ async function run(): Promise<void> {
   const back = await viewer.waitFor<boolean>(`!document.fullscreenElement`, (v) => v === true, 5000)
   check('pantalla completa y vuelta', full === true && back === true, { full, back })
 
-  const audio = await viewer.eval<{ button: boolean; tracks: number; flowing: boolean }>(`(() => {
-    const [track] = document.getElementById('audio').srcObject?.getAudioTracks?.() ?? []
-    return { button: !document.getElementById('mute').hidden, tracks: track ? 1 : 0, flowing: !!track && !track.muted && track.readyState === 'live' }
-  })()`)
-  if (first.platform === 'linux') {
-    check(`llega el sonido del ${remoteSystem} y se puede silenciar`, null, { ...audio, note: 'en Linux el PC aún no envía sonido (fuente virtual con pactl pendiente, 4.8)' })
-  } else {
-    let muted: boolean | null = null
-    if (audio.button) {
-      await viewer.eval(`document.getElementById('mute').click()`)
-      muted = await viewer.eval<boolean>(`document.getElementById('audio').muted`)
-      await viewer.eval(`document.getElementById('mute').click()`)
-    }
-    check(`llega el sonido del ${remoteSystem} y se puede silenciar`, audio.button && audio.flowing && muted === true, { ...audio, muted })
+  // Sonido: el PC pita y aquí se mide el nivel de lo que llega (con el visor silenciado mientras se
+  // mide, para que no suene aquí ni vuelva al PC si los dos papeles están en el mismo equipo)
+  const level = (): Promise<number> =>
+    viewer.eval<number>(`(async () => {
+      const element = document.getElementById('audio'), stream = element.srcObject
+      if (!stream || stream.getAudioTracks().length === 0) return -1
+      const context = new AudioContext(), analyser = context.createAnalyser()
+      analyser.fftSize = 2048
+      context.createMediaStreamSource(stream).connect(analyser)
+      const samples = new Float32Array(analyser.fftSize)
+      let peak = 0
+      for (const end = Date.now() + 1500; Date.now() < end; ) {
+        analyser.getFloatTimeDomainData(samples)
+        for (const value of samples) peak = Math.max(peak, Math.abs(value))
+        await new Promise((resolve) => setTimeout(resolve, 50))
+      }
+      await context.close()
+      return Math.round(peak * 1000) / 1000
+    })()`)
+  const audio = await viewer.eval<{ button: boolean; noAudio: boolean }>(`({ button: !document.getElementById('mute').hidden, noAudio: !document.getElementById('no-audio').hidden })`)
+  const audioSource = (await pc('GET', '/state')).linuxAudioSource
+  await viewer.eval(`document.getElementById('audio').muted = true`)
+  const silent = await level()
+  await pc('POST', '/app', { action: 'tone-on' })
+  await sleep(500)
+  const tone = await level()
+  await pc('POST', '/app', { action: 'tone-off' })
+  await viewer.eval(`document.getElementById('audio').muted = false`)
+  let muted: boolean | null = null
+  if (audio.button) {
+    await viewer.eval(`document.getElementById('mute').click()`)
+    muted = await viewer.eval<boolean>(`document.getElementById('audio').muted`)
+    await viewer.eval(`document.getElementById('mute').click()`)
   }
+  check(
+    `llega el sonido del ${remoteSystem} (un pitido en el PC) y se puede silenciar`,
+    audio.button && tone > 0.02 && muted === true && (first.platform !== 'linux' || audioSource === true),
+    { ...audio, peakSilent: silent, peakTone: tone, muted, linuxAudioSource: audioSource }
+  )
 
   // --- Mantener despierto -------------------------------------------------------------------------
   const before = (await pc('GET', '/state')).keepAwake
@@ -430,6 +454,9 @@ async function run(): Promise<void> {
   check('"Desconectar" en el visor cierra la ventana y el PC queda disponible', gone && (await waitState(observer, device.id, 'available')) === 'available', { gone })
 
   const final = await pc('GET', '/state')
+  if (first.platform === 'linux') {
+    check('al terminar la sesión, la fuente de sonido virtual del PC desaparece', final.linuxAudioSource === false, final.linuxAudioSource)
+  }
   const types = (final.log ?? []).map((e: any) => e.type)
   check('el registro del PC anota las sesiones y el intento fallido', types.includes('session-start') && types.includes('session-end') && types.includes('auth-failed'), final.log?.slice(0, 12))
   ui.close()
