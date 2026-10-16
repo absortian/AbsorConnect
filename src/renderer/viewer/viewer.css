@@ -25,7 +25,9 @@ body {
   overflow: hidden;
   background: var(--bg);
   color: var(--text);
-  font: 13px system-ui, sans-serif;
+  font:
+    13px system-ui,
+    sans-serif;
 }
 
 body {
@@ -209,4 +211,206 @@ video {
 
 #connect[hidden] {
   display: none;
+}
+
+#clipboard.paused {
+  color: var(--muted);
+  border-style: dashed;
+}
+
+/* Soltar ficheros sobre la ventana */
+#drop {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 13, 19, 0.7);
+  border: 3px dashed var(--accent);
+  pointer-events: none;
+}
+
+#drop[hidden] {
+  display: none;
+}
+
+#drop-text {
+  padding: 14px 20px;
+  font-size: 16px;
+  background: var(--panel);
+  border-radius: 10px;
+}
+
+/* Explorador de carpetas del PC */
+#browser {
+  position: fixed;
+  top: 44px;
+  right: 0;
+  bottom: 0;
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  width: min(440px, 100vw);
+  background: var(--panel);
+  border-left: 1px solid var(--border);
+}
+
+#browser[hidden] {
+  display: none;
+}
+
+#browser header {
+  display: flex;
+  gap: 6px;
+  padding: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+#browser-path {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  padding: 4px 8px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+#browser-message {
+  margin: 0;
+  padding: 6px 10px;
+  color: var(--muted);
+}
+
+#browser-message:empty {
+  display: none;
+}
+
+#browser-message.error {
+  color: var(--danger);
+}
+
+#browser-list {
+  flex: 1;
+  margin: 0;
+  padding: 4px;
+  overflow: auto;
+  list-style: none;
+}
+
+#browser-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+#browser-list li:hover,
+#browser-list li:focus {
+  background: var(--bg);
+  outline: none;
+}
+
+#browser-list .name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#browser-list .size {
+  color: var(--muted);
+}
+
+/* Transferencias */
+#transfers {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: 11;
+  width: min(380px, calc(100vw - 24px));
+  max-height: 45vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+#transfers[hidden] {
+  display: none;
+}
+
+#transfers header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+#transfer-list {
+  margin: 0;
+  padding: 4px 10px 8px;
+  overflow: auto;
+  list-style: none;
+}
+
+#transfer-list li {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+#transfer-list li:last-child {
+  border-bottom: 0;
+}
+
+#transfer-list .line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+#transfer-list .name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#transfer-list .actions button {
+  padding: 2px 8px;
+}
+
+#transfer-list .bar {
+  height: 4px;
+  margin: 5px 0 3px;
+  background: var(--bg);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+#transfer-list .fill {
+  width: 0;
+  height: 100%;
+  background: var(--accent);
+}
+
+#transfer-list .state {
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+#transfer-list li.failed .state {
+  color: var(--danger);
+}
+
+#transfer-list li.failed .fill {
+  background: var(--danger);
 }

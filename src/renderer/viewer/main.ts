@@ -3,9 +3,11 @@
 // Una ventana por PC; cerrarla termina la sesión.
 import './viewer.css'
 import type { DisplayInfo } from '../../shared/remote/protocol'
+import { FilesUi, setupFilesUi } from './filesUi'
 import { attachInput, COMBOS, InputSink, sendCombo } from './input'
 import { Phase, Stats, ViewerSession } from './session'
 import { viewerTexts } from './texts'
+import { TransferView, ViewerTransfers } from './transfers'
 
 const $ = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T
 
@@ -44,40 +46,72 @@ async function main(): Promise<void> {
 
   let phase: Phase = 'idle'
   let stats: Stats = { route: null, rttMs: null, fps: null }
+  let files: FilesUi | null = null
+  let renderTransfer: (view: TransferView) => void = () => undefined
 
-  const session = new ViewerSession(window.absorViewer, {
-    phase: (next, detail) => {
-      phase = next
-      renderPhase(next, detail)
-    },
-    video: (stream) => {
-      video.srcObject = stream
-      void video.play().catch(() => undefined)
-    },
-    audio: (stream) => {
-      audio.srcObject = stream
-      void audio.play().catch(() => undefined)
-    },
-    displays: renderDisplays,
-    features: (features) => {
-      muteButton.hidden = !features.audio
-      noAudio.hidden = features.audio
-    },
-    stats: (next) => {
-      stats = next
-      renderStatus()
-    }
+  // Ficheros y portapapeles (D9): el canal `file` y el `control` de la conexión en marcha
+  const transfers = new ViewerTransfers({
+    bridge: window.absorViewer,
+    control: () => session.controlChannel,
+    onChange: (view) => renderTransfer(view)
   })
+  window.absorViewer.onClipboard((content) => void transfers.sendClipboard(content))
+
+  const session = new ViewerSession(
+    window.absorViewer,
+    {
+      phase: (next, detail) => {
+        phase = next
+        renderPhase(next, detail)
+      },
+      video: (stream) => {
+        video.srcObject = stream
+        void video.play().catch(() => undefined)
+      },
+      audio: (stream) => {
+        audio.srcObject = stream
+        void audio.play().catch(() => undefined)
+      },
+      displays: renderDisplays,
+      features: (features) => {
+        muteButton.hidden = !features.audio
+        noAudio.hidden = features.audio
+        files?.setFeatures(features)
+      },
+      stats: (next) => {
+        stats = next
+        renderStatus()
+      },
+      fileChannel: (channel) => (channel ? transfers.attach(channel) : transfers.detach()),
+      clipboard: (piece) => transfers.onClipboardPiece(piece)
+    },
+    { forceRelay: init.forceRelay }
+  )
+
+  const filesUi = setupFilesUi({
+    t,
+    pcName: init.deviceName,
+    transfers,
+    connected: () => phase === 'connected',
+    focusVideo: () => video.focus()
+  })
+  files = filesUi.ui
+  renderTransfer = filesUi.render
 
   const sink: InputSink = {
     pointer: (x, y) => session.sendPointer(x, y),
     input: (m) => session.sendInput(m)
   }
-  // El teclado va al PC salvo mientras se usa el selector de pantallas
+  // El teclado va al PC salvo mientras se usa el selector de pantallas o el explorador de carpetas
   attachInput(
     video,
     sink,
-    () => phase === 'connected' && overlay.hidden && document.activeElement?.tagName !== 'SELECT'
+    () =>
+      phase === 'connected' &&
+      overlay.hidden &&
+      !files?.browsing &&
+      document.activeElement?.tagName !== 'SELECT' &&
+      document.activeElement?.tagName !== 'INPUT'
   )
 
   function renderStatus(): void {
@@ -118,6 +152,7 @@ async function main(): Promise<void> {
         break
       case 'failed':
       case 'closed': {
+        files?.disable()
         overlay.hidden = false
         message.classList.add('error')
         message.textContent =

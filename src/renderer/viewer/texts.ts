@@ -23,6 +23,26 @@ export interface ViewerTexts {
   noAudio: string
   disconnect: string
   display: (n: number) => string
+  clipboardOn: string
+  clipboardPaused: string
+  sendFiles: string
+  download: string
+  dropHere: (pc: string) => string
+  up: string
+  close: string
+  loading: string
+  folderEmpty: string
+  drives: string
+  truncated: string
+  transfers: string
+  clearFinished: string
+  cancel: string
+  showInFolder: string
+  queued: string
+  sentAs: (name: string) => string
+  saved: string
+  cancelled: string
+  transferError: (code: string) => string
   closedBy: (reason: string) => string
   error: (code: string, retryAfter?: number) => string
 }
@@ -53,6 +73,38 @@ const es: ViewerTexts = {
   noAudio: 'Sonido no disponible en este equipo',
   disconnect: 'Desconectar',
   display: (n) => `Pantalla ${n}`,
+  clipboardOn: 'Portapapeles: activo',
+  clipboardPaused: 'Portapapeles: en pausa',
+  sendFiles: 'Enviar ficheros',
+  download: 'Descargar del equipo',
+  dropHere: (pc) => `Suelta los ficheros para enviarlos a ${pc}`,
+  up: 'Carpeta superior',
+  close: 'Cerrar',
+  loading: 'Cargando…',
+  folderEmpty: 'Carpeta vacía',
+  drives: 'Este equipo',
+  truncated: 'Solo se muestran los 5000 primeros.',
+  transfers: 'Transferencias',
+  clearFinished: 'Quitar las terminadas',
+  cancel: 'Cancelar',
+  showInFolder: 'Mostrar',
+  queued: 'En cola',
+  sentAs: (name) => `En el PC como «${name}»`,
+  saved: 'Guardado',
+  cancelled: 'Cancelado',
+  transferError: (code) =>
+    ({
+      disabled: 'El PC no permite enviar ni descargar ficheros',
+      not_found: 'No existe',
+      denied: 'Sin permiso',
+      is_directory: 'Es una carpeta',
+      io: 'Error al leer o escribir',
+      busy: 'Ya está en curso',
+      integrity: 'Ha llegado dañado',
+      size: 'El tamaño no coincide',
+      connection_lost: 'Se perdió la conexión',
+      read: 'No se ha podido leer el fichero'
+    })[code] ?? `Error (${code})`,
   closedBy: (reason) =>
     ({
       local: 'Se ha desconectado desde el PC.',
@@ -105,6 +157,38 @@ const en: ViewerTexts = {
   noAudio: 'Sound not available on this PC',
   disconnect: 'Disconnect',
   display: (n) => `Display ${n}`,
+  clipboardOn: 'Clipboard: on',
+  clipboardPaused: 'Clipboard: paused',
+  sendFiles: 'Send files',
+  download: 'Download from PC',
+  dropHere: (pc) => `Drop files to send them to ${pc}`,
+  up: 'Parent folder',
+  close: 'Close',
+  loading: 'Loading…',
+  folderEmpty: 'Empty folder',
+  drives: 'This PC',
+  truncated: 'Only the first 5000 are shown.',
+  transfers: 'Transfers',
+  clearFinished: 'Clear finished',
+  cancel: 'Cancel',
+  showInFolder: 'Show',
+  queued: 'Queued',
+  sentAs: (name) => `On the PC as "${name}"`,
+  saved: 'Saved',
+  cancelled: 'Cancelled',
+  transferError: (code) =>
+    ({
+      disabled: "The PC doesn't allow sending or downloading files",
+      not_found: 'Not found',
+      denied: 'Permission denied',
+      is_directory: "It's a folder",
+      io: 'Read or write error',
+      busy: 'Already in progress',
+      integrity: 'Arrived corrupted',
+      size: "The size doesn't match",
+      connection_lost: 'Connection lost',
+      read: 'The file could not be read'
+    })[code] ?? `Error (${code})`,
   closedBy: (reason) =>
     ({
       local: 'Disconnected from the PC.',

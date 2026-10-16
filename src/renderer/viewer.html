@@ -20,6 +20,10 @@
         <button id="combos" type="button"></button>
         <div id="combo-list" hidden></div>
       </div>
+      <button id="clipboard" type="button" hidden></button>
+      <button id="send-files" type="button" hidden></button>
+      <button id="download" type="button" hidden></button>
+      <input id="file-input" type="file" multiple hidden />
       <button id="mute" type="button" hidden></button>
       <span id="no-audio" hidden></span>
       <button id="disconnect" type="button" class="danger"></button>
@@ -28,6 +32,23 @@
       <video id="video" tabindex="-1" autoplay playsinline muted></video>
     </main>
     <audio id="audio" autoplay></audio>
+    <div id="drop" hidden><div id="drop-text"></div></div>
+    <aside id="browser" hidden>
+      <header>
+        <button id="browser-up" type="button">↑</button>
+        <input id="browser-path" type="text" spellcheck="false" autocomplete="off" />
+        <button id="browser-close" type="button">✕</button>
+      </header>
+      <p id="browser-message"></p>
+      <ul id="browser-list"></ul>
+    </aside>
+    <section id="transfers" hidden>
+      <header>
+        <strong id="transfers-title"></strong>
+        <button id="transfers-clear" type="button"></button>
+      </header>
+      <ul id="transfer-list"></ul>
+    </section>
     <div id="overlay">
       <form id="login">
         <h1 id="login-title"></h1>

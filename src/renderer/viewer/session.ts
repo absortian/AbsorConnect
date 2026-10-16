@@ -10,6 +10,7 @@ import {
   FeaturesMessage,
   PROTOCOL_VERSION
 } from '../../shared/remote/protocol'
+import { ClipboardPiece, parseClipboardPiece } from '../../shared/remote/transfer'
 
 export type Phase =
   | 'idle'
@@ -34,6 +35,15 @@ export interface SessionEvents {
   displays(displays: DisplayInfo[], current: string): void
   features(features: Omit<FeaturesMessage, 'v' | 'type'>): void
   stats(stats: Stats): void
+  /** Canal de ficheros de la conexión en marcha, o null cuando se cierra (D9). */
+  fileChannel(channel: RTCDataChannel | null): void
+  /** Trozo del portapapeles del PC. */
+  clipboard(piece: ClipboardPiece): void
+}
+
+export interface SessionOptions {
+  /** Solo candidatos de relé (TURN), para probar la conexión por relé. */
+  forceRelay?: boolean
 }
 
 /** Error con el código que la interfaz traduce (texts.ts). */
@@ -91,6 +101,7 @@ export class ViewerSession {
   private control: RTCDataChannel | null = null
   private input: RTCDataChannel | null = null
   private pointer: RTCDataChannel | null = null
+  private file: RTCDataChannel | null = null
   private statsTimer: ReturnType<typeof setInterval> | null = null
   private disconnectedTimer: ReturnType<typeof setTimeout> | null = null
   private closed = false
@@ -99,8 +110,14 @@ export class ViewerSession {
 
   constructor(
     private readonly bridge: AbsorViewerApi,
-    private readonly events: SessionEvents
+    private readonly events: SessionEvents,
+    private readonly options: SessionOptions = {}
   ) {}
+
+  /** Canal `control` de la conexión en marcha (el portapapeles va por él). */
+  get controlChannel(): RTCDataChannel | null {
+    return this.control
+  }
 
   get hasKey(): boolean {
     return this.key !== null
@@ -159,7 +176,10 @@ export class ViewerSession {
 
   private async attempt(password?: string): Promise<void> {
     this.teardown()
-    const pc = new RTCPeerConnection({ iceServers: await this.bridge.iceServers() })
+    const pc = new RTCPeerConnection({
+      iceServers: await this.bridge.iceServers(),
+      ...(this.options.forceRelay ? { iceTransportPolicy: 'relay' as const } : {})
+    })
     this.pc = pc
     pc.addTransceiver('video', { direction: 'recvonly' })
     pc.addTransceiver('audio', { direction: 'recvonly' })
@@ -168,6 +188,8 @@ export class ViewerSession {
     this.input = pc.createDataChannel(CHANNELS.input)
     // Solo importa la última posición: sin orden ni reenvíos (D9)
     this.pointer = pc.createDataChannel(CHANNELS.pointer, { ordered: false, maxRetransmits: 0 })
+    // Ficheros: fiable y ordenado, mensajes y trozos binarios por el mismo canal (D9)
+    this.file = pc.createDataChannel(CHANNELS.file)
     pc.ontrack = ({ track, streams }) => {
       const stream = streams[0] ?? new MediaStream([track])
       if (track.kind === 'video') this.events.video(stream)
@@ -186,6 +208,7 @@ export class ViewerSession {
     this.progress('authenticating')
     await this.authenticate(pc, control, offer, answer, password)
     this.watch(pc, control)
+    if (this.file) this.events.fileChannel(this.file)
   }
 
   private iceGatheringComplete(pc: RTCPeerConnection): Promise<void> {
@@ -288,6 +311,9 @@ export class ViewerSession {
           files: message.files === true,
           audio: message.audio === true
         })
+      } else if (message.type === 'clipboard') {
+        const piece = parseClipboardPiece(message)
+        if (piece) this.events.clipboard(piece)
       } else if (message.type === 'bye') {
         // El PC cerró la sesión a propósito: no se reconecta solo
         this.closed = true
@@ -367,7 +393,12 @@ export class ViewerSession {
     })
     const local = pair ? report.get(pair.localCandidateId) : undefined
     const remote = pair ? report.get(pair.remoteCandidateId) : undefined
-    const relayed = local?.candidateType === 'relay' || remote?.candidateType === 'relay'
+    // Un candidato aprendido a través del relé sale como `prflx`, pero con `relayProtocol` (que
+    // solo tienen los que pasan por un relé): también es relé
+    const relayed =
+      local?.candidateType === 'relay' ||
+      remote?.candidateType === 'relay' ||
+      typeof local?.relayProtocol === 'string'
     this.events.stats({
       route: pair ? (relayed ? 'relay' : 'direct') : null,
       rttMs:
@@ -389,6 +420,10 @@ export class ViewerSession {
     this.control = null
     this.input = null
     this.pointer = null
+    if (this.file) {
+      this.file = null
+      this.events.fileChannel(null)
+    }
     pc?.close()
   }
 }
