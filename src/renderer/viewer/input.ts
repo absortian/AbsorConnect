@@ -3,6 +3,9 @@
 // posición física (`KeyboardEvent.code`). Al perder el foco se sueltan todas (`release-all`), para que
 // ninguna se quede pulsada en el PC.
 
+/** Tiempo quieto tras el que la última posición se reenvía por el canal fiable. */
+const SETTLE_MS = 120
+
 export interface InputSink {
   pointer(x: number, y: number): void
   input(message: Record<string, unknown>): void
@@ -42,6 +45,13 @@ export function attachInput(
 ): () => void {
   let frame = 0
   let pending: { x: number; y: number } | null = null
+  // El canal `pointer` no reenvía lo que se pierde ni guarda el orden con `input`: la posición de
+  // cada clic y la última, cuando el ratón se queda quieto, van también por `input` (fiable y en
+  // orden con los botones). Si no, un paquete perdido deja el cursor en otro sitio y el clic cae
+  // donde no es.
+  let settle: ReturnType<typeof setTimeout> | undefined
+  const moveReliably = (at: { x: number; y: number }): void =>
+    sink.input({ type: 'move', x: at.x, y: at.y })
 
   const position = (event: MouseEvent): { x: number; y: number } | null => {
     const rect = video.getBoundingClientRect()
@@ -57,6 +67,9 @@ export function attachInput(
   const onMove = (event: MouseEvent): void => {
     if (!active()) return
     pending = position(event)
+    clearTimeout(settle)
+    const last = pending
+    if (last) settle = setTimeout(() => moveReliably(last), SETTLE_MS)
     if (frame) return
     frame = requestAnimationFrame(() => {
       frame = 0
@@ -68,7 +81,7 @@ export function attachInput(
     event.preventDefault()
     const at = position(event)
     if (event.type === 'mousedown' && !at) return
-    if (at) sink.pointer(at.x, at.y)
+    if (at) moveReliably(at)
     sink.input({ type: 'button', button: event.button, down: event.type === 'mousedown' })
   }
   const onWheel = (event: WheelEvent): void => {
@@ -102,6 +115,7 @@ export function attachInput(
   window.addEventListener('blur', releaseAll)
   document.addEventListener('visibilitychange', onVisibility)
   return () => {
+    clearTimeout(settle)
     video.removeEventListener('mousemove', onMove)
     video.removeEventListener('mousedown', onButton)
     window.removeEventListener('mouseup', onButton)
