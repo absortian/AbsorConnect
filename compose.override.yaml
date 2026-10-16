@@ -49,3 +49,29 @@ services:
       # del repo: bin/dev la fija; con `docker compose run` a mano, lánzalo desde la raíz.
       - .:${PWD}
     working_dir: ${PWD}
+
+  # Relé TURN para probar el control remoto por relé (add-remote-desktop D13), solo si se pide:
+  #   TURN_RELAY_IP=<IP de este equipo en la red local> docker compose --profile turn up -d turn
+  # y en backend/.env.local (después, `docker compose restart php`):
+  #   TURN_URLS=turn:<esa IP>:3478?transport=udp,turn:<esa IP>:3478?transport=tcp
+  #   TURN_SECRET=turn-de-desarrollo
+  # En la red de casa no se bloquean las IP privadas (en producción, sí: denied-peer-ip).
+  turn:
+    image: coturn/coturn:4.6.3
+    profiles: [turn]
+    network_mode: host
+    command:
+      - -n
+      - --log-file=stdout
+      - --listening-port=3478
+      - --listening-ip=${TURN_RELAY_IP:-}
+      - --relay-ip=${TURN_RELAY_IP:-}
+      - --min-port=49160
+      - --max-port=49200
+      - --realm=absor.local
+      - --use-auth-secret
+      - --static-auth-secret=turn-de-desarrollo
+      - --fingerprint
+      - --no-tls
+      - --no-dtls
+      - --no-cli
