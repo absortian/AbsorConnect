@@ -169,7 +169,7 @@ Dos equipos de la misma red con el backend de desarrollo de uno de ellos. Uno ha
   - Comprueba cada paso con la sonda del PC.
   - Al terminar llama a `/done`, y el PC termina también.
 
-Desde macOS, `lan-check/lan-test.sh http://<ip del otro equipo>:8020` hace las dos fases seguidas: primero el Mac es el PC y después el controlador. Si sale a la red por Wi-Fi, en la segunda fase la corta 10 s con `networksetup` para probar la reconexión. Deja el JSON en `~/Downloads/absor-lan-check-macos.json` y en el portapapeles. En la primera fase, la pregunta de confirmación local sale dos veces: la primera no se responde, y la segunda se responde con "Permitir". La ventana de prueba lo va diciendo.
+Desde macOS, `lan-check/lan-test.sh http://<ip del otro equipo>:8020` hace las dos fases seguidas: primero el Mac es el PC y después el controlador. Con `pc` o `controlador` como segundo argumento, hace solo esa fase. Si sale a la red por Wi-Fi, en la segunda fase la corta 10 s con `networksetup` para probar la reconexión. Deja el JSON en `~/Downloads/absor-lan-check-macos.json` y en el portapapeles. En la primera fase, la pregunta de confirmación local sale dos veces: la primera no se responde, y la segunda se responde con "Permitir". La ventana de prueba lo va diciendo.
 
 En el Linux, los dos papeles a la vez, en segundo plano. El backend escucha en todas las interfaces (`0.0.0.0:8020`):
 
