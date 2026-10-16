@@ -12,7 +12,7 @@
 //     aviso, bandeja, bloqueo de suspensión, registro) y acciones en la app (desactivar, cambiar la
 //     contraseña, confirmación local, mantener despierto, "Desconectar" del aviso).
 //   - Termina cuando el controlador llama a /done, o a los --minutes minutos.
-import { app, BrowserWindow, screen, systemPreferences } from 'electron'
+import { app, BrowserWindow, desktopCapturer, screen, systemPreferences } from 'electron'
 import { ChildProcess, execFile, spawn } from 'child_process'
 import * as fs from 'fs'
 import * as http from 'http'
@@ -354,8 +354,32 @@ async function macPermissionsDiagnosis(): Promise<{ app: string; chain: string[]
   }
 }
 
+/**
+ * Sin Grabación de pantalla, la pide a macOS (como el botón de Ajustes: aparece su aviso y la app
+ * responsable entra en la lista del panel) y espera a que se conceda, para no tener que relanzar.
+ */
+async function requestMacScreen(): Promise<void> {
+  if (process.platform !== 'darwin' || systemPreferences.getMediaAccessStatus('screen') === 'granted') return
+  const { app: responsible } = await macPermissionsDiagnosis()
+  console.log(`\n==> «${responsible}» no tiene permiso de Grabación de pantalla. Se lo pido a macOS:`)
+  console.log(`    si sale su aviso, pulsa «Abrir Ajustes del Sistema» y activa «${responsible}» en`)
+  console.log('    Grabación de pantalla y audio del sistema. Si no sale, abre ese panel y actívalo a mano.')
+  console.log(`    Si macOS pide salir y volver a abrir «${responsible}», hazlo y lanza la prueba otra vez.\n`)
+  void desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: 1, height: 1 } }).catch(() => undefined)
+  const deadline = Date.now() + 3 * 60_000
+  while (Date.now() < deadline) {
+    await sleep(2000)
+    if (systemPreferences.getMediaAccessStatus('screen') === 'granted') {
+      note('el permiso de Grabación de pantalla se ha concedido durante la prueba')
+      return
+    }
+  }
+  note('tras pedirlo, el permiso de Grabación de pantalla sigue sin conceder')
+}
+
 async function run(): Promise<void> {
   if (!WORK) throw new Error('Falta --work')
+  await requestMacScreen()
   await prepareApp()
   launchApp()
   await waitTarget(APP_DEBUG_PORT, (t) => t.url.endsWith('index.html'), 60_000)
@@ -368,7 +392,7 @@ async function run(): Promise<void> {
     const responsible = process.platform === 'darwin' ? (report as any).permissions.app : 'Terminal'
     throw new Error(
       missing.length > 0
-        ? `Faltan permisos de macOS: ${missing.join(' y ')}. macOS se los pide a «${responsible}», la app desde la que se lanza la prueba: concédeselos en Ajustes del Sistema > Privacidad y seguridad, cierra «${responsible}» del todo (Cmd+Q) y vuelve a lanzar la prueba.`
+        ? `Faltan permisos de macOS: ${missing.join(' y ')}. macOS se los pide a «${responsible}», la app desde la que se lanza la prueba: concédeselos en Ajustes del Sistema > Privacidad y seguridad, cierra «${responsible}» del todo (Cmd+Q) y vuelve a lanzar la prueba. Si ya aparece activado y aun así falla, el permiso está caducado: bórralo con «tccutil reset ScreenCapture» y el identificador de la app (com.apple.Terminal para Terminal) y vuelve a concederlo.`
         : `Este equipo no se puede controlar: ${JSON.stringify(support)}`
     )
   }
