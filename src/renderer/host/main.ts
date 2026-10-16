@@ -14,8 +14,11 @@ const host = window.absorHost
 
 /** Como mucho se esperan los candidatos (vanilla ICE: oferta y respuesta completas, D3). */
 const ICE_GATHERING_TIMEOUT_MS = 4000
-/** Un corte de red breve lo recupera ICE; más tiempo desconectado termina la sesión. */
-const DISCONNECTED_GRACE_MS = 30_000
+/**
+ * Un corte breve lo recupera ICE. Si sigue desconectada 5 s se termina: el controlador repite la
+ * negociación con la misma K (D3), y esta sesión no debe dejar el PC "ocupado" mientras tanto.
+ */
+const DISCONNECTED_GRACE_MS = 5_000
 
 let pc: RTCPeerConnection | null = null
 let control: RTCDataChannel | null = null
@@ -32,6 +35,8 @@ host.onStart((init: HostInit) => {
     return
   }
   features = init.features
+  // Latido para el proceso principal: si esta ventana se cuelga, la sesión se cierra igualmente
+  setInterval(() => host.alive(), 2000)
   startSession(init.offer, init.iceServers).catch((error) => fail('ended', error))
 })
 

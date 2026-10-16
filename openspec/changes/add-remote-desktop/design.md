@@ -319,6 +319,34 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
 - **Estado:** `getStats()` da el par de candidatos activo (`relay` frente a `host`/`srflx`), el `roundTripTime` y `framesPerSecond`.
 - **Ficheros:** las transferencias tienen su propia lista en la ventana. Los ficheros soltados se leen en el renderer con `File` y `stream()`.
 
+- **Hecho (tareas 4.9, 6.4 y la base de la 6.5).**
+  - **Proceso principal (`controllerRuntime.ts`):**
+    - la ventana principal tiene `remote-devices`, que lista los equipos y marca el propio con `ownDeviceId`, y `remote-open-viewer`, que abre una ventana por PC (si ya está abierta, la enfoca);
+    - las ventanas de visor tienen `remote-viewer:*`: `init`, ICE, crear la solicitud y consultarla, con los errores convertidos en códigos;
+    - esos canales solo atienden a las ventanas de visor registradas, y el token no sale del proceso principal;
+    - las ventanas de visor quedan fuera de `watchWindowShortcuts`: se comprueba en el siguiente ciclo, porque `browser-window-created` llega antes de registrarlas.
+  - **Visor (`src/renderer/viewer/`, sin React, con sus textos `es`/`en`):**
+    - pide la contraseña y explica cada fallo con su mensaje;
+    - imagen ajustada o a tamaño real con desplazamiento, y pantalla completa con `keyboard.lock()`;
+    - ratón, rueda y teclado por `code`, con las posiciones normalizadas descontando las bandas y un movimiento por fotograma como mucho;
+    - `release-all` al perder el foco y menú de combinaciones;
+    - selector de pantallas, silencio del sonido y estado (directa o relé, latencia y fps con `getStats`);
+    - reconexión con K durante 30 s cuando la conexión falla o sigue desconectada 5 s. Mientras dura, se muestra "Reconectando".
+  - **Equipos (`DevicesPanel`):** un panel como el de Ajustes, con cada PC, su sistema y su estado. Se actualiza cada 5 s mientras está abierto, marca el propio PC y solo deja conectar a los disponibles.
+  - **Cambios en el PC controlado** para que la reconexión funcione:
+    - la ventana `host` termina la sesión tras 5 s desconectada, y no 30, porque si no la nueva negociación recibía "ocupado";
+    - si el renderer de la sesión muere (`render-process-gone`) o deja de dar su latido cada 2 s durante 10 s, se cierra la sesión. Tras un `Page.crash`, Chromium tardó más de un minuto en dar el renderer por perdido, y mientras tanto el PC seguía "ocupado".
+  - **Verificado** con `prototypes/remote-desktop/viewer-check`: dos instancias de la app en un Linux X11 (A oculta como PC, B como controlador, manejada por DevTools como una persona) y el backend de desarrollo. Pasa 12/12:
+    - Equipos muestra A disponible y B como "este equipo";
+    - el token no aparece en ninguna respuesta a la ventana principal ni al visor, y el visor no tiene `window.api`;
+    - el título es el nombre del PC;
+    - una contraseña incorrecta da su mensaje;
+    - con la correcta, la sesión se abre en 1,5 s con 3840×2160 y "Directa · 1 ms · 30 fps", y sin selector con una sola pantalla;
+    - el ratón llega exacto al 10 % / 10 %;
+    - tras un `Page.crash` del renderer de A, el PC vuelve a estar disponible a los 9 s y el visor reconecta solo a los 17 s, sin pedir la contraseña;
+    - Desconectar cierra la ventana y deja el PC disponible.
+  - **Falta (resto de la 6.5):** portapapeles, ficheros, la prueba por relé (sin TURN en desarrollo), el corte de red real de 10 s y la prueba entre dos equipos distintos.
+
 ### D12. App móvil
 - **WebRTC:** `flutter_webrtc` (`RTCPeerConnection`, `RTCVideoView`, canales de datos). Mismo protocolo (D9).
 - **PBKDF2:** paquete `cryptography`, en un isolate. Las iteraciones vienen en `hello`, así que se pueden ajustar sin cambiar el protocolo. En el escritorio, 600 000 iteraciones tardan unos 58 ms tanto en WebCrypto como en Node (prototipo 1.4, Ryzen con Linux); falta medir los móviles.

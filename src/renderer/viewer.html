@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Absor Connect</title>
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; media-src 'self' blob: mediastream:"
+    />
+  </head>
+  <body>
+    <header id="toolbar">
+      <strong id="pc-name"></strong>
+      <span id="status"></span>
+      <span class="spacer"></span>
+      <select id="displays" hidden></select>
+      <button id="scale" type="button"></button>
+      <button id="fullscreen" type="button"></button>
+      <div class="menu">
+        <button id="combos" type="button"></button>
+        <div id="combo-list" hidden></div>
+      </div>
+      <button id="mute" type="button" hidden></button>
+      <span id="no-audio" hidden></span>
+      <button id="disconnect" type="button" class="danger"></button>
+    </header>
+    <main id="stage" class="fit">
+      <video id="video" tabindex="-1" autoplay playsinline muted></video>
+    </main>
+    <audio id="audio" autoplay></audio>
+    <div id="overlay">
+      <form id="login">
+        <h1 id="login-title"></h1>
+        <p id="message"></p>
+        <input id="password" type="password" autocomplete="off" />
+        <button id="connect" type="submit"></button>
+      </form>
+    </div>
+    <script type="module" src="/viewer/main.ts"></script>
+  </body>
+</html>

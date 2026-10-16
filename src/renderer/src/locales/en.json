@@ -237,5 +237,32 @@
     "deleteWarning": "Your account and all your saved connections will be deleted, on all your computers. This cannot be undone.",
     "deletePassword": "Type your password to confirm",
     "deleteConfirm": "Delete my account"
+  },
+  "devices": {
+    "title": "Devices",
+    "close": "Close",
+    "hint": "The PCs in your account running Absor Connect. To control one, it must be online with remote control turned on; you will be asked for its password.",
+    "empty": "There are no devices in the account yet.",
+    "self": "this device",
+    "connect": "Connect",
+    "open": "Devices",
+    "platform": {
+      "windows": "Windows",
+      "macos": "macOS",
+      "linux": "Linux"
+    },
+    "state": {
+      "available": "Available",
+      "busy": "Busy: another device is controlling it",
+      "disabled": "Remote control off",
+      "missing_permissions": "Missing system permissions",
+      "unsupported": "Its system doesn't allow remote control",
+      "offline": "Offline"
+    },
+    "errors": {
+      "generic": "Could not load the device list.",
+      "network_error": "No connection to the service.",
+      "remote_unavailable": "Remote control is not available on the service right now."
+    }
   }
 }

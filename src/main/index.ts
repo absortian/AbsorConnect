@@ -64,6 +64,7 @@ import {
 import * as fs from 'fs/promises'
 import * as os from 'os'
 import { startRemoteHost, stopRemoteHost } from './remote/hostRuntime'
+import { isViewerWindow, setupControllerIpc } from './remote/controllerRuntime'
 
 // Si la ventana principal se cerró (no ocultó): solo entonces cerrar la última ventana termina la
 // app. Las ventanas ocultas de las sesiones de control remoto y su aviso no cuentan: con la app
@@ -136,8 +137,14 @@ app.whenReady().then(async () => {
   // and ignore CommandOrControl + R in production.
   // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
   app.on('browser-window-created', (_, window) => {
-    optimizer.watchWindowShortcuts(window)
+    // Las ventanas de visor quedan fuera: Ctrl+R o F12 deben llegar al PC remoto (D11). El visor se
+    // registra justo después de crear su ventana, así que se mira en el siguiente ciclo
+    setImmediate(() => {
+      if (!window.isDestroyed() && !isViewerWindow(window)) optimizer.watchWindowShortcuts(window)
+    })
   })
+  // Control remoto de otros PCs: lista de equipos y ventanas de visor (el token no sale de aquí)
+  setupControllerIpc()
 
   // Cuenta en la nube: las conexiones se leen y guardan en la API (src/main/cloud/)
   setUnauthorizedHandler(expireSession)

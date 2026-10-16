@@ -1,0 +1,212 @@
+:root {
+  --bg: #11151d;
+  --panel: #1b2230;
+  --border: #2c3647;
+  --text: #e6e9ef;
+  --muted: #9aa4b5;
+  --accent: #5b8def;
+  --danger: #e5484d;
+  color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  --bg: #f3f5f8;
+  --panel: #ffffff;
+  --border: #d6dbe3;
+  --text: #1d2433;
+  --muted: #5d6778;
+  color-scheme: light;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font: 13px system-ui, sans-serif;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+#toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  flex: none;
+}
+
+#toolbar .spacer {
+  flex: 1;
+}
+
+#status {
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+button,
+select {
+  font: inherit;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+button:hover {
+  border-color: var(--accent);
+}
+
+button.danger {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.menu {
+  position: relative;
+}
+
+#combo-list {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  min-width: 160px;
+  padding: 4px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+#combo-list[hidden] {
+  display: none;
+}
+
+#combo-list button {
+  border: 0;
+  text-align: left;
+}
+
+#no-audio {
+  color: var(--muted);
+}
+
+#stage {
+  flex: 1;
+  min-height: 0;
+  background: #000;
+}
+
+#stage.fit {
+  overflow: hidden;
+}
+
+#stage.fit video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Tamaño real: un píxel de la imagen por píxel CSS, con desplazamiento */
+#stage.real {
+  overflow: auto;
+}
+
+#stage.real video {
+  display: block;
+}
+
+video {
+  outline: none;
+  cursor: default;
+}
+
+:fullscreen #toolbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+:fullscreen #toolbar:hover {
+  opacity: 1;
+}
+
+#overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 13, 19, 0.82);
+  z-index: 20;
+}
+
+#overlay[hidden] {
+  display: none;
+}
+
+#login {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(360px, 90vw);
+  padding: 22px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+#login h1 {
+  margin: 0;
+  font-size: 17px;
+}
+
+#message {
+  margin: 0;
+  color: var(--muted);
+  min-height: 1.2em;
+}
+
+#message.error {
+  color: var(--danger);
+}
+
+#password {
+  font: inherit;
+  padding: 8px 10px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+#password[hidden] {
+  display: none;
+}
+
+#connect {
+  padding: 8px;
+  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+#connect[hidden] {
+  display: none;
+}

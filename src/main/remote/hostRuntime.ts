@@ -18,6 +18,7 @@ import { createSafeBox } from './safeBox'
 
 let service: HostService | null = null
 let store: RemoteAccessStore | null = null
+let identity: DeviceIdentity | null = null
 let keepAwakeId: number | null = null
 
 function setKeepAwake(on: boolean): void {
@@ -42,7 +43,8 @@ export async function startRemoteHost(): Promise<void> {
   const userData = app.getPath('userData')
   const box = createSafeBox()
   store = new RemoteAccessStore(join(userData, 'remote-access.json'), box, os.hostname())
-  const identity = new DeviceIdentity(join(userData, 'device.json'), box)
+  const deviceIdentity = new DeviceIdentity(join(userData, 'device.json'), box)
+  identity = deviceIdentity
   const api = new DeviceApi(() => currentSession()?.token ?? null)
   const hostStore = store
   const monitor = createSupportMonitor({
@@ -53,7 +55,7 @@ export async function startRemoteHost(): Promise<void> {
 
   service = new HostService({
     api,
-    identity,
+    identity: deviceIdentity,
     store: hostStore,
     support: (enabled) => monitor.check({ quiet: !enabled }),
     signedIn: () => currentSession() !== null,
@@ -83,7 +85,15 @@ export async function stopRemoteHost(reason: HostCloseReason = 'stopped'): Promi
   await current?.stop(reason)
 }
 
-/** Para Ajustes (tarea 6.2) y el cierre de sesión (4.10). */
-export function remoteHost(): { service: HostService | null; store: RemoteAccessStore | null } {
-  return { service, store }
+/** Para Ajustes (tarea 6.2), el cierre de sesión (4.10) y la lista de equipos (marcar este PC). */
+export function remoteHost(): {
+  service: HostService | null
+  store: RemoteAccessStore | null
+  ownDeviceId: () => Promise<string | null>
+} {
+  return {
+    service,
+    store,
+    ownDeviceId: async () => (identity ? (await identity.get()).id : null)
+  }
 }

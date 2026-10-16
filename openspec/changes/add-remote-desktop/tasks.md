@@ -41,7 +41,7 @@
   - corte al desactivar o al cambiar la contraseña.
 
   Verificar con dos equipos los escenarios de `remote-access-host` de activación, una sesión a la vez, aviso y corte, confirmación local y mantener despierto.
-- [ ] 4.9 IPC del controlador: canales `remote-*` (equipos, servidores ICE, crear y consultar solicitudes) que solo aceptan llamadas de ventanas de visor, y apertura del visor fuera de `watchWindowShortcuts` (D11). Verificar en desarrollo, registrando los mensajes IPC, que el token no llega a ningún renderer.
+- [x] 4.9 IPC del controlador: canales `remote-*` (equipos, servidores ICE, crear y consultar solicitudes) que solo aceptan llamadas de ventanas de visor, y apertura del visor fuera de `watchWindowShortcuts` (D11). Verificar en desarrollo, registrando los mensajes IPC, que el token no llega a ningún renderer.
 - [ ] 4.10 Al cerrar la sesión de la cuenta o perderla: cortar las sesiones remotas (en los dos papeles), hacer `DELETE` del equipo y parar el servicio, con notificación si ocurre en segundo plano. Verificar los dos escenarios nuevos de `app-session`.
 
 ## 5. Preload (`src/preload`)
@@ -70,7 +70,7 @@
   - sonido.
 
   Verificar con tests del protocolo (se descarta lo recibido antes de autenticar, nombres libres, integridad) y a mano con el visor.
-- [ ] 6.4 Sección "Equipos" en la ventana principal: estado de cada PC, actualización automática y diálogo de contraseña. Verificar los escenarios de "Equipos de la cuenta".
+- [x] 6.4 Sección "Equipos" en la ventana principal: estado de cada PC, actualización automática y diálogo de contraseña. Verificar los escenarios de "Equipos de la cuenta".
 - [ ] 6.5 Visor (D11):
   - errores por código;
   - imagen ajustada, a tamaño real y a pantalla completa;

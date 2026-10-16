@@ -9,6 +9,7 @@ import {
   SignInResult,
   SshConnection
 } from '../shared/types'
+import { AccountDevicesResult } from '../shared/remote/viewerBridge'
 
 interface UpdateStatusEvent {
   status: 'checking' | 'available' | 'up-to-date' | 'downloading' | 'downloaded' | 'error'
@@ -24,6 +25,8 @@ declare global {
     electron: ElectronAPI
     api: {
       getSession: () => Promise<SessionState>
+      remoteDevices: () => Promise<AccountDevicesResult>
+      openViewer: (deviceId: string, deviceName: string) => Promise<boolean>
       login: (email: string, password: string) => Promise<SignInResult>
       register: (email: string, password: string) => Promise<SignInResult>
       logout: () => Promise<CloudResult>

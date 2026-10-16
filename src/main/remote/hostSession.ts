@@ -37,6 +37,12 @@ const FULL_DESKTOP_SOURCE = { id: 'screen:-1:0', name: 'Screen' }
 const ANSWER_TIMEOUT_MS = 15_000
 const AUTH_TIMEOUT_MS = 60_000
 const CAPTURE_TIMEOUT_MS = 15_000
+/**
+ * La ventana `host` avisa cada 2 s. Sin aviso en 10 s su renderer está colgado o muerto (Chromium
+ * puede tardar más de un minuto en darlo por perdido): se cierra la sesión para que el PC no se
+ * quede "ocupado" y el controlador pueda reconectar.
+ */
+const HEARTBEAT_TIMEOUT_MS = 10_000
 /** Tiempo para que la ventana se despida del controlador antes de destruirla. */
 const CLOSE_GRACE_MS = 400
 
@@ -72,6 +78,8 @@ class ActiveHostSession implements HostSession {
   private closed = false
   private isStarted = false
   private timer: ReturnType<typeof setTimeout> | null = null
+  private heartbeat: ReturnType<typeof setInterval> | null = null
+  private lastAlive = Date.now()
   private resolveAnswer!: (sdp: string) => void
   private readonly answerReceived: Promise<string>
   private resolveStarted!: () => void
@@ -103,6 +111,17 @@ class ActiveHostSession implements HostSession {
     this.answer = await Promise.race([this.answerReceived, timeout])
     this.auth = new HostAuth(this.ctx.store, this.request.offer, this.answer)
     this.setTimer(AUTH_TIMEOUT_MS, 'expired')
+  }
+
+  alive(): void {
+    this.lastAlive = Date.now()
+  }
+
+  watchHeartbeat(): void {
+    this.lastAlive = Date.now()
+    this.heartbeat = setInterval(() => {
+      if (Date.now() - this.lastAlive > HEARTBEAT_TIMEOUT_MS) this.close('ended')
+    }, 2000)
   }
 
   onAnswer(sdp: unknown): void {
@@ -198,11 +217,15 @@ class ActiveHostSession implements HostSession {
     if (this.closed) return
     this.closed = true
     this.clearTimer()
+    if (this.heartbeat) clearInterval(this.heartbeat)
     this.notice?.close()
     void this.input?.dispose()
     this.input = null
     if (!this.isStarted) this.rejectStarted(new Error(reason))
-    if (!this.window.isDestroyed()) this.window.webContents.send(HOST_IPC.close, reason)
+    // Si el renderer murió no hay a quién avisar (y enviarle algo deja un error en el registro)
+    if (!this.window.isDestroyed() && !this.window.webContents.isCrashed()) {
+      this.window.webContents.send(HOST_IPC.close, reason)
+    }
     setTimeout(() => {
       sessions.delete(this.contentsId)
       if (!this.window.isDestroyed()) this.window.destroy()
@@ -248,6 +271,7 @@ function setupIpc(): void {
   )
   ipcMain.on(HOST_IPC.captureStarted, (event) => void sessionFor(event)?.captureStarted())
   ipcMain.on(HOST_IPC.input, (event, message) => sessionFor(event)?.applyInput(message))
+  ipcMain.on(HOST_IPC.alive, (event) => sessionFor(event)?.alive())
   ipcMain.on(HOST_IPC.ended, (event, reason) =>
     sessionFor(event)?.close(typeof reason === 'string' ? reason.slice(0, 32) : 'ended')
   )
@@ -342,6 +366,8 @@ export async function openHostSession(
   const session = new ActiveHostSession(window, request, ctx, features, snapshot.deviceName)
   sessions.set(session.contentsId, session)
   window.on('closed', () => session.close('ended'))
+  // Si el proceso de la ventana muere, la sesión no puede seguir: el PC deja de estar ocupado
+  window.webContents.on('render-process-gone', () => session.close('ended'))
   try {
     await loadHostPage(window)
     window.webContents.send(HOST_IPC.start, {
@@ -355,6 +381,7 @@ export async function openHostSession(
     session.close('ended')
     throw error
   }
+  session.watchHeartbeat()
   return session
 }
 

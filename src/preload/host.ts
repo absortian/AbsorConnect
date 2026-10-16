@@ -18,6 +18,7 @@ const api: AbsorHostApi = {
   captureStarted: () => ipcRenderer.send(HOST_IPC.captureStarted),
   input: (message) => ipcRenderer.send(HOST_IPC.input, message),
   ended: (reason) => ipcRenderer.send(HOST_IPC.ended, reason),
+  alive: () => ipcRenderer.send(HOST_IPC.alive),
   log: (message) => ipcRenderer.send(HOST_IPC.log, message)
 }
 

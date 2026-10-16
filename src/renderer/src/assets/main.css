@@ -764,3 +764,22 @@ body, html, #root {
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
   background-color: var(--bg-sidebar);
 }
+
+/* Equipos de la cuenta (control remoto) */
+.devices-self {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.devices-state-available {
+  color: #3fb950;
+}
+
+.devices-state-busy,
+.devices-state-missing_permissions {
+  color: #d29922;
+}
+
+.devices-error {
+  color: #e5484d;
+}

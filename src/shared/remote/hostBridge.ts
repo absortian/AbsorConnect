@@ -38,6 +38,8 @@ export interface AbsorHostApi {
   input(message: unknown): void
   /** La conexión terminó por su cuenta (el controlador se fue, se perdió la red…). */
   ended(reason: string): void
+  /** Latido cada 2 s: sin él, el proceso principal da la ventana por colgada y cierra la sesión. */
+  alive(): void
   log(message: string): void
 }
 
@@ -52,5 +54,6 @@ export const HOST_IPC = {
   captureStarted: 'remote-host:capture-started',
   input: 'remote-host:input',
   ended: 'remote-host:ended',
+  alive: 'remote-host:alive',
   log: 'remote-host:log'
 } as const

@@ -237,5 +237,32 @@
     "deleteWarning": "Se borrarán tu cuenta y todas tus conexiones guardadas, en todos tus equipos. No se puede deshacer.",
     "deletePassword": "Escribe tu contraseña para confirmar",
     "deleteConfirm": "Borrar mi cuenta"
+  },
+  "devices": {
+    "title": "Equipos",
+    "close": "Cerrar",
+    "hint": "Los PCs de tu cuenta con Absor Connect. Para controlar uno, tiene que estar en línea y con el control remoto activado; te pedirá su contraseña.",
+    "empty": "Todavía no hay equipos en la cuenta.",
+    "self": "este equipo",
+    "connect": "Conectar",
+    "open": "Equipos",
+    "platform": {
+      "windows": "Windows",
+      "macos": "macOS",
+      "linux": "Linux"
+    },
+    "state": {
+      "available": "Disponible",
+      "busy": "Ocupado: otro equipo lo está controlando",
+      "disabled": "Control remoto desactivado",
+      "missing_permissions": "Faltan permisos del sistema",
+      "unsupported": "Su sistema no permite controlarlo",
+      "offline": "Sin conexión"
+    },
+    "errors": {
+      "generic": "No se ha podido cargar la lista de equipos.",
+      "network_error": "Sin conexión con el servicio.",
+      "remote_unavailable": "El control remoto no está disponible ahora mismo en el servicio."
+    }
   }
 }

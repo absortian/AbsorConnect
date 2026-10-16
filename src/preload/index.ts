@@ -11,6 +11,10 @@ import {
 const api = {
   // Cuenta en la nube: el token se queda en el proceso principal
   getSession: () => ipcRenderer.invoke('get-session'),
+  // Control remoto: equipos de la cuenta y ventanas de visor (el token se queda en el proceso principal)
+  remoteDevices: () => ipcRenderer.invoke('remote-devices'),
+  openViewer: (deviceId: string, deviceName: string) =>
+    ipcRenderer.invoke('remote-open-viewer', deviceId, deviceName),
   login: (email: string, password: string) => ipcRenderer.invoke('login', email, password),
   register: (email: string, password: string) => ipcRenderer.invoke('register', email, password),
   logout: () => ipcRenderer.invoke('logout'),

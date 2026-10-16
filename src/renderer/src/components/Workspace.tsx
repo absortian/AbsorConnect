@@ -1,12 +1,13 @@
 import { useState, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Menu, Settings, SquareTerminal, FolderOpen, X } from 'lucide-react'
+import { Menu, Monitor, Settings, SquareTerminal, FolderOpen, X } from 'lucide-react'
 import ConnectionsSidebar from './ConnectionsSidebar'
 import S3Explorer from './S3Explorer'
 import SftpExplorer from './SftpExplorer'
 import LocalExplorer from './LocalExplorer'
 import TransferQueueBar from './TransferQueueBar'
 import SettingsPanel from './SettingsPanel'
+import DevicesPanel from './DevicesPanel'
 import TerminalView from './TerminalView'
 import { Connection, RemoteLocation, SshConnection } from '../../../shared/types'
 import logo from '../assets/icon.png'
@@ -32,6 +33,7 @@ export default function Workspace({ email, theme, onThemeChange, onSignedOut }: 
   const [remoteLocation, setRemoteLocation] = useState<RemoteLocation | null>(null)
   const [localCurrentPath, setLocalCurrentPath] = useState('')
   const [showSettings, setShowSettings] = useState(false)
+  const [showDevices, setShowDevices] = useState(false)
   const [connectionsKey, setConnectionsKey] = useState(0)
   const [splitRatio, setSplitRatio] = useState(0.5)
   // Pestañas: "files" (doble panel) o el id de una terminal; las terminales siguen vivas al cambiar
@@ -121,6 +123,9 @@ export default function Workspace({ email, theme, onThemeChange, onSignedOut }: 
                 <SquareTerminal size={20} />
               </button>
             )}
+            <button className="btn-icon" onClick={() => setShowDevices(true)} title={t('devices.open')}>
+              <Monitor size={20} />
+            </button>
             <button className="btn-icon" onClick={() => setShowSettings(true)} title={t('app.settings')}>
               <Settings size={20} />
             </button>
@@ -199,6 +204,9 @@ export default function Workspace({ email, theme, onThemeChange, onSignedOut }: 
       
       {/* Bottom Queue Bar */}
       <TransferQueueBar />
+
+      {/* Equipos de la cuenta (control remoto) */}
+      {showDevices && <DevicesPanel onClose={() => setShowDevices(false)} />}
 
       {/* Settings Panel */}
       {showSettings && (
