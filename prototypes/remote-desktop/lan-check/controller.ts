@@ -90,6 +90,11 @@ function connectButton(name: string): string {
   return `[...document.querySelectorAll('.settings-row')].filter((r) => r.innerText.includes(${JSON.stringify(name)})).map((r) => r.querySelector('button')).find((b) => b && !b.disabled)`
 }
 
+/** Paso en curso, para ver en la terminal dónde está la prueba si algo se para. */
+function step(name: string): void {
+  console.log(`→ ${name}…`)
+}
+
 async function viewerGone(): Promise<boolean> {
   for (let i = 0; i < 20; i++) {
     if (!(await targets(DEBUG_PORT)).some((t) => t.url.includes('viewer.html'))) return true
@@ -208,6 +213,7 @@ async function run(): Promise<void> {
   }
   check('un segundo controlador recibe "ocupado"', rejection?.status === 'rejected' && rejection?.rejection?.reason === 'busy', rejection)
 
+  step('ratón y teclado')
   // --- Ratón y teclado ----------------------------------------------------------------------
   const currentDisplay = (state: any): any => state.displays.find((d: any) => d.id === view.current) ?? state.displays.find((d: any) => d.primary)
   const display = currentDisplay(during)
@@ -269,6 +275,7 @@ async function run(): Promise<void> {
   const wheel = ((await pc('GET', '/state')).target.events ?? []).filter((e: any) => e.type === 'wheel')
   check('la rueda llega al PC', wheel.length > 0, { events: wheel.length, firstDy: wheel[0]?.dy, note: 'el signo puede invertirlo el desplazamiento natural del PC' })
 
+  step('pantallas y pantalla completa')
   // --- Pantallas, pantalla completa y sonido ------------------------------------------------------
   if (during.displays.length > 1) {
     const other = during.displays.find((d: any) => d.id !== view.current)
@@ -288,27 +295,40 @@ async function run(): Promise<void> {
   const full = await viewer.waitFor<boolean>(`!!document.fullscreenElement`, (v) => v === true, 5000)
   await viewer.eval(`document.exitFullscreen().catch(() => undefined)`)
   const back = await viewer.waitFor<boolean>(`!document.fullscreenElement`, (v) => v === true, 5000)
+  await viewer.send('Page.bringToFront').catch(() => undefined)
   check('pantalla completa y vuelta', full === true && back === true, { full, back })
 
+  step('sonido')
   // Sonido: el PC pita y aquí se mide el nivel de lo que llega (con el visor silenciado mientras se
   // mide, para que no suene aquí ni vuelva al PC si los dos papeles están en el mismo equipo)
-  const level = (): Promise<number> =>
-    viewer.eval<number>(`(async () => {
-      const element = document.getElementById('audio'), stream = element.srcObject
-      if (!stream || stream.getAudioTracks().length === 0) return -1
+  // Se muestrea desde aquí y no con temporizadores en la página: en macOS, si la ventana del visor
+  // queda tapada, Chromium frena sus temporizadores (el sonido no se frena)
+  const level = async (): Promise<number> => {
+    const ready = await viewer.eval<boolean>(`(() => {
+      const stream = document.getElementById('audio').srcObject
+      if (!stream || stream.getAudioTracks().length === 0) return false
       const context = new AudioContext(), analyser = context.createAnalyser()
       analyser.fftSize = 2048
       context.createMediaStreamSource(stream).connect(analyser)
-      const samples = new Float32Array(analyser.fftSize)
-      let peak = 0
-      for (const end = Date.now() + 1500; Date.now() < end; ) {
-        analyser.getFloatTimeDomainData(samples)
-        for (const value of samples) peak = Math.max(peak, Math.abs(value))
-        await new Promise((resolve) => setTimeout(resolve, 50))
-      }
-      await context.close()
-      return Math.round(peak * 1000) / 1000
+      window.levelProbe = { context, analyser, samples: new Float32Array(analyser.fftSize) }
+      return true
     })()`)
+    if (!ready) return -1
+    let peak = 0
+    for (const end = Date.now() + 1500; Date.now() < end; ) {
+      const sample = await viewer.eval<number>(`(() => {
+        const { analyser, samples } = window.levelProbe
+        analyser.getFloatTimeDomainData(samples)
+        let peak = 0
+        for (const value of samples) peak = Math.max(peak, Math.abs(value))
+        return peak
+      })()`)
+      peak = Math.max(peak, sample)
+      await sleep(50)
+    }
+    await viewer.eval(`(() => { void window.levelProbe.context.close(); window.levelProbe = null })()`)
+    return Math.round(peak * 1000) / 1000
+  }
   const audio = await viewer.eval<{ button: boolean; noAudio: boolean }>(`({ button: !document.getElementById('mute').hidden, noAudio: !document.getElementById('no-audio').hidden })`)
   const audioSource = (await pc('GET', '/state')).linuxAudioSource
   await viewer.eval(`document.getElementById('audio').muted = true`)
@@ -330,6 +350,7 @@ async function run(): Promise<void> {
     { ...audio, peakSilent: silent, peakTone: tone, muted, linuxAudioSource: audioSource }
   )
 
+  step('mantener despierto')
   // --- Mantener despierto -------------------------------------------------------------------------
   const before = (await pc('GET', '/state')).keepAwake
   await pc('POST', '/app', { action: 'sleep-on' })
@@ -342,6 +363,7 @@ async function run(): Promise<void> {
   const kept = added.filter((id: string) => off.ids.includes(id))
   check('"Evitar que el PC se suspenda" bloquea la suspensión solo con la opción activada', added.length > 0 && kept.length === 0, { added, kept, before, on, off })
 
+  step('corte de la red')
   // --- Corte de la red ------------------------------------------------------------------------------
   if (args['cut-network'] && process.platform === 'darwin') {
     const device_ = args['cut-network']
@@ -377,6 +399,7 @@ async function run(): Promise<void> {
     check('cortar la red 10 s', null, 'solo se prueba desde el Mac (--cut-network)')
   }
 
+  step('cortes desde el PC')
   // --- Cortes desde el PC -------------------------------------------------------------------------------
   await pc('POST', '/app', { action: 'notice-disconnect' })
   const local = await failedWith(15_000)
@@ -402,6 +425,7 @@ async function run(): Promise<void> {
   await submit(NEW_PC_PASSWORD)
   check('con la contraseña nueva vuelve a conectar', await connected(30_000), await overlayText())
 
+  step('confirmación local')
   // --- Confirmación local -------------------------------------------------------------------------------
   await viewer.eval(`document.getElementById('disconnect').click()`).catch(() => undefined)
   viewer.close()

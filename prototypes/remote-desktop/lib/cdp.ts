@@ -61,10 +61,25 @@ export class Page {
     return page
   }
 
-  send(method: string, params: object = {}): Promise<any> {
+  /**
+   * Una orden de DevTools. Con límite de tiempo: si la página se queda sin responder (p. ej. con sus
+   * temporizadores frenados por estar oculta en macOS), la prueba falla diciendo dónde, en vez de
+   * quedarse esperando.
+   */
+  send(method: string, params: object = {}, timeoutMs = 60_000): Promise<any> {
     const id = this.next++
     this.ws.send(JSON.stringify({ id, method, params }))
-    return new Promise((resolve) => this.pending.set(id, resolve))
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.pending.delete(id)
+        const what = 'expression' in params ? String((params as { expression: string }).expression).trim().slice(0, 80) : ''
+        reject(new Error(`DevTools: ${method} sin respuesta en ${timeoutMs / 1000} s ${what}`))
+      }, timeoutMs)
+      this.pending.set(id, (value) => {
+        clearTimeout(timer)
+        resolve(value)
+      })
+    })
   }
 
   async eval<T>(expression: string): Promise<T> {
