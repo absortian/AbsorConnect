@@ -32,7 +32,9 @@ declare global {
       setRemotePassword: (password: string) => Promise<RemoteSettingsResult>
       setRemoteEnabled: (enabled: boolean) => Promise<RemoteSettingsResult>
       updateRemoteSettings: (changes: RemoteSettingsChanges) => Promise<RemoteSettingsResult>
-      openRemotePermission: (permission: 'screen' | 'accessibility') => Promise<RemoteSettingsResult>
+      openRemotePermission: (
+        permission: 'screen' | 'accessibility'
+      ) => Promise<RemoteSettingsResult>
       login: (email: string, password: string) => Promise<SignInResult>
       register: (email: string, password: string) => Promise<SignInResult>
       logout: () => Promise<CloudResult>
