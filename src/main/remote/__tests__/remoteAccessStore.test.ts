@@ -95,3 +95,28 @@ describe('RemoteAccessStore — vínculo con la cuenta', () => {
     expect(await s.isEnabled()).toBe(true)
   })
 })
+
+describe('RemoteAccessStore — cambios a la vez', () => {
+  it('varios cambios simultáneos se guardan todos (Ajustes refresca mientras se cambia algo)', async () => {
+    const s = store()
+    await s.bindToAccount('ana@example.test')
+    await Promise.all([
+      s.setDeviceName('Portátil'),
+      s.setFeatures({ files: false }),
+      s.bindToAccount('ana@example.test'),
+      s.setConfirmLocal(true),
+      s.setPreventSleep(false),
+      s.setEnabled(true)
+    ])
+
+    const saved = JSON.parse(await fs.readFile(file, 'utf-8'))
+    expect(saved).toMatchObject({
+      deviceName: 'Portátil',
+      features: { files: false },
+      confirmLocal: true,
+      preventSleep: false,
+      enabled: true
+    })
+    expect(await fs.readdir(dir)).toEqual(['remote-access.json'])
+  })
+})

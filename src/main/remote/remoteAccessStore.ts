@@ -239,7 +239,9 @@ export class RemoteAccessStore {
    */
   async bindToAccount(email: string): Promise<void> {
     const d = await this.load()
-    if (d.accountEmail !== null && d.accountEmail !== email) {
+    // Ajustes lo comprueba en cada lectura: si ya es de esta cuenta no hay nada que escribir
+    if (d.accountEmail === email) return
+    if (d.accountEmail !== null) {
       this.data = { ...defaults(this.defaultDeviceName), accountEmail: email }
     } else {
       d.accountEmail = email

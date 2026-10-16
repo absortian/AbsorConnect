@@ -24,7 +24,7 @@ import {
   deleteObject,
   deleteFolder
 } from './s3'
-import { ConnectionEntry, S3Connection, SshConnection } from '../shared/types'
+import { ConnectionEntry, S3Connection, SignInResult, SshConnection } from '../shared/types'
 import { normalizeEntry, sanitizeTree } from '../shared/connections'
 import {
   closeAllSsh,
@@ -63,7 +63,8 @@ import {
 } from './background'
 import * as fs from 'fs/promises'
 import * as os from 'os'
-import { startRemoteHost, stopRemoteHost } from './remote/hostRuntime'
+import { remoteHost, startRemoteHost, stopRemoteHost } from './remote/hostRuntime'
+import { setupRemoteSettingsIpc } from './remote/remoteSettings'
 import { isViewerWindow, setupControllerIpc } from './remote/controllerRuntime'
 
 // Si la ventana principal se cerró (no ocultó): solo entonces cerrar la última ventana termina la
@@ -145,17 +146,28 @@ app.whenReady().then(async () => {
   })
   // Control remoto de otros PCs: lista de equipos y ventanas de visor (el token no sale de aquí)
   setupControllerIpc()
+  // Control remoto de este PC: la sección de Ajustes
+  setupRemoteSettingsIpc()
 
   // Cuenta en la nube: las conexiones se leen y guardan en la API (src/main/cloud/)
   setUnauthorizedHandler(expireSession)
   ipcMain.handle('get-session', async () => await getSessionState())
+  // Tras entrar, el control remoto de este PC se liga a esa cuenta y se registra ya en ella
+  const afterSignIn = async (result: SignInResult): Promise<SignInResult> => {
+    if (result.ok) {
+      await remoteHost().bindToAccount(result.email)
+      remoteHost().service?.refresh()
+    }
+    return result
+  }
   ipcMain.handle(
     'login',
-    async (_, email: string, password: string) => await login(email, password)
+    async (_, email: string, password: string) => await afterSignIn(await login(email, password))
   )
   ipcMain.handle(
     'register',
-    async (_, email: string, password: string) => await register(email, password)
+    async (_, email: string, password: string) =>
+      await afterSignIn(await register(email, password))
   )
   ipcMain.handle('logout', async () => await logout())
   ipcMain.handle(

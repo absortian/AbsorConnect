@@ -4,6 +4,7 @@ import { X, Sun, Moon, Download, Upload, AlertTriangle, RefreshCw, ExternalLink,
 import { ConnectionEntry } from '../../../shared/types'
 import { RELEASES_URL } from '../../../shared/constants'
 import { cloudErrorCode, cloudErrorMessage } from '../cloudErrors'
+import RemoteSettings from './RemoteSettings'
 
 interface UpdateStatus {
   status: 'idle' | 'checking' | 'available' | 'up-to-date' | 'downloading' | 'downloaded' | 'error'
@@ -211,6 +212,9 @@ export default function SettingsPanel({ email, theme, onThemeChange, onClose, on
             </>
           )}
         </div>
+
+        {/* Segundo plano y control remoto de este PC (add-remote-desktop) */}
+        <RemoteSettings />
 
         {/* Theme section */}
         <div className="settings-section">

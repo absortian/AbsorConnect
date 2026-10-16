@@ -12,13 +12,15 @@ import { DeviceIdentity } from './deviceIdentity'
 import { notifySession } from './hostNotice'
 import { HostCloseReason, HostService } from './hostService'
 import { openHostSession } from './hostSession'
-import { createSupportMonitor } from './platformSupport'
+import { createSupportMonitor, detectSupport } from './platformSupport'
+import { RemoteSupport, SupportMonitor } from './support'
 import { RemoteAccessStore } from './remoteAccessStore'
 import { createSafeBox } from './safeBox'
 
 let service: HostService | null = null
 let store: RemoteAccessStore | null = null
 let identity: DeviceIdentity | null = null
+let monitor: SupportMonitor | null = null
 let keepAwakeId: number | null = null
 
 function setKeepAwake(on: boolean): void {
@@ -47,17 +49,21 @@ export async function startRemoteHost(): Promise<void> {
   identity = deviceIdentity
   const api = new DeviceApi(() => currentSession()?.token ?? null)
   const hostStore = store
-  const monitor = createSupportMonitor({
+  const supportMonitor = createSupportMonitor({
     language: getLanguage,
     onClick: showMainWindow,
     onChange: () => service?.refresh()
   })
+  monitor = supportMonitor
+  // La configuración pertenece a la cuenta que la creó: con otra cuenta se borra (D14)
+  const session = currentSession()
+  if (session) await hostStore.bindToAccount(session.email)
 
   service = new HostService({
     api,
     identity: deviceIdentity,
     store: hostStore,
-    support: (enabled) => monitor.check({ quiet: !enabled }),
+    support: (enabled) => supportMonitor.check({ quiet: !enabled }),
     signedIn: () => currentSession() !== null,
     platform,
     appVersion: app.getVersion(),
@@ -90,10 +96,21 @@ export function remoteHost(): {
   service: HostService | null
   store: RemoteAccessStore | null
   ownDeviceId: () => Promise<string | null>
+  /** Estado del sistema para Ajustes, que ya lo muestra: sin notificación. */
+  support: () => RemoteSupport
+  /** Tras iniciar sesión: si la configuración era de otra cuenta, se borra y se desactiva. */
+  bindToAccount: (email: string) => Promise<void>
 } {
   return {
     service,
     store,
-    ownDeviceId: async () => (identity ? (await identity.get()).id : null)
+    ownDeviceId: async () => (identity ? (await identity.get()).id : null),
+    support: () => monitor?.check({ quiet: true }) ?? detectSupport(),
+    bindToAccount: async (email) => {
+      if (!store) return
+      const before = await store.getAccountEmail()
+      await store.bindToAccount(email)
+      if (before !== null && before !== email) await service?.settingsChanged()
+    }
   }
 }

@@ -200,7 +200,7 @@ Errores con el formato habitual `{"error": {"code", "details"}}`.
   - **X11 sin monitores RandR** (Xvnc, xrdp, y el Linux de pruebas, que tenía una pantalla virtual): `desktopCapturer.getSources` devuelve la lista vacía, pero el escritorio completo (`screen:-1:0`) sí se captura, y Electron ve entonces una sola pantalla que lo cubre todo. Se usa como último recurso. Con `thumbnailSize` de 0×0 tampoco hay fuentes.
   - **Límites de tiempo:** la respuesta en 15 s, la autenticación en 60 s y el inicio de la captura en 15 s; si no, se corta (en macOS sin permiso, `getDisplayMedia` se queda esperando).
   - **Aviso:** ventana sin marco, siempre encima (`screen-saver`), sin foco y con `setContentProtection`, con el título "Absor Connect — aviso". "Desconectar" cierra la ventana, y eso corta la sesión. No necesita preload.
-  - **Cortafuegos de Windows:** `primeFirewall()` abre y cierra una conexión WebRTC local en una ventana `host` (modo `loopback`). La llamará Ajustes al activar el control remoto (6.2).
+  - **Cortafuegos de Windows:** `primeFirewall()` abre y cierra una conexión WebRTC local en una ventana `host` (modo `loopback`). Ajustes la llama al activar el control remoto (6.2).
   - **Corregido en la app:** con la app arrancada oculta y sin "Mantener abierta en segundo plano", cerrar la ventana `host` al terminar una sesión disparaba `window-all-closed` y cerraba la app. Ahora solo la termina cerrar la ventana principal.
   - **Verificado** con `prototypes/remote-desktop/controller-check` en un Linux X11, contra el backend de desarrollo. La app de verdad (`out/`) hace de PC controlado, arrancada con `--hidden` y su propia carpeta de datos. Pasa 12/12:
     - aparece en línea y disponible;
@@ -416,6 +416,32 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
     - **Sin probar en Windows:** la notificación de versión nueva. Windows solo la muestra a apps con un acceso en el menú Inicio con su AppUserModelId (lo crea el instalador NSIS), y el instalador no se puede generar desde Linux sin Wine. En macOS sí se ha visto.
   - **Pendiente:** los escenarios que necesitan una sesión remota (tarea 4.8): el estado "controlado desde…" en la bandeja y que la app no se reinicie para actualizar durante una sesión.
   - **Nota:** `settings.json` con BOM (p. ej. escrito por PowerShell `Set-Content -Encoding utf8`) hace que `JSON.parse` falle y se usen los valores por defecto; es seguro (los defaults desactivan el segundo plano), pero conviene recordarlo.
+- **Ajustes (tarea 6.2):** dos secciones nuevas, "Segundo plano" y "Control remoto de este PC" (`RemoteSettings.tsx`).
+  - **Proceso principal:** `remoteSettings.ts` atiende `remote-settings:get`, `set-password`, `set-enabled`, `update` y `open-permission`. Antes de cada una ata la configuración a la cuenta con la sesión iniciada. La contraseña solo cruza una vez, al definirla, y el proceso principal deriva K sin guardarla.
+  - **Reglas:** activar exige sesión iniciada, contraseña y un sistema compatible. Cambiar la contraseña o desactivar corta la sesión en curso. El resto se publica en la cuenta en la siguiente vuelta de HostService. Al activar se llama a `primeFirewall()` (solo hace algo en Windows).
+  - **Interfaz:**
+    - Si no hay contraseña, activar abre el formulario para crearla y después activa.
+    - Al activar propone también el segundo plano ("Activarlas" / "Ahora no").
+    - El nombre se guarda al salir del campo o con Intro.
+    - Muestra los permisos de macOS, el aviso de Wayland, la pista del cortafuegos de Windows, lo que no se puede controlar en cada sistema y el registro.
+    - Se refresca cada 3 s mientras está abierta.
+    - Los botones se llaman "Crear/Cambiar contraseña del PC", para no confundirse con "Cambiar contraseña" de la cuenta.
+  - **Corregido al probarlo:** cada lectura de Ajustes reescribía `remote-access.json` (`bindToAccount`), y `writeAtomic` usaba siempre el mismo `.tmp`. Con dos escrituras a la vez, el segundo `rename` fallaba con ENOENT y se perdía el cambio (por ejemplo, quitar los ficheros justo después de renombrar el PC). Ahora `writeAtomic` encola las escrituras de cada fichero en el orden pedido, y `bindToAccount` no escribe si la cuenta no cambia. Además, un refresco que salió antes de un cambio ya no pisa el estado que devuelve el cambio. Hay una prueba unitaria con seis cambios a la vez.
+  - **Verificado** con `prototypes/remote-desktop/settings-check`: la app de verdad en Linux X11 con el backend de desarrollo, manejada por DevTools como una persona. Pasa 14/14 en seis ejecuciones seguidas tras la corrección:
+    - aparecen las dos secciones, con los límites de Linux y sin los permisos de macOS;
+    - sin contraseña el interruptor está apagado, y activarlo pide crearla;
+    - rechaza una contraseña de menos de 8 caracteres y dos que no coinciden;
+    - al guardarla queda activado y propone el segundo plano;
+    - el PC aparece disponible en la cuenta;
+    - el nombre nuevo y los ficheros desactivados se publican en la cuenta;
+    - "Mantener abierta en segundo plano" se guarda en `settings.json`;
+    - cambiar la contraseña funciona y el registro se muestra vacío;
+    - desactivar publica `disabled`.
+  - **Revisado en capturas:** la sección se ve bien en el tema oscuro, después de poner el botón de la contraseña en una sola línea.
+  - **Sin probar:**
+    - "Abrir al iniciar sesión" desde Ajustes (la prueba no lo toca porque escribiría en el autostart del usuario real; la función ya se verificó en 4.1);
+    - los permisos de macOS, la pista del cortafuegos de Windows y el aviso de Wayland, en sus sistemas;
+    - el registro con sesiones reales y el aviso de "controlado ahora".
 
 ### D15. Actualizaciones en segundo plano
 - **Búsqueda:** un temporizador de 6 h llama a `checkForUpdates()` y otro aviso al arrancar. Si hay versión nueva, notificación del sistema y entrada en el menú de la bandeja.

@@ -6,6 +6,7 @@ import {
   S3Connection,
   SshConnection
 } from '../shared/types'
+import { RemoteSettingsChanges } from '../shared/remote/settings'
 
 // Custom APIs for renderer
 const api = {
@@ -15,6 +16,14 @@ const api = {
   remoteDevices: () => ipcRenderer.invoke('remote-devices'),
   openViewer: (deviceId: string, deviceName: string) =>
     ipcRenderer.invoke('remote-open-viewer', deviceId, deviceName),
+  // Control remoto de este PC (Ajustes): la contraseña solo viaja una vez, al definirla
+  remoteSettings: () => ipcRenderer.invoke('remote-settings:get'),
+  setRemotePassword: (password: string) => ipcRenderer.invoke('remote-settings:set-password', password),
+  setRemoteEnabled: (enabled: boolean) => ipcRenderer.invoke('remote-settings:set-enabled', enabled),
+  updateRemoteSettings: (changes: RemoteSettingsChanges) =>
+    ipcRenderer.invoke('remote-settings:update', changes),
+  openRemotePermission: (permission: 'screen' | 'accessibility') =>
+    ipcRenderer.invoke('remote-settings:open-permission', permission),
   login: (email: string, password: string) => ipcRenderer.invoke('login', email, password),
   register: (email: string, password: string) => ipcRenderer.invoke('register', email, password),
   logout: () => ipcRenderer.invoke('logout'),

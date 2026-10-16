@@ -10,6 +10,7 @@ import {
   SshConnection
 } from '../shared/types'
 import { AccountDevicesResult } from '../shared/remote/viewerBridge'
+import { RemoteSettingsChanges, RemoteSettingsResult } from '../shared/remote/settings'
 
 interface UpdateStatusEvent {
   status: 'checking' | 'available' | 'up-to-date' | 'downloading' | 'downloaded' | 'error'
@@ -27,6 +28,11 @@ declare global {
       getSession: () => Promise<SessionState>
       remoteDevices: () => Promise<AccountDevicesResult>
       openViewer: (deviceId: string, deviceName: string) => Promise<boolean>
+      remoteSettings: () => Promise<RemoteSettingsResult>
+      setRemotePassword: (password: string) => Promise<RemoteSettingsResult>
+      setRemoteEnabled: (enabled: boolean) => Promise<RemoteSettingsResult>
+      updateRemoteSettings: (changes: RemoteSettingsChanges) => Promise<RemoteSettingsResult>
+      openRemotePermission: (permission: 'screen' | 'accessibility') => Promise<RemoteSettingsResult>
       login: (email: string, password: string) => Promise<SignInResult>
       register: (email: string, password: string) => Promise<SignInResult>
       logout: () => Promise<CloudResult>
