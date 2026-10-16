@@ -2,6 +2,29 @@
 // D7). La ventana hace WebRTC y la captura; el proceso principal decide todo lo demás: K y la
 // verificación de la contraseña no salen de él, y la entrada se aplica allí.
 import type { AuthResultMessage, DisplayInfo, HelloMessage } from './protocol'
+import type {
+  ClipboardContent,
+  FsEntry,
+  TransferErrorReason,
+  TransferRejectReason
+} from './transfer'
+
+/** Carpeta del PC tal como la ve el controlador (D9, `fs-entries`). */
+export interface FsListing {
+  path: string
+  parent: string | null
+  entries: FsEntry[]
+  truncated?: boolean
+  error?: TransferRejectReason
+}
+
+export type FileBeginResult = { ok: true } | { ok: false; reason: TransferRejectReason }
+export type FileFinishResult =
+  | { ok: true; name: string }
+  | { ok: false; reason: TransferErrorReason }
+export type FileOpenResult =
+  | { ok: true; name: string; size: number }
+  | { ok: false; reason: TransferRejectReason }
 
 export interface IceServer {
   urls: string | string[]
@@ -47,6 +70,22 @@ export interface AbsorHostApi {
   audioSource(): Promise<string | null>
   /** La fuente de sonido se ha vuelto a crear (cambió la salida por defecto): hay que reabrirla. */
   onAudioChanged(callback: () => void): void
+  /** Se ha copiado algo en el PC (con el portapapeles compartido permitido). */
+  onClipboard(callback: (content: ClipboardContent) => void): void
+  /** Pone en el portapapeles del PC lo copiado en el controlador. */
+  clipboardWrite(content: ClipboardContent): void
+  /** Ficheros que llegan al PC: se escriben en `Descargas/Absor Connect` (D9). */
+  fileBegin(id: number, name: string, size: number): Promise<FileBeginResult>
+  fileChunk(id: number, chunk: Uint8Array): void
+  fileFinish(id: number, name: string, sha256: string): Promise<FileFinishResult>
+  fileCancel(id: number): void
+  /** Carpetas y ficheros del PC para descargarlos. */
+  fsList(path: string): Promise<FsListing>
+  fileOpen(id: number, path: string): Promise<FileOpenResult>
+  /** El siguiente trozo, o null al final. */
+  fileRead(id: number): Promise<Uint8Array | null>
+  /** Cierra la lectura y da el SHA-256 de lo leído. */
+  fileClose(id: number): Promise<string | null>
   log(message: string): void
 }
 
@@ -64,5 +103,15 @@ export const HOST_IPC = {
   alive: 'remote-host:alive',
   audioSource: 'remote-host:audio-source',
   audioChanged: 'remote-host:audio-changed',
+  clipboard: 'remote-host:clipboard',
+  clipboardWrite: 'remote-host:clipboard-write',
+  fileBegin: 'remote-host:file-begin',
+  fileChunk: 'remote-host:file-chunk',
+  fileFinish: 'remote-host:file-finish',
+  fileCancel: 'remote-host:file-cancel',
+  fsList: 'remote-host:fs-list',
+  fileOpen: 'remote-host:file-open',
+  fileRead: 'remote-host:file-read',
+  fileClose: 'remote-host:file-close',
   log: 'remote-host:log'
 } as const

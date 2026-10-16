@@ -9,6 +9,7 @@ import {
   parseControllerMessage,
   PROTOCOL_VERSION
 } from '../../shared/remote/protocol'
+import { HostTransfers } from './transfers'
 
 const host = window.absorHost
 
@@ -30,6 +31,13 @@ let stream: MediaStream | null = null
 let audioLabel: string | null = null
 let ending = false
 let disconnectedTimer: ReturnType<typeof setTimeout> | null = null
+/** Ficheros (canal `file`) y portapapeles (canal `control`), D9. */
+const transfers = new HostTransfers({
+  host,
+  authenticated: () => authenticated,
+  features: () => features,
+  control: () => control
+})
 
 host.onStart((init: HostInit) => {
   if (init.mode === 'loopback') {
@@ -38,6 +46,7 @@ host.onStart((init: HostInit) => {
   }
   features = init.features
   host.onAudioChanged(() => void reopenAudio())
+  host.onClipboard((content) => void transfers.sendClipboard(content))
   // Latido para el proceso principal: si esta ventana se cuelga, la sesión se cierra igualmente
   setInterval(() => host.alive(), 2000)
   startSession(init.offer, init.iceServers).catch((error) => fail('ended', error))
@@ -103,8 +112,12 @@ function attach(channel: RTCDataChannel): void {
         }
       }
       break
+    case CHANNELS.file:
+      transfers.attach(channel)
+      channel.onclose = () => transfers.detach()
+      break
     default:
-      // Los ficheros llegan con la tarea 6.3; un canal desconocido no se atiende
+      // Un canal desconocido no se atiende
       break
   }
 }
@@ -148,6 +161,10 @@ async function onControl(data: unknown): Promise<void> {
     } catch (error) {
       fail('capture_failed', error)
     }
+    return
+  }
+  if (message.type === 'clipboard') {
+    transfers.onClipboardPiece(message)
     return
   }
   if (message.type === 'select-display' && (await host.selectDisplay(message.id))) {
@@ -259,6 +276,7 @@ function end(reason: string, fromMain = false): void {
   if (ending) return
   ending = true
   send({ v: PROTOCOL_VERSION, type: 'bye', reason })
+  transfers.detach()
   stream?.getTracks().forEach((track) => track.stop())
   setTimeout(() => {
     pc?.close()

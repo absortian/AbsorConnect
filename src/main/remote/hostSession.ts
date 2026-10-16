@@ -8,6 +8,7 @@
 //   - La entrada se valida (parseInputEvent) y se aplica con InputController sobre la pantalla elegida.
 //   - Límites: respuesta en 15 s, autenticación en 60 s y captura en 15 s; si no, se corta.
 import {
+  app,
   BrowserWindow,
   desktopCapturer,
   Display,
@@ -21,7 +22,10 @@ import {
 } from 'electron'
 import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
-import { HOST_IPC, HostFeatures, IceServer } from '../../shared/remote/hostBridge'
+import { FsListing, HOST_IPC, HostFeatures, IceServer } from '../../shared/remote/hostBridge'
+import { ClipboardContent, clipboardFits } from '../../shared/remote/transfer'
+import { ClipboardWatcher } from './clipboardSync'
+import { HostFiles } from './fileTransfer'
 import { parseInputEvent } from '../../shared/remote/input'
 import { AuthResultMessage, DisplayInfo, HelloMessage } from '../../shared/remote/protocol'
 import { PendingRequest } from './deviceApi'
@@ -78,6 +82,9 @@ class ActiveHostSession implements HostSession {
   private notice: { close(): void } | null = null
   /** Esta sesión creó la fuente virtual de sonido de Linux (D8): se quita al cerrar. */
   private linuxAudio = false
+  /** Portapapeles compartido y ficheros (D9): solo con la sesión en marcha y la función permitida. */
+  private clipboard: ClipboardWatcher | null = null
+  private filesStore: HostFiles | null = null
   private closed = false
   private isStarted = false
   private timer: ReturnType<typeof setTimeout> | null = null
@@ -207,7 +214,26 @@ class ActiveHostSession implements HostSession {
     this.notice = openSessionNotice(this.request.controllerName, await this.ctx.language(), () =>
       this.close('local')
     )
+    if (this.features.clipboard) {
+      this.clipboard = new ClipboardWatcher((content) => {
+        if (!this.window.isDestroyed()) this.window.webContents.send(HOST_IPC.clipboard, content)
+      })
+      this.clipboard.start()
+    }
     this.resolveStarted()
+  }
+
+  /** Lo copiado en el controlador: al portapapeles del PC (sin reenviarlo). */
+  clipboardWrite(content: unknown): void {
+    if (!this.clipboard || this.closed || !isClipboardContent(content)) return
+    this.clipboard.write(content)
+  }
+
+  /** Los ficheros del PC, si la sesión está en marcha y los ficheros están permitidos. */
+  files(): HostFiles | null {
+    if (!this.authenticated || this.closed || !this.features.files) return null
+    this.filesStore ??= new HostFiles(join(app.getPath('downloads'), 'Absor Connect'))
+    return this.filesStore
   }
 
   /** Linux: la fuente virtual con el sonido del sistema, solo con la sesión autenticada y el sonido permitido. */
@@ -235,6 +261,9 @@ class ActiveHostSession implements HostSession {
     this.clearTimer()
     if (this.heartbeat) clearInterval(this.heartbeat)
     this.notice?.close()
+    this.clipboard?.stop()
+    this.clipboard = null
+    void this.filesStore?.dispose()
     if (this.linuxAudio) void linuxAudio.stop()
     void this.input?.dispose()
     this.input = null
@@ -260,6 +289,18 @@ class ActiveHostSession implements HostSession {
     this.timer = null
   }
 }
+
+function isClipboardContent(value: unknown): value is ClipboardContent {
+  if (typeof value !== 'object' || value === null) return false
+  const content = value as Record<string, unknown>
+  const valid =
+    (content.kind === 'text' && typeof content.text === 'string') ||
+    (content.kind === 'image' && content.png instanceof Uint8Array)
+  return valid && clipboardFits(content as ClipboardContent)
+}
+
+const isId = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isInteger(value) && value > 0 && value <= 0xffffffff
 
 function sessionFor(event: IpcMainEvent | IpcMainInvokeEvent): ActiveHostSession | undefined {
   return sessions.get(event.sender.id)
@@ -290,6 +331,47 @@ function setupIpc(): void {
   ipcMain.on(HOST_IPC.input, (event, message) => sessionFor(event)?.applyInput(message))
   ipcMain.on(HOST_IPC.alive, (event) => sessionFor(event)?.alive())
   ipcMain.handle(HOST_IPC.audioSource, (event) => sessionFor(event)?.audioSource() ?? null)
+
+  // Portapapeles y ficheros (D9). La ventana `host` no es de fiar: todo se vuelve a comprobar aquí
+  ipcMain.on(HOST_IPC.clipboardWrite, (event, content) =>
+    sessionFor(event)?.clipboardWrite(content)
+  )
+  const disabled = { ok: false as const, reason: 'disabled' as const }
+  ipcMain.handle(HOST_IPC.fileBegin, (event, id, name, size) => {
+    const files = sessionFor(event)?.files()
+    if (!files || !isId(id) || typeof name !== 'string' || !Number.isSafeInteger(size) || size < 0)
+      return disabled
+    return files.begin(id, name.slice(0, 255), size)
+  })
+  ipcMain.on(HOST_IPC.fileChunk, (event, id, chunk) => {
+    if (isId(id) && chunk instanceof Uint8Array) sessionFor(event)?.files()?.write(id, chunk)
+  })
+  ipcMain.handle(HOST_IPC.fileFinish, (event, id, name, sha256) => {
+    const files = sessionFor(event)?.files()
+    if (!files || !isId(id) || typeof name !== 'string' || typeof sha256 !== 'string')
+      return { ok: false, reason: 'io' }
+    return files.finish(id, name.slice(0, 255), sha256)
+  })
+  ipcMain.on(HOST_IPC.fileCancel, (event, id) => {
+    if (isId(id)) void sessionFor(event)?.files()?.cancel(id)
+  })
+  ipcMain.handle(HOST_IPC.fsList, (event, path): Promise<FsListing> | FsListing => {
+    const files = sessionFor(event)?.files()
+    if (!files || typeof path !== 'string')
+      return { path: '', parent: null, entries: [], error: 'disabled' }
+    return files.list(path.slice(0, 4096))
+  })
+  ipcMain.handle(HOST_IPC.fileOpen, (event, id, path) => {
+    const files = sessionFor(event)?.files()
+    if (!files || !isId(id) || typeof path !== 'string') return disabled
+    return files.open(id, path.slice(0, 4096))
+  })
+  ipcMain.handle(HOST_IPC.fileRead, (event, id) =>
+    isId(id) ? (sessionFor(event)?.files()?.read(id) ?? null) : null
+  )
+  ipcMain.handle(HOST_IPC.fileClose, (event, id) =>
+    isId(id) ? (sessionFor(event)?.files()?.close(id) ?? null) : null
+  )
   ipcMain.on(HOST_IPC.ended, (event, reason) =>
     sessionFor(event)?.close(typeof reason === 'string' ? reason.slice(0, 32) : 'ended')
   )

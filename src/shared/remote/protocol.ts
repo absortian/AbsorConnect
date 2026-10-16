@@ -2,9 +2,11 @@
 // visor de escritorio y la app móvil. Los mensajes son JSON con `v` y `type`; los tipos desconocidos
 // se ignoran. Antes de autenticar, el PC solo atiende `auth`.
 //
-// PC → controlador: hello, auth-result, features, displays, bye.
-// Controlador → PC: auth, select-display, bye.
-// Los eventos de entrada van por los canales `input` y `pointer` (input.ts).
+// PC → controlador: hello, auth-result, features, displays, clipboard, bye.
+// Controlador → PC: auth, select-display, clipboard, bye.
+// Los eventos de entrada van por los canales `input` y `pointer` (input.ts), y los ficheros por el
+// canal `file` (transfer.ts).
+import { ClipboardPiece, parseClipboardPiece } from './transfer'
 
 export const PROTOCOL_VERSION = 1
 
@@ -77,11 +79,13 @@ export type HostMessage =
   | AuthResultMessage
   | FeaturesMessage
   | DisplaysMessage
+  | ClipboardPiece
   | ByeMessage
 
 export type ControllerMessage =
   | { v: 1; type: 'auth'; proof: string }
   | { v: 1; type: 'select-display'; id: string }
+  | ClipboardPiece
   | ByeMessage
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -108,6 +112,8 @@ export function parseControllerMessage(raw: unknown): ControllerMessage | null {
       return typeof data.id === 'string' && data.id.length <= 64
         ? { v: 1, type: 'select-display', id: data.id }
         : null
+    case 'clipboard':
+      return parseClipboardPiece(data)
     case 'bye':
       return {
         v: 1,

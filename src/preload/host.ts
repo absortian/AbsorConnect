@@ -2,6 +2,7 @@
 // sesión remota. La ventana va con sandbox: aquí solo se puede usar `electron`.
 import { contextBridge, ipcRenderer } from 'electron'
 import { AbsorHostApi, HOST_IPC, HostInit } from '../shared/remote/hostBridge'
+import type { ClipboardContent } from '../shared/remote/transfer'
 
 const api: AbsorHostApi = {
   onStart: (callback) => {
@@ -23,6 +24,18 @@ const api: AbsorHostApi = {
   onAudioChanged: (callback) => {
     ipcRenderer.on(HOST_IPC.audioChanged, () => callback())
   },
+  onClipboard: (callback) => {
+    ipcRenderer.on(HOST_IPC.clipboard, (_event, content: ClipboardContent) => callback(content))
+  },
+  clipboardWrite: (content) => ipcRenderer.send(HOST_IPC.clipboardWrite, content),
+  fileBegin: (id, name, size) => ipcRenderer.invoke(HOST_IPC.fileBegin, id, name, size),
+  fileChunk: (id, chunk) => ipcRenderer.send(HOST_IPC.fileChunk, id, chunk),
+  fileFinish: (id, name, sha256) => ipcRenderer.invoke(HOST_IPC.fileFinish, id, name, sha256),
+  fileCancel: (id) => ipcRenderer.send(HOST_IPC.fileCancel, id),
+  fsList: (path) => ipcRenderer.invoke(HOST_IPC.fsList, path),
+  fileOpen: (id, path) => ipcRenderer.invoke(HOST_IPC.fileOpen, id, path),
+  fileRead: (id) => ipcRenderer.invoke(HOST_IPC.fileRead, id),
+  fileClose: (id) => ipcRenderer.invoke(HOST_IPC.fileClose, id),
   log: (message) => ipcRenderer.send(HOST_IPC.log, message)
 }
 
