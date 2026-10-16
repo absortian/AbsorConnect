@@ -23,7 +23,7 @@
 
 ## 4. Proceso principal (`src/main`)
 
-- [ ] 4.1 Instancia única, bandeja con menú y estado, "Mantener abierta en segundo plano" y "Abrir al iniciar sesión" en cada sistema, con arranque oculto `--hidden` (D14). Verificar a mano en Windows, macOS y Linux los escenarios de `background-mode`, incluido Linux sin bandeja.
+- [x] 4.1 Instancia única, bandeja con menú y estado, "Mantener abierta en segundo plano" y "Abrir al iniciar sesión" en cada sistema, con arranque oculto `--hidden` (D14). Verificar a mano en Windows, macOS y Linux los escenarios de `background-mode`, incluido Linux sin bandeja.
 - [ ] 4.2 Actualizaciones en segundo plano: búsqueda cada 6 h, notificación y entrada en la bandeja, sin `quitAndInstall` durante una sesión remota (D15). Verificar con `dev-app-update.yml` apuntando a una versión mayor los dos escenarios de `app-updates`.
 - [x] 4.3 Añadir Vitest (`npm test`) para los módulos puros, y el almacén `remote-access.json` y `device.json`: identificador y clave del equipo, contraseña derivada con `K` cifrada, fallos y bloqueo persistentes, registro de 50 eventos y vínculo con la cuenta (D6, D14). Verificar con tests: la contraseña no aparece en el fichero, 5 fallos bloquean 15 min aunque se recargue el almacén, y otra cuenta lo borra.
 - [x] 4.4 Prueba de autenticación compartida (`src/shared/remote/auth.ts`) con vectores en `src/shared/remote/auth-vectors.json` (D6). Verificar con tests: los vectores pasan, y cambiar una huella o el nonce cambia la prueba.
@@ -61,7 +61,7 @@
   - sección "Control remoto de este PC": activar, nombre, contraseña, funciones, confirmación local, mantener despierto, permisos por sistema, limitaciones explicadas y registro.
 
   Verificar a mano los escenarios de Ajustes de `remote-access-host` y `background-mode`.
-- [ ] 6.3 Renderer `host` (D9):
+- [x] 6.3 Renderer `host` (D9):
   - WebRTC del PC controlado con el protocolo v1, autenticando antes de todo;
   - pantallas y entrada hacia el IPC;
   - portapapeles con hash;

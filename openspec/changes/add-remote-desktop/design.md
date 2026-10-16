@@ -256,21 +256,29 @@ Errores con el formato habitual `{"error": {"code", "details"}}`.
 ### D9. Protocolo de los canales de datos (v1)
 | Canal | Modo | Contenido |
 |---|---|---|
-| `control` | fiable y ordenado, JSON | `hello`, `auth`, `auth-result`, `displays`, `select-display`, `features`, `clipboard`, metadatos de ficheros, `fs-list`, `bye` |
+| `control` | fiable y ordenado, JSON | `hello`, `auth`, `auth-result`, `displays`, `select-display`, `features`, `clipboard` (en trozos), `bye` |
 | `input` | fiable y ordenado, JSON | `key {code, down}`, `button {button, down}`, `wheel {dx, dy, mode}`, `text {text}`, `release-all`, y `move {x, y}` con la posición de cada clic y la de reposo |
 | `pointer` | sin orden, `maxRetransmits: 0` | `move {x, y}` normalizados (0–1) sobre la pantalla elegida; solo importa el último. La posición de cada clic, y la última cuando el ratón lleva 120 ms quieto, van además por `input` (fiable y en orden con los botones), porque por `pointer` un paquete perdido dejaba el cursor en otro sitio y el clic podía caer donde no era |
-| `file` | fiable y ordenado, binario | Trozos de 64 KB con control de presión (`bufferedAmountLowThreshold` 1 MB) |
+| `file` | fiable y ordenado, JSON y binario | Los mensajes de ficheros y carpetas (`file-*`, `fs-list`, `fs-entries`) y los trozos de hasta 64 KB con 4 bytes delante (el id de la transferencia), con control de presión (`bufferedAmountLowThreshold` 1 MB). Todo por el mismo canal, para que `file-end` no adelante a los últimos trozos |
 
 - **Robustez:** los mensajes llevan `v`, y los tipos desconocidos se ignoran.
 - **Entrada** (`src/shared/remote/input.ts`): `{v: 1, type, …}`, con `button` como el número de `MouseEvent.button` (0 izquierdo, 1 central, 2 derecho, 3 atrás, 4 adelante) y `mode` como `WheelEvent.deltaMode`. El PC vuelve a validar cada mensaje en el proceso principal con `parseInputEvent()`, porque el renderer `host` no es de fiar.
 - **Antes de autenticar** el PC solo procesa `auth` y descarta lo demás.
 - **Teclas pegadas:** al cerrarse la sesión o el canal, el PC suelta todas las teclas y botones pulsados. El visor envía `release-all` al perder el foco.
 - **Pantallas:** `displays` lleva `[{id, name, bounds, scaleFactor, primary}]`.
-- **Portapapeles:** el PC lo consulta cada 1 s durante la sesión (Electron no avisa de los cambios), con un hash para no reenviar lo que acaba de recibir. Texto de hasta 1 MB e imagen PNG de hasta 10 MB.
-- **Ficheros:**
-  - Envío: `file-offer {id, name, size}` → aceptación o rechazo → trozos → `file-end {sha256}`. El PC escribe un `.part` y lo renombra a un nombre libre en `Descargas/Absor Connect`.
-  - Descarga: `fs-list {path}` y `file-request {path}`, con las mismas comprobaciones de integridad.
-  - Las dos direcciones admiten `file-cancel`.
+- **Portapapeles** (`clipboardSync.ts`, en el PC y en el visor):
+  - Se mira cada segundo con una huella barata (el texto con su SHA-256; de una imagen, una muestra del mapa de bits), y una imagen solo se codifica en PNG cuando cambia.
+  - Lo que ya estaba copiado al empezar no se envía, y lo que llega del otro equipo no se reenvía.
+  - Texto de hasta 1 MB e imagen PNG de hasta 10 MB, en trozos de 60 000 caracteres (`clipboard {id, kind, index, count, data}`): un mensaje de WebRTC no puede pasar de 256 KB.
+  - En pausa no se envía ni se recibe nada.
+- **Ficheros** (protocolo en `src/shared/remote/transfer.ts`; los ids los elige siempre el controlador):
+  - **Envío al PC:** `file-offer {id, name, size}` → `file-accept` o `file-reject {reason}` → trozos → `file-end {sha256}` → `file-done {name}` o `file-error {reason}`.
+    - El PC escribe un `.part` en `Descargas/Absor Connect`, comprueba tamaño y SHA-256, y lo lleva a un nombre libre sin sobrescribir nunca: "informe (1).pdf". Usa un enlace duro, que falla si el nombre existe; donde no se puede, comprueba y renombra.
+    - Los nombres se limpian para cualquier sistema: sin carpetas, caracteres prohibidos ni nombres reservados de Windows.
+  - **Descarga:** `fs-list {id, path}` → `fs-entries` con carpetas primero y orden natural (en Windows, también "Este equipo" con las unidades), y `file-request {id, path}` → `file-start {name, size}` → trozos → `file-end {sha256}`. El visor guarda por el proceso principal (diálogo de guardar), que comprueba el resumen.
+  - **Los dos sentidos** admiten `file-cancel`, que borra el `.part`. Al perder la conexión, lo que estaba en marcha falla (no se reanuda).
+  - **SHA-256 por partes** (`sha256.ts`): el visor resume lo que envía mientras lo lee, sin cargarlo en memoria (WebCrypto solo resume bloques enteros).
+  - **El PC lo vuelve a comprobar todo** en el proceso principal: sesión autenticada y función permitida en Ajustes. La ventana `host` descarta lo que llega antes de autenticar.
 
 ### D10. Inyección de entrada con `koffi`
 `koffi` es una FFI con binarios N-API precompilados (Windows, macOS y Linux; x64 y arm64). Funciona en Electron sin recompilar y `npm ci` no compila nada (prototipo 1.3).
@@ -329,7 +337,13 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
   - En pantalla completa se usa `navigator.keyboard.lock()`. En Windows y Linux captura Alt+Tab y la tecla Windows; en macOS, Cmd+Tab no se puede capturar y se ofrece en el menú de combinaciones.
 - **Ratón:** coordenadas del elemento → normalizadas, descontando las bandas del ajuste. Sin bloqueo del puntero (modo absoluto).
 - **Estado:** `getStats()` da el par de candidatos activo (`relay` frente a `host`/`srflx`), el `roundTripTime` y `framesPerSecond`.
-- **Ficheros:** las transferencias tienen su propia lista en la ventana. Los ficheros soltados se leen en el renderer con `File` y `stream()`.
+- **Ficheros y portapapeles** (`transfers.ts` y `filesUi.ts`, tareas 6.3 y 6.5):
+  - en la barra: "Portapapeles: activo / en pausa", "Enviar ficheros" y "Descargar del equipo", solo si el PC lo permite;
+  - los ficheros se envían soltándolos sobre la ventana o con el botón, en cola, y se leen con `File.stream()`;
+  - "Descargar del equipo" abre un explorador de las carpetas del PC, con la ruta editable y "Carpeta superior";
+  - una lista de transferencias muestra el progreso, permite cancelar y enseña el resultado ("En el PC como «…»", o "Mostrar" en la carpeta) o el motivo del fallo.
+- **Relé en el estado:** a través de un relé, Chromium puede elegir un candidato `prflx` aprendido por el TURN. Por eso también cuenta como relé un candidato local con `relayProtocol`; si no, el visor decía "Directa".
+- **Para las pruebas:** `ABSOR_CONNECT_FORCE_RELAY=1` obliga a ir solo por relé (`iceTransportPolicy: 'relay'`), y `ABSOR_CONNECT_SAVE_DIR` guarda las descargas sin diálogo.
 
 - **Hecho (tareas 4.9, 6.4 y la base de la 6.5).**
   - **Proceso principal (`controllerRuntime.ts`):**
@@ -393,7 +407,22 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
       - **Sin probar:** la bandeja. El Linux se había quedado sin sesión de escritorio: al reiniciar Cinnamon desde el modo de emergencia, arrancó sin ver ningún monitor (`primaryMonitor is undefined`, con la pantalla en reposo) y se cerró.
       - **Fallo de la prueba, no de la app:** salir de la pantalla completa en el Mac. La pantalla completa de macOS es la nativa, en su propio Escritorio. Si la prueba la abre sin que la app esté activa, macOS no completa la salida, y `exitFullscreen()` no termina (en la primera ejecución sí salió). Una persona siempre la usa con la app delante. La prueba ahora activa la app con `osascript` antes (como Cmd+Tab); falta verlo en la próxima ejecución desde el Mac.
     - **Las dos direcciones entre equipos distintos están probadas.** Con el sonido de Linux (D8), la 4.8 queda completa. De la 6.5 faltan portapapeles, ficheros y relé. Windows no ha entrado en `lan-check`.
-  - **Falta (resto de la 6.5):** portapapeles, ficheros y la prueba por relé (sin TURN en desarrollo).
+  - **Ficheros, portapapeles, relé y el resto de escenarios del visor (`lan-check`, tareas 6.3 y 6.5)**, entre el Mac y el Linux en los dos sentidos:
+    - **Ficheros:**
+      - dos ficheros con el botón llegan íntegros a `Descargas/Absor Connect`;
+      - el mismo fichero soltado sobre la ventana (por DevTools, `Input.dispatchDragEvent`) se guarda como "… (1).bin" sin tocar el primero;
+      - cancelar un envío de 400 MB a medias no deja nada en el PC;
+      - la descarga desde el explorador llega íntegra.
+    - **Portapapeles:** texto en los dos sentidos ("ñ€", "¿ñ?") e imagen de 64×48. En pausa, una imagen copiada en un lado no cambia el otro, en ninguno de los dos sentidos.
+    - **Relé:** con un coturn local y el controlador obligado a usar el relé, la sesión entre el Linux y el Mac va "Por relé · 4 ms" (candidato local `relay`, remoto el host del Mac), y los ficheros y el portapapeles también pasan.
+    - **Dos PCs a la vez:** con el Mac abierto, el Linux abre otra sesión con su propio PC. Lo escrito en la primera ventana solo llega al Mac, y cerrar la segunda no corta la primera.
+    - **Más del visor:** tamaño real a 1:1 con desplazamiento; "Win / Cmd" del menú de combinaciones llega al PC; con Ctrl pulsado, al perder el foco el PC lo suelta; y tras 5 contraseñas incorrectas, el sexto intento dice "Demasiados intentos fallidos. El PC no acepta conexiones durante 15 min.".
+    - **Ensayo en un solo Linux:** 40/43; las tres sin probar necesitan dos equipos o un escritorio con bandeja.
+  - **Falta (resto de la 6.5):**
+    - el selector con varias pantallas: el Linux tiene ahora todas las salidas de vídeo desconectadas, y el Mac solo su pantalla;
+    - Alt+Tab capturado en pantalla completa (Windows o Linux con gestor de ventanas);
+    - el controlador en Wayland;
+    - salir de pantalla completa en el Mac, que en la prueba automática no termina (la pantalla completa nativa vive en su propio Escritorio) y falta comprobarlo a mano.
 
 ### D12. App móvil
 - **WebRTC:** `flutter_webrtc` (`RTCPeerConnection`, `RTCVideoView`, canales de datos). Mismo protocolo (D9).
@@ -425,6 +454,7 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
 - **STUN:** el propio coturn, más `stun.cloudflare.com:3478` de respaldo.
 - **Configuración:** `TURN_URLS` y `STUN_URLS` en el Secret `absorconnect-env`.
 - **Dónde vive:** la configuración del relé está fuera de este repo (infraestructura). `kube/AGENTS.md` documenta las variables y dónde se despliega.
+- **En desarrollo:** el servicio `turn` de `compose.override.yaml` (perfil `turn`, apagado por defecto) arranca coturn 4.6.3 con la IP de la red local en `TURN_RELAY_IP`. `TURN_URLS` y `TURN_SECRET` van en `backend/.env.local`, que no está en git; tras cambiarlos hay que reiniciar `php`, porque el worker de FrankenPHP no relee el entorno. Así se probó el relé entre dos equipos (6.5).
 
 ### D14. Modo en segundo plano (escritorio)
 - **Bandeja:** `Tray` con menú: abrir, estado del control remoto, buscar actualizaciones y salir.
@@ -463,7 +493,15 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
     - **Abrir al iniciar sesión:** escribe en `HKCU\…\Run` el valor `com.absor.fileexplorer` (el AppUserModelId que fija la app) con `"…\AbsorConnect.exe" --hidden`. Tras reiniciar, con inicio de sesión automático, la app arranca a los 10 s con `--hidden`, sin ventana ni botón en la barra de tareas y con el icono en la bandeja. Desactivar la opción borra el valor.
     - **Sin probar en Windows:** la notificación de versión nueva. Windows solo la muestra a apps con un acceso en el menú Inicio con su AppUserModelId (lo crea el instalador NSIS), y el instalador no se puede generar desde Linux sin Wine. En macOS sí se ha visto.
   - **Pendiente:** los escenarios que necesitan una sesión remota (tarea 4.8):
-    - el estado "controlado desde…" en la bandeja: visto en Linux con `lan-check` ("Controlado ahora desde Controlador Linux de prueba", leído por D-Bus) y a mano en la barra de menús del Mac durante una sesión de `lan-check` (`osascript` no pudo leer el menú de la app sin empaquetar). Falta Windows;
+    - el estado "controlado desde…" en la bandeja: **visto en los tres sistemas**.
+      - Linux: con `lan-check`, leído por D-Bus.
+      - Mac: a mano, en la barra de menús durante una sesión de `lan-check`.
+      - Windows 11, en la máquina virtual con el paquete `win-unpacked` hecho desde Linux:
+        - El PC se preparó con `lan-check/prepare-pc.ts` y la sesión se abrió desde el Linux con `lan-check/hold-session.ts`.
+        - El texto del icono, leído con UI Automation, es «Absor Connect — Controlado ahora desde Controlador Linux de prueba». En la captura, el menú dice «Controlado ahora desde Controlador Linux de prueba».
+        - Windows 11 esconde los iconos nuevos en el desbordamiento: para la prueba se promovió con `HKCU\Control Panel\NotifyIconSettings\…\IsPromoted`.
+        - El aviso de la sesión no sale en la captura (`setContentProtection`), como se buscaba.
+        - Al no activar el control remoto desde Ajustes, el aviso del cortafuegos salió con la primera sesión (D7). La sesión funcionó igual ("Directa · 1 ms").
     - que la app no se reinicie para actualizar durante una sesión.
   - **Nota:** `settings.json` con BOM (p. ej. escrito por PowerShell `Set-Content -Encoding utf8`) hace que `JSON.parse` falle y se usen los valores por defecto; es seguro (los defaults desactivan el segundo plano), pero conviene recordarlo.
 - **Ajustes (tarea 6.2):** dos secciones nuevas, "Segundo plano" y "Control remoto de este PC" (`RemoteSettings.tsx`).
