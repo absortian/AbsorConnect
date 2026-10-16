@@ -234,6 +234,14 @@ Errores con el formato habitual `{"error": {"code", "details"}}`.
   - Lo que sí funciona: al empezar una sesión con sonido, el proceso principal crea una fuente virtual que reenvía el monitor de la salida por defecto (`pactl load-module module-remap-source master=<salida por defecto>.monitor source_name=absor_connect_audio source_properties=device.description="Absor Connect"`). El renderer `host` la abre con `getUserMedia({audio: {deviceId}})`, sin cancelación de eco, supresión de ruido ni control de ganancia. La fuente se quita al terminar la sesión, y también al arrancar si quedó alguna de una sesión anterior.
   - Si la salida por defecto cambia durante la sesión (por ejemplo, al conectar unos auriculares), la fuente se vuelve a crear.
   - Sin `pactl` (paquete `pulseaudio-utils`) o sin servidor compatible con PulseAudio, el sonido no está disponible.
+  - **Implementación (`linuxAudio.ts`, tarea 4.8):**
+    - La ventana `host` pide la fuente con `audioSource()` al capturar, y solo se crea con la sesión autenticada y el sonido permitido.
+    - La salida por defecto se mira cada 3 s. Si cambia, la fuente se vuelve a crear, y la ventana reabre la pista y la cambia con `replaceTrack`.
+    - Las operaciones con `pactl` van en serie, con `LC_ALL=C`; si no existe `get-default-sink`, la salida por defecto se lee de `pactl info`.
+    - **Comillas:** la descripción va como `source_properties='device.description="Absor Connect"'`. Sin las comillas simples, el servidor la corta en el espacio ("Absor").
+    - **Sin gestores de permisos en la partición `remote-host`:** `getDisplayMedia` también consulta el permiso `media` (con vídeo), y filtrarlo rompe la captura ("Permission denied"). Con el permiso por defecto, `enumerateDevices()` ya da las etiquetas sin abrir antes el micrófono.
+    - **Volumen del monitor:** la fuente reenvía el monitor de la salida con el volumen del propio monitor. En el Linux de pruebas estaba al 8 % (−66 dB, puesto por algo anterior a la app), y el sonido llegaba en silencio aunque todo funcionara. Con el monitor al 100 % llega con el nivel del origen. La app no lo cambia (es un ajuste del usuario); ver Risks.
+  - **Verificado:** 5 tests de `linuxAudio`, y `lan-check` en un solo Linux: 32/33. El PC pita a 0,15 y en el visor llega con pico 0,152; el botón silencia, y la fuente existe durante la sesión y desaparece al terminar.
 - **Linux Wayland:** no se admite como PC controlado. Se detecta con `XDG_SESSION_TYPE=wayland` o `WAYLAND_DISPLAY`: manda `XDG_SESSION_TYPE`, que pone logind, y `WAYLAND_DISPLAY` solo cuenta si falta. La captura pasa por el portal, que pide aceptar cada vez, y XTest no actúa sobre las apps de Wayland.
 - **Estado del equipo** (`src/main/remote/support.ts` y `platformSupport.ts`, tarea 4.7): `available`, `missing_permissions` (con los permisos que faltan) o `unsupported` (Wayland). Los estados `disabled` y `busy` los pone `hostService`.
   - **macOS:** `getMediaAccessStatus('screen')` e `isTrustedAccessibilityClient(false)`.
@@ -375,8 +383,8 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
         - la pregunta sale sin bloquear la app, se rechaza sola a los 33 s, y al pulsar «Permitir» (una persona, en el Mac) conecta;
         - "Evitar que el PC se suspenda" añade su `NoIdleSleepAssertion` y la quita. Chromium tiene otra propia, "WebRTC has active PeerConnections", mientras hay conexión;
         - conecta en 2,4 s.
-        - **Sin probar:** el corte de la red (solo se hace con el Mac de controlador, y ya pasó en la fase 2) y el menú de la barra de menús. Ahí `osascript` se quedó colgado hasta el límite de 20 s con la app sin empaquetar ("Electron"). El estado "Controlado ahora desde…" sale del mismo código que en Linux, donde sí se ha comprobado.
-    - **Las dos direcciones entre equipos distintos están probadas.** De la 4.8 solo falta el sonido de un PC Linux (fuente virtual con `pactl`). De la 6.5 faltan portapapeles, ficheros y relé. Windows no ha entrado en `lan-check`.
+        - **Sin probar:** el corte de la red (solo se hace con el Mac de controlador, y ya pasó en la fase 2) y el menú de la barra de menús. Ahí `osascript` se quedó colgado hasta el límite de 20 s con la app sin empaquetar ("Electron"). El estado "Controlado ahora desde…" sí se vio a mano en la barra de menús.
+    - **Las dos direcciones entre equipos distintos están probadas.** Con el sonido de Linux (D8), la 4.8 queda completa. De la 6.5 faltan portapapeles, ficheros y relé. Windows no ha entrado en `lan-check`.
   - **Falta (resto de la 6.5):** portapapeles, ficheros y la prueba por relé (sin TURN en desarrollo).
 
 ### D12. App móvil
@@ -447,7 +455,7 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
     - **Abrir al iniciar sesión:** escribe en `HKCU\…\Run` el valor `com.absor.fileexplorer` (el AppUserModelId que fija la app) con `"…\AbsorConnect.exe" --hidden`. Tras reiniciar, con inicio de sesión automático, la app arranca a los 10 s con `--hidden`, sin ventana ni botón en la barra de tareas y con el icono en la bandeja. Desactivar la opción borra el valor.
     - **Sin probar en Windows:** la notificación de versión nueva. Windows solo la muestra a apps con un acceso en el menú Inicio con su AppUserModelId (lo crea el instalador NSIS), y el instalador no se puede generar desde Linux sin Wine. En macOS sí se ha visto.
   - **Pendiente:** los escenarios que necesitan una sesión remota (tarea 4.8):
-    - el estado "controlado desde…" en la bandeja: ya se ha visto en Linux con `lan-check` ("Controlado ahora desde Controlador Linux de prueba", leído por D-Bus). En macOS, `osascript` no pudo leer el menú de la app sin empaquetar; falta verlo a mano o con el paquete;
+    - el estado "controlado desde…" en la bandeja: visto en Linux con `lan-check` ("Controlado ahora desde Controlador Linux de prueba", leído por D-Bus) y a mano en la barra de menús del Mac durante una sesión de `lan-check` (`osascript` no pudo leer el menú de la app sin empaquetar). Falta Windows;
     - que la app no se reinicie para actualizar durante una sesión.
   - **Nota:** `settings.json` con BOM (p. ej. escrito por PowerShell `Set-Content -Encoding utf8`) hace que `JSON.parse` falle y se usen los valores por defecto; es seguro (los defaults desactivan el segundo plano), pero conviene recordarlo.
 - **Ajustes (tarea 6.2):** dos secciones nuevas, "Segundo plano" y "Control remoto de este PC" (`RemoteSettings.tsx`).
@@ -491,6 +499,7 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
 - **[Linux, Cinnamon 6.6.9 / muffin 6.6.3]** En el primer ensayo de `lan-check`, el shell de Cinnamon se cayó (SIGSEGV en `window_may_be_covered_by_above`, al atender una petición de activar una ventana). En ese momento la ventana de prueba, sin marco y siempre encima, tapaba el área de trabajo, y se abría la app del controlador. Linux Mint pasó al modo de emergencia (metacity y mate-panel). La ventana de prueba ya no va siempre encima, y no se ha repetido. `viewer-check`, que también usa el aviso siempre encima de la app, nunca lo provocó. → Vigilarlo en las pruebas con paquetes en Cinnamon (9.3), porque el aviso de la sesión también va siempre encima.
 - **[Linux Wayland]** No se admite como PC controlado → se detecta y se explica, sugiriendo una sesión X11.
 - **[Linux, sonido]** `loopback` no funciona en Linux (prototipo 1.2) → fuente virtual temporal con `pactl` (D8), que deja visible a otras apps una entrada "Absor Connect" mientras dura la sesión. Sin `pactl`, no hay sonido.
+- **[Linux, sonido]** La fuente lleva el volumen del monitor de la salida. Si alguien lo ha bajado (en las pruebas estaba al 8 %), el controlador oye muy poco o nada → explicarlo en la ayuda (Ajustes de sonido > Entrada > "Monitor of …" al 100 %). La app no toca los volúmenes del usuario.
 - **[Carga de la API]** Cada PC con el control remoto activado hace una consulta cada 3 s (unas 33 por segundo con 100 PCs, por índice) → límites por equipo y consulta mínima. Si crece, servicio WebSocket (D3).
 - **[Abuso del TURN]** Un relé abierto sirve para reenviar tráfico ajeno o entrar en redes internas → credenciales temporales firmadas, `denied-peer-ip`, cuotas y límite de ancho de banda.
 - **[Coste del relé]** Una sesión por relé puede gastar varios Mbit/s en el host del TURN → `max-bps`, cuotas y vigilancia del tráfico del host.
