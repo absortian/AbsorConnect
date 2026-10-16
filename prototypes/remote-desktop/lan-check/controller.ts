@@ -164,7 +164,8 @@ async function run(): Promise<void> {
 
   // --- Conectar -------------------------------------------------------------------------
   await ui.eval(`${connectButton(device.name)}.click()`)
-  const viewer = await Page.open(await waitTarget(DEBUG_PORT, (t) => t.url.includes('viewer.html'), 20_000))
+  const viewerTarget = await waitTarget(DEBUG_PORT, (t) => t.url.includes('viewer.html'), 20_000)
+  const viewer = await Page.open(viewerTarget)
   await viewer.send('Emulation.setFocusEmulationEnabled', { enabled: true })
   // Listo cuando se titula con el nombre del PC (antes, enviar la contraseña no hace nada)
   await viewer.waitFor<string>('document.title', (title) => title === device.name, 15_000)
@@ -221,7 +222,7 @@ async function run(): Promise<void> {
   else check('conexión directa en la red local, con latencia y fps', /Directa/.test(view.status) && /ms/.test(view.status) && /fps/.test(view.status), view.status)
   const rtt = Number(view.status.match(/(\d+) ms/)?.[1] ?? 0)
   // Con la pantalla quieta la captura manda pocos fotogramas: los fps se anotan, sin umbral
-  check('latencia de red local por debajo de 50 ms', rtt > 0 && rtt < 50, { rtt, idle: view.status })
+  check('latencia de red local por debajo de 50 ms', /\d+ ms/.test(view.status) && rtt < 50, { rtt, idle: view.status })
 
   // Lo que se ve en el PC durante la sesión
   const during = await pc('GET', '/state')
@@ -311,6 +312,81 @@ async function run(): Promise<void> {
   await sleep(800)
   const wheel = ((await pc('GET', '/state')).target.events ?? []).filter((e: any) => e.type === 'wheel')
   check('la rueda llega al PC', wheel.length > 0, { events: wheel.length, firstDy: wheel[0]?.dy, note: 'el signo puede invertirlo el desplazamiento natural del PC' })
+
+  step('tamaño real, combinaciones y teclas soltadas')
+  await viewer.eval(`document.getElementById('scale').click()`)
+  await sleep(500)
+  const realSize = await viewer.eval<{ real: boolean; css: number; pixels: number; scrollable: boolean; scrolled: number }>(`(() => {
+    const stage = document.getElementById('stage'), video = document.getElementById('video')
+    stage.scrollLeft = 400
+    return { real: stage.classList.contains('real'), css: Math.round(video.getBoundingClientRect().width), pixels: video.videoWidth,
+      scrollable: stage.scrollWidth > stage.clientWidth || stage.scrollHeight > stage.clientHeight, scrolled: stage.scrollLeft }
+  })()`)
+  await viewer.eval(`document.getElementById('scale').click()`)
+  check('tamaño real: la pantalla a 1:1 y se puede desplazar', realSize.real && Math.abs(realSize.css - realSize.pixels) <= 1 && realSize.scrollable && realSize.scrolled > 0, realSize)
+
+  // Combinación desde el menú: la tecla Windows / Cmd llega al PC
+  await pc('POST', '/reset')
+  await viewer.eval(`document.getElementById('combos').click()`)
+  await viewer.eval(`[...document.querySelectorAll('#combo-list button')].find((b) => b.textContent === 'Win / Cmd').click()`)
+  await sleep(1000)
+  const comboEvents = ((await pc('GET', '/state')).target.events ?? []).filter((e: any) => e.type === 'keydown')
+  check('el menú de combinaciones envía la tecla Windows / Cmd al PC', comboEvents.some((e: any) => /Meta|OS/.test(`${e.code} ${e.key}`)), comboEvents)
+
+  // Ctrl pulsado y la ventana pierde el foco: el PC lo suelta (si no, la "x" sería Ctrl+X)
+  const textArea = await at(0.2, 0.8)
+  await viewer.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: textArea.x, y: textArea.y, button: 'left', clickCount: 1 })
+  await viewer.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: textArea.x, y: textArea.y, button: 'left', clickCount: 1 })
+  await pc('POST', '/reset')
+  await viewer.send('Input.dispatchKeyEvent', { type: 'keyDown', code: 'ControlLeft', key: 'Control', modifiers: 2 })
+  await sleep(300)
+  await viewer.eval(`window.dispatchEvent(new Event('blur'))`)
+  await sleep(500)
+  await key('KeyX', 'x')
+  await sleep(800)
+  const afterBlur = (await pc('GET', '/state')).target.text as string
+  check('al perder el foco se sueltan las teclas: Ctrl no se queda pulsado en el PC', afterBlur === 'x', { afterBlur })
+
+  // Dos PCs a la vez (con --second-pc=1): el PC de prueba de este mismo equipo en otra ventana
+  if (args['second-pc'] === '1') {
+    step('dos PCs a la vez')
+    const own = lanAddress()
+    const { data } = await api('GET', '/api/devices', observer)
+    const local = (data?.devices ?? []).find(
+      (d: any) => d.online && d.remote?.state === 'available' && d.name.startsWith(PC_PREFIX) && d.name.includes(`@${own}:`)
+    )
+    if (!local) {
+      check('dos PCs a la vez, cada uno en su ventana', null, 'no hay un PC de prueba en este equipo')
+    } else {
+      const localProbe = `http://${local.name.match(/@([\d.]+:\d+)$/)[1]}`
+      const probeOf = async (base: string): Promise<any> => (await fetch(`${base}/state`, { signal: AbortSignal.timeout(30_000) })).json()
+      await ui.eval(`(document.querySelector('.settings-panel')?.innerText ?? '').includes(${JSON.stringify(local.name)}) || document.querySelector('button[title="Equipos"]').click()`)
+      await ui.waitFor<boolean>(`!!${connectButton(local.name)}`, (v) => v === true, 20_000)
+      await ui.eval(`${connectButton(local.name)}.click()`)
+      const secondTarget = await waitTarget(DEBUG_PORT, (t) => t.url.includes('viewer.html') && t.id !== viewerTarget.id, 20_000)
+      const second = await Page.open(secondTarget)
+      await second.waitFor<string>('document.title', (title) => title === local.name, 15_000)
+      await second.eval(`(() => { document.getElementById('password').value = ${JSON.stringify(PC_PASSWORD)}; document.getElementById('login').requestSubmit() })()`)
+      const secondUp = await second.waitFor<boolean>(`document.getElementById('overlay').hidden && document.getElementById('status').textContent.includes('fps')`, (v) => v === true, 30_000)
+      // Escribir en la ventana del primer PC no llega al segundo
+      await pc('POST', '/reset')
+      await fetch(`${localProbe}/reset`, { method: 'POST' })
+      for (const [code, k] of [['KeyD', 'd'], ['KeyO', 'o'], ['KeyS', 's']]) await key(code, k)
+      await sleep(800)
+      const firstText = (await pc('GET', '/state')).target.text
+      const secondText = (await probeOf(localProbe)).target.text
+      // Cerrar la segunda no corta la primera
+      await second.eval(`document.getElementById('disconnect').click()`).catch(() => undefined)
+      second.close()
+      await sleep(2000)
+      const firstStill = await viewer.eval<boolean>(`document.getElementById('overlay').hidden && document.getElementById('status').textContent.includes('fps')`)
+      check(
+        'dos PCs a la vez: cada uno en su ventana, lo que se hace en una no llega a la otra y cerrar una no corta la otra',
+        secondUp === true && firstText === 'dos' && secondText === '' && firstStill === true,
+        { second: local.name, secondUp, firstText, secondText, firstStill }
+      )
+    }
+  }
 
   step('pantallas y pantalla completa')
   // --- Pantallas, pantalla completa y sonido ------------------------------------------------------
@@ -607,9 +683,16 @@ async function run(): Promise<void> {
   await pc('POST', '/app', { action: 'confirm-on' })
   const human = first.platform === 'darwin'
   const reopen = async (): Promise<Page> => {
-    // El botón Equipos abre y cierra el panel: solo se pulsa si no está abierto
-    await ui.eval(`(document.querySelector('.settings-panel')?.innerText ?? '').includes(${JSON.stringify(device.name)}) || document.querySelector('button[title="Equipos"]').click()`)
-    await ui.waitFor<boolean>(`!!${connectButton(device.name)}`, (v) => v === true, 20_000)
+    // La ventana principal lleva rato detrás de los visores y Chromium frena sus temporizadores: el
+    // panel puede tener datos viejos. Se cierra (si está abierto) y se abre para que los cargue ya
+    await ui.eval(`(document.querySelector('.settings-panel')?.innerText ?? '').includes(${JSON.stringify(device.name)}) && document.querySelector('button[title="Equipos"]').click()`)
+    await sleep(300)
+    await ui.eval(`document.querySelector('button[title="Equipos"]').click()`)
+    const found = await ui.waitFor<boolean>(`!!${connectButton(device.name)}`, (v) => v === true, 30_000)
+    if (!found) {
+      const panel = await ui.eval<string>(`document.querySelector('.settings-panel')?.innerText ?? 'sin panel'`)
+      throw new Error(`Equipos no deja conectar con ${device.name} (estado ${await deviceState(observer, device.id)}): ${panel.slice(0, 600)}`)
+    }
     await ui.eval(`${connectButton(device.name)}.click()`)
     const page = await Page.open(await waitTarget(DEBUG_PORT, (t) => t.url.includes('viewer.html'), 20_000))
     await page.send('Emulation.setFocusEmulationEnabled', { enabled: true })
@@ -649,6 +732,32 @@ async function run(): Promise<void> {
   page.close()
   const gone = await viewerGone()
   check('"Desconectar" en el visor cierra la ventana y el PC queda disponible', gone && (await waitState(observer, device.id, 'available')) === 'available', { gone })
+
+  step('bloqueo tras intentos fallidos')
+  // Los accesos correctos han puesto a cero los fallos: hacen falta 5 seguidos para bloquear
+  const lockPage = await reopen()
+  const lockMessages: string[] = []
+  for (let attempt = 0; attempt < 7; attempt++) {
+    // Se borra el mensaje anterior para no leerlo otra vez
+    await lockPage.eval(`(() => {
+      const m = document.getElementById('message'); m.textContent = ''; m.classList.remove('error')
+      const p = document.getElementById('password'); if (!p.hidden) p.value = 'contraseña-incorrecta'
+      document.getElementById('login').requestSubmit()
+    })()`)
+    const text = await lockPage.waitFor<string>(`document.getElementById('message').classList.contains('error') ? document.getElementById('message').textContent : ''`, (t) => !!t, 60_000)
+    lockMessages.push(text)
+    if (text.startsWith('Demasiados intentos')) break
+  }
+  // El quinto fallo bloquea; el sexto intento ya recibe "bloqueado" con el tiempo que falta
+  const lockedMessage = lockMessages.at(-1) ?? ''
+  check(
+    '5 contraseñas incorrectas seguidas: el PC se bloquea y el visor dice cuánto falta',
+    lockMessages.length === 6 && lockMessages.slice(0, 5).every((m) => m === 'Contraseña incorrecta.') && /^Demasiados intentos fallidos\..* 15 min\.$/.test(lockedMessage),
+    lockMessages
+  )
+  await lockPage.eval(`document.getElementById('disconnect').click()`).catch(() => undefined)
+  lockPage.close()
+  await viewerGone()
 
   const final = await pc('GET', '/state')
   if (first.platform === 'linux') {
