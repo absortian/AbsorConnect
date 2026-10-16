@@ -7,12 +7,15 @@
 # Sin el segundo argumento hace las dos fases; con `pc` o `controlador`, solo esa.
 #
 #   1. Este Mac hace de PC controlado: el otro equipo lo controla (ratón, teclado, rueda, aviso,
-#      bandeja, una sesión a la vez, mantener despierto, cortes desde el PC y confirmación local).
+#      bandeja, ficheros, portapapeles, una sesión a la vez, mantener despierto, cortes desde el PC
+#      y confirmación local). Los ficheros de prueba que llegan a Descargas/Absor Connect se borran
+#      al terminar.
 #      A mitad de la prueba sale la pregunta de control remoto dos veces: la primera NO se responde
 #      (se rechaza sola a los 30 s) y la segunda se responde con «Permitir». La ventana de la prueba
 #      lo va diciendo.
-#   2. Este Mac controla el otro equipo, y si está conectado por Wi-Fi la corta 10 s para probar la
-#      reconexión.
+#   2. Este Mac controla el otro equipo: también envía y descarga ficheros y prueba el portapapeles
+#      (escribe textos e imágenes de prueba en el portapapeles del Mac). Si el Mac está conectado
+#      por Wi-Fi, la corta 10 s para probar la reconexión.
 #
 # Deja el resultado en ~/Downloads/absor-lan-check-macos.json y en el portapapeles.
 # Antes de lanzarla:
@@ -123,7 +126,7 @@ if [ "$phases" != pc ]; then
   else
     echo "    No sale a la red por Wi-Fi: la prueba de cortar la red se salta."
   fi
-  ELECTRON_RUN_AS_NODE=1 "$electron" "$here/out/controller.cjs" "--api=$api" "--work=$work/controller" \
+  "$electron" "$here/out/controller.cjs" "--api=$api" "--work=$work/controller" \
     "--out=$controller_out" --wait=30 $cut 2>>"$log"
   controller_status=$?
   # Por si la prueba se cortó a mitad del corte de la red

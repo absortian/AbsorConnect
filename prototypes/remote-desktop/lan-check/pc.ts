@@ -12,8 +12,9 @@
 //     aviso, bandeja, bloqueo de suspensión, registro) y acciones en la app (desactivar, cambiar la
 //     contraseña, confirmación local, mantener despierto, "Desconectar" del aviso).
 //   - Termina cuando el controlador llama a /done, o a los --minutes minutos.
-import { app, BrowserWindow, desktopCapturer, screen, systemPreferences } from 'electron'
+import { app, BrowserWindow, clipboard, desktopCapturer, screen, systemPreferences } from 'electron'
 import { ChildProcess, execFile, spawn } from 'child_process'
+import { createHash, randomBytes } from 'crypto'
 import * as fs from 'fs'
 import * as http from 'http'
 import * as path from 'path'
@@ -46,6 +47,39 @@ let child: ChildProcess | null = null
 let target: BrowserWindow | null = null
 let pcName = ''
 const actions: { at: string; action: string; result: unknown }[] = []
+/** Ficheros de la prueba: empiezan así, para poder borrarlos de Descargas/Absor Connect al terminar. */
+const TEST_PREFIX = 'absor-prueba'
+let downloadFile: { path: string; name: string; size: number; sha256: string } | null = null
+
+const receiveDir = (): string => path.join(app.getPath('downloads'), 'Absor Connect')
+
+/** Lo que ha llegado de la prueba a la carpeta de recepción (también los `.part` a medias). */
+function received(): { name: string; size: number; sha256: string | null }[] {
+  let names: string[] = []
+  try {
+    names = fs.readdirSync(receiveDir())
+  } catch {
+    return []
+  }
+  return names
+    .filter((name) => name.startsWith(TEST_PREFIX) || name.startsWith(`.${TEST_PREFIX}`))
+    .map((name) => {
+      const file = path.join(receiveDir(), name)
+      const size = fs.statSync(file).size
+      const sha256 = size <= 64 * 1024 * 1024 ? createHash('sha256').update(fs.readFileSync(file)).digest('hex') : null
+      return { name, size, sha256 }
+    })
+}
+
+/** Un fichero para descargar desde el controlador, en la carpeta de trabajo. */
+function prepareDownload(): void {
+  const dir = path.join(WORK, 'para-descargar')
+  fs.mkdirSync(dir, { recursive: true })
+  const data = randomBytes(2 * 1024 * 1024 + 123)
+  const name = `${TEST_PREFIX}-descarga.bin`
+  fs.writeFileSync(path.join(dir, name), data)
+  downloadFile = { path: path.join(dir, name), name, size: data.length, sha256: createHash('sha256').update(data).digest('hex') }
+}
 
 function sh(command: string, argv: string[], timeout = 10_000): Promise<string> {
   return new Promise((resolve) =>
@@ -276,6 +310,9 @@ async function state(): Promise<unknown> {
     displays,
     target: { bounds: target?.getBounds(), ...(await inTarget<object>('window.snapshot()').catch(() => ({}))) },
     notice: await noticeTarget().catch(() => null),
+    clipboard: { text: clipboard.readText(), image: clipboard.readImage().isEmpty() ? null : clipboard.readImage().getSize() },
+    received: received(),
+    download: downloadFile,
     confirm: !!(await targets(APP_DEBUG_PORT)).find((t) => t.title === CONFIRM_TITLE),
     // Linux: la fuente virtual de sonido de la app (D8) existe solo durante la sesión
     linuxAudioSource:
@@ -300,6 +337,15 @@ async function appAction(action: string, body: any): Promise<unknown> {
     case 'sleep-on':
     case 'sleep-off':
       return inApp(`window.api.updateRemoteSettings({ preventSleep: ${action === 'sleep-on'} }).then((r) => r.ok)`)
+    case 'clipboard-set':
+      clipboard.writeText(String(body.text ?? ''))
+      return true
+    case 'files-off':
+    case 'files-on':
+      return inApp(`window.api.updateRemoteSettings({ features: { files: ${action === 'files-on'} } }).then((r) => r.ok)`)
+    case 'cleanup-received':
+      for (const file of received()) fs.rmSync(path.join(receiveDir(), file.name), { force: true })
+      return true
     case 'tone-on':
       // Un pitido suave por la salida por defecto, para medir en el controlador que llega el sonido
       return inTarget(`(async () => {
@@ -324,7 +370,8 @@ async function appAction(action: string, body: any): Promise<unknown> {
 let finish: () => void = () => undefined
 const finished = new Promise<void>((resolve) => (finish = resolve))
 
-function startProbe(): http.Server {
+/** Arranca la sonda; si el puerto está ocupado (otra prueba sin terminar), falla en vez de seguir. */
+function startProbe(): Promise<http.Server> {
   const server = http.createServer((request, response) => {
     let raw = ''
     request.on('data', (chunk) => (raw += chunk))
@@ -360,8 +407,10 @@ function startProbe(): http.Server {
         })
     })
   })
-  server.listen(PROBE_PORT, '0.0.0.0')
-  return server
+  return new Promise((resolve, reject) => {
+    server.once('error', (error) => reject(new Error(`La sonda no puede usar el puerto ${PROBE_PORT}: ${error.message}. ¿Queda otra prueba abierta?`)))
+    server.listen(PROBE_PORT, '0.0.0.0', () => resolve(server))
+  })
 }
 
 /**
@@ -417,6 +466,7 @@ async function run(): Promise<void> {
   if (!WORK) throw new Error('Falta --work')
   await requestMacScreen()
   await prepareApp()
+  prepareDownload()
   launchApp()
   await waitTarget(APP_DEBUG_PORT, (t) => t.url.endsWith('index.html'), 60_000)
   // Si este equipo no se puede controlar (permisos de macOS, Wayland), se dice ya: el otro equipo
@@ -433,12 +483,13 @@ async function run(): Promise<void> {
     )
   }
   openTarget()
-  startProbe()
+  await startProbe()
   console.log(`\n==> Listo: este equipo aparece en la cuenta como «${pcName}».`)
   console.log(`==> Esperando al controlador (hasta ${MINUTES} min). No toques el ratón ni el teclado.\n`)
   const timedOut = await Promise.race([finished.then(() => false), sleep(MINUTES * 60_000).then(() => true)])
   if (timedOut) note(`nadie ha terminado la prueba en ${MINUTES} min`)
   const last = (await state().catch((e) => ({ error: String(e) }))) as any
+  for (const file of received()) fs.rmSync(path.join(receiveDir(), file.name), { force: true })
   Object.assign(report, { name: pcName, actions, finalState: { settings: last.settings, log: last.log, displays: last.displays } })
 }
 

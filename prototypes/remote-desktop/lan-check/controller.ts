@@ -1,15 +1,20 @@
-// Prueba entre dos equipos (lan-check), papel de controlador. Se ejecuta con Node (o Electron como
-// Node) y maneja la app de verdad de este equipo por DevTools, como una persona:
+// Prueba entre dos equipos (lan-check), papel de controlador. Se ejecuta con Electron (no como Node:
+// usa el portapapeles de este equipo) y maneja la app de verdad de este equipo por DevTools, como
+// una persona:
 //
-//   ELECTRON_RUN_AS_NODE=1 node_modules/electron/dist/electron prototypes/remote-desktop/lan-check/out/controller.cjs \
+//   node_modules/electron/dist/electron prototypes/remote-desktop/lan-check/out/controller.cjs \
 //     --api=http://<ip del backend>:8020 --work=<carpeta temporal> --out=<fichero.json> \
-//     [--wait=30] [--cut-network=<interfaz Wi-Fi de macOS>]
+//     [--wait=30] [--cut-network=<interfaz Wi-Fi de macOS>] [--relay=1]
 //
 // Espera a que el otro equipo aparezca en la cuenta como "PC de prueba … @ip:puerto" (pc.ts) y
-// comprueba con su sonda lo que pasa allí: el ratón, el texto, el aviso, la bandeja, el bloqueo de
-// suspensión y el registro. Al terminar llama a /done para que el PC acabe también.
+// comprueba con su sonda lo que pasa allí: el ratón, el texto, el aviso, la bandeja, los ficheros,
+// el portapapeles, el bloqueo de suspensión y el registro. Con --relay=1 la app solo usa el relé
+// (TURN). Al terminar llama a /done para que el PC acabe también.
+import { app as electronApp, clipboard, nativeImage } from 'electron'
 import { ChildProcess, execFileSync, spawn } from 'child_process'
+import { createHash, randomBytes } from 'crypto'
 import * as fs from 'fs'
+import * as os from 'os'
 import * as path from 'path'
 import { Page, targets, waitTarget } from '../lib/cdp'
 import {
@@ -38,9 +43,13 @@ const DATA = WORK ? path.join(WORK, 'controlador') : ''
 const DEBUG_PORT = 9337
 const WAIT_MINUTES = Number(args.wait ?? 30)
 const CONTROLLER_NAME = `Controlador ${systemName()} de prueba`
+const SAVE_DIR = WORK ? path.join(WORK, 'descargas') : ''
+const RELAY = args.relay === '1'
+const TAG = randomBytes(3).toString('hex')
+const sha = (data: Uint8Array): string => createHash('sha256').update(data).digest('hex')
 const { report, check, note } = createReport('controller')
 
-let app: ChildProcess | null = null
+let appProcess: ChildProcess | null = null
 let probe = ''
 
 async function pc<T = any>(method: 'GET' | 'POST', pathname: string, body?: unknown): Promise<T> {
@@ -136,9 +145,15 @@ async function run(): Promise<void> {
   fs.writeFileSync(path.join(DATA, 'session.json'), JSON.stringify({ email: TEST_EMAIL, token, encrypted: false }))
   fs.writeFileSync(path.join(DATA, 'settings.json'), JSON.stringify({ theme: 'dark', language: 'es', keepInBackground: false, openAtLogin: false }))
   const log = fs.openSync(path.join(DATA, 'app.log'), 'a')
-  const env: NodeJS.ProcessEnv = { ...process.env, ABSOR_CONNECT_API_URL: API }
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    ABSOR_CONNECT_API_URL: API,
+    // Las descargas van aquí sin diálogo de guardar (controllerRuntime)
+    ABSOR_CONNECT_SAVE_DIR: SAVE_DIR,
+    ...(RELAY ? { ABSOR_CONNECT_FORCE_RELAY: '1' } : {})
+  }
   delete env.ELECTRON_RUN_AS_NODE
-  app = spawn(ELECTRON, [ROOT, `--user-data-dir=${DATA}`, `--remote-debugging-port=${DEBUG_PORT}`], { env, stdio: ['ignore', log, log] })
+  appProcess = spawn(ELECTRON, [ROOT, `--user-data-dir=${DATA}`, `--remote-debugging-port=${DEBUG_PORT}`], { env, stdio: ['ignore', log, log] })
 
   const ui = await Page.open(await waitTarget(DEBUG_PORT, (t) => t.url.endsWith('index.html'), 60_000))
   await ui.waitFor<boolean>(`!!document.querySelector('button[title="Equipos"]')`, (v) => v === true)
@@ -166,6 +181,15 @@ async function run(): Promise<void> {
   const failedWith = (ms: number): Promise<string> =>
     viewer.waitFor<string>(`document.getElementById('overlay').hidden ? '' : (document.getElementById('message').classList.contains('error') ? document.getElementById('message').textContent : '')`, (t) => !!t, ms)
 
+  // Con --relay se guarda la conexión del visor para ver después su política y el par elegido
+  if (RELAY) {
+    await viewer.eval(`(() => {
+      const Original = window.RTCPeerConnection
+      window.peerConnections = []
+      window.RTCPeerConnection = function (...args) { const pc = new Original(...args); window.peerConnections.push(pc); return pc }
+      window.RTCPeerConnection.prototype = Original.prototype
+    })()`)
+  }
   await submit('contraseña-incorrecta')
   const wrong = await failedWith(30_000)
   check('contraseña incorrecta: el visor lo explica', wrong === 'Contraseña incorrecta.', wrong)
@@ -181,7 +205,20 @@ async function run(): Promise<void> {
       displays: [...s.options].map((o) => o.value), current: s.value, mute: !document.getElementById('mute').hidden }
   })()`)
   check('con la contraseña correcta se conecta en menos de 10 s y llega la imagen', ok && seconds < 10 && view.w > 0, { seconds, ...view })
-  check('conexión directa en la red local, con latencia y fps', /Directa/.test(view.status) && /ms/.test(view.status) && /fps/.test(view.status), view.status)
+  if (RELAY) {
+    const forced = await viewer.eval<boolean>(`window.absorViewer.init().then((init) => init.forceRelay)`)
+    const route = await viewer.eval<unknown>(`(async () => {
+      const pc = window.peerConnections.at(-1)
+      if (!pc) return null
+      const report = await pc.getStats()
+      let pair = null
+      report.forEach((e) => { if (e.type === 'transport' && e.selectedCandidatePairId) pair = report.get(e.selectedCandidatePairId) })
+      const local = pair && report.get(pair.localCandidateId), remote = pair && report.get(pair.remoteCandidateId)
+      return { policy: pc.getConfiguration().iceTransportPolicy, local: local && [local.candidateType, local.address, local.relayProtocol], remote: remote && [remote.candidateType, remote.address] }
+    })()`)
+    check('solo por relé: la sesión funciona y el visor dice que va por relé', /Por relé/.test(view.status) && /fps/.test(view.status), { status: view.status, forceRelay: forced, route })
+  }
+  else check('conexión directa en la red local, con latencia y fps', /Directa/.test(view.status) && /ms/.test(view.status) && /fps/.test(view.status), view.status)
   const rtt = Number(view.status.match(/(\d+) ms/)?.[1] ?? 0)
   // Con la pantalla quieta la captura manda pocos fotogramas: los fps se anotan, sin umbral
   check('latencia de red local por debajo de 50 ms', rtt > 0 && rtt < 50, { rtt, idle: view.status })
@@ -291,9 +328,9 @@ async function run(): Promise<void> {
 
   // macOS solo completa la salida de la pantalla completa nativa si la app está delante (como
   // cuando una persona pulsa el botón): se activa como haría Cmd+Tab
-  if (process.platform === 'darwin' && app?.pid) {
+  if (process.platform === 'darwin' && appProcess?.pid) {
     try {
-      execFileSync('osascript', ['-e', `tell application "System Events" to set frontmost of (first process whose unix id is ${app.pid}) to true`], { stdio: 'pipe', timeout: 10_000 })
+      execFileSync('osascript', ['-e', `tell application "System Events" to set frontmost of (first process whose unix id is ${appProcess.pid}) to true`], { stdio: 'pipe', timeout: 10_000 })
     } catch (error) {
       note(`no se ha podido poner la app delante: ${String(error).slice(0, 120)}`)
     }
@@ -362,6 +399,129 @@ async function run(): Promise<void> {
     audio.button && tone > 0.02 && muted === true && (first.platform !== 'linux' || audioSource === true),
     { ...audio, peakSilent: silent, peakTone: tone, muted, linuxAudioSource: audioSource }
   )
+
+  step('ficheros')
+  await pc('POST', '/app', { action: 'cleanup-received' })
+  const offered = await viewer.eval<{ send: boolean; download: boolean; clipboard: boolean }>(`({
+    send: !document.getElementById('send-files').hidden,
+    download: !document.getElementById('download').hidden,
+    clipboard: !document.getElementById('clipboard').hidden
+  })`)
+  check('el visor ofrece el portapapeles y enviar y descargar ficheros', offered.send && offered.download && offered.clipboard, offered)
+
+  // Dos ficheros con el botón (por el selector de ficheros)
+  const outbox = path.join(WORK, 'envios')
+  fs.mkdirSync(outbox, { recursive: true })
+  const one = path.join(outbox, `absor-prueba-${TAG}-uno.bin`)
+  const two = path.join(outbox, `absor-prueba-${TAG}-dos.txt`)
+  fs.writeFileSync(one, randomBytes(3 * 1024 * 1024 + 17))
+  fs.writeFileSync(two, `Informe de prueba ${TAG}: ñ€\n`.repeat(4000))
+  const fileInput = async (files: string[]): Promise<void> => {
+    const { root } = (await viewer.send('DOM.getDocument')).result
+    const { nodeId } = (await viewer.send('DOM.querySelector', { nodeId: root.nodeId, selector: '#file-input' })).result
+    await viewer.send('DOM.setFileInputFiles', { nodeId, files })
+  }
+  const waitRows = (count: number, ms = 120_000): Promise<string[]> =>
+    viewer.waitFor<string[]>(
+      `[...document.querySelectorAll('#transfer-list li')].map((li) => li.className)`,
+      (states) => !!states && states.filter((c) => ['done', 'failed', 'cancelled'].includes(c)).length >= count,
+      ms
+    )
+  const receivedOnPc = async (): Promise<{ name: string; size: number; sha256: string | null }[]> => (await pc('GET', '/state')).received
+  await fileInput([one, two])
+  const afterTwo = await waitRows(2)
+  let onPc = await receivedOnPc()
+  const shaOf = (file: string): string => sha(fs.readFileSync(file))
+  const arrived = (file: string, name = path.basename(file)): boolean => onPc.some((r) => r.name === name && r.sha256 === shaOf(file))
+  check('enviar dos ficheros con el botón: llegan íntegros a Descargas/Absor Connect del PC', arrived(one) && arrived(two), { states: afterTwo, onPc })
+
+  // El primero otra vez, soltándolo sobre la ventana: nombre repetido
+  const center2 = await at(0.5, 0.5)
+  for (const type of ['dragEnter', 'dragOver', 'drop']) {
+    await viewer.send('Input.dispatchDragEvent', { type, x: center2.x, y: center2.y, data: { items: [], files: [one], dragOperationsMask: 1 } })
+  }
+  const afterDrop = await waitRows(3)
+  onPc = await receivedOnPc()
+  const repeated = `absor-prueba-${TAG}-uno (1).bin`
+  check('soltar sobre la ventana el mismo fichero: se guarda con otro nombre y el primero no cambia', arrived(one) && arrived(one, repeated), { states: afterDrop, onPc })
+
+  // Cancelar un envío grande a medias
+  const big = path.join(outbox, `absor-prueba-${TAG}-grande.bin`)
+  fs.writeFileSync(big, Buffer.alloc(0))
+  fs.truncateSync(big, 400 * 1024 * 1024)
+  await fileInput([big])
+  const running = await viewer.waitFor<boolean>(`(() => { const li = document.querySelector('#transfer-list li'); return !!li && li.className === 'running' && !li.querySelector('.state').textContent.startsWith('0 %') })()`, (v) => v === true, 30_000)
+  await viewer.eval(`document.querySelector('#transfer-list li .actions button').click()`)
+  const cancelled = await viewer.waitFor<string>(`document.querySelector('#transfer-list li').className`, (c) => c === 'cancelled', 10_000)
+  await sleep(2000)
+  onPc = await receivedOnPc()
+  check('cancelar un envío a medias no deja nada en el PC', running === true && cancelled === 'cancelled' && !onPc.some((r) => r.name.includes('grande')), { running, cancelled, onPc })
+  fs.rmSync(big, { force: true })
+
+  // Descargar desde el explorador de carpetas del PC
+  const download = (await pc('GET', '/state')).download as { path: string; name: string; size: number; sha256: string }
+  const remoteDir = download.path.slice(0, download.path.length - download.name.length - 1)
+  await viewer.eval(`document.getElementById('download').click()`)
+  await viewer.waitFor<boolean>(`!document.getElementById('browser').hidden && document.getElementById('browser-message').textContent !== 'Cargando…'`, (v) => v === true, 15_000)
+  const home = await viewer.eval<string>(`document.getElementById('browser-path').value`)
+  await viewer.eval(`(() => { const input = document.getElementById('browser-path'); input.value = ${JSON.stringify(remoteDir)}; input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' })) })()`)
+  const listed = await viewer.waitFor<string[]>(`[...document.querySelectorAll('#browser-list li .name')].map((n) => n.textContent)`, (names) => !!names && names.includes(download.name), 15_000)
+  await viewer.eval(`[...document.querySelectorAll('#browser-list li')].find((li) => li.querySelector('.name').textContent === ${JSON.stringify(download.name)}).click()`)
+  const afterDownload = await waitRows(5)
+  const saved = path.join(SAVE_DIR, download.name)
+  const savedSha = fs.existsSync(saved) ? shaOf(saved) : null
+  check('descargar del PC desde el explorador: se guarda íntegro', savedSha === download.sha256, { home, listed: listed?.length, states: afterDownload, savedSha })
+  await viewer.eval(`document.getElementById('browser-close').click()`)
+  await pc('POST', '/app', { action: 'cleanup-received' })
+
+  // Portapapeles: con los dos papeles en el mismo equipo el portapapeles es el mismo
+  step('portapapeles')
+  const sameMachine = first.system.hostname === os.hostname()
+  if (sameMachine) {
+    check('portapapeles en los dos sentidos, con imagen y pausa', null, 'los dos papeles están en el mismo equipo y comparten portapapeles')
+  } else {
+    const waitUntil = async (condition: () => Promise<boolean> | boolean, ms = 8000): Promise<boolean> => {
+      for (const end = Date.now() + ms; Date.now() < end; ) {
+        if (await condition()) return true
+        await sleep(300)
+      }
+      return false
+    }
+    const pcClipboard = async (): Promise<{ text: string; image: { width: number; height: number } | null }> => (await pc('GET', '/state')).clipboard
+    const fromPc = `Absor: del PC al controlador ${TAG} ñ€`
+    await pc('POST', '/app', { action: 'clipboard-set', text: fromPc })
+    const gotHere = await waitUntil(() => clipboard.readText() === fromPc)
+    check(`copiar en el ${remoteSystem} y pegar aquí`, gotHere, { here: clipboard.readText().slice(0, 80) })
+
+    const toPc = `Absor: del controlador al PC ${TAG} ¿ñ?`
+    clipboard.writeText(toPc)
+    const gotThere = await waitUntil(async () => (await pcClipboard()).text === toPc)
+    check(`copiar aquí y pegar en el ${remoteSystem}`, gotThere, await pcClipboard())
+
+    const image = (width: number, height: number, value: number): Electron.NativeImage =>
+      nativeImage.createFromBitmap(Buffer.alloc(width * height * 4, value), { width, height })
+    clipboard.writeImage(image(64, 48, 0x7f))
+    const imageThere = await waitUntil(async () => (await pcClipboard()).image?.width === 64)
+    check(`una imagen copiada aquí se puede pegar en el ${remoteSystem}`, imageThere, await pcClipboard())
+
+    // En pausa: una imagen copiada aquí no llega al PC (sigue la de 64×48), y lo copiado en el PC no
+    // llega aquí (sigue la imagen de 32×32)
+    await viewer.eval(`document.getElementById('clipboard').click()`)
+    const pausedLabel = await viewer.eval<string>(`document.getElementById('clipboard').textContent`)
+    clipboard.writeImage(image(32, 32, 0x20))
+    await sleep(4000)
+    const pcAfterPause = await pcClipboard()
+    const pausedText = `Absor: en pausa ${TAG}`
+    await pc('POST', '/app', { action: 'clipboard-set', text: pausedText })
+    await sleep(4000)
+    const here = { text: clipboard.readText().slice(0, 80), image: clipboard.readImage().getSize() }
+    check(
+      'en pausa, copiar una imagen aquí no cambia el portapapeles del PC (ni al revés)',
+      pcAfterPause.image?.width === 64 && here.text !== pausedText && here.image.width === 32,
+      { pausedLabel, pc: pcAfterPause, here }
+    )
+    await viewer.eval(`document.getElementById('clipboard').click()`)
+  }
 
   step('mantener despierto')
   // --- Mantener despierto -------------------------------------------------------------------------
@@ -499,22 +659,26 @@ async function run(): Promise<void> {
   ui.close()
 }
 
-run()
+electronApp.dock?.hide()
+electronApp.on('window-all-closed', () => undefined)
+void electronApp.whenReady().then(() =>
+  run()
   .catch((error) => {
     report.error = describeError(error)
     console.error(error)
   })
   .finally(async () => {
     if (probe) await pc('POST', '/done', { notes: [`controlador ${systemName()} terminado`] }).catch(() => undefined)
-    if (app && app.exitCode === null) {
-      const exited = new Promise((resolve) => app!.once('exit', resolve))
-      app.kill('SIGTERM')
+    if (appProcess && appProcess.exitCode === null) {
+      const exited = new Promise((resolve) => appProcess!.once('exit', resolve))
+      appProcess.kill('SIGTERM')
       await Promise.race([exited, sleep(10_000)])
-      if (app.exitCode === null) app.kill('SIGKILL')
+      if (appProcess.exitCode === null) appProcess.kill('SIGKILL')
     }
     if (args.out) fs.writeFileSync(args.out, JSON.stringify(report, null, 2))
     const failed = report.checks.filter((c) => c.ok === false).length
     const skipped = report.checks.filter((c) => c.ok === null).length
     console.log(`\n${report.checks.length - failed - skipped}/${report.checks.length} comprobaciones bien${skipped ? ` (${skipped} sin probar)` : ''}.`)
-    process.exit(failed === 0 && !report.error ? 0 : 1)
+    electronApp.exit(failed === 0 && !report.error ? 0 : 1)
   })
+)
