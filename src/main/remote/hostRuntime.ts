@@ -12,6 +12,7 @@ import { DeviceIdentity } from './deviceIdentity'
 import { notifySession } from './hostNotice'
 import { HostCloseReason, HostService } from './hostService'
 import { openHostSession } from './hostSession'
+import { linuxAudio } from './linuxAudio'
 import { createSupportMonitor, detectSupport } from './platformSupport'
 import { RemoteSupport, SupportMonitor } from './support'
 import { RemoteAccessStore } from './remoteAccessStore'
@@ -41,6 +42,8 @@ export async function startRemoteHost(): Promise<void> {
   const platform = devicePlatform(process.platform)
   if (service || !platform) return
   await loadSession()
+  // Fuente de sonido que quedó de una sesión anterior si la app se cerró de golpe (D8)
+  if (process.platform === 'linux') void linuxAudio.cleanup()
 
   const userData = app.getPath('userData')
   const box = createSafeBox()

@@ -26,6 +26,8 @@ let features: HostFeatures = { clipboard: false, files: false, audio: false }
 let authenticating = false
 let authenticated = false
 let stream: MediaStream | null = null
+/** Etiqueta de la fuente virtual de sonido en Linux (D8); null si el sonido va por `loopback`. */
+let audioLabel: string | null = null
 let ending = false
 let disconnectedTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -35,6 +37,7 @@ host.onStart((init: HostInit) => {
     return
   }
   features = init.features
+  host.onAudioChanged(() => void reopenAudio())
   // Latido para el proceso principal: si esta ventana se cuelga, la sesión se cierra igualmente
   setInterval(() => host.alive(), 2000)
   startSession(init.offer, init.iceServers).catch((error) => fail('ended', error))
@@ -161,10 +164,16 @@ async function onControl(data: unknown): Promise<void> {
 async function capture(): Promise<void> {
   const connection = pc
   if (!connection) return
+  // En Linux el sonido no va con la pantalla: llega por la fuente virtual que crea el proceso principal
+  if (features.audio && audioLabel === null) audioLabel = await host.audioSource()
   const next = await navigator.mediaDevices.getDisplayMedia({
     video: { frameRate: { ideal: 30, max: 30 } },
-    audio: features.audio
+    audio: features.audio && audioLabel === null
   })
+  if (audioLabel) {
+    const track = await openAudioSource(audioLabel)
+    if (track) next.addTrack(track)
+  }
   const [video] = next.getVideoTracks()
   const [audio] = next.getAudioTracks()
   // Texto nítido: con poco ancho de banda baja la fluidez antes que la resolución (D2)
@@ -186,6 +195,53 @@ async function capture(): Promise<void> {
   }
   stream?.getTracks().forEach((track) => track.stop())
   stream = next
+}
+
+/**
+ * Abre la fuente virtual de sonido de Linux, sin los filtros de voz (es el sonido del sistema). La
+ * fuente se acaba de crear y Chromium tarda un momento en verla: se reintenta durante 3 s.
+ */
+async function openAudioSource(label: string): Promise<MediaStreamTrack | null> {
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const devices = await navigator.mediaDevices.enumerateDevices()
+    const device = devices.find((d) => d.kind === 'audioinput' && d.label === label)
+    if (device) {
+      try {
+        const media = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            deviceId: { exact: device.deviceId },
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false
+          }
+        })
+        return media.getAudioTracks()[0] ?? null
+      } catch (error) {
+        host.log(`audio source: ${error instanceof Error ? error.message : String(error)}`)
+        return null
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 300))
+  }
+  host.log('audio source: not found')
+  return null
+}
+
+/** La salida por defecto ha cambiado y la fuente se ha vuelto a crear: se cambia la pista. */
+async function reopenAudio(): Promise<void> {
+  const connection = pc
+  if (!connection || !stream || !audioLabel) return
+  const track = await openAudioSource(audioLabel)
+  if (!track) return
+  const sender = connection
+    .getTransceivers()
+    .find((transceiver) => transceiver.receiver.track.kind === 'audio')?.sender
+  await sender?.replaceTrack(track)
+  for (const old of stream.getAudioTracks()) {
+    old.stop()
+    stream.removeTrack(old)
+  }
+  stream.addTrack(track)
 }
 
 async function sendDisplays(): Promise<void> {

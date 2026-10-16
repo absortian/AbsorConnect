@@ -29,6 +29,7 @@ import { HostAuth } from './hostAuth'
 import { confirmLocally, openSessionNotice } from './hostNotice'
 import { HostCloseReason, HostSession } from './hostService'
 import { createInputController, InputController, nativeDisplayRect } from './input'
+import { linuxAudio } from './linuxAudio'
 import { RemoteAccessStore } from './remoteAccessStore'
 
 const HOST_PARTITION = 'remote-host'
@@ -75,6 +76,8 @@ class ActiveHostSession implements HostSession {
   private auth: HostAuth | null = null
   private input: InputController | null = null
   private notice: { close(): void } | null = null
+  /** Esta sesión creó la fuente virtual de sonido de Linux (D8): se quita al cerrar. */
+  private linuxAudio = false
   private closed = false
   private isStarted = false
   private timer: ReturnType<typeof setTimeout> | null = null
@@ -207,6 +210,19 @@ class ActiveHostSession implements HostSession {
     this.resolveStarted()
   }
 
+  /** Linux: la fuente virtual con el sonido del sistema, solo con la sesión autenticada y el sonido permitido. */
+  async audioSource(): Promise<string | null> {
+    if (process.platform !== 'linux' || !this.authenticated || this.closed || !this.features.audio)
+      return null
+    this.linuxAudio = true
+    const label = await linuxAudio.start(() => {
+      if (!this.window.isDestroyed()) this.window.webContents.send(HOST_IPC.audioChanged)
+    })
+    // Si la sesión se cerró mientras se creaba, no debe quedar
+    if (this.closed) void linuxAudio.stop()
+    return label
+  }
+
   applyInput(raw: unknown): void {
     if (!this.authenticated || this.closed || !this.input) return
     const event = parseInputEvent(raw)
@@ -219,6 +235,7 @@ class ActiveHostSession implements HostSession {
     this.clearTimer()
     if (this.heartbeat) clearInterval(this.heartbeat)
     this.notice?.close()
+    if (this.linuxAudio) void linuxAudio.stop()
     void this.input?.dispose()
     this.input = null
     if (!this.isStarted) this.rejectStarted(new Error(reason))
@@ -272,6 +289,7 @@ function setupIpc(): void {
   ipcMain.on(HOST_IPC.captureStarted, (event) => void sessionFor(event)?.captureStarted())
   ipcMain.on(HOST_IPC.input, (event, message) => sessionFor(event)?.applyInput(message))
   ipcMain.on(HOST_IPC.alive, (event) => sessionFor(event)?.alive())
+  ipcMain.handle(HOST_IPC.audioSource, (event) => sessionFor(event)?.audioSource() ?? null)
   ipcMain.on(HOST_IPC.ended, (event, reason) =>
     sessionFor(event)?.close(typeof reason === 'string' ? reason.slice(0, 32) : 'ended')
   )
@@ -279,39 +297,42 @@ function setupIpc(): void {
     if (sessionFor(event)) console.warn('Remote host:', String(message).slice(0, 500))
   })
 
+  // Sin gestores de permisos propios: getDisplayMedia también consulta el permiso `media` (con
+  // vídeo) y filtrarlo lo rompe. El sonido de Linux solo existe si audioSource() lo ha creado, con la
+  // sesión autenticada y el sonido permitido, y la ventana solo carga host.html
+  const partition = electronSession.fromPartition(HOST_PARTITION)
+
   // getDisplayMedia de la ventana `host`: nada antes de autenticar; después, la pantalla elegida
   // y, en Windows y macOS, el sonido del sistema (en Linux no funciona `loopback`, D8)
-  electronSession
-    .fromPartition(HOST_PARTITION)
-    .setDisplayMediaRequestHandler(async (request, callback) => {
-      // Electron 39 no admite `{}` si se pidió vídeo; sin un objeto, rechaza la petición
-      const deny = (): void => (callback as unknown as (streams: null) => void)(null)
-      const session = sessionForFrame(request.frame)
-      if (!session?.authenticated) {
-        deny()
-        return
+  partition.setDisplayMediaRequestHandler(async (request, callback) => {
+    // Electron 39 no admite `{}` si se pidió vídeo; sin un objeto, rechaza la petición
+    const deny = (): void => (callback as unknown as (streams: null) => void)(null)
+    const session = sessionForFrame(request.frame)
+    if (!session?.authenticated) {
+      deny()
+      return
+    }
+    let streams: Streams | null = null
+    try {
+      const sources = await desktopCapturer.getSources({ types: ['screen'] })
+      const source =
+        sources.find((s) => s.display_id === session.displayId) ??
+        sources[0] ??
+        // X11 sin monitores RandR (Xvnc, xrdp…): Chromium no lista pantallas, pero el escritorio
+        // completo sí se captura, y Electron ve entonces una sola pantalla que lo cubre todo
+        (process.platform === 'linux' ? FULL_DESKTOP_SOURCE : undefined)
+      if (source) {
+        streams =
+          session.features.audio && request.audioRequested && process.platform !== 'linux'
+            ? { video: source, audio: 'loopback' }
+            : { video: source }
       }
-      let streams: Streams | null = null
-      try {
-        const sources = await desktopCapturer.getSources({ types: ['screen'] })
-        const source =
-          sources.find((s) => s.display_id === session.displayId) ??
-          sources[0] ??
-          // X11 sin monitores RandR (Xvnc, xrdp…): Chromium no lista pantallas, pero el escritorio
-          // completo sí se captura, y Electron ve entonces una sola pantalla que lo cubre todo
-          (process.platform === 'linux' ? FULL_DESKTOP_SOURCE : undefined)
-        if (source) {
-          streams =
-            session.features.audio && request.audioRequested
-              ? { video: source, audio: 'loopback' }
-              : { video: source }
-        }
-      } catch (error) {
-        console.error('Remote host: screen sources unavailable:', error)
-      }
-      if (streams) callback(streams)
-      else deny()
-    })
+    } catch (error) {
+      console.error('Remote host: screen sources unavailable:', error)
+    }
+    if (streams) callback(streams)
+    else deny()
+  })
 }
 
 /** Sesión de la ventana `host` que pide la captura (por su marco principal). */
@@ -360,7 +381,9 @@ export async function openHostSession(
   const features: HostFeatures = {
     clipboard: snapshot.features.clipboard,
     files: snapshot.features.files,
-    audio: snapshot.features.audio && process.platform !== 'linux'
+    // En Linux, con `pactl` y un servidor compatible con PulseAudio (D8)
+    audio:
+      snapshot.features.audio && (process.platform !== 'linux' || (await linuxAudio.available()))
   }
   const window = hostWindow()
   const session = new ActiveHostSession(window, request, ctx, features, snapshot.deviceName)

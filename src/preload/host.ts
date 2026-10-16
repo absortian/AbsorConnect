@@ -19,6 +19,10 @@ const api: AbsorHostApi = {
   input: (message) => ipcRenderer.send(HOST_IPC.input, message),
   ended: (reason) => ipcRenderer.send(HOST_IPC.ended, reason),
   alive: () => ipcRenderer.send(HOST_IPC.alive),
+  audioSource: () => ipcRenderer.invoke(HOST_IPC.audioSource),
+  onAudioChanged: (callback) => {
+    ipcRenderer.on(HOST_IPC.audioChanged, () => callback())
+  },
   log: (message) => ipcRenderer.send(HOST_IPC.log, message)
 }
 

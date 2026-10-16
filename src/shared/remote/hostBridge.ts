@@ -40,6 +40,13 @@ export interface AbsorHostApi {
   ended(reason: string): void
   /** Latido cada 2 s: sin él, el proceso principal da la ventana por colgada y cierra la sesión. */
   alive(): void
+  /**
+   * En Linux, crea la fuente virtual con el sonido del sistema y devuelve su etiqueta para abrirla
+   * con getUserMedia (D8). null si el sonido va por `loopback` (Windows y macOS) o no se puede.
+   */
+  audioSource(): Promise<string | null>
+  /** La fuente de sonido se ha vuelto a crear (cambió la salida por defecto): hay que reabrirla. */
+  onAudioChanged(callback: () => void): void
   log(message: string): void
 }
 
@@ -55,5 +62,7 @@ export const HOST_IPC = {
   input: 'remote-host:input',
   ended: 'remote-host:ended',
   alive: 'remote-host:alive',
+  audioSource: 'remote-host:audio-source',
+  audioChanged: 'remote-host:audio-changed',
   log: 'remote-host:log'
 } as const
