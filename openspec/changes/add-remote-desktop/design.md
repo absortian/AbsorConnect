@@ -345,7 +345,11 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
     - el ratón llega exacto al 10 % / 10 %;
     - tras un `Page.crash` del renderer de A, el PC vuelve a estar disponible a los 9 s y el visor reconecta solo a los 17 s, sin pedir la contraseña;
     - Desconectar cierra la ventana y deja el PC disponible.
-  - **Falta (resto de la 6.5):** portapapeles, ficheros, la prueba por relé (sin TURN en desarrollo), el corte de red real de 10 s y la prueba entre dos equipos distintos.
+  - **Corregido con `lan-check`:** cuando el PC cambiaba la contraseña, el visor conservaba K y "Reconectar" fallaba con "Contraseña incorrecta.", que además cuenta para el bloqueo. Ahora un `bye` con `password_changed` borra K y el visor pide la contraseña nueva.
+  - **Prueba entre dos equipos (`prototypes/remote-desktop/lan-check`):** un equipo hace de PC (`pc.ts`) y el otro de controlador (`controller.ts`), y el controlador comprueba lo que pasa en el PC con una sonda HTTP del propio PC. Cubre los escenarios de la 4.8 (una sesión a la vez, aviso y corte, confirmación local, mantener despierto) y de la 6.5 (ratón, teclado, rueda, pantallas, pantalla completa, sonido, corte de red de 10 s). En macOS, `lan-test.sh` hace las dos fases seguidas.
+    - **Ensayo en un solo Linux X11** (los dos papeles en el mismo equipo, como `viewer-check`): 29/32. Las tres sin probar son las esperadas: el sonido de un PC Linux (aún sin `pactl`), el corte de la red (solo desde el Mac) y pulsar "Permitir" (no hay nadie delante).
+    - **Comprobado:** la bandeja dice "Controlado ahora desde …", el segundo controlador recibe `busy`, y el ratón cae exacto al 10 % y al 90 %. El clic, el texto por posición física, Mayúsculas, Retroceso y la rueda llegan a la ventana de prueba. Pantalla completa funciona. "Evitar que el PC se suspenda" añade su inhibidor al gestor de sesión y lo quita. "Desconectar" en el aviso, desactivar y cambiar la contraseña cortan la sesión con su mensaje. Sin respuesta, la confirmación local rechaza a los 33 s. El registro anota las sesiones y el intento fallido.
+  - **Falta (resto de la 6.5):** portapapeles, ficheros, la prueba por relé (sin TURN en desarrollo) y la prueba entre dos equipos distintos (pendiente de `lan-test.sh` en el Mac).
 
 ### D12. App móvil
 - **WebRTC:** `flutter_webrtc` (`RTCPeerConnection`, `RTCVideoView`, canales de datos). Mismo protocolo (D9).
@@ -414,7 +418,9 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
       - "Salir" termina todos los procesos.
     - **Abrir al iniciar sesión:** escribe en `HKCU\…\Run` el valor `com.absor.fileexplorer` (el AppUserModelId que fija la app) con `"…\AbsorConnect.exe" --hidden`. Tras reiniciar, con inicio de sesión automático, la app arranca a los 10 s con `--hidden`, sin ventana ni botón en la barra de tareas y con el icono en la bandeja. Desactivar la opción borra el valor.
     - **Sin probar en Windows:** la notificación de versión nueva. Windows solo la muestra a apps con un acceso en el menú Inicio con su AppUserModelId (lo crea el instalador NSIS), y el instalador no se puede generar desde Linux sin Wine. En macOS sí se ha visto.
-  - **Pendiente:** los escenarios que necesitan una sesión remota (tarea 4.8): el estado "controlado desde…" en la bandeja y que la app no se reinicie para actualizar durante una sesión.
+  - **Pendiente:** los escenarios que necesitan una sesión remota (tarea 4.8):
+    - el estado "controlado desde…" en la bandeja: ya se ha visto en Linux con `lan-check` ("Controlado ahora desde Controlador Linux de prueba", leído por D-Bus); falta macOS;
+    - que la app no se reinicie para actualizar durante una sesión.
   - **Nota:** `settings.json` con BOM (p. ej. escrito por PowerShell `Set-Content -Encoding utf8`) hace que `JSON.parse` falle y se usen los valores por defecto; es seguro (los defaults desactivan el segundo plano), pero conviene recordarlo.
 - **Ajustes (tarea 6.2):** dos secciones nuevas, "Segundo plano" y "Control remoto de este PC" (`RemoteSettings.tsx`).
   - **Proceso principal:** `remoteSettings.ts` atiende `remote-settings:get`, `set-password`, `set-enabled`, `update` y `open-permission`. Antes de cada una ata la configuración a la cuenta con la sesión iniciada. La contraseña solo cruza una vez, al definirla, y el proceso principal deriva K sin guardarla.
@@ -453,6 +459,7 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
 - **[macOS, firma ad-hoc]** Tras cada actualización macOS puede retirar Grabación de pantalla y Accesibilidad → la app lo detecta al arrancar, marca el equipo como `missing_permissions` y muestra una notificación con el permiso que falta. La solución definitiva es un certificado de Apple Developer (fuera de alcance).
 - **[macOS 15]** Pide reconfirmar la grabación de pantalla cada mes, y alguien tiene que aceptarlo delante del Mac → documentado en Ajustes y en la web. No hay forma oficial de evitarlo.
 - **[Windows]** Pantalla bloqueada, UAC y ventanas elevadas no se pueden controlar → Ajustes lo explica. Un servicio del sistema queda fuera de alcance.
+- **[Linux, Cinnamon 6.6.9 / muffin 6.6.3]** En el primer ensayo de `lan-check`, el shell de Cinnamon se cayó (SIGSEGV en `window_may_be_covered_by_above`, al atender una petición de activar una ventana). En ese momento la ventana de prueba, sin marco y siempre encima, tapaba el área de trabajo, y se abría la app del controlador. Linux Mint pasó al modo de emergencia (metacity y mate-panel). La ventana de prueba ya no va siempre encima, y no se ha repetido. `viewer-check`, que también usa el aviso siempre encima de la app, nunca lo provocó. → Vigilarlo en las pruebas con paquetes en Cinnamon (9.3), porque el aviso de la sesión también va siempre encima.
 - **[Linux Wayland]** No se admite como PC controlado → se detecta y se explica, sugiriendo una sesión X11.
 - **[Linux, sonido]** `loopback` no funciona en Linux (prototipo 1.2) → fuente virtual temporal con `pactl` (D8), que deja visible a otras apps una entrada "Absor Connect" mientras dura la sesión. Sin `pactl`, no hay sonido.
 - **[Carga de la API]** Cada PC con el control remoto activado hace una consulta cada 3 s (unas 33 por segundo con 100 PCs, por índice) → límites por equipo y consulta mínima. Si crece, servicio WebSocket (D3).

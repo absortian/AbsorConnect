@@ -153,3 +153,33 @@ ELECTRON_RUN_AS_NODE=1 node_modules/electron/dist/electron prototypes/remote-des
 `lib/cdp.ts` tiene lo común para manejar una ventana por DevTools: listar las páginas, evaluar código, esperar a que algo se cumpla y hacer capturas.
 
 Usa la misma cuenta de prueba que `controller-check`.
+
+## Prueba entre dos equipos (`lan-check/`, tareas 4.8 y 6.5)
+
+Dos equipos de la misma red con el backend de desarrollo de uno de ellos. Uno hace de PC controlado y el otro de controlador:
+
+- **PC (`pc.ts`):** se ejecuta con Electron, no como Node.
+  - Prepara la app de verdad con la cuenta de prueba, la contraseña del PC y el control remoto activado, y la arranca con su ventana.
+  - Tapa la pantalla principal con una ventana de prueba, un área de texto que anota clics, rueda y teclas.
+  - Abre una sonda HTTP en el puerto 8790 con el estado del ratón, las pantallas, el aviso, la bandeja, los bloqueos de suspensión y el registro. Por la sonda también hace acciones en la app: desactivar, cambiar la contraseña, confirmación local, mantener despierto y "Desconectar" del aviso.
+  - Aparece en la cuenta como `PC de prueba <sistema> @<ip>:8790`, y así el controlador sabe dónde está la sonda.
+  - Si el equipo no se puede controlar (faltan permisos de macOS, Wayland), lo dice y termina.
+- **Controlador (`controller.ts`):** se ejecuta con Node o con Electron como Node.
+  - Espera a que aparezca un PC de prueba de otro equipo y maneja su propia app por DevTools.
+  - Comprueba cada paso con la sonda del PC.
+  - Al terminar llama a `/done`, y el PC termina también.
+
+Desde macOS, `lan-check/lan-test.sh http://<ip del otro equipo>:8020` hace las dos fases seguidas: primero el Mac es el PC y después el controlador. Si sale a la red por Wi-Fi, en la segunda fase la corta 10 s con `networksetup` para probar la reconexión. Deja el JSON en `~/Downloads/absor-lan-check-macos.json` y en el portapapeles. En la primera fase, la pregunta de confirmación local sale dos veces: la primera no se responde, y la segunda se responde con "Permitir". La ventana de prueba lo va diciendo.
+
+En el Linux, los dos papeles a la vez, en segundo plano. El backend escucha en todas las interfaces (`0.0.0.0:8020`):
+
+```bash
+bin/dev npx electron-vite build
+bin/dev sh -c 'cd prototypes/remote-desktop/lan-check && for r in pc controller; do npx esbuild $r.ts --bundle --platform=node --format=cjs --target=node22 --external:electron --outfile=out/$r.cjs; done'
+node_modules/electron/dist/electron prototypes/remote-desktop/lan-check/out/pc.cjs --api=http://127.0.0.1:8020 --work=/tmp/absor-lan/pc --out=/tmp/lan-pc.json --minutes=60 &
+ELECTRON_RUN_AS_NODE=1 node_modules/electron/dist/electron prototypes/remote-desktop/lan-check/out/controller.cjs --api=http://127.0.0.1:8020 --work=/tmp/absor-lan/controller --out=/tmp/lan-controller.json --wait=45
+```
+
+Para ensayarla en un solo equipo, el PC se anuncia con `--advertise=127.0.0.1`. Así el controlador no lo descarta como propio.
+
+Usa la misma cuenta de prueba que `controller-check`.
