@@ -12,7 +12,7 @@
 //     aviso, bandeja, bloqueo de suspensión, registro) y acciones en la app (desactivar, cambiar la
 //     contraseña, confirmación local, mantener despierto, "Desconectar" del aviso).
 //   - Termina cuando el controlador llama a /done, o a los --minutes minutos.
-import { app, BrowserWindow, screen } from 'electron'
+import { app, BrowserWindow, screen, systemPreferences } from 'electron'
 import { ChildProcess, execFile, spawn } from 'child_process'
 import * as fs from 'fs'
 import * as http from 'http'
@@ -328,6 +328,32 @@ function startProbe(): http.Server {
   return server
 }
 
+/**
+ * macOS da los permisos a la app "responsable" del proceso: la de terminal desde la que se lanza la
+ * prueba (Terminal, iTerm, VS Code…). Se busca subiendo por los procesos padre hasta launchd: es la
+ * app (.app) más externa de la cadena.
+ */
+async function macPermissionsDiagnosis(): Promise<{ app: string; chain: string[]; thisProcess: object }> {
+  const chain: string[] = []
+  let pid = process.pid
+  for (let i = 0; i < 30 && pid > 1; i++) {
+    const line = await sh('ps', ['-o', 'ppid=,comm=', '-p', String(pid)])
+    const match = line.trim().match(/^(\d+)\s+(.*)$/)
+    if (!match) break
+    chain.push(`${pid} ${match[2]}`)
+    pid = Number(match[1])
+  }
+  const apps = chain.map((entry) => entry.match(/\/([^/]+)\.app\//)?.[1]).filter((name): name is string => !!name)
+  return {
+    app: apps.at(-1) ?? 'la app de terminal desde la que la lanzas',
+    chain,
+    thisProcess: {
+      screen: systemPreferences.getMediaAccessStatus('screen'),
+      accessibility: systemPreferences.isTrustedAccessibilityClient(false)
+    }
+  }
+}
+
 async function run(): Promise<void> {
   if (!WORK) throw new Error('Falta --work')
   await prepareApp()
@@ -336,11 +362,13 @@ async function run(): Promise<void> {
   // Si este equipo no se puede controlar (permisos de macOS, Wayland), se dice ya: el otro equipo
   // esperaría hasta cansarse a que apareciera disponible
   const support = await inApp<any>(`window.api.remoteSettings().then((r) => r.state?.support)`)
+  if (process.platform === 'darwin') Object.assign(report, { permissions: { realApp: support, ...(await macPermissionsDiagnosis()) } })
   if (support?.state !== 'available') {
     const missing = (support?.missing ?? []).map((p: string) => (p === 'screen' ? 'Grabación de pantalla' : 'Accesibilidad'))
+    const responsible = process.platform === 'darwin' ? (report as any).permissions.app : 'Terminal'
     throw new Error(
       missing.length > 0
-        ? `Faltan permisos de macOS: ${missing.join(' y ')}. Concédeselos a Terminal en Ajustes del Sistema > Privacidad y seguridad, cierra Terminal del todo y vuelve a lanzar la prueba.`
+        ? `Faltan permisos de macOS: ${missing.join(' y ')}. macOS se los pide a «${responsible}», la app desde la que se lanza la prueba: concédeselos en Ajustes del Sistema > Privacidad y seguridad, cierra «${responsible}» del todo (Cmd+Q) y vuelve a lanzar la prueba.`
         : `Este equipo no se puede controlar: ${JSON.stringify(support)}`
     )
   }
