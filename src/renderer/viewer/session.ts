@@ -291,6 +291,9 @@ export class ViewerSession {
       } else if (message.type === 'bye') {
         // El PC cerró la sesión a propósito: no se reconecta solo
         this.closed = true
+        // Con la contraseña nueva, K ya no vale: reconectar con ella sería un intento fallido más
+        // (cuenta para el bloqueo), así que se vuelve a pedir la contraseña
+        if (message.reason === 'password_changed') this.key = null
         this.teardown()
         this.events.phase('closed', { reason: String(message.reason) })
       }
