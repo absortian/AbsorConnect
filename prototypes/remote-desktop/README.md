@@ -11,6 +11,7 @@ Pruebas de los puntos de riesgo del grupo 1 de `openspec/changes/add-remote-desk
 | `input-check/ --mode=support` | 4.7 | El estado del control remoto en el equipo (`src/main/remote/platformSupport.ts`): Wayland en Linux; en macOS, los permisos, sus paneles de Ajustes del Sistema y la notificación de permisos perdidos. |
 | `input-check/test-mac.sh background` | 4.1 y 4.2 | La app empaquetada en macOS (AbsorCheck.app): barra de menús y su menú, Dock, cerrar a la bandeja, instancia única, arranque oculto, abrir al iniciar sesión y aviso de versión nueva. |
 | `controller-check/` | 4.8 | Un controlador de prueba contra la app de verdad como PC controlado, en el mismo Linux X11 y con el backend de desarrollo: autenticación, imagen, entrada, aviso, ocupado, Desconectar, confirmación local y bloqueo. |
+| `viewer-check/` | 4.9, 6.4 y 6.5 | Dos instancias de la app (PC oculto y controlador manejado por DevTools): Equipos, conectar, errores, imagen, estado, ratón, reconexión y que el token no llegue a ningún renderer. |
 
 Al abrirlo sin argumentos se ejecuta todo, y el resultado se guarda en `Descargas/absor-remote-prototype-<sistema>-<arquitectura>-<prueba>.json` (un fichero por prueba) y se muestra en una ventana. Durante la prueba aparece una ventanita en la esquina inferior derecha y suena un pitido suave. El ratón salta unos píxeles al principio y vuelve a su sitio. Nada sale del equipo.
 
@@ -113,3 +114,24 @@ bin/dev npx electron-vite build
 bin/dev sh -c 'cd prototypes/remote-desktop/controller-check && npx esbuild main.ts --bundle --platform=node --format=cjs --target=node22 --external:electron --external:koffi --outfile=out/main.cjs && npx esbuild controller.ts --bundle --platform=browser --format=iife --target=chrome130 --external:electron --outfile=out/controller.js'
 node_modules/electron/dist/electron prototypes/remote-desktop/controller-check --api=http://127.0.0.1:8020 --host-data=/tmp/absor-host-check --out=/tmp/controller-check.json
 ```
+
+## Prueba del visor (`viewer-check/`, tareas 4.9, 6.4 y 6.5)
+
+Dos instancias de la app compilada en el mismo Linux X11, con el backend de desarrollo:
+
+- **A, el PC controlado:** arranca con `--hidden` y su propia carpeta de datos, y queda con la contraseña puesta.
+- **B, el controlador:** se maneja por el protocolo de DevTools (`--remote-debugging-port`), como lo haría una persona. Abre Equipos, pulsa Conectar y escribe la contraseña en la ventana de visor.
+
+Para probar la reconexión, el renderer de la sesión de A se hace fallar con `Page.crash` (A también lleva su puerto de DevTools).
+
+Se ejecuta con Electron como Node, porque el host no tiene Node:
+
+```bash
+bin/dev npx electron-vite build
+bin/dev sh -c 'cd prototypes/remote-desktop/viewer-check && npx esbuild main.ts --bundle --platform=node --format=cjs --target=node22 --external:koffi --outfile=out/main.cjs'
+ELECTRON_RUN_AS_NODE=1 node_modules/electron/dist/electron prototypes/remote-desktop/viewer-check/out/main.cjs --api=http://127.0.0.1:8020 --work=/tmp/absor-viewer-check --out=/tmp/viewer-check.json
+```
+
+Lleva el ratón al 10 % de la pantalla, una zona que no tapa el visor: si no, el cursor que mueve A caería sobre el visor de B y volvería a A en bucle. No hace clics en el PC.
+
+Usa la misma cuenta de prueba que `controller-check`.
