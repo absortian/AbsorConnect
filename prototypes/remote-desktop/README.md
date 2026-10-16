@@ -182,6 +182,25 @@ ELECTRON_RUN_AS_NODE=1 node_modules/electron/dist/electron prototypes/remote-des
 
 Para ensayarla en un solo equipo, el PC se anuncia con `--advertise=127.0.0.1`. Así el controlador no lo descarta como propio.
 
+**El controlador se ejecuta con Electron, no como Node**, porque escribe y lee el portapapeles de su equipo. Prueba también:
+
+- **Ficheros:**
+  - dos con el selector (`DOM.setFileInputFiles`) y el mismo otra vez soltándolo sobre la ventana (`Input.dispatchDragEvent`), para el nombre repetido;
+  - cancelar uno de 400 MB a medias;
+  - descargar desde el explorador, en una carpeta de la prueba (`ABSOR_CONNECT_SAVE_DIR`, sin diálogo).
+  - Lo que llega a `Descargas/Absor Connect` del PC empieza por `absor-prueba` y se borra al terminar.
+- **Portapapeles:** texto en los dos sentidos, una imagen y la pausa. Con los dos papeles en el mismo equipo no se puede, porque el portapapeles es el mismo.
+- **Visor:** tamaño real, el menú de combinaciones, que Ctrl no se quede pulsado al perder el foco, y el bloqueo tras 5 contraseñas incorrectas.
+- **Opciones:**
+  - `--relay=1` obliga a ir solo por relé (`ABSOR_CONNECT_FORCE_RELAY`); necesita el servicio `turn` de `compose.override.yaml` y `TURN_URLS`/`TURN_SECRET` en `backend/.env.local` (ver D13).
+  - `--second-pc=1` abre además una sesión con el PC de prueba del propio equipo («dos PCs a la vez»).
+
+Para un PC arrancado a mano (por ejemplo, la máquina virtual de Windows):
+
+- `lan-check/prepare-pc.ts` prepara su carpeta de datos: sesión, contraseña de pruebas y control remoto activado.
+- La app se arranca con `--user-data-dir=<esa carpeta>` y `ABSOR_CONNECT_API_URL` apuntando al backend.
+- `lan-check/hold-session.ts --pc="<nombre>" --seconds=60` abre una sesión desde este equipo y la mantiene, para ver en el PC la bandeja, el aviso o las notificaciones. Así se comprobó la bandeja de Windows (4.1).
+
 Para el sonido, el PC suena un pitido de 440 Hz durante un segundo y medio, y el controlador mide el nivel de lo que recibe con el visor en silencio. Si el PC es un Linux, la entrada "Monitor of …" de su salida tiene que estar al 100 %. Si está baja, el sonido llega en silencio (ver D8).
 
 Usa la misma cuenta de prueba que `controller-check`.
