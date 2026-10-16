@@ -289,6 +289,15 @@ async function run(): Promise<void> {
     check('con una sola pantalla en el PC no hay selector', (await viewer.eval<boolean>(`document.getElementById('displays').hidden`)) === true, null)
   }
 
+  // macOS solo completa la salida de la pantalla completa nativa si la app está delante (como
+  // cuando una persona pulsa el botón): se activa como haría Cmd+Tab
+  if (process.platform === 'darwin' && app?.pid) {
+    try {
+      execFileSync('osascript', ['-e', `tell application "System Events" to set frontmost of (first process whose unix id is ${app.pid}) to true`], { stdio: 'pipe', timeout: 10_000 })
+    } catch (error) {
+      note(`no se ha podido poner la app delante: ${String(error).slice(0, 120)}`)
+    }
+  }
   const fullscreenButton = await viewer.eval<{ x: number; y: number }>(`(() => { const r = document.getElementById('fullscreen').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 } })()`)
   await viewer.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: fullscreenButton.x, y: fullscreenButton.y, button: 'left', clickCount: 1 })
   await viewer.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: fullscreenButton.x, y: fullscreenButton.y, button: 'left', clickCount: 1 })

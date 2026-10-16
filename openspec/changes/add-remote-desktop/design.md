@@ -242,6 +242,7 @@ Errores con el formato habitual `{"error": {"code", "details"}}`.
     - **Sin gestores de permisos en la partición `remote-host`:** `getDisplayMedia` también consulta el permiso `media` (con vídeo), y filtrarlo rompe la captura ("Permission denied"). Con el permiso por defecto, `enumerateDevices()` ya da las etiquetas sin abrir antes el micrófono.
     - **Volumen del monitor:** la fuente reenvía el monitor de la salida con el volumen del propio monitor. En el Linux de pruebas estaba al 8 % (−66 dB, puesto por algo anterior a la app), y el sonido llegaba en silencio aunque todo funcionara. Con el monitor al 100 % llega con el nivel del origen. La app no lo cambia (es un ajuste del usuario); ver Risks.
   - **Verificado:** 5 tests de `linuxAudio`, y `lan-check` en un solo Linux: 32/33. El PC pita a 0,15 y en el visor llega con pico 0,152; el botón silencia, y la fuente existe durante la sesión y desaparece al terminar.
+  - **Verificado entre dos equipos** (el Mac controlando el Linux, `lan-test.sh … controlador`): el pitido del Linux llega al Mac con pico 0,152, el botón silencia, y la fuente desaparece al terminar.
 - **Linux Wayland:** no se admite como PC controlado. Se detecta con `XDG_SESSION_TYPE=wayland` o `WAYLAND_DISPLAY`: manda `XDG_SESSION_TYPE`, que pone logind, y `WAYLAND_DISPLAY` solo cuenta si falta. La captura pasa por el portal, que pide aceptar cada vez, y XTest no actúa sobre las apps de Wayland.
 - **Estado del equipo** (`src/main/remote/support.ts` y `platformSupport.ts`, tarea 4.7): `available`, `missing_permissions` (con los permisos que faltan) o `unsupported` (Wayland). Los estados `disabled` y `busy` los pone `hostService`.
   - **macOS:** `getMediaAccessStatus('screen')` e `isTrustedAccessibilityClient(false)`.
@@ -384,6 +385,13 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
         - "Evitar que el PC se suspenda" añade su `NoIdleSleepAssertion` y la quita. Chromium tiene otra propia, "WebRTC has active PeerConnections", mientras hay conexión;
         - conecta en 2,4 s.
         - **Sin probar:** el corte de la red (solo se hace con el Mac de controlador, y ya pasó en la fase 2) y el menú de la barra de menús. Ahí `osascript` se quedó colgado hasta el límite de 20 s con la app sin empaquetar ("Electron"). El estado "Controlado ahora desde…" sí se vio a mano en la barra de menús.
+    - **Mac controlando el Linux, con el sonido de Linux ya hecho: 31/33.**
+      - el pitido del Linux llega (pico 0,152);
+      - el corte de Wi-Fi se recupera solo a los 19 s;
+      - «Permitir», pulsado por DevTools en el Linux, conecta;
+      - todo lo demás, igual que antes.
+      - **Sin probar:** la bandeja. El Linux se había quedado sin sesión de escritorio: al reiniciar Cinnamon desde el modo de emergencia, arrancó sin ver ningún monitor (`primaryMonitor is undefined`, con la pantalla en reposo) y se cerró.
+      - **Fallo de la prueba, no de la app:** salir de la pantalla completa en el Mac. La pantalla completa de macOS es la nativa, en su propio Escritorio. Si la prueba la abre sin que la app esté activa, macOS no completa la salida, y `exitFullscreen()` no termina (en la primera ejecución sí salió). Una persona siempre la usa con la app delante. La prueba ahora activa la app con `osascript` antes (como Cmd+Tab); falta verlo en la próxima ejecución desde el Mac.
     - **Las dos direcciones entre equipos distintos están probadas.** Con el sonido de Linux (D8), la 4.8 queda completa. De la 6.5 faltan portapapeles, ficheros y relé. Windows no ha entrado en `lan-check`.
   - **Falta (resto de la 6.5):** portapapeles, ficheros y la prueba por relé (sin TURN en desarrollo).
 
