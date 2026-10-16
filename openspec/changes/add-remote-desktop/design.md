@@ -370,8 +370,14 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
         - **El movimiento al 10 % no llegó:** el cursor siguió donde estaba, por un único `move` por el canal sin reenvío, en Wi-Fi. Ahora la posición de reposo y la de cada clic van también por `input` (D9).
       - **Fallos de la prueba, corregidos:** el bloqueo de suspensión de macOS es una aserción `NoIdleSleepAssertion`, que la prueba no buscaba. Leer el menú de la barra de menús con `osascript` falló sin dejar ver el error; ahora se guarda.
       - **Ensayo en un solo Linux con las correcciones: 30/32** (las dos sin probar, las de siempre). La pregunta sale en el PC sin bloquear nada, se rechaza sola a los 33 s, y «Permitir», pulsado por DevTools, conecta.
-      - **Pendiente:** repetir `lan-test.sh … pc` en el Mac con las correcciones, con «Permitir» pulsado por una persona.
-  - **Falta (resto de la 6.5):** portapapeles, ficheros, la prueba por relé (sin TURN en desarrollo), y el Mac como PC controlado (con "Permitir" en la confirmación local).
+      - **Repetido en el Mac con las correcciones: 30/32.**
+        - el ratón al 10 % llega exacto (150,97 frente a 151,98);
+        - la pregunta sale sin bloquear la app, se rechaza sola a los 33 s, y al pulsar «Permitir» (una persona, en el Mac) conecta;
+        - "Evitar que el PC se suspenda" añade su `NoIdleSleepAssertion` y la quita. Chromium tiene otra propia, "WebRTC has active PeerConnections", mientras hay conexión;
+        - conecta en 2,4 s.
+        - **Sin probar:** el corte de la red (solo se hace con el Mac de controlador, y ya pasó en la fase 2) y el menú de la barra de menús. Ahí `osascript` se quedó colgado hasta el límite de 20 s con la app sin empaquetar ("Electron"). El estado "Controlado ahora desde…" sale del mismo código que en Linux, donde sí se ha comprobado.
+    - **Las dos direcciones entre equipos distintos están probadas.** De la 4.8 solo falta el sonido de un PC Linux (fuente virtual con `pactl`). De la 6.5 faltan portapapeles, ficheros y relé. Windows no ha entrado en `lan-check`.
+  - **Falta (resto de la 6.5):** portapapeles, ficheros y la prueba por relé (sin TURN en desarrollo).
 
 ### D12. App móvil
 - **WebRTC:** `flutter_webrtc` (`RTCPeerConnection`, `RTCVideoView`, canales de datos). Mismo protocolo (D9).
@@ -441,7 +447,7 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
     - **Abrir al iniciar sesión:** escribe en `HKCU\…\Run` el valor `com.absor.fileexplorer` (el AppUserModelId que fija la app) con `"…\AbsorConnect.exe" --hidden`. Tras reiniciar, con inicio de sesión automático, la app arranca a los 10 s con `--hidden`, sin ventana ni botón en la barra de tareas y con el icono en la bandeja. Desactivar la opción borra el valor.
     - **Sin probar en Windows:** la notificación de versión nueva. Windows solo la muestra a apps con un acceso en el menú Inicio con su AppUserModelId (lo crea el instalador NSIS), y el instalador no se puede generar desde Linux sin Wine. En macOS sí se ha visto.
   - **Pendiente:** los escenarios que necesitan una sesión remota (tarea 4.8):
-    - el estado "controlado desde…" en la bandeja: ya se ha visto en Linux con `lan-check` ("Controlado ahora desde Controlador Linux de prueba", leído por D-Bus); falta macOS;
+    - el estado "controlado desde…" en la bandeja: ya se ha visto en Linux con `lan-check` ("Controlado ahora desde Controlador Linux de prueba", leído por D-Bus). En macOS, `osascript` no pudo leer el menú de la app sin empaquetar; falta verlo a mano o con el paquete;
     - que la app no se reinicie para actualizar durante una sesión.
   - **Nota:** `settings.json` con BOM (p. ej. escrito por PowerShell `Set-Content -Encoding utf8`) hace que `JSON.parse` falle y se usen los valores por defecto; es seguro (los defaults desactivan el segundo plano), pero conviene recordarlo.
 - **Ajustes (tarea 6.2):** dos secciones nuevas, "Segundo plano" y "Control remoto de este PC" (`RemoteSettings.tsx`).
