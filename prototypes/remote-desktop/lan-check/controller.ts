@@ -293,8 +293,12 @@ async function run(): Promise<void> {
   await viewer.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: fullscreenButton.x, y: fullscreenButton.y, button: 'left', clickCount: 1 })
   await viewer.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: fullscreenButton.x, y: fullscreenButton.y, button: 'left', clickCount: 1 })
   const full = await viewer.waitFor<boolean>(`!!document.fullscreenElement`, (v) => v === true, 5000)
-  await viewer.eval(`document.exitFullscreen().catch(() => undefined)`)
-  const back = await viewer.waitFor<boolean>(`!document.fullscreenElement`, (v) => v === true, 5000)
+  // En macOS la pantalla completa es la nativa, en su propio Escritorio: si ese Escritorio no es el
+  // que se ve (p. ej. se está mirando la Terminal), macOS no hace la animación de salida y la
+  // promesa de exitFullscreen() no termina. Se trae el visor al frente y no se espera la promesa
+  await viewer.send('Page.bringToFront').catch(() => undefined)
+  await viewer.eval(`void document.exitFullscreen().catch(() => undefined)`)
+  const back = await viewer.waitFor<boolean>(`!document.fullscreenElement`, (v) => v === true, 15_000)
   await viewer.send('Page.bringToFront').catch(() => undefined)
   check('pantalla completa y vuelta', full === true && back === true, { full, back })
 
