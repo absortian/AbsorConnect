@@ -209,5 +209,140 @@
     }
   },
   "err_s3_invalid_endpoint": "The endpoint is not a valid address. Enter it in full, for example https://s3.example.com",
-  "err_unknown": "Something went wrong. Please try again."
+  "err_unknown": "Something went wrong. Please try again.",
+  "devicesTitle": "Devices",
+  "devicesHint": "The PCs in your account with Absor Connect. To control one, it has to be online with remote control turned on; you will be asked for its password.",
+  "devicesEmpty": "There are no devices in your account yet. Turn on remote control in the desktop app's Settings.",
+  "devicesLoadFailed": "The device list could not be loaded: {reason}",
+  "@devicesLoadFailed": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "deviceStateAvailable": "Available",
+  "deviceStateBusy": "Busy: another device is controlling it",
+  "deviceStateDisabled": "Remote control off",
+  "deviceStateMissingPermissions": "Missing system permissions",
+  "deviceStateUnsupported": "Its system doesn't allow remote control",
+  "deviceStateOffline": "Offline",
+  "remoteConnect": "Connect",
+  "remotePasswordTitle": "Connect to {pc}",
+  "@remotePasswordTitle": {
+    "placeholders": {
+      "pc": {
+        "type": "String"
+      }
+    }
+  },
+  "remotePasswordHint": "Enter that PC's remote control password.",
+  "remotePassword": "PC password",
+  "remoteConnecting": "Connecting…",
+  "remoteWaitingPc": "Waiting for the PC…",
+  "remoteAuthenticating": "Checking the password…",
+  "remoteReconnecting": "Connection lost. Reconnecting…",
+  "remoteDirect": "Direct",
+  "remoteRelay": "Via relay",
+  "remoteDisconnect": "Disconnect",
+  "remoteReconnect": "Reconnect",
+  "remoteBack": "Back",
+  "remoteMouseMode": "Mouse mode: your finger moves the pointer",
+  "remoteTouchMode": "Touch mode: tap to click there",
+  "remoteKeyboard": "Keyboard",
+  "remoteDisplay": "Display {number}",
+  "@remoteDisplay": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "remoteSendClipboard": "Send clipboard to the PC",
+  "remoteClipboardSent": "Clipboard sent to the PC.",
+  "remoteClipboardEmpty": "There is no text in the phone's clipboard.",
+  "remoteMute": "Mute",
+  "remoteUnmute": "Unmute",
+  "remoteSendFile": "Send file",
+  "remoteSendPhoto": "Send photo or video",
+  "remoteDownload": "Download from the PC",
+  "remoteTransfers": "Transfers",
+  "remoteClearFinished": "Clear finished",
+  "remoteSentAs": "On the PC as “{name}”",
+  "@remoteSentAs": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "remoteShare": "Share",
+  "remoteQueued": "Queued",
+  "remoteCancelled": "Cancelled",
+  "remoteUp": "Parent folder",
+  "remoteFolderEmpty": "Empty folder",
+  "remoteTruncated": "Only the first 5000 are shown.",
+  "remoteFeatureOff": "The PC doesn't allow it in this session.",
+  "remoteClosedLocal": "Disconnected from the PC.",
+  "remoteClosedDisabled": "The PC turned remote control off.",
+  "remoteClosedPasswordChanged": "The PC's password changed.",
+  "remoteClosedSignedOut": "The PC signed out of the account.",
+  "remoteClosedStopped": "The app on the PC was closed.",
+  "remoteClosedCaptureFailed": "The PC couldn't capture its screen.",
+  "remoteClosedBackground": "The session was closed because the app spent more than 30 seconds in the background.",
+  "remoteClosedOther": "The PC closed the session.",
+  "remoteErrWrongPassword": "Wrong password.",
+  "remoteErrLocked": "Too many failed attempts. The PC won't accept connections for {minutes} min.",
+  "@remoteErrLocked": {
+    "placeholders": {
+      "minutes": {
+        "type": "String"
+      }
+    }
+  },
+  "remoteErrBusy": "Another device is controlling that PC right now.",
+  "remoteErrDeviceOffline": "The PC is not connected: the app isn't running or has no network.",
+  "remoteErrRemoteDisabled": "Remote control is turned off on that PC.",
+  "remoteErrMissingPermissions": "That PC is missing system permissions to be controlled.",
+  "remoteErrUnsupported": "That PC can't be controlled right now: its system doesn't allow it (for example, Linux with Wayland) or it couldn't open the session.",
+  "remoteErrDeclined": "The connection was declined on the PC, or nobody accepted it in time.",
+  "remoteErrConnectionFailed": "The network doesn't allow connecting to that PC.",
+  "remoteErrNoAnswer": "The PC didn't respond.",
+  "remoteErrReconnectFailed": "The connection couldn't be recovered.",
+  "remoteErrTooManyRequests": "Too many requests. Try again in {seconds} s.",
+  "@remoteErrTooManyRequests": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "remoteErrUnavailable": "Remote control isn't available on the service right now.",
+  "remoteErrDeviceNotFound": "That PC is no longer in the account.",
+  "remoteErrOther": "Couldn't connect ({code}).",
+  "@remoteErrOther": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "remoteTransferErrDisabled": "The PC doesn't allow sending or downloading files",
+  "remoteTransferErrNotFound": "Doesn't exist",
+  "remoteTransferErrDenied": "Permission denied",
+  "remoteTransferErrIsDirectory": "It's a folder",
+  "remoteTransferErrIo": "Read or write error",
+  "remoteTransferErrBusy": "Already in progress",
+  "remoteTransferErrIntegrity": "It arrived damaged",
+  "remoteTransferErrSize": "The size doesn't match",
+  "remoteTransferErrConnectionLost": "The connection was lost",
+  "remoteTransferErrRead": "The file couldn't be read",
+  "remoteTransferErrOther": "Error ({code})",
+  "@remoteTransferErrOther": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  }
 }

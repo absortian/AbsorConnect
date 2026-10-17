@@ -811,6 +811,480 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Something went wrong. Please try again.'**
   String get err_unknown;
+
+  /// No description provided for @devicesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Devices'**
+  String get devicesTitle;
+
+  /// No description provided for @devicesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The PCs in your account with Absor Connect. To control one, it has to be online with remote control turned on; you will be asked for its password.'**
+  String get devicesHint;
+
+  /// No description provided for @devicesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'There are no devices in your account yet. Turn on remote control in the desktop app\'s Settings.'**
+  String get devicesEmpty;
+
+  /// No description provided for @devicesLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The device list could not be loaded: {reason}'**
+  String devicesLoadFailed(String reason);
+
+  /// No description provided for @deviceStateAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Available'**
+  String get deviceStateAvailable;
+
+  /// No description provided for @deviceStateBusy.
+  ///
+  /// In en, this message translates to:
+  /// **'Busy: another device is controlling it'**
+  String get deviceStateBusy;
+
+  /// No description provided for @deviceStateDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Remote control off'**
+  String get deviceStateDisabled;
+
+  /// No description provided for @deviceStateMissingPermissions.
+  ///
+  /// In en, this message translates to:
+  /// **'Missing system permissions'**
+  String get deviceStateMissingPermissions;
+
+  /// No description provided for @deviceStateUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Its system doesn\'t allow remote control'**
+  String get deviceStateUnsupported;
+
+  /// No description provided for @deviceStateOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline'**
+  String get deviceStateOffline;
+
+  /// No description provided for @remoteConnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect'**
+  String get remoteConnect;
+
+  /// No description provided for @remotePasswordTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect to {pc}'**
+  String remotePasswordTitle(String pc);
+
+  /// No description provided for @remotePasswordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter that PC\'s remote control password.'**
+  String get remotePasswordHint;
+
+  /// No description provided for @remotePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'PC password'**
+  String get remotePassword;
+
+  /// No description provided for @remoteConnecting.
+  ///
+  /// In en, this message translates to:
+  /// **'Connecting…'**
+  String get remoteConnecting;
+
+  /// No description provided for @remoteWaitingPc.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for the PC…'**
+  String get remoteWaitingPc;
+
+  /// No description provided for @remoteAuthenticating.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking the password…'**
+  String get remoteAuthenticating;
+
+  /// No description provided for @remoteReconnecting.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection lost. Reconnecting…'**
+  String get remoteReconnecting;
+
+  /// No description provided for @remoteDirect.
+  ///
+  /// In en, this message translates to:
+  /// **'Direct'**
+  String get remoteDirect;
+
+  /// No description provided for @remoteRelay.
+  ///
+  /// In en, this message translates to:
+  /// **'Via relay'**
+  String get remoteRelay;
+
+  /// No description provided for @remoteDisconnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect'**
+  String get remoteDisconnect;
+
+  /// No description provided for @remoteReconnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Reconnect'**
+  String get remoteReconnect;
+
+  /// No description provided for @remoteBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get remoteBack;
+
+  /// No description provided for @remoteMouseMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Mouse mode: your finger moves the pointer'**
+  String get remoteMouseMode;
+
+  /// No description provided for @remoteTouchMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Touch mode: tap to click there'**
+  String get remoteTouchMode;
+
+  /// No description provided for @remoteKeyboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Keyboard'**
+  String get remoteKeyboard;
+
+  /// No description provided for @remoteDisplay.
+  ///
+  /// In en, this message translates to:
+  /// **'Display {number}'**
+  String remoteDisplay(String number);
+
+  /// No description provided for @remoteSendClipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Send clipboard to the PC'**
+  String get remoteSendClipboard;
+
+  /// No description provided for @remoteClipboardSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Clipboard sent to the PC.'**
+  String get remoteClipboardSent;
+
+  /// No description provided for @remoteClipboardEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'There is no text in the phone\'s clipboard.'**
+  String get remoteClipboardEmpty;
+
+  /// No description provided for @remoteMute.
+  ///
+  /// In en, this message translates to:
+  /// **'Mute'**
+  String get remoteMute;
+
+  /// No description provided for @remoteUnmute.
+  ///
+  /// In en, this message translates to:
+  /// **'Unmute'**
+  String get remoteUnmute;
+
+  /// No description provided for @remoteSendFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Send file'**
+  String get remoteSendFile;
+
+  /// No description provided for @remoteSendPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Send photo or video'**
+  String get remoteSendPhoto;
+
+  /// No description provided for @remoteDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Download from the PC'**
+  String get remoteDownload;
+
+  /// No description provided for @remoteTransfers.
+  ///
+  /// In en, this message translates to:
+  /// **'Transfers'**
+  String get remoteTransfers;
+
+  /// No description provided for @remoteClearFinished.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear finished'**
+  String get remoteClearFinished;
+
+  /// No description provided for @remoteSentAs.
+  ///
+  /// In en, this message translates to:
+  /// **'On the PC as “{name}”'**
+  String remoteSentAs(String name);
+
+  /// No description provided for @remoteShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get remoteShare;
+
+  /// No description provided for @remoteQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'Queued'**
+  String get remoteQueued;
+
+  /// No description provided for @remoteCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get remoteCancelled;
+
+  /// No description provided for @remoteUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Parent folder'**
+  String get remoteUp;
+
+  /// No description provided for @remoteFolderEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Empty folder'**
+  String get remoteFolderEmpty;
+
+  /// No description provided for @remoteTruncated.
+  ///
+  /// In en, this message translates to:
+  /// **'Only the first 5000 are shown.'**
+  String get remoteTruncated;
+
+  /// No description provided for @remoteFeatureOff.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC doesn\'t allow it in this session.'**
+  String get remoteFeatureOff;
+
+  /// No description provided for @remoteClosedLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnected from the PC.'**
+  String get remoteClosedLocal;
+
+  /// No description provided for @remoteClosedDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC turned remote control off.'**
+  String get remoteClosedDisabled;
+
+  /// No description provided for @remoteClosedPasswordChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC\'s password changed.'**
+  String get remoteClosedPasswordChanged;
+
+  /// No description provided for @remoteClosedSignedOut.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC signed out of the account.'**
+  String get remoteClosedSignedOut;
+
+  /// No description provided for @remoteClosedStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'The app on the PC was closed.'**
+  String get remoteClosedStopped;
+
+  /// No description provided for @remoteClosedCaptureFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC couldn\'t capture its screen.'**
+  String get remoteClosedCaptureFailed;
+
+  /// No description provided for @remoteClosedBackground.
+  ///
+  /// In en, this message translates to:
+  /// **'The session was closed because the app spent more than 30 seconds in the background.'**
+  String get remoteClosedBackground;
+
+  /// No description provided for @remoteClosedOther.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC closed the session.'**
+  String get remoteClosedOther;
+
+  /// No description provided for @remoteErrWrongPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong password.'**
+  String get remoteErrWrongPassword;
+
+  /// No description provided for @remoteErrLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many failed attempts. The PC won\'t accept connections for {minutes} min.'**
+  String remoteErrLocked(String minutes);
+
+  /// No description provided for @remoteErrBusy.
+  ///
+  /// In en, this message translates to:
+  /// **'Another device is controlling that PC right now.'**
+  String get remoteErrBusy;
+
+  /// No description provided for @remoteErrDeviceOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC is not connected: the app isn\'t running or has no network.'**
+  String get remoteErrDeviceOffline;
+
+  /// No description provided for @remoteErrRemoteDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Remote control is turned off on that PC.'**
+  String get remoteErrRemoteDisabled;
+
+  /// No description provided for @remoteErrMissingPermissions.
+  ///
+  /// In en, this message translates to:
+  /// **'That PC is missing system permissions to be controlled.'**
+  String get remoteErrMissingPermissions;
+
+  /// No description provided for @remoteErrUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'That PC can\'t be controlled right now: its system doesn\'t allow it (for example, Linux with Wayland) or it couldn\'t open the session.'**
+  String get remoteErrUnsupported;
+
+  /// No description provided for @remoteErrDeclined.
+  ///
+  /// In en, this message translates to:
+  /// **'The connection was declined on the PC, or nobody accepted it in time.'**
+  String get remoteErrDeclined;
+
+  /// No description provided for @remoteErrConnectionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The network doesn\'t allow connecting to that PC.'**
+  String get remoteErrConnectionFailed;
+
+  /// No description provided for @remoteErrNoAnswer.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC didn\'t respond.'**
+  String get remoteErrNoAnswer;
+
+  /// No description provided for @remoteErrReconnectFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The connection couldn\'t be recovered.'**
+  String get remoteErrReconnectFailed;
+
+  /// No description provided for @remoteErrTooManyRequests.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many requests. Try again in {seconds} s.'**
+  String remoteErrTooManyRequests(String seconds);
+
+  /// No description provided for @remoteErrUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Remote control isn\'t available on the service right now.'**
+  String get remoteErrUnavailable;
+
+  /// No description provided for @remoteErrDeviceNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'That PC is no longer in the account.'**
+  String get remoteErrDeviceNotFound;
+
+  /// No description provided for @remoteErrOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t connect ({code}).'**
+  String remoteErrOther(String code);
+
+  /// No description provided for @remoteTransferErrDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC doesn\'t allow sending or downloading files'**
+  String get remoteTransferErrDisabled;
+
+  /// No description provided for @remoteTransferErrNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Doesn\'t exist'**
+  String get remoteTransferErrNotFound;
+
+  /// No description provided for @remoteTransferErrDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Permission denied'**
+  String get remoteTransferErrDenied;
+
+  /// No description provided for @remoteTransferErrIsDirectory.
+  ///
+  /// In en, this message translates to:
+  /// **'It\'s a folder'**
+  String get remoteTransferErrIsDirectory;
+
+  /// No description provided for @remoteTransferErrIo.
+  ///
+  /// In en, this message translates to:
+  /// **'Read or write error'**
+  String get remoteTransferErrIo;
+
+  /// No description provided for @remoteTransferErrBusy.
+  ///
+  /// In en, this message translates to:
+  /// **'Already in progress'**
+  String get remoteTransferErrBusy;
+
+  /// No description provided for @remoteTransferErrIntegrity.
+  ///
+  /// In en, this message translates to:
+  /// **'It arrived damaged'**
+  String get remoteTransferErrIntegrity;
+
+  /// No description provided for @remoteTransferErrSize.
+  ///
+  /// In en, this message translates to:
+  /// **'The size doesn\'t match'**
+  String get remoteTransferErrSize;
+
+  /// No description provided for @remoteTransferErrConnectionLost.
+  ///
+  /// In en, this message translates to:
+  /// **'The connection was lost'**
+  String get remoteTransferErrConnectionLost;
+
+  /// No description provided for @remoteTransferErrRead.
+  ///
+  /// In en, this message translates to:
+  /// **'The file couldn\'t be read'**
+  String get remoteTransferErrRead;
+
+  /// No description provided for @remoteTransferErrOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Error ({code})'**
+  String remoteTransferErrOther(String code);
 }
 
 class _AppLocalizationsDelegate

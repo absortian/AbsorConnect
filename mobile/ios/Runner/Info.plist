@@ -25,7 +25,11 @@
 		<true/>
 	</dict>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Absor Connect se conecta a los servidores SSH y S3 de tu red local que añadas.</string>
+	<string>Absor Connect se conecta a los servidores SSH y S3 y a los PCs de tu red local que añadas o controles.</string>
+	<!-- El visor del control remoto solo reproduce el sonido del PC (sesión de audio en modo
+	     playback), pero si WebRTC llegara a abrir el micrófono sin esta clave, iOS cerraría la app -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Absor Connect no graba sonido. iOS puede pedir este permiso al reproducir el sonido de un PC durante el control remoto; puedes denegarlo.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Absor Connect sube a tus servidores las fotos y vídeos que elijas.</string>
 	<key>CFBundlePackageType</key>

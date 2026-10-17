@@ -415,4 +415,273 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get err_unknown => 'Something went wrong. Please try again.';
+
+  @override
+  String get devicesTitle => 'Devices';
+
+  @override
+  String get devicesHint =>
+      'The PCs in your account with Absor Connect. To control one, it has to be online with remote control turned on; you will be asked for its password.';
+
+  @override
+  String get devicesEmpty =>
+      'There are no devices in your account yet. Turn on remote control in the desktop app\'s Settings.';
+
+  @override
+  String devicesLoadFailed(String reason) {
+    return 'The device list could not be loaded: $reason';
+  }
+
+  @override
+  String get deviceStateAvailable => 'Available';
+
+  @override
+  String get deviceStateBusy => 'Busy: another device is controlling it';
+
+  @override
+  String get deviceStateDisabled => 'Remote control off';
+
+  @override
+  String get deviceStateMissingPermissions => 'Missing system permissions';
+
+  @override
+  String get deviceStateUnsupported =>
+      'Its system doesn\'t allow remote control';
+
+  @override
+  String get deviceStateOffline => 'Offline';
+
+  @override
+  String get remoteConnect => 'Connect';
+
+  @override
+  String remotePasswordTitle(String pc) {
+    return 'Connect to $pc';
+  }
+
+  @override
+  String get remotePasswordHint => 'Enter that PC\'s remote control password.';
+
+  @override
+  String get remotePassword => 'PC password';
+
+  @override
+  String get remoteConnecting => 'Connecting…';
+
+  @override
+  String get remoteWaitingPc => 'Waiting for the PC…';
+
+  @override
+  String get remoteAuthenticating => 'Checking the password…';
+
+  @override
+  String get remoteReconnecting => 'Connection lost. Reconnecting…';
+
+  @override
+  String get remoteDirect => 'Direct';
+
+  @override
+  String get remoteRelay => 'Via relay';
+
+  @override
+  String get remoteDisconnect => 'Disconnect';
+
+  @override
+  String get remoteReconnect => 'Reconnect';
+
+  @override
+  String get remoteBack => 'Back';
+
+  @override
+  String get remoteMouseMode => 'Mouse mode: your finger moves the pointer';
+
+  @override
+  String get remoteTouchMode => 'Touch mode: tap to click there';
+
+  @override
+  String get remoteKeyboard => 'Keyboard';
+
+  @override
+  String remoteDisplay(String number) {
+    return 'Display $number';
+  }
+
+  @override
+  String get remoteSendClipboard => 'Send clipboard to the PC';
+
+  @override
+  String get remoteClipboardSent => 'Clipboard sent to the PC.';
+
+  @override
+  String get remoteClipboardEmpty =>
+      'There is no text in the phone\'s clipboard.';
+
+  @override
+  String get remoteMute => 'Mute';
+
+  @override
+  String get remoteUnmute => 'Unmute';
+
+  @override
+  String get remoteSendFile => 'Send file';
+
+  @override
+  String get remoteSendPhoto => 'Send photo or video';
+
+  @override
+  String get remoteDownload => 'Download from the PC';
+
+  @override
+  String get remoteTransfers => 'Transfers';
+
+  @override
+  String get remoteClearFinished => 'Clear finished';
+
+  @override
+  String remoteSentAs(String name) {
+    return 'On the PC as “$name”';
+  }
+
+  @override
+  String get remoteShare => 'Share';
+
+  @override
+  String get remoteQueued => 'Queued';
+
+  @override
+  String get remoteCancelled => 'Cancelled';
+
+  @override
+  String get remoteUp => 'Parent folder';
+
+  @override
+  String get remoteFolderEmpty => 'Empty folder';
+
+  @override
+  String get remoteTruncated => 'Only the first 5000 are shown.';
+
+  @override
+  String get remoteFeatureOff => 'The PC doesn\'t allow it in this session.';
+
+  @override
+  String get remoteClosedLocal => 'Disconnected from the PC.';
+
+  @override
+  String get remoteClosedDisabled => 'The PC turned remote control off.';
+
+  @override
+  String get remoteClosedPasswordChanged => 'The PC\'s password changed.';
+
+  @override
+  String get remoteClosedSignedOut => 'The PC signed out of the account.';
+
+  @override
+  String get remoteClosedStopped => 'The app on the PC was closed.';
+
+  @override
+  String get remoteClosedCaptureFailed =>
+      'The PC couldn\'t capture its screen.';
+
+  @override
+  String get remoteClosedBackground =>
+      'The session was closed because the app spent more than 30 seconds in the background.';
+
+  @override
+  String get remoteClosedOther => 'The PC closed the session.';
+
+  @override
+  String get remoteErrWrongPassword => 'Wrong password.';
+
+  @override
+  String remoteErrLocked(String minutes) {
+    return 'Too many failed attempts. The PC won\'t accept connections for $minutes min.';
+  }
+
+  @override
+  String get remoteErrBusy =>
+      'Another device is controlling that PC right now.';
+
+  @override
+  String get remoteErrDeviceOffline =>
+      'The PC is not connected: the app isn\'t running or has no network.';
+
+  @override
+  String get remoteErrRemoteDisabled =>
+      'Remote control is turned off on that PC.';
+
+  @override
+  String get remoteErrMissingPermissions =>
+      'That PC is missing system permissions to be controlled.';
+
+  @override
+  String get remoteErrUnsupported =>
+      'That PC can\'t be controlled right now: its system doesn\'t allow it (for example, Linux with Wayland) or it couldn\'t open the session.';
+
+  @override
+  String get remoteErrDeclined =>
+      'The connection was declined on the PC, or nobody accepted it in time.';
+
+  @override
+  String get remoteErrConnectionFailed =>
+      'The network doesn\'t allow connecting to that PC.';
+
+  @override
+  String get remoteErrNoAnswer => 'The PC didn\'t respond.';
+
+  @override
+  String get remoteErrReconnectFailed =>
+      'The connection couldn\'t be recovered.';
+
+  @override
+  String remoteErrTooManyRequests(String seconds) {
+    return 'Too many requests. Try again in $seconds s.';
+  }
+
+  @override
+  String get remoteErrUnavailable =>
+      'Remote control isn\'t available on the service right now.';
+
+  @override
+  String get remoteErrDeviceNotFound => 'That PC is no longer in the account.';
+
+  @override
+  String remoteErrOther(String code) {
+    return 'Couldn\'t connect ($code).';
+  }
+
+  @override
+  String get remoteTransferErrDisabled =>
+      'The PC doesn\'t allow sending or downloading files';
+
+  @override
+  String get remoteTransferErrNotFound => 'Doesn\'t exist';
+
+  @override
+  String get remoteTransferErrDenied => 'Permission denied';
+
+  @override
+  String get remoteTransferErrIsDirectory => 'It\'s a folder';
+
+  @override
+  String get remoteTransferErrIo => 'Read or write error';
+
+  @override
+  String get remoteTransferErrBusy => 'Already in progress';
+
+  @override
+  String get remoteTransferErrIntegrity => 'It arrived damaged';
+
+  @override
+  String get remoteTransferErrSize => 'The size doesn\'t match';
+
+  @override
+  String get remoteTransferErrConnectionLost => 'The connection was lost';
+
+  @override
+  String get remoteTransferErrRead => 'The file couldn\'t be read';
+
+  @override
+  String remoteTransferErrOther(String code) {
+    return 'Error ($code)';
+  }
 }

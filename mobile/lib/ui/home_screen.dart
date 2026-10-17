@@ -6,6 +6,7 @@ import '../src/connections.dart';
 import '../src/services.dart';
 import '../src/updates.dart';
 import 'connection_form.dart';
+import 'devices_screen.dart';
 import 'errors.dart';
 import 'explorer_screen.dart';
 import 'key_import.dart';
@@ -138,6 +139,12 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const TerminalsScreen())),
             ),
+          ),
+          IconButton(
+            key: const Key('open-devices'),
+            tooltip: t.devicesTitle,
+            icon: const Icon(Icons.cast_connected_outlined),
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const DevicesScreen())),
           ),
           IconButton(
             key: const Key('open-settings'),

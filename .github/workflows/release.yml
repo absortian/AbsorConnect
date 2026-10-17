@@ -174,7 +174,8 @@ jobs:
                   "appPermissions": {
                       "entitlements": [],
                       "privacy": {
-                          "NSLocalNetworkUsageDescription": "Absor Connect se conecta a los servidores SSH y S3 de tu red local que añadas.",
+                          "NSLocalNetworkUsageDescription": "Absor Connect se conecta a los servidores SSH y S3 y a los PCs de tu red local que añadas o controles.",
+                          "NSMicrophoneUsageDescription": "Absor Connect no graba sonido. iOS puede pedir este permiso al reproducir el sonido de un PC durante el control remoto; puedes denegarlo.",
                           "NSPhotoLibraryUsageDescription": "Absor Connect sube a tus servidores las fotos y vídeos que elijas.",
                       },
                   },

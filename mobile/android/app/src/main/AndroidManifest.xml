@@ -1,6 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- La plantilla solo lo declara en depuración: sin esto la versión publicada no tendría red -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Control remoto (WebRTC): el monitor de red de libwebrtc consulta las redes, y el sonido del PC
+         se reproduce como multimedia -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
     <application
         android:label="Absor Connect"
         android:usesCleartextTraffic="true"
