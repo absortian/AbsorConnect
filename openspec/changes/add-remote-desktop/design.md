@@ -474,6 +474,18 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
 - **STUN:** el propio coturn, más `stun.cloudflare.com:3478` de respaldo.
 - **Configuración:** `TURN_URLS` y `STUN_URLS` en el Secret `absorconnect-env`.
 - **Dónde vive:** la configuración del relé está fuera de este repo (infraestructura). `kube/AGENTS.md` documenta las variables y dónde se despliega.
+- **Hecho (tarea 3.1):** coturn 4.6.3 en `head0` (46.38.240.212), en `/root/infra-coturn/` (ver `kube/AGENTS.md`).
+  - **Cómo está:** relé en 49160–49259 (100 puertos en vez de 41, unas 25 sesiones). La imagen corre como `nobody`, así que `sync-certs.sh` le copia el certificado comodín y le manda `SIGUSR2` cada noche, después de la renovación de certbot.
+  - **`denied-peer-ip`:** además de las redes privadas, las IP públicas de la infraestructura (`head0`, `data0`, `worker0-2`, `cp00` y `cp01`). Si no, el relé serviría para llegar a servicios que confían en esas máquinas.
+  - **Verificado con `turnutils_uclient`**, desde fuera:
+    - unas credenciales válidas asignan relé por UDP y por TLS en 5349;
+    - unas caducadas se rechazan ("Cannot find credentials");
+    - los permisos hacia 192.168.1.10, 10.1.2.3 y `data0` dan 403 "Forbidden IP".
+  - **Con una sesión de verdad** (`relay-check`): el backend de desarrollo con el secreto de producción en un `backend/.env.local` temporal, y el controlador obligado a usar el relé. La API da el TURN con credenciales de 24 h, y la sesión conecta en 5 s ("Por relé · 102 ms · 29 fps"). El par elegido es `relay` 46.38.240.212 por UDP, frente al candidato `srflx` del PC.
+  - **Falta para la 3.2:**
+    - el registro DNS;
+    - las variables en el Secret;
+    - desplegar en producción el backend del control remoto: la imagen actual no tiene `/api/devices` ni `/api/remote/ice-servers` (dan 404).
 - **En desarrollo:** el servicio `turn` de `compose.override.yaml` (perfil `turn`, apagado por defecto) arranca coturn 4.6.3 con la IP de la red local en `TURN_RELAY_IP`. `TURN_URLS` y `TURN_SECRET` van en `backend/.env.local`, que no está en git; tras cambiarlos hay que reiniciar `php`, porque el worker de FrankenPHP no relee el entorno. Así se probó el relé entre dos equipos (6.5).
 
 ### D14. Modo en segundo plano (escritorio)
@@ -651,5 +663,5 @@ macOS se probó en un Mac con Apple Silicon y macOS 27 (Darwin 27.0), con el DMG
 
 ## Open Questions
 
-- Qué host aloja coturn (`head0` u otro con IP pública), el rango final de puertos del relé y las cuotas. No cambia el diseño.
+- ~~Qué host aloja coturn, el rango final de puertos del relé y las cuotas.~~ Resuelto en la 3.1: `head0`, 49160–49259 y las cuotas de `kube/AGENTS.md`.
 - El número final de iteraciones de PBKDF2, tras medirlo en un Android modesto y en un iPhone (D12, tarea 7.2).

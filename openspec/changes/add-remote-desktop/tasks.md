@@ -18,7 +18,7 @@
 
 ## 3. Relé TURN (infraestructura, fuera de este repo)
 
-- [ ] 3.1 Elegir el host con IP pública y desplegar coturn con la configuración de D13: secreto, TLS en 5349 con `*.absor.top`, rango de relé, `denied-peer-ip` y cuotas. Verificar con `turnutils_uclient`: las credenciales de la API funcionan, las caducadas fallan y un relé hacia 10.x o 192.168.x se rechaza.
+- [x] 3.1 Elegir el host con IP pública y desplegar coturn con la configuración de D13: secreto, TLS en 5349 con `*.absor.top`, rango de relé, `denied-peer-ip` y cuotas. Verificar con `turnutils_uclient`: las credenciales de la API funcionan, las caducadas fallan y un relé hacia 10.x o 192.168.x se rechaza.
 - [ ] 3.2 Registro DNS `turn.absor.top` sin proxy de Cloudflare, puertos abiertos en el cortafuegos y variables en el Secret `absorconnect-env`, con reinicio de los pods. Verificar: `GET /api/remote/ice-servers` en producción devuelve el TURN, y una conexión de prueba con `iceTransportPolicy: 'relay'` conecta.
 
 ## 4. Proceso principal (`src/main`)
