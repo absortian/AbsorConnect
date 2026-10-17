@@ -425,8 +425,11 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
     - **Dos PCs a la vez:** con el Mac abierto, el Linux abre otra sesión con su propio PC. Lo escrito en la primera ventana solo llega al Mac, y cerrar la segunda no corta la primera.
     - **Más del visor:** tamaño real a 1:1 con desplazamiento; "Win / Cmd" del menú de combinaciones llega al PC; con Ctrl pulsado, al perder el foco el PC lo suelta; y tras 5 contraseñas incorrectas, el sexto intento dice "Demasiados intentos fallidos. El PC no acepta conexiones durante 15 min.".
     - **Ensayo en un solo Linux:** 40/43; las tres sin probar necesitan dos equipos o un escritorio con bandeja.
-  - **Falta (resto de la 6.5):**
-    - el selector con varias pantallas: el Linux tiene ahora todas las salidas de vídeo desconectadas, y el Mac solo su pantalla. Se intentó simular con dos monitores RandR virtuales (`xrandr --setmonitor … none`), pero no sirve: `desktopCapturer` da una fuente por monitor (sin `display_id`), mientras que `screen.getAllDisplays()`, que es lo que usa el selector, sigue viendo una sola pantalla. Xephyr ignora esos monitores. Hace falta un equipo con dos monitores de verdad;
+  - **Selector de pantallas** (`lan-check/displays.ts`, 5/5). El PC es el Mac con un iPad como segunda pantalla (Sidecar ampliando el escritorio: 1069×744 al 200 %, a la izquierda, en x = −1069); el controlador, el Linux:
+    - la sesión empieza en la pantalla principal, y el selector tiene las dos;
+    - con cada pantalla, la imagen tiene sus proporciones: 2138×1488 la del iPad y 3024×1964 la del Mac;
+    - el ratón cae en el centro y en una esquina de la pantalla elegida, incluida la de coordenadas negativas, con 1 punto de error como mucho;
+    - antes se intentó simular dos monitores en el Linux con monitores RandR virtuales (`xrandr --setmonitor … none`), y no sirve: `desktopCapturer` da una fuente por monitor (sin `display_id`), pero `screen.getAllDisplays()`, que es lo que usa el selector, sigue viendo una sola pantalla. Xephyr ignora esos monitores.
   - **Salir de la pantalla completa en macOS, a mano** (`lan-check/fullscreen-mac.sh`, 4/4 en macOS 27.0.1, controlando el Linux):
     - se sale con el botón verde de la ventana, con el botón de la barra del visor y con Esc;
     - las tres veces el visor vuelve a 1280×800, enfocado y con imagen (siguen llegando fotogramas), y la persona confirma que vuelve a su Escritorio. Comentario: "Todo perfecto".

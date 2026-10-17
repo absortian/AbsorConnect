@@ -71,7 +71,7 @@
 
   Verificar con tests del protocolo (se descarta lo recibido antes de autenticar, nombres libres, integridad) y a mano con el visor.
 - [x] 6.4 Sección "Equipos" en la ventana principal: estado de cada PC, actualización automática y diálogo de contraseña. Verificar los escenarios de "Equipos de la cuenta".
-- [ ] 6.5 Visor (D11):
+- [x] 6.5 Visor (D11):
   - errores por código;
   - imagen ajustada, a tamaño real y a pantalla completa;
   - ratón y teclado con `keyboard.lock()`, `release-all` y menú de combinaciones;
