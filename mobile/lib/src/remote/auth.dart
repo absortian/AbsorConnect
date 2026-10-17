@@ -5,10 +5,10 @@ import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart' as crypto;
-import 'package:cryptography/cryptography.dart';
-import 'package:cryptography/dart.dart';
 import 'package:ffi/ffi.dart';
 import 'package:unorm_dart/unorm_dart.dart' as unorm;
+
+import 'pbkdf2.dart';
 
 /// Prueba de la contraseña del control remoto (add-remote-desktop D6), la misma que
 /// `src/shared/remote/auth.ts` del escritorio, con sus mismos vectores (`auth-vectors.json`).
@@ -35,32 +35,18 @@ String computeProof(
 
 /// K = PBKDF2-HMAC-SHA256(contraseña en NFC y UTF-8, salt, iteraciones): 32 bytes.
 ///
-/// 600 000 iteraciones tardan segundos en Dart puro, así que se usa lo nativo de cada sistema:
+/// 600 000 iteraciones:
 ///   - iOS y macOS: `CCKeyDerivationPBKDF` de CommonCrypto (por FFI, sin plugin);
-///   - Android: `cryptography_flutter`, que lo hace con la criptografía del sistema (solo la usa
-///     con `deriveKeyFromPassword`, que codifica la contraseña en UTF-8 como el escritorio);
-///   - en el resto (las pruebas en Linux), la versión en Dart.
-/// Lo que corre en Dart o por FFI va en otro isolate, para no congelar la interfaz.
-Future<Uint8List> deriveKey(String password, String saltBase64, int iterations) async {
-  final normalized = unorm.nfc(password);
+///   - el resto (Android y las pruebas en Linux): `pbkdf2HmacSha256`, en Dart, más del doble de
+///     rápido que el `SecretKeyFactory` de Android (ver pbkdf2.dart).
+/// Las dos van en otro isolate, para no congelar la interfaz.
+Future<Uint8List> deriveKey(String password, String saltBase64, int iterations) {
+  final secret = utf8.encode(unorm.nfc(password));
   final salt = base64.decode(saltBase64);
   if (Platform.isIOS || Platform.isMacOS) {
-    final secret = utf8.encode(normalized);
     return Isolate.run(() => _commonCryptoPbkdf2(secret, salt, iterations));
   }
-  final pbkdf2 = Cryptography.instance.pbkdf2(macAlgorithm: Hmac.sha256(), iterations: iterations, bits: 256);
-  if (pbkdf2 is DartPbkdf2) {
-    final secret = utf8.encode(normalized);
-    return Isolate.run(() => _dartPbkdf2(secret, salt, iterations));
-  }
-  final key = await pbkdf2.deriveKeyFromPassword(password: normalized, nonce: salt);
-  return Uint8List.fromList(await key.extractBytes());
-}
-
-Future<Uint8List> _dartPbkdf2(List<int> secret, List<int> salt, int iterations) async {
-  final key = await DartPbkdf2(macAlgorithm: DartHmac.sha256(), iterations: iterations, bits: 256)
-      .deriveKey(secretKey: SecretKey(secret), nonce: salt);
-  return Uint8List.fromList(await key.extractBytes());
+  return Isolate.run(() => pbkdf2HmacSha256(secret, salt, iterations));
 }
 
 typedef _CCKeyDerivationPBKDFNative = Int32 Function(

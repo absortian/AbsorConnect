@@ -88,7 +88,7 @@ class ViewerSession extends ChangeNotifier {
   RTCDataChannel? _input;
   RTCDataChannel? _pointer;
   RTCDataChannel? _file;
-  MediaStream? _audioStream;
+  final List<MediaStreamTrack> _audioTracks = [];
   Timer? _statsTimer;
   Timer? _disconnectedTimer;
   bool _closed = false;
@@ -168,7 +168,7 @@ class ViewerSession extends ChangeNotifier {
 
   void setAudioMuted(bool muted) {
     audioMuted = muted;
-    for (final track in _audioStream?.getAudioTracks() ?? const <MediaStreamTrack>[]) {
+    for (final track in _audioTracks) {
       track.enabled = !muted;
     }
     notifyListeners();
@@ -228,12 +228,19 @@ class ViewerSession extends ChangeNotifier {
       ..ordered = false
       ..maxRetransmitTime = 150);
     _file = await pc.createDataChannel(Channels.file, RTCDataChannelInit()..binaryType = 'binary');
-    pc.onTrack = (event) {
-      final stream = event.streams.isNotEmpty ? event.streams.first : null;
+    pc.onTrack = (event) async {
       if (event.track.kind == 'video') {
-        if (stream != null) renderer.srcObject = stream;
-      } else if (stream != null) {
-        _audioStream = stream;
+        // El PC pone sus pistas con replaceTrack en los transceptores de la oferta, sin
+        // MediaStream: entonces se crea uno para el renderizador (como el visor de escritorio)
+        var stream = event.streams.isNotEmpty ? event.streams.first : null;
+        if (stream == null) {
+          stream = await createLocalMediaStream('remote-video');
+          await stream.addTrack(event.track);
+        }
+        if (pc == _pc) renderer.srcObject = stream;
+      } else {
+        // El sonido remoto suena solo; la pista se guarda para silenciarlo
+        _audioTracks.add(event.track);
         event.track.enabled = !audioMuted;
       }
     };
@@ -456,7 +463,7 @@ class ViewerSession extends ChangeNotifier {
     _control = null;
     _input = null;
     _pointer = null;
-    _audioStream = null;
+    _audioTracks.clear();
     if (_file != null) {
       _file = null;
       onFileChannel?.call(null);

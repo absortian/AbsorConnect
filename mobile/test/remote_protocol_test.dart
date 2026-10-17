@@ -7,6 +7,7 @@ import 'dart:typed_data';
 
 import 'package:absor_connect/src/remote/auth.dart';
 import 'package:absor_connect/src/remote/input.dart';
+import 'package:absor_connect/src/remote/pbkdf2.dart';
 import 'package:absor_connect/src/remote/protocol.dart';
 import 'package:absor_connect/src/remote/transfer.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -39,6 +40,32 @@ void main() {
       final composed = await deriveKey('contraseña', 'c2FsdA==', 1000);
       final decomposed = await deriveKey('contraseña', 'c2FsdA==', 1000);
       expect(decomposed, composed);
+    });
+
+    // La ruta de Android, también en macOS (donde deriveKey va por CommonCrypto). Los dos primeros
+    // son de la RFC 7914 (§11, primeros 32 bytes); los demás, de hashlib.pbkdf2_hmac de Python:
+    // contraseña vacía, de 64 y de 65 bytes (se resume) y sales alrededor del límite de un bloque
+    for (final (password, salt, iterations, expected) in [
+      ('passwd', 'salt', 1, 'VawEblbjCJ/sFpHCJUS2BflBhSFt3gRl5oudV8INrLw='),
+      ('Password', 'NaCl', 80000, 'TdzY9guYviGDDO5e8icB+WQaRBjQTAQUrv8Ih2s0q1Y='),
+      ('', '', 1, '984LZT0tcqQQjPWr6RL/3Xd2Ftu7J6cOggTzri0Pb60='),
+      ('a' * 64, 's' * 55, 2, '0Rkuhk8i6xUOdykDl7s7/UC9oCIzMfCJcIAJUKN9Gug='),
+      ('b' * 65, 's' * 56, 3, 'kS7YRQXqgBJKqjjpMTHmfeROZLJP/BqnGYXtIPKcR+w='),
+      ('contraseña muy larga ' * 8, 'x' * 64, 1000, '+wlYrlvjuv4h+M8mphOoCAmnxPhzt1ZyAaBS7aUnzzk='),
+      ('ñandú', 'sal-de-100-bytes-' * 6, 4096, 'ViU+pQrG8n9lf6S9IgSdOhYREoSoakDUja4cXCFiJes='),
+    ]) {
+      test('PBKDF2 en Dart: ${utf8.encode(password).length} bytes de contraseña, ${salt.length} de sal, $iterations iteraciones', () {
+        expect(base64.encode(pbkdf2HmacSha256(utf8.encode(password), utf8.encode(salt), iterations)), expected);
+      });
+    }
+
+    test('PBKDF2 en Dart con 600 000 iteraciones da la K del vector', () {
+      final v = (vectors['vectors'] as List).cast<Map<String, dynamic>>().firstWhere((v) => v.containsKey('password'));
+      final watch = Stopwatch()..start();
+      final key = pbkdf2HmacSha256(utf8.encode(v['password'] as String), base64.decode(v['salt'] as String), v['iterations'] as int);
+      // ignore: avoid_print
+      print('PBKDF2 en Dart, ${v['iterations']} iteraciones: ${watch.elapsedMilliseconds} ms');
+      expect(base64.encode(key), v['key']);
     });
 
     test('cambiar una huella o el nonce cambia la prueba', () {

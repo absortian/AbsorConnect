@@ -14,6 +14,7 @@ Pruebas de los puntos de riesgo del grupo 1 de `openspec/changes/add-remote-desk
 | `viewer-check/` | 4.9, 6.4 y 6.5 | Dos instancias de la app (PC oculto y controlador manejado por DevTools): Equipos, conectar, errores, imagen, estado, ratón, reconexión y que el token no llegue a ningún renderer. |
 | `dev-check/` | 5.1 y 6.1 | Las tres páginas y sus preloads: la compilación, el modo desarrollo (`npm run dev`) y que cada ventana solo tenga su propio puente. |
 | `fullscreen-check/` | 6.5 | En un solo Linux: Alt+Tab y la tecla Windows en pantalla completa con un gestor de ventanas, y el controlador en Wayland (compositor anidado). |
+| `mobile-check/` | 7.1, 7.2 y 7.3 | La app móvil en el emulador de Android contra un PC de verdad (`lan-check/pc.ts`), con capturas: los escenarios de la spec `mobile-app`. En el Mac, la IPA y PBKDF2 por CommonCrypto (`test-mac.sh`). |
 | `relay-check/` | 3.1 y 3.2 | Una sesión solo por relé contra el TURN de verdad: la API da el TURN, la sesión conecta y el par elegido pasa por el relé esperado. |
 | `exit-check/` | 4.10 y 4.2 | Salir de la cuenta con una sesión abierta (en el PC, en el controlador y por caducidad con el PC en la bandeja) y, con un AppImage de prueba, una actualización descargada durante una sesión. |
 
@@ -175,6 +176,51 @@ ELECTRON_RUN_AS_NODE=1 node_modules/electron/dist/electron prototypes/remote-des
 ```
 
 Dura unos 2 minutos. Usa la misma cuenta de prueba que `controller-check`.
+
+## App móvil contra un PC de verdad (`mobile-check/`, tarea 7.3)
+
+En un solo Linux: el PC es la prueba entre dos equipos (`lan-check/pc.ts`, con su ventana que anota clics, teclas y texto, y su sonda en el 8790) y el móvil, la app en el emulador de Android, con `mobile/integration_test/remote_desktop_test.dart`.
+
+- **Qué recorre** (los escenarios de la spec `mobile-app`):
+  - Equipos y la conexión con contraseña, y girar el teléfono;
+  - en modo ratón, mover el puntero arrastrando un dedo, el clic donde está el puntero (no donde se toca) y el clic derecho con dos dedos, sin clic izquierdo;
+  - en modo táctil, el clic en el punto equivalente del PC;
+  - "Mañana" y Ctrl+C;
+  - el portapapeles en los dos sentidos y enviar una foto (el selector del sistema se sustituye por un fichero de prueba);
+  - 10 s fuera con el botón Inicio, más de 30 s en segundo plano, reconectar sin la contraseña y desconectar.
+- **Capturas:** las hace `adb` cuando la prueba escribe `SHOT <nombre>`, porque las capturas de Flutter no incluyen la imagen del PC (es una textura). Quedan en `mobile-check/out/shots`, con `report.json`.
+
+**El emulador**, sin ventana, en un contenedor con KVM. Es Flutter 3.47.7 (el de CI) sobre la imagen de cirruslabs, que trae el SDK de Android. Se prepara una vez:
+
+```bash
+# Flutter 3.47.7 en un volumen
+docker run --rm -v absor-flutter-sdk:/sdk ghcr.io/cirruslabs/flutter:stable sh -c 'cd /sdk && curl -sSfL https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.47.7-stable.tar.xz | tar -xJ'
+# Imagen de Android 15 y un AVD
+docker run --rm -v absor-android-images:/opt/android-sdk-linux/system-images -v absor-android-avd:/root/.android ghcr.io/cirruslabs/flutter:stable sh -c 'yes | /opt/android-sdk-linux/cmdline-tools/latest/bin/sdkmanager "system-images;android-35;google_apis;x86_64" && echo no | /opt/android-sdk-linux/cmdline-tools/latest/bin/avdmanager create avd -n absor -k "system-images;android-35;google_apis;x86_64" -d pixel_6'
+```
+
+Y se arranca cuando se va a usar. Con red del host, el emulador llega al backend y a la sonda del PC por 10.0.2.2:
+
+```bash
+docker run -d --name absor-emulator --device /dev/kvm --network host -v "$PWD":/repo -v absor-flutter-sdk:/sdk -v absor-flutter-pub:/root/.pub-cache -v absor-flutter-gradle:/root/.gradle -v absor-android-images:/opt/android-sdk-linux/system-images -v absor-android-avd:/root/.android -e PATH=/sdk/flutter/bin:/opt/android-sdk-linux/platform-tools:/opt/android-sdk-linux/emulator:/usr/local/bin:/usr/bin:/bin -e ANDROID_HOME=/opt/android-sdk-linux ghcr.io/cirruslabs/flutter:stable sh -c 'git config --global --add safe.directory "*"; emulator -avd absor -no-window -gpu swiftshader_indirect -no-audio -no-boot-anim -no-snapshot -memory 4096 -cores 4 & sleep infinity'
+prototypes/remote-desktop/mobile-check/run.sh
+```
+
+- Si en el puerto 5555 del host ya escucha algo, adb ve un `emulator-5554` desconectado y el bueno es `emulator-5556`, el que usa `run.sh` por defecto (`ANDROID_SERIAL` para otro).
+- La primera vez compila el APK de depuración y descarga el NDK dentro del contenedor: unos 10 minutos.
+- La prueba dura unos 3 minutos. Usa la misma cuenta de prueba que `controller-check`.
+
+**En el Mac** (tareas 7.1 y 7.2), lo que no se puede comprobar desde Linux:
+
+```bash
+prototypes/remote-desktop/mobile-check/test-mac.sh
+```
+
+- las pruebas de Dart del protocolo, donde PBKDF2 va por CommonCrypto (FFI), la misma ruta que en el iPhone, con lo que tarda en ese Mac;
+- la IPA sin firmar, como la CI, con los textos de permisos que lleva;
+- PBKDF2 en cada iPhone o Android conectado por cable (`integration_test/pbkdf2_test.dart`). En el iPhone, Xcode tiene que poder firmar para él: el equipo personal se elige en `mobile/ios/Runner.xcworkspace` y ese cambio no se sube.
+
+Deja el resultado en `~/Downloads/absor-mobile-check-macos.json` y en el portapapeles. Necesita Xcode y Flutter, pero no CocoaPods: todos los plugins de iOS van por Swift Package Manager.
 
 ## Sesión solo por relé (`relay-check/`, tareas 3.1 y 3.2)
 

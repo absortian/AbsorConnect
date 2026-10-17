@@ -130,7 +130,7 @@ Errores con el formato habitual `{"error": {"code", "details"}}`.
 - **Por qué así:**
   - La contraseña no viaja nunca, ni siquiera cifrada.
   - Incluir las huellas ata la prueba a esta conexión DTLS: si el servicio de señalización (u otro intermediario) cambiara las huellas para interponerse, cada lado vería huellas distintas y la prueba no coincidiría.
-  - PBKDF2 está en WebCrypto (renderer), en Node y en Dart (`cryptography`). scrypt y argon2 no están en WebCrypto.
+  - PBKDF2 está en WebCrypto (renderer), en Node, en CommonCrypto (iOS) y es sencillo en Dart (D12). scrypt y argon2 no están en WebCrypto.
 - **Fallos y bloqueo:**
   - Los fallos se guardan con su fecha en el mismo fichero, para que reiniciar la app no reinicie el contador.
   - Con 5 fallos en 15 min, `lockedUntil = ahora + 15 min`.
@@ -445,21 +445,53 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
       - la pantalla completa entra y sale.
 
 ### D12. App móvil
-- **WebRTC:** `flutter_webrtc` (`RTCPeerConnection`, `RTCVideoView`, canales de datos). Mismo protocolo (D9).
-- **PBKDF2:** paquete `cryptography`, en un isolate. Las iteraciones vienen en `hello`, así que se pueden ajustar sin cambiar el protocolo. En el escritorio, 600 000 iteraciones tardan unos 58 ms tanto en WebCrypto como en Node (prototipo 1.4, Ryzen con Linux); falta medir los móviles.
+- **WebRTC:** `flutter_webrtc` 1.6 (`RTCPeerConnection`, `RTCVideoView`, canales de datos), con el mismo protocolo (D9). Dos detalles del paquete:
+  - `RTCDataChannelInit` solo manda `maxRetransmits` si es mayor que 0, así que el canal `pointer` va sin orden y con `maxRetransmitTime` de 150 ms.
+  - La pista de vídeo llega sin `MediaStream`, porque el PC la pone con `replaceTrack`. El visor crea uno local para el `RTCVideoView`.
+- **PBKDF2:**
+  - **Cómo se calcula** (600 000 iteraciones, en otro isolate en los dos casos):
+    - iOS y macOS: `CCKeyDerivationPBKDF` de CommonCrypto, por FFI, sin plugin.
+    - Android y el resto: PBKDF2-HMAC-SHA256 propio en Dart (`lib/src/remote/pbkdf2.dart`). Calcula una vez los estados de HMAC tras ipad y opad, así que cada iteración son dos compresiones de SHA-256, y no reserva memoria en el bucle. Lo validan la RFC 7914, casos límite calculados con `hashlib` de Python y el vector del escritorio.
+  - **Medidas** (vector del escritorio, 600 000 iteraciones):
+    - Emulador Android 15 x86_64 en un Ryzen, compilación profile:
+      - `SecretKeyFactory` del sistema (BouncyCastle en Java, vía `cryptography_flutter`): 1,8 s, y bloquea el hilo principal (107 fotogramas perdidos);
+      - el `DartPbkdf2` de `cryptography`: 3,2 s;
+      - el propio: 0,74 s, sin fotogramas perdidos.
+    - Linux AOT: el propio, 0,45 s; el de `cryptography`, 2,3 s.
+    - Escritorio: 58 ms (prototipo 1.4).
+  - **Normalización:** la contraseña se pasa a NFC con `unorm_dart`, como en el escritorio.
+  - **Iteraciones:** vienen en `hello`, así que se pueden ajustar sin cambiar el protocolo.
 - **Gestos:**
-  - Modo ratón (trackpad): un dedo mueve el puntero, toque es clic, dos dedos son clic derecho y desplazamiento, y tocar y arrastrar arrastra.
-  - Modo táctil: el toque hace clic donde se toca.
-  - Pellizco para el zoom local.
-- **Teclado:** un `TextField` oculto envía `text`, y borrar o Intro van como `key`. Barra de teclas con modificadores de un toque, como la terminal.
+  - Modo ratón (trackpad):
+    - un dedo mueve el puntero (×1,4);
+    - tocar hace clic donde está el puntero, no donde se toca;
+    - dos dedos a la vez hacen clic derecho, solo ese: el primer dedo no cuenta como toque;
+    - mantener pulsado y mover arrastra.
+  - Modo táctil:
+    - tocar hace clic ahí;
+    - mantener pulsado es clic derecho;
+    - arrastrar con un dedo arrastra, pulsando donde empieza.
+  - En los dos modos, dos dedos que se mueven desplazan y el pellizco hace zoom local (hasta ×5).
+  - El puntero se dibuja con la punta de la flecha en el punto del clic.
+- **Teclado:**
+  - Un `TextField` oculto contiene siempre un texto fijo. Si se acorta, se envía un `Backspace` por cada carácter borrado; si crece, lo añadido se envía como `text` al terminar la composición (acentos, dictado). Intro va como `key`.
+  - La barra de teclas tiene Esc, Tab, Supr, flechas, F1–F12 y modificadores de un toque, como la terminal. Las combinaciones van por posición US (`KeyC`).
 - **Portapapeles:**
   - Del PC al móvil: se aplica al llegar (`Clipboard.setData`).
   - Del móvil al PC: botón "Enviar portapapeles". Leerlo solo avisa al usuario: diálogo de pegar en iOS 16+ y aviso en Android 12+.
-- **Ficheros:** `file_picker` para enviar. Para descargar, explorador del PC → fichero temporal → hoja de compartir (`share_plus`).
+- **Ficheros:**
+  - Para enviar, `file_picker` 13. En Android lo elegido es un `content://` sin ruta, así que se lee como flujo de bytes.
+  - Para descargar: explorador del PC → fichero temporal (con el tamaño y el SHA-256 comprobados) → hoja de compartir (`share_plus`).
+- **Sonido:** en iOS, sesión de audio solo de reproducción (`setAppleAudioIOMode`); en Android, configuración de medios.
 - **Segundo plano:** al pasar a `paused` arranca un temporizador de 30 s que cierra la sesión. Si se vuelve antes y la conexión cayó (iOS suspende la app), se reconecta con `K` en memoria.
 - **Permisos:**
-  - Comprobar si `flutter_webrtc` exige `NSMicrophoneUsageDescription` o `NSCameraUsageDescription` en iOS aunque solo reciba. Si se añaden, la fuente de AltStore debe declararlas igual (`AGENTS.md`).
-  - En Android, `MODIFY_AUDIO_SETTINGS` para reproducir el audio.
+  - iOS:
+    - `NSMicrophoneUsageDescription`, por si WebRTC abre la unidad de audio con entrada; sin ella, iOS cerraría la app. No se graba nada y el usuario puede denegarlo.
+    - `NSLocalNetworkUsageDescription` incluye los PCs de la red local.
+    - La fuente de AltStore declara los mismos textos.
+    - No hace falta la cámara.
+  - Android: `ACCESS_NETWORK_STATE` y `MODIFY_AUDIO_SETTINGS`.
+- **Verificación (7.3):** `prototypes/remote-desktop/mobile-check`. El emulador de Android 15 se prueba contra un PC Linux de verdad (`lan-check/pc.ts`), con capturas: 17 de 17 comprobaciones, que cubren todos los escenarios de `mobile-app`.
 
 ### D13. Relé TURN
 - **Despliegue:** coturn en un host con IP pública, por ejemplo `head0` junto a HAProxy, en Docker con `network_mode: host`.
@@ -687,3 +719,7 @@ macOS se probó en un Mac con Apple Silicon y macOS 27 (Darwin 27.0), con el DMG
 
 - ~~Qué host aloja coturn, el rango final de puertos del relé y las cuotas.~~ Resuelto en la 3.1: `head0`, 49160–49259 y las cuotas de `kube/AGENTS.md`.
 - El número final de iteraciones de PBKDF2, tras medirlo en un Android modesto y en un iPhone (D12, tarea 7.2).
+  - Propuesta: mantener 600 000, lo que recomienda OWASP para PBKDF2-HMAC-SHA256.
+  - Con el PBKDF2 propio son 0,74 s en el emulador. En un Android modesto se espera poco más de 1–2 s, una vez por conexión, sin congelar la interfaz y con "Comprobando la contraseña" en pantalla. Las reconexiones reutilizan K.
+  - En iOS va por CommonCrypto, como el escritorio por OpenSSL.
+  - Falta confirmarlo con `mobile-check/test-mac.sh` y los teléfonos conectados.

@@ -1,6 +1,6 @@
 # Absor Connect para Android e iPhone
 
-App de Flutter con la misma cuenta y las mismas conexiones que el escritorio: explorador SFTP y S3 (subir desde Archivos o Fotos, descargar y compartir, crear carpetas, borrar) y terminal SSH con barra de teclas. Usuarios finales: instrucciones de instalación en [absorconnect.absor.top](https://absorconnect.absor.top/#descargas).
+App de Flutter con la misma cuenta y las mismas conexiones que el escritorio: explorador SFTP y S3 (subir desde Archivos o Fotos, descargar y compartir, crear carpetas, borrar), terminal SSH con barra de teclas y control remoto de los PCs de la cuenta. Usuarios finales: instrucciones de instalación en [absorconnect.absor.top](https://absorconnect.absor.top/#descargas).
 
 No hay cuenta de Google Play ni de Apple Developer, así que la app no está en las tiendas:
 
@@ -18,6 +18,7 @@ No hay cuenta de Google Play ni de Apple Developer, así que la app no está en 
 | `lib/src/ssh.dart`, `remote_fs.dart`, `terminals.dart` | Una conexión SSH por servidor compartida por el explorador SFTP y las terminales |
 | `lib/src/s3.dart` | Cliente S3 propio (firma SigV4, rutas tipo path) |
 | `lib/src/updates.dart` | Aviso de versión nueva en Android (API de releases de GitHub) |
+| `lib/src/remote/` | Control remoto: protocolo v1, prueba de la contraseña del PC, sesión WebRTC (`flutter_webrtc`), ficheros y portapapeles. Es el mismo protocolo que el visor de escritorio (`src/shared/remote/`) |
 | `lib/ui/` | Pantallas |
 | `lib/l10n/` | Textos en español e inglés (`app_es.arb`, `app_en.arb`) |
 
@@ -61,6 +62,40 @@ flutter drive --driver=test_driver/integration_test.dart --target=integration_te
 ```
 
 Al acabar: `docker rm -f sftp-test s3-test` y `docker compose down` en la raíz.
+
+## Control remoto
+
+"Equipos" (icono de la pantalla de inicio) muestra los PCs de la cuenta, con su estado, y conecta con los que están disponibles. Pide la contraseña de control remoto del PC; la contraseña no se guarda, solo K (derivada de ella) mientras dura la sesión, para reconectar sin volver a pedirla.
+
+- **Gestos:**
+  - modo ratón (trackpad): un dedo mueve el puntero, tocar es clic, dos dedos a la vez son clic derecho, y mantener pulsado y mover arrastra;
+  - modo táctil: tocar hace clic ahí, mantener pulsado es clic derecho y arrastrar con un dedo arrastra;
+  - en los dos: dos dedos desplazan, y el pellizco hace zoom en el móvil.
+- **Teclado:** el del teléfono envía texto; la barra de teclas tiene Esc, Tab, Supr, flechas, teclas de función y modificadores de un toque (Ctrl y después "c" es Ctrl+C).
+- **Barra de arriba:** pantallas del PC, sonido, enviar el portapapeles, enviar ficheros o fotos y descargar del PC (a la hoja de compartir). Lo que copia el PC se puede pegar en el teléfono.
+- **Segundo plano:** la sesión aguanta 30 s; al volver, sigue o se recupera sola. Pasado ese tiempo, se cierra.
+- **PBKDF2 (600 000 iteraciones), en otro isolate para no congelar la interfaz:**
+  - en iOS, CommonCrypto (por FFI);
+  - en Android, `lib/src/remote/pbkdf2.dart`, en Dart: unos 0,75 s en el emulador. El `SecretKeyFactory` del sistema es BouncyCastle en Java: tarda más del doble y bloquea el hilo principal.
+- **iOS:**
+  - el sonido del PC se reproduce con una sesión de audio solo de reproducción;
+  - `NSMicrophoneUsageDescription` está declarada por si WebRTC tocara el micrófono (sin ella, iOS cerraría la app). Como cualquier clave nueva, también va en la fuente de AltStore.
+
+**Probar con el emulador.** Hace falta un PC de la misma cuenta con la app de escritorio y el control remoto activado, contra el mismo backend de desarrollo. El emulador llega al backend por 10.0.2.2 y al PC por su IP de la red local:
+
+```bash
+flutter run --dart-define=API_URL=http://10.0.2.2:8020
+```
+
+La prueba automática contra un PC de verdad es `prototypes/remote-desktop/mobile-check` (ver el README de los prototipos). En un solo Linux, el PC es la prueba entre dos equipos (`lan-check/pc.ts`) y el móvil, el emulador. Recorre:
+
+- Equipos, la conexión con contraseña y girar el teléfono;
+- mover el puntero, clic, clic derecho con dos dedos y el modo táctil;
+- "Mañana" y Ctrl+C;
+- el portapapeles en los dos sentidos y enviar una foto;
+- volver tras 10 s y tras más de 30 s, y reconectar.
+
+**Cuánto tarda PBKDF2 en un dispositivo** (con el móvil conectado): `flutter test integration_test/pbkdf2_test.dart -d <dispositivo>`. Escribe una línea `PBKDF2 {...}` con los tiempos. En un Mac, `prototypes/remote-desktop/mobile-check/test-mac.sh` lo hace con cada teléfono conectado, además de compilar la IPA y probar la ruta de CommonCrypto.
 
 ## Firma y publicación
 

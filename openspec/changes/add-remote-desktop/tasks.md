@@ -84,16 +84,16 @@
 
 ## 7. App móvil (`mobile/`)
 
-- [ ] 7.1 Dependencias `flutter_webrtc` y `cryptography`, permisos de Android e iOS que hagan falta (D12) y fuente de AltStore con los mismos `UsageDescription` que el `Info.plist`. Verificar: `flutter build apk` y la IPA compilan, y la fuente coincide con el `Info.plist`.
+- [ ] 7.1 Dependencias `flutter_webrtc` y las de PBKDF2 (al final, CommonCrypto por FFI y una implementación en Dart: D12), permisos de Android e iOS que hagan falta (D12) y fuente de AltStore con los mismos `UsageDescription` que el `Info.plist`. Verificar: `flutter build apk` y la IPA compilan, y la fuente coincide con el `Info.plist`.
 - [ ] 7.2 Cliente de la API de equipos y solicitudes, autenticación y protocolo v1 en Dart. Verificar con `flutter test`, usando los vectores de `src/shared/remote/auth-vectors.json`, y con pruebas de integración contra el backend de desarrollo. Medir PBKDF2 con 600 000 iteraciones en un Android modesto y en un iPhone, y fijar el número de iteraciones (cierra esa Open Question de design.md).
-- [ ] 7.3 Pantalla "Equipos" y visor móvil:
+- [x] 7.3 Pantalla "Equipos" y visor móvil:
   - imagen y rotación;
   - modos ratón y táctil, gestos, teclado y barra de teclas;
   - pantallas, botón para enviar el portapapeles, sonido y ficheros;
   - segundo plano durante 30 s.
 
   Verificar en el emulador de Android contra un PC real los escenarios nuevos de `mobile-app`, con capturas.
-- [ ] 7.4 Textos ARB `es` y `en`, y en `mobile/README.md` cómo probar el control remoto con el emulador. Verificar: `flutter analyze` limpio.
+- [x] 7.4 Textos ARB `es` y `en`, y en `mobile/README.md` cómo probar el control remoto con el emulador. Verificar: `flutter analyze` limpio.
 
 ## 8. Empaquetado, CI y documentación
 

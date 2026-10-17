@@ -33,8 +33,10 @@ class _ViewerScreenState extends State<ViewerScreen> with WidgetsBindingObserver
   /// En segundo plano, la sesión aguanta 30 s; después se cierra (mobile-app).
   static const _backgroundLimit = Duration(seconds: 30);
 
-  late final ViewerSession _session = ViewerSession(widget.api, widget.device.id);
-  late final RemoteTransfers _transfers = RemoteTransfers(_session);
+  late final ViewerSession _session;
+
+  /// Se crea antes de conectar: la sesión le pasa el canal de ficheros al autenticarse.
+  late final RemoteTransfers _transfers;
   final _keyboardFocus = FocusNode();
   bool _mouseMode = true;
   bool _keyboard = false;
@@ -48,6 +50,8 @@ class _ViewerScreenState extends State<ViewerScreen> with WidgetsBindingObserver
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    _session = ViewerSession(widget.api, widget.device.id);
+    _transfers = RemoteTransfers(_session);
     unawaited(_session.connect(widget.password));
   }
 
@@ -332,6 +336,8 @@ class _RemoteViewState extends State<_RemoteView> {
   }
 
   void _onTapUp(TapUpDetails details) {
+    // Con dos dedos el primero también cuenta como toque: ese gesto es solo el clic derecho
+    if (_maxPointers > 1) return;
     if (widget.mouseMode) {
       _click(_cursor);
     } else {
@@ -489,8 +495,9 @@ class _RemoteViewState extends State<_RemoteView> {
               child: Stack(children: [
                 Positioned.fill(child: view),
                 if (widget.mouseMode)
+                  // La punta de la flecha (arriba en el centro del icono) es donde se hace clic
                   Positioned(
-                    left: cursor.dx - 2,
+                    left: cursor.dx - 11,
                     top: cursor.dy - 2,
                     child: const IgnorePointer(child: Icon(Icons.navigation, size: 22, color: Colors.white, shadows: [Shadow(blurRadius: 3)])),
                   ),
@@ -547,7 +554,8 @@ class _HiddenInputState extends State<_HiddenInput> {
     if (value.composing.isValid && !value.composing.isCollapsed) return;
     final text = value.text;
     if (text == _sentinel) return;
-    if (text.length < _sentinel.length) {
+    if (_sentinel.startsWith(text)) {
+      // Se ha borrado parte del texto fijo: Retroceso
       for (var i = 0; i < _sentinel.length - text.length; i++) {
         widget.onKey(RemoteKeys.backspace);
       }
