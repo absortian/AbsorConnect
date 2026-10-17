@@ -458,6 +458,7 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
       - el `DartPbkdf2` de `cryptography`: 3,2 s;
       - el propio: 0,74 s, sin fotogramas perdidos.
     - Linux AOT: el propio, 0,45 s; el de `cryptography`, 2,3 s.
+    - Un Mac, CommonCrypto (la ruta del iPhone): 75 ms.
     - Escritorio: 58 ms (prototipo 1.4).
   - **Normalización:** la contraseña se pasa a NFC con `unorm_dart`, como en el escritorio.
   - **Iteraciones:** vienen en `hello`, así que se pueden ajustar sin cambiar el protocolo.
@@ -491,7 +492,10 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
     - La fuente de AltStore declara los mismos textos.
     - No hace falta la cámara.
   - Android: `ACCESS_NETWORK_STATE` y `MODIFY_AUDIO_SETTINGS`.
-- **Verificación (7.3):** `prototypes/remote-desktop/mobile-check`. El emulador de Android 15 se prueba contra un PC Linux de verdad (`lan-check/pc.ts`), con capturas: 17 de 17 comprobaciones, que cubren todos los escenarios de `mobile-app`.
+- **Verificación:**
+  - 7.3: `prototypes/remote-desktop/mobile-check`. El emulador de Android 15 se prueba contra un PC Linux de verdad (`lan-check/pc.ts`), con capturas: 17 de 17 comprobaciones, que cubren todos los escenarios de `mobile-app`.
+  - 7.1: en el Mac (`mobile-check/test-mac.sh`, Xcode 27.1 y Flutter 3.47.7), la IPA sin firmar compila en 54 s. Lleva los tres `UsageDescription` (fotos, micrófono y red local), iguales que en la fuente de AltStore.
+  - El APK universal de release pasa de 58 MB (v0.3.3) a 98 MB, por las librerías de WebRTC de tres arquitecturas.
 
 ### D13. Relé TURN
 - **Despliegue:** coturn en un host con IP pública, por ejemplo `head0` junto a HAProxy, en Docker con `network_mode: host`.
@@ -718,8 +722,7 @@ macOS se probó en un Mac con Apple Silicon y macOS 27 (Darwin 27.0), con el DMG
 ## Open Questions
 
 - ~~Qué host aloja coturn, el rango final de puertos del relé y las cuotas.~~ Resuelto en la 3.1: `head0`, 49160–49259 y las cuotas de `kube/AGENTS.md`.
-- El número final de iteraciones de PBKDF2, tras medirlo en un Android modesto y en un iPhone (D12, tarea 7.2).
-  - Propuesta: mantener 600 000, lo que recomienda OWASP para PBKDF2-HMAC-SHA256.
-  - Con el PBKDF2 propio son 0,74 s en el emulador. En un Android modesto se espera poco más de 1–2 s, una vez por conexión, sin congelar la interfaz y con "Comprobando la contraseña" en pantalla. Las reconexiones reutilizan K.
-  - En iOS va por CommonCrypto, como el escritorio por OpenSSL.
-  - Falta confirmarlo con `mobile-check/test-mac.sh` y los teléfonos conectados.
+- ~~El número final de iteraciones de PBKDF2.~~ Resuelto en la 7.2: 600 000, lo que recomienda OWASP para PBKDF2-HMAC-SHA256.
+  - CommonCrypto, la ruta del iPhone, tarda 75 ms en un Mac.
+  - El PBKDF2 propio de Android tarda 0,74 s en el emulador, en otro isolate y una vez por conexión (las reconexiones reutilizan K).
+  - En teléfonos reales se anota en la 9.3. Si un Android modesto pasa de 3 s, se revisa: las iteraciones van en `hello`, así que cambiarlas no toca el protocolo.

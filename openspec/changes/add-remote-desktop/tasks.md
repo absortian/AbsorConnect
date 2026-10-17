@@ -84,8 +84,8 @@
 
 ## 7. App móvil (`mobile/`)
 
-- [ ] 7.1 Dependencias `flutter_webrtc` y las de PBKDF2 (al final, CommonCrypto por FFI y una implementación en Dart: D12), permisos de Android e iOS que hagan falta (D12) y fuente de AltStore con los mismos `UsageDescription` que el `Info.plist`. Verificar: `flutter build apk` y la IPA compilan, y la fuente coincide con el `Info.plist`.
-- [ ] 7.2 Cliente de la API de equipos y solicitudes, autenticación y protocolo v1 en Dart. Verificar con `flutter test`, usando los vectores de `src/shared/remote/auth-vectors.json`, y con pruebas de integración contra el backend de desarrollo. Medir PBKDF2 con 600 000 iteraciones en un Android modesto y en un iPhone, y fijar el número de iteraciones (cierra esa Open Question de design.md).
+- [x] 7.1 Dependencias `flutter_webrtc` y las de PBKDF2 (al final, CommonCrypto por FFI y una implementación en Dart: D12), permisos de Android e iOS que hagan falta (D12) y fuente de AltStore con los mismos `UsageDescription` que el `Info.plist`. Verificar: `flutter build apk` y la IPA compilan, y la fuente coincide con el `Info.plist`.
+- [x] 7.2 Cliente de la API de equipos y solicitudes, autenticación y protocolo v1 en Dart. Verificar con `flutter test`, usando los vectores de `src/shared/remote/auth-vectors.json`, y con pruebas de integración contra el backend de desarrollo. Medir PBKDF2 con 600 000 iteraciones y fijar el número de iteraciones (cierra esa Open Question de design.md). Se midió en el emulador de Android y, para la ruta de iOS (CommonCrypto), en un Mac: no había teléfonos conectados. La medida en un Android modesto y en un iPhone reales pasa a la 9.3.
 - [x] 7.3 Pantalla "Equipos" y visor móvil:
   - imagen y rotación;
   - modos ratón y táctil, gestos, teclado y barra de teclas;
@@ -109,7 +109,7 @@
 
 - [ ] 9.1 `npm run typecheck` limpio, `npm test` en verde y `npx eslint` sobre los ficheros tocados sin errores nuevos (la deuda previa no cambia).
 - [ ] 9.2 `docker compose exec php php bin/phpunit` y `(cd mobile && flutter analyze && flutter test)` en verde.
-- [ ] 9.3 Matriz manual con paquetes reales: controlador en Windows, macOS, Linux, Android e iPhone frente a PC controlado en Windows, macOS y Linux X11. Incluir al menos una sesión por relé, un PC controlado con dos monitores de escalas distintas (clics en las esquinas de cada uno; la 4.6 se verificó con una sola pantalla) y, en Windows, la pista del cortafuegos en Ajustes y su aviso al activar el control remoto (6.2), y revisar el disco y la base de datos según "Contraseña local del PC". Verificar: tabla de resultados en el PR.
+- [ ] 9.3 Matriz manual con paquetes reales: controlador en Windows, macOS, Linux, Android e iPhone frente a PC controlado en Windows, macOS y Linux X11. Incluir al menos una sesión por relé, un PC controlado con dos monitores de escalas distintas (clics en las esquinas de cada uno; la 4.6 se verificó con una sola pantalla) y, en Windows, la pista del cortafuegos en Ajustes y su aviso al activar el control remoto (6.2), y revisar el disco y la base de datos según "Contraseña local del PC". En el Android (uno modesto, si puede ser) y en el iPhone, anotar lo que tarda "Comprobando la contraseña" (7.2: si pasa de 3 s, revisar las iteraciones). Verificar: tabla de resultados en el PR.
 
 ## Workflow follow-up
 
