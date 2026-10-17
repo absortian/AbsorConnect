@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\User;
 use App\Remote\IceServers;
+use App\Remote\RemoteLimiter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
@@ -14,6 +15,7 @@ final class RemoteController extends AbstractController
 {
     public function __construct(
         private readonly IceServers $iceServers,
+        private readonly RemoteLimiter $limiter,
     ) {
     }
 
@@ -21,6 +23,8 @@ final class RemoteController extends AbstractController
     #[Route('/ice-servers', methods: ['GET'])]
     public function iceServers(#[CurrentUser] User $user): JsonResponse
     {
+        $this->limiter->iceServers($user);
+
         return new JsonResponse($this->iceServers->forUser($user, new \DateTimeImmutable()));
     }
 }

@@ -14,7 +14,13 @@ final class RemoteLimiter
     public function __construct(
         private readonly RateLimiterFactoryInterface $remoteRequestUserLimiter,
         private readonly RateLimiterFactoryInterface $devicePollLimiter,
+        private readonly RateLimiterFactoryInterface $iceServersUserLimiter,
     ) {
+    }
+
+    public function iceServers(User $user): void
+    {
+        self::consume($this->iceServersUserLimiter->create($user->getId()->toRfc4122()));
     }
 
     public function sessionRequest(User $user): void

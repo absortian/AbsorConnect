@@ -33,6 +33,13 @@ framework:
             limit: 1
             interval: '1 second'
             cache_pool: app.rate_limiter_cache
+        # Credenciales del relé de cada cuenta: una o dos por sesión (el PC y el controlador). El
+        # registro es abierto, y sin límite el relé podría usarse como proxy UDP.
+        ice_servers_user:
+            policy: sliding_window
+            limit: 120
+            interval: '1 hour'
+            cache_pool: app.rate_limiter_cache
 
     cache:
         pools:

@@ -54,18 +54,22 @@ El servicio SHALL limitarse a los datos de la negociación (descripción de la s
 - **THEN** solo hay datos de negociación de solicitudes aún no caducadas
 
 ### Requirement: Credenciales del relé
-El servicio SHALL dar a cualquier cuenta autenticada la lista de servidores STUN y TURN, con credenciales TURN temporales, firmadas con un secreto compartido con el relé, que caducan a las 24 horas. Sin TURN configurado, MUST devolver solo los STUN.
+El servicio SHALL dar a cualquier cuenta autenticada la lista de servidores STUN y TURN, con credenciales TURN temporales, firmadas con un secreto compartido con el relé, que caducan como mucho a las 24 horas. La caducidad MUST redondearse a la hora, para que la misma cuenta reciba el mismo usuario durante toda la hora y la cuota por usuario del relé limite a cada cuenta. Sin TURN configurado, MUST devolver solo los STUN.
 
 #### Scenario: Credenciales caducadas
 - **WHEN** alguien usa contra el relé unas credenciales emitidas hace más de 24 horas
 - **THEN** el relé las rechaza
 
 ### Requirement: Límites de uso
-El servicio SHALL limitar cada cuenta a 20 solicitudes de sesión por minuto y cada equipo a una consulta por segundo. Al superar un límite, MUST responder `too_many_requests` con el tiempo de espera, con límites comunes a todas las réplicas.
+El servicio SHALL limitar cada cuenta a 20 solicitudes de sesión por minuto y a 120 peticiones de credenciales del relé por hora, y cada equipo a una consulta por segundo. Al superar un límite, MUST responder `too_many_requests` con el tiempo de espera, con límites comunes a todas las réplicas.
 
 #### Scenario: Demasiadas solicitudes
 - **WHEN** una cuenta crea 21 solicitudes de sesión en un minuto
 - **THEN** la vigésimo primera se rechaza con `too_many_requests` y el tiempo que hay que esperar
+
+#### Scenario: Demasiadas credenciales del relé
+- **WHEN** una cuenta pide credenciales del relé por 121.ª vez en una hora
+- **THEN** se rechaza con `too_many_requests` y el tiempo de espera, y las demás cuentas siguen recibiéndolas
 
 ### Requirement: Retirada de equipos
 Un equipo SHALL poder retirarse de la cuenta desde la app (al cerrar la sesión o al iniciar sesión con otra cuenta). Borrar la cuenta MUST borrar sus equipos y solicitudes, y los equipos sin contacto en 90 días MUST desaparecer.
