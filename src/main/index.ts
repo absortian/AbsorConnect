@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, dialog, clipboard } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, IpcMainInvokeEvent, dialog, clipboard } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -49,11 +49,11 @@ import {
 } from './updater'
 import {
   acquireSingleInstance,
-  attachCloseToTray,
   beginQuitting,
   getBackgroundState,
   initTray,
   setKeepInBackground,
+  registerMainWindow,
   setOpenAtLogin,
   setupBackground,
   showMainWindow,
@@ -93,7 +93,7 @@ function createWindow(): BrowserWindow {
   })
 
   // Segundo plano: cerrar la ventana la oculta cuando ese ajuste está activado (background-mode)
-  attachCloseToTray(mainWindow)
+  registerMainWindow(mainWindow)
   mainWindow.on('closed', () => {
     mainWindowClosed = true
   })
@@ -112,6 +112,14 @@ function createWindow(): BrowserWindow {
   }
 
   return mainWindow
+}
+
+/**
+ * La ventana que pide un diálogo. No `getAllWindows()[0]`: puede ser la ventana oculta de una
+ * sesión remota, y en macOS el diálogo quedaría pegado a ella, sin verse.
+ */
+function senderWindow(event: IpcMainInvokeEvent): BrowserWindow {
+  return BrowserWindow.fromWebContents(event.sender) as BrowserWindow
 }
 
 // Instancia única: una segunda ejecución termina y hace que la primera muestre su ventana
@@ -293,9 +301,8 @@ app.whenReady().then(async () => {
       await sftpDownload(conn, remotePath, localDestPath, onProgress)
     }
   )
-  ipcMain.handle('show-open-file-dialog', async (_, defaultPath?: string) => {
-    const mainWindow = BrowserWindow.getAllWindows()[0]
-    const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
+  ipcMain.handle('show-open-file-dialog', async (event, defaultPath?: string) => {
+    const { canceled, filePaths } = await dialog.showOpenDialog(senderWindow(event), {
       defaultPath: defaultPath || join(os.homedir(), '.ssh'),
       properties: ['openFile', 'showHiddenFiles']
     })
@@ -329,9 +336,8 @@ app.whenReady().then(async () => {
     async (_, dirPath: string, name: string) => await createLocalDir(dirPath, name)
   )
   ipcMain.handle('local-delete', async (_, itemPath: string) => await deleteLocalItem(itemPath))
-  ipcMain.handle('show-save-dialog', async (_, defaultPath: string) => {
-    const mainWindow = BrowserWindow.getAllWindows()[0]
-    const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, { defaultPath })
+  ipcMain.handle('show-save-dialog', async (event, defaultPath: string) => {
+    const { canceled, filePath } = await dialog.showSaveDialog(senderWindow(event), { defaultPath })
     if (canceled) return null
     return filePath
   })
@@ -357,8 +363,8 @@ app.whenReady().then(async () => {
   ipcMain.handle('install-update', () => quitAndInstall())
 
   // Export connections: warn user, open save dialog and write decrypted JSON
-  ipcMain.handle('export-connections', async () => {
-    const mainWindow = BrowserWindow.getAllWindows()[0]
+  ipcMain.handle('export-connections', async (event) => {
+    const mainWindow = senderWindow(event)
     const { response } = await dialog.showMessageBox(mainWindow, {
       type: 'warning',
       buttons: ['Export', 'Cancel'],
@@ -381,9 +387,8 @@ app.whenReady().then(async () => {
   })
 
   // Import connections: open file dialog, read and validate JSON
-  ipcMain.handle('import-connections', async () => {
-    const mainWindow = BrowserWindow.getAllWindows()[0]
-    const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
+  ipcMain.handle('import-connections', async (event) => {
+    const { canceled, filePaths } = await dialog.showOpenDialog(senderWindow(event), {
       filters: [{ name: 'JSON', extensions: ['json'] }],
       properties: ['openFile']
     })
@@ -402,12 +407,9 @@ app.whenReady().then(async () => {
   if (startedHidden()) hideDockForHiddenStart()
   else createWindow()
 
-  app.on('activate', function () {
-    // On macOS it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
-    else showMainWindow()
-  })
+  // macOS: al pulsar el icono del Dock se muestra la ventana principal, o se crea si se cerró (las
+  // ventanas ocultas de una sesión remota no cuentan)
+  app.on('activate', showMainWindow)
 })
 
 app.on('before-quit', () => {

@@ -20,6 +20,7 @@ interface BackgroundDeps {
 
 let tray: Tray | null = null
 let deps: BackgroundDeps | null = null
+let mainWindow: BrowserWindow | null = null
 let remoteStatus: RemoteStatus = 'off'
 let activeController: string | null = null
 // Salida real (menú "Salir" o app.quit()): deja de ocultar la ventana en 'close'.
@@ -67,10 +68,18 @@ async function labels(): Promise<TrayLabels> {
   return LABELS[((await getLanguage()) as 'en' | 'es') ?? 'en'] ?? LABELS.en
 }
 
+/**
+ * La ventana principal, si está abierta (aunque esté oculta en la bandeja). No sirve
+ * `getAllWindows()[0]`: también están las ventanas ocultas `host`, el aviso de la sesión y los
+ * visores, y Electron no garantiza el orden.
+ */
+export function getMainWindow(): BrowserWindow | null {
+  return mainWindow && !mainWindow.isDestroyed() ? mainWindow : null
+}
+
 /** Muestra y enfoca la ventana; la crea si se había cerrado a la bandeja. */
 export function showMainWindow(): void {
-  const existing = BrowserWindow.getAllWindows()[0]
-  const window = existing ?? deps?.createWindow()
+  const window = getMainWindow() ?? deps?.createWindow()
   if (!window) return
   if (window.isMinimized()) window.restore()
   window.show()
@@ -110,10 +119,15 @@ async function refreshKeepInBackgroundCache(): Promise<void> {
 }
 
 /**
- * Con "Mantener abierta en segundo plano" activado, cerrar la ventana la oculta en lugar de
- * terminar la app (el icono de la bandeja sigue visible). Sin el ajuste, se comporta como antes.
+ * La ventana recién creada es la principal. Con "Mantener abierta en segundo plano" activado,
+ * cerrarla la oculta en lugar de terminar la app (el icono de la bandeja sigue visible). Sin el
+ * ajuste, se comporta como antes.
  */
-export function attachCloseToTray(window: BrowserWindow): void {
+export function registerMainWindow(window: BrowserWindow): void {
+  mainWindow = window
+  window.on('closed', () => {
+    if (mainWindow === window) mainWindow = null
+  })
   window.on('close', (event) => {
     if (quitting || !keepInBackgroundCache) return
     event.preventDefault()

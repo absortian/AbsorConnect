@@ -1,7 +1,7 @@
 import { autoUpdater, UpdateInfo } from 'electron-updater'
-import { BrowserWindow, Notification } from 'electron'
+import { Notification } from 'electron'
 import { RELEASES_URL } from '../shared/constants'
-import { isRemoteControlActive, setTrayUpdate, showMainWindow } from './background'
+import { getMainWindow, isRemoteControlActive, setTrayUpdate, showMainWindow } from './background'
 
 // Cada cuánto busca actualizaciones la app mientras está en marcha (add-remote-desktop D15).
 const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000
@@ -104,9 +104,7 @@ export function quitAndInstall(): boolean {
   return true
 }
 
+/** Solo a la ventana principal: las ventanas `host` y los visores no saben nada de esto. */
 function sendToRenderer(channel: string, data: unknown): void {
-  const win = BrowserWindow.getAllWindows()[0]
-  if (win) {
-    win.webContents.send(channel, data)
-  }
+  getMainWindow()?.webContents.send(channel, data)
 }
