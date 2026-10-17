@@ -13,6 +13,7 @@ Pruebas de los puntos de riesgo del grupo 1 de `openspec/changes/add-remote-desk
 | `controller-check/` | 4.8 | Un controlador de prueba contra la app de verdad como PC controlado, en el mismo Linux X11 y con el backend de desarrollo: autenticación, imagen, entrada, aviso, ocupado, Desconectar, confirmación local y bloqueo. |
 | `viewer-check/` | 4.9, 6.4 y 6.5 | Dos instancias de la app (PC oculto y controlador manejado por DevTools): Equipos, conectar, errores, imagen, estado, ratón, reconexión y que el token no llegue a ningún renderer. |
 | `dev-check/` | 5.1 y 6.1 | Las tres páginas y sus preloads: la compilación, el modo desarrollo (`npm run dev`) y que cada ventana solo tenga su propio puente. |
+| `fullscreen-check/` | 6.5 | En un solo Linux: Alt+Tab y la tecla Windows en pantalla completa con un gestor de ventanas, y el controlador en Wayland (compositor anidado). |
 | `exit-check/` | 4.10 y 4.2 | Salir de la cuenta con una sesión abierta (en el PC, en el controlador y por caducidad con el PC en la bandeja) y, con un AppImage de prueba, una actualización descargada durante una sesión. |
 
 Al abrirlo sin argumentos se ejecuta todo, y el resultado se guarda en `Descargas/absor-remote-prototype-<sistema>-<arquitectura>-<prueba>.json` (un fichero por prueba) y se muestra en una ventana. Durante la prueba aparece una ventanita en la esquina inferior derecha y suena un pitido suave. El ratón salta unos píxeles al principio y vuelve a su sitio. Nada sale del equipo.
@@ -157,6 +158,23 @@ bin/dev npx electron-vite build
 
 Dura menos de un minuto. Usa la misma cuenta de prueba que `controller-check`.
 
+## Alt+Tab en pantalla completa y controlador en Wayland (`fullscreen-check/`, tarea 6.5)
+
+En un solo Linux con el backend de desarrollo. El PC va en otro servidor X (Xephyr `:77`): si estuviera en el mismo, las teclas y el ratón que inyecta volverían al visor en bucle. Lo que envía el visor se lee del canal `input`.
+
+1. **Alt+Tab y la tecla Windows:** el controlador va en el X del escritorio con un gestor de ventanas; si no hay ninguno, se arranca metacity mientras dura la prueba. Las teclas se pulsan de verdad con XTest.
+   - Primero, con la ventana normal, como control: el gestor de ventanas se queda Alt+Tab.
+   - En pantalla completa (`keyboard.lock()`), Alt+Tab y la tecla Windows van al PC y el visor sigue delante.
+   - Al salir, Alt+Tab vuelve a ser del gestor.
+2. **Controlador en Wayland:** dentro de `muffin --wayland --nested` (con `--ozone-platform=wayland`). Comprueba la imagen, que el ratón cae en el punto equivalente del PC, el teclado por posición y la pantalla completa. Al terminar borra el socket que deja muffin.
+
+```bash
+bin/dev sh -c 'cd prototypes/remote-desktop/fullscreen-check && npx esbuild main.ts --bundle --platform=node --format=cjs --target=node22 --external:electron --external:koffi --outfile=out/main.cjs'
+ELECTRON_RUN_AS_NODE=1 node_modules/electron/dist/electron prototypes/remote-desktop/fullscreen-check/out/main.cjs --api=http://127.0.0.1:8020 --work=/tmp/absor-fullscreen-check --out=/tmp/fullscreen-check.json
+```
+
+Dura unos 2 minutos. Usa la misma cuenta de prueba que `controller-check`.
+
 ## Salir de la cuenta y actualizar durante una sesión (`exit-check/`, tareas 4.10 y 4.2)
 
 Dos instancias de la app compilada en el mismo Linux X11, con el backend de desarrollo, las dos manejadas por DevTools: A es el PC controlado y B el controlador. Una tercera sesión de la cuenta mira la lista de equipos. Las notificaciones se leen con `dbus-monitor` y la bandeja por D-Bus.
@@ -265,6 +283,11 @@ Para un PC arrancado a mano (por ejemplo, la máquina virtual de Windows):
 - `lan-check/prepare-pc.ts` prepara su carpeta de datos: sesión, contraseña de pruebas y control remoto activado.
 - La app se arranca con `--user-data-dir=<esa carpeta>` y `ABSOR_CONNECT_API_URL` apuntando al backend.
 - `lan-check/hold-session.ts --pc="<nombre>" --seconds=60` abre una sesión desde este equipo y la mantiene, para ver en el PC la bandeja, el aviso o las notificaciones. Así se comprobó la bandeja de Windows (4.1).
+
+Lo que quedaba de la 6.5 con dos equipos:
+
+- **`lan-check/displays.ts` (selector de pantallas):** controla un PC de prueba con varias pantallas, por ejemplo un Mac con un monitor externo o Sidecar con `lan-test.sh <api> pc`. Comprueba que la sesión empieza en la principal, que el selector tiene todas, y que con cada pantalla la imagen tiene sus proporciones y el ratón cae en el centro y en una esquina. Si el PC tiene una sola pantalla, lo anota como sin probar. Se ejecuta con Electron como Node: `ELECTRON_RUN_AS_NODE=1 node_modules/electron/dist/electron prototypes/remote-desktop/lan-check/out/displays.cjs --api=… --work=… --out=… [--wait=30]`.
+- **`lan-check/fullscreen-mac.sh <api>` (salir de la pantalla completa en macOS, a mano):** el Mac controla el PC de prueba del otro equipo (allí, `pc.ts`), y unos diálogos piden entrar y salir con el botón verde, con el botón de la barra del visor y con Esc. Después de cada salida comprueba que el visor vuelve a su tamaño, con imagen, y pregunta si se ve bien. Deja `~/Downloads/absor-fullscreen-check-macos.json`.
 
 Para el sonido, el PC suena un pitido de 440 Hz durante un segundo y medio, y el controlador mide el nivel de lo que recibe con el visor en silencio. Si el PC es un Linux, la entrada "Monitor of …" de su salida tiene que estar al 100 %. Si está baja, el sonido llega en silencio (ver D8).
 
