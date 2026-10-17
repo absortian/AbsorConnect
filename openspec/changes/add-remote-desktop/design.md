@@ -332,6 +332,13 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
 ### D11. Ventana del visor (escritorio)
 - **Apertura:** nueva entrada `viewer.html` en `electron.vite.config.ts` (varias entradas de renderer). El proceso principal la abre con el `deviceId`.
 - **Seguridad de la ventana:** `contextIsolation`, `sandbox` y preload con solo los canales `remote-*`. La negociación pasa por IPC al proceso principal, que comprueba que quien llama es una ventana de visor.
+- **Páginas y preloads (tareas 5.1 y 6.1):**
+  - Tres entradas en `electron.vite.config.ts` (`index`, `host` y `viewer`), cada una con su página y su preload.
+  - Los tipos de los puentes de `host` y del visor van en `host.d.ts` y `viewer.d.ts`, junto a `index.d.ts`, en lugar de dentro de él: cada página solo ve el suyo.
+  - **Verificado** con `prototypes/remote-desktop/dev-check` (10/10) en Linux X11: la app en modo desarrollo (`electron-vite dev`, lo que lanza `npm run dev`) hace de PC, y la compilada de controlador.
+    - `npm run build` deja las tres páginas y los tres preloads.
+    - En desarrollo, la ventana principal, el visor y la ventana `host` de una sesión de verdad salen del servidor de Vite.
+    - Cada ventana tiene solo su puente: la principal, `window.api`; el visor, `absorViewer` (12 funciones); la ventana `host`, `absorHost` (24). El visor y la ventana `host` no tienen `require` ni `process`.
 - **Atajos y teclado:**
   - Las ventanas de visor quedan fuera de `optimizer.watchWindowShortcuts`, para que Ctrl+R o F12 lleguen al PC remoto.
   - En pantalla completa se usa `navigator.keyboard.lock()`. En Windows y Linux captura Alt+Tab y la tecla Windows; en macOS, Cmd+Tab no se puede capturar y se ofrece en el menú de combinaciones.

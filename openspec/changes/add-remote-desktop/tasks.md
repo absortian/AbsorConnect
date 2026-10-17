@@ -46,7 +46,7 @@
 
 ## 5. Preload (`src/preload`)
 
-- [ ] 5.1 Tres preloads con sus tipos en `index.d.ts`:
+- [x] 5.1 Tres preloads con sus tipos en `index.d.ts`:
   - **ventana principal:** segundo plano, control remoto, registro, equipos y abrir el visor;
   - **ventana `host`:** entrada, portapapeles, ficheros y eventos de sesión;
   - **visor:** negociación y guardar ficheros.
@@ -55,7 +55,7 @@
 
 ## 6. Renderer (`src/renderer`)
 
-- [ ] 6.1 Varias entradas en `electron.vite.config.ts` (`index`, `host` y `viewer`). Verificar: `npm run build` genera las tres y `npm run dev` las sirve.
+- [x] 6.1 Varias entradas en `electron.vite.config.ts` (`index`, `host` y `viewer`). Verificar: `npm run build` genera las tres y `npm run dev` las sirve.
 - [ ] 6.2 Ajustes, con textos `es` y `en`:
   - sección "Segundo plano";
   - sección "Control remoto de este PC": activar, nombre, contraseña, funciones, confirmación local, mantener despierto, permisos por sistema, limitaciones explicadas y registro.
