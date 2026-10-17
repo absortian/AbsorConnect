@@ -469,6 +469,29 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
 - **Ajustes locales:** `keepInBackground` y `openAtLogin` van en `settings.json`, junto al tema y el idioma.
 - **Fichero `userData/remote-access.json`:** `accountEmail`, `deviceName`, `enabled`, `password` (`salt`, `iterations`, `K` cifrada), `features`, `confirmLocal`, `preventSleep`, `failures`, `lockedUntil` y `log` (50 eventos).
 - **Cuenta:** al iniciar sesión, si `accountEmail` no coincide con la cuenta, se borran la contraseña y el registro y se desactiva el control remoto (spec "Control remoto ligado a la cuenta"). Al cerrar sesión se hace `DELETE` del equipo y se para el servicio, pero se conserva la configuración local.
+- **Salir de la cuenta (tarea 4.10):**
+  - **Los tres casos pasan por el mismo sitio:** cerrar sesión, la sesión caducada o revocada (un 401) y la cuenta borrada. `account.ts` avisa con `setAccountExitHandler` antes de olvidar el token. `index.ts` cierra los visores (`closeAllViewers`; cada uno se despide del PC al cerrarse) y llama a `signOutRemoteHost`.
+  - **`HostService.suspend()`:**
+    - corta la sesión en curso con `signed_out`, y el visor dice "El PC ha cerrado la sesión de la cuenta.";
+    - espera a la vuelta que esté en marcha y cierra la conexión que se haya abierto en ella;
+    - deja de registrarse y de consultar hasta `resume()`, que se llama al iniciar sesión.
+  - **Dar de baja el equipo al cerrar sesión:** el `DELETE` usa el token que había y va antes de revocarlo. Las dos cosas siguen en segundo plano, sin hacer esperar a la interfaz. Esperar a la vuelta en marcha evita que una vuelta atrasada vuelva a registrar el equipo.
+  - **Sesión caducada:** ya no hay token válido para el `DELETE`, así que el PC deja de estar en línea a los 30 s sin consultas. Si la ventana principal está cerrada u oculta y el control remoto estaba activado, sale la notificación "La sesión de la cuenta ha caducado…", que abre la ventana.
+  - **Cuenta borrada:** el servicio ya borró sus equipos (tarea 2.5).
+  - **Tests:** dos unitarios de `suspend()`/`resume()` y uno contra el backend de desarrollo: tras el `DELETE`, ninguna vuelta vuelve a registrar el equipo, y `resume()` lo vuelve a publicar.
+  - **Verificado** con `prototypes/remote-desktop/exit-check`, fases 1 a 3: dos instancias de la app en un Linux X11 con el backend de desarrollo, manejadas por DevTools. Se usó un escritorio mínimo (`desktop-stub.py`) porque la shell de Cinnamon estaba caída y no había ni bandeja ni servicio de notificaciones.
+    - **A cierra sesión en Ajustes mientras B lo controla:**
+      - el visor de B dice que el PC ha cerrado la sesión de la cuenta;
+      - A vuelve a la pantalla de acceso, sin la ventana de la sesión, y su bandeja pasa de "Controlado ahora desde…" a "Control remoto: desactivado";
+      - A desaparece de la cuenta y 8 s después sigue sin aparecer;
+      - al volver a entrar en A, vuelve a estar disponible.
+    - **B cierra sesión con el visor abierto:** el visor se cierra, y A vuelve a estar disponible en la cuenta y en su bandeja.
+    - **Se revoca el token de A** con A en la bandeja, sin ventana, y B conectado:
+      - el visor de B dice que el PC ha cerrado la sesión de la cuenta;
+      - A muestra la notificación;
+      - en la cuenta, A pasa a "sin conexión" a los pocos segundos;
+      - la app sigue en marcha, con "Control remoto: desactivado".
+    - El código no depende del sistema: no se ha repetido en Windows ni en macOS, y entra en la matriz de la 9.3.
 - **Verificado (tareas 4.1 y 4.2):**
   - **Linux X11 (Cinnamon):** la ventana aparece, el icono de la bandeja se registra en el `StatusNotifierWatcher` (y desaparece al salir), cerrar la ventana con "Mantener abierta en segundo plano" la oculta sin terminar la app, la segunda instancia reabre la ventana, y el `.desktop` de autostart se escribe (con `--hidden`) y se borra según el ajuste. El arranque `--hidden` no abre ventana.
   - **Windows 11:** la ventana aparece, cerrar-a-bandeja la oculta y deja los procesos vivos, y la segunda instancia reabre la misma instancia (mismo PID), con la interfaz en el idioma guardado.
@@ -502,7 +525,7 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
         - Windows 11 esconde los iconos nuevos en el desbordamiento: para la prueba se promovió con `HKCU\Control Panel\NotifyIconSettings\…\IsPromoted`.
         - El aviso de la sesión no sale en la captura (`setContentProtection`), como se buscaba.
         - Al no activar el control remoto desde Ajustes, el aviso del cortafuegos salió con la primera sesión (D7). La sesión funcionó igual ("Directa · 1 ms").
-    - que la app no se reinicie para actualizar durante una sesión.
+    - que la app no se reinicie para actualizar durante una sesión: visto en Linux con `exit-check` (tarea 4.2, D15).
   - **Nota:** `settings.json` con BOM (p. ej. escrito por PowerShell `Set-Content -Encoding utf8`) hace que `JSON.parse` falle y se usen los valores por defecto; es seguro (los defaults desactivan el segundo plano), pero conviene recordarlo.
 - **Ajustes (tarea 6.2):** dos secciones nuevas, "Segundo plano" y "Control remoto de este PC" (`RemoteSettings.tsx`).
   - **Proceso principal:** `remoteSettings.ts` atiende `remote-settings:get`, `set-password`, `set-enabled`, `update` y `open-permission`. Antes de cada una ata la configuración a la cuenta con la sesión iniciada. La contraseña solo cruza una vez, al definirla, y el proceso principal deriva K sin guardarla.
@@ -535,6 +558,19 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
 - **Búsqueda:** un temporizador de 6 h llama a `checkForUpdates()` y otro aviso al arrancar. Si hay versión nueva, notificación del sistema y entrada en el menú de la bandeja.
 - **Instalación:** `autoInstallOnAppQuit` sigue activado. `quitAndInstall()` no se ejecuta mientras haya una sesión remota: el botón explica que se instalará al terminarla.
 - **En macOS** no cambia nada respecto a hoy: sin certificado, Squirrel no instala solo y se ofrece la descarga manual.
+- **Hecho (tarea 4.2):**
+  - Búsqueda al arrancar y cada 6 h (`startBackgroundUpdateChecks`). La notificación sale una vez por versión, y la bandeja ofrece "Descargar la versión X" y, ya descargada, "Instalar la versión X al salir".
+  - `quitAndInstall()` no hace nada mientras otro equipo controla este PC. En ese caso Ajustes explica que no se reinicia y que la versión nueva se instalará al salir, o al volver a pulsar cuando termine la sesión. Con la sesión terminada, electron-updater instala y vuelve a abrir la app (`autoRunAppAfterInstall`).
+  - **Corregido:** el estado de la actualización se enviaba a `BrowserWindow.getAllWindows()[0]`. Con una sesión remota, esa puede ser la ventana oculta `host`, el aviso o un visor, porque Electron no garantiza el orden.
+    - Ahora la ventana principal se guarda al crearla (`registerMainWindow` y `getMainWindow` en `background.ts`). La usan también "Abrir" en la bandeja, las notificaciones y el icono del Dock (`activate`), que con la ventana cerrada podían mostrar la ventana oculta de una sesión.
+    - Los diálogos de abrir y guardar, importar y exportar se abren sobre la ventana que los pide (en macOS, pegados a una ventana oculta no se verían).
+  - **Cómo se prueba:** en desarrollo, Linux no busca actualizaciones (electron-updater exige un AppImage), así que en vez de `dev-app-update.yml` se usa un paquete de prueba. `exit-check` (fase 4) empaqueta la app como AbsorCheck 0.0.1 en AppImage, con el actualizador apuntando a un servidor local que ofrece como 9.9.9 el mismo AppImage.
+  - **Verificado en Linux X11** (fase 4 de `exit-check`, 27/27 con las fases 1 a 3):
+    - al arrancar sale la notificación "Hay una versión nueva disponible (9.9.9)" y la bandeja ofrece descargarla;
+    - con B controlando el PC, la versión nueva se descarga desde Ajustes, y "Reiniciar y actualizar" no reinicia y lo explica;
+    - 6 s después la app sigue en marcha, el AppImage no se ha tocado y al visor le siguen llegando imágenes (de 35 a 213 fotogramas, "Directa · 1 ms · 30 fps");
+    - sin sesión, el mismo botón cierra la app, reemplaza el AppImage y la vuelve a abrir.
+  - **El primer escenario** se había visto ya en macOS (notificación y bandeja) y en Windows (bandeja); en Windows falta la notificación (D14). **El segundo** no depende del sistema; en macOS, además, Squirrel no puede instalar sin certificado.
 
 ## Risks / Trade-offs
 

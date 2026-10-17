@@ -24,7 +24,7 @@
 ## 4. Proceso principal (`src/main`)
 
 - [x] 4.1 Instancia única, bandeja con menú y estado, "Mantener abierta en segundo plano" y "Abrir al iniciar sesión" en cada sistema, con arranque oculto `--hidden` (D14). Verificar a mano en Windows, macOS y Linux los escenarios de `background-mode`, incluido Linux sin bandeja.
-- [ ] 4.2 Actualizaciones en segundo plano: búsqueda cada 6 h, notificación y entrada en la bandeja, sin `quitAndInstall` durante una sesión remota (D15). Verificar con `dev-app-update.yml` apuntando a una versión mayor los dos escenarios de `app-updates`.
+- [x] 4.2 Actualizaciones en segundo plano: búsqueda cada 6 h, notificación y entrada en la bandeja, sin `quitAndInstall` durante una sesión remota (D15). Verificar con `dev-app-update.yml` apuntando a una versión mayor los dos escenarios de `app-updates`.
 - [x] 4.3 Añadir Vitest (`npm test`) para los módulos puros, y el almacén `remote-access.json` y `device.json`: identificador y clave del equipo, contraseña derivada con `K` cifrada, fallos y bloqueo persistentes, registro de 50 eventos y vínculo con la cuenta (D6, D14). Verificar con tests: la contraseña no aparece en el fichero, 5 fallos bloquean 15 min aunque se recargue el almacén, y otra cuenta lo borra.
 - [x] 4.4 Prueba de autenticación compartida (`src/shared/remote/auth.ts`) con vectores en `src/shared/remote/auth-vectors.json` (D6). Verificar con tests: los vectores pasan, y cambiar una huella o el nonce cambia la prueba.
 - [x] 4.5 Tabla `code` → scancode, `kVK` y evdev (`src/shared/remote/keymap.ts`) a partir de `dom_code_data.inc` de Chromium, con su atribución (D10). Verificar con tests: letras, `Semicolon` (la Ñ en español), flechas extendidas, teclado numérico y modificadores en los tres sistemas.
@@ -42,7 +42,7 @@
 
   Verificar con dos equipos los escenarios de `remote-access-host` de activación, una sesión a la vez, aviso y corte, confirmación local y mantener despierto.
 - [x] 4.9 IPC del controlador: canales `remote-*` (equipos, servidores ICE, crear y consultar solicitudes) que solo aceptan llamadas de ventanas de visor, y apertura del visor fuera de `watchWindowShortcuts` (D11). Verificar en desarrollo, registrando los mensajes IPC, que el token no llega a ningún renderer.
-- [ ] 4.10 Al cerrar la sesión de la cuenta o perderla: cortar las sesiones remotas (en los dos papeles), hacer `DELETE` del equipo y parar el servicio, con notificación si ocurre en segundo plano. Verificar los dos escenarios nuevos de `app-session`.
+- [x] 4.10 Al cerrar la sesión de la cuenta o perderla: cortar las sesiones remotas (en los dos papeles), hacer `DELETE` del equipo y parar el servicio, con notificación si ocurre en segundo plano. Verificar los dos escenarios nuevos de `app-session`.
 
 ## 5. Preload (`src/preload`)
 
