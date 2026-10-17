@@ -571,7 +571,8 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
     - macOS 27 renombró el permiso de Accesibilidad de Privacidad y seguridad como "Control de dispositivos y acceso a datos" ("Device Control and Data Access"). El enlace `Privacy_Accessibility` abre ese panel.
     - La app seguía llamándolo "Accesibilidad" en Ajustes y en la notificación de permisos perdidos, un nombre que en macOS 27 no se encuentra.
     - Ahora, desde macOS 27, usa el nombre nuevo (`accessibilityRenamed()` en `support.ts`, con test). La prueba exige que el panel que se abre se llame como lo nombra Ajustes.
-  - **Falta:** volver a pasar `test-mac.sh` con el nombre nuevo. La pista del cortafuegos de Windows se mira con el instalador NSIS (9.3).
+  - **macOS 27.0.1 con el nombre nuevo: 6/6.** Ajustes muestra "Control de dispositivos y acceso a datos: Concedido", y su botón abre el panel con ese mismo nombre.
+  - **Queda para la 9.3:** la pista del cortafuegos de Windows, que solo tiene sentido con el instalador NSIS.
 
 ### D15. Actualizaciones en segundo plano
 - **Búsqueda:** un temporizador de 6 h llama a `checkForUpdates()` y otro aviso al arrancar. Si hay versión nueva, notificación del sistema y entrada en el menú de la bandeja.

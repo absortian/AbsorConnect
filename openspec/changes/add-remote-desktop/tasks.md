@@ -56,7 +56,7 @@
 ## 6. Renderer (`src/renderer`)
 
 - [x] 6.1 Varias entradas en `electron.vite.config.ts` (`index`, `host` y `viewer`). Verificar: `npm run build` genera las tres y `npm run dev` las sirve.
-- [ ] 6.2 Ajustes, con textos `es` y `en`:
+- [x] 6.2 Ajustes, con textos `es` y `en`:
   - sección "Segundo plano";
   - sección "Control remoto de este PC": activar, nombre, contraseña, funciones, confirmación local, mantener despierto, permisos por sistema, limitaciones explicadas y registro.
 
