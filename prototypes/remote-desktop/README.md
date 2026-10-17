@@ -14,6 +14,7 @@ Pruebas de los puntos de riesgo del grupo 1 de `openspec/changes/add-remote-desk
 | `viewer-check/` | 4.9, 6.4 y 6.5 | Dos instancias de la app (PC oculto y controlador manejado por DevTools): Equipos, conectar, errores, imagen, estado, ratón, reconexión y que el token no llegue a ningún renderer. |
 | `dev-check/` | 5.1 y 6.1 | Las tres páginas y sus preloads: la compilación, el modo desarrollo (`npm run dev`) y que cada ventana solo tenga su propio puente. |
 | `fullscreen-check/` | 6.5 | En un solo Linux: Alt+Tab y la tecla Windows en pantalla completa con un gestor de ventanas, y el controlador en Wayland (compositor anidado). |
+| `relay-check/` | 3.1 y 3.2 | Una sesión solo por relé contra el TURN de verdad: la API da el TURN, la sesión conecta y el par elegido pasa por el relé esperado. |
 | `exit-check/` | 4.10 y 4.2 | Salir de la cuenta con una sesión abierta (en el PC, en el controlador y por caducidad con el PC en la bandeja) y, con un AppImage de prueba, una actualización descargada durante una sesión. |
 
 Al abrirlo sin argumentos se ejecuta todo, y el resultado se guarda en `Descargas/absor-remote-prototype-<sistema>-<arquitectura>-<prueba>.json` (un fichero por prueba) y se muestra en una ventana. Durante la prueba aparece una ventanita en la esquina inferior derecha y suena un pitido suave. El ratón salta unos píxeles al principio y vuelve a su sitio. Nada sale del equipo.
@@ -174,6 +175,21 @@ ELECTRON_RUN_AS_NODE=1 node_modules/electron/dist/electron prototypes/remote-des
 ```
 
 Dura unos 2 minutos. Usa la misma cuenta de prueba que `controller-check`.
+
+## Sesión solo por relé (`relay-check/`, tareas 3.1 y 3.2)
+
+Un PC oculto y un controlador obligado a usar el relé (`ABSOR_CONNECT_FORCE_RELAY=1`), en el mismo Linux. Comprueba:
+
+- que la API da el TURN con credenciales de unas 24 h (y, con `--turn-host`, con ese nombre);
+- que la sesión conecta y el visor dice "Por relé";
+- que el par elegido es un candidato `relay` con la IP de `--relay-ip`.
+
+Contra el backend de desarrollo, el relé que da la API depende de `TURN_URLS` y `TURN_SECRET` en `backend/.env.local`. Tras cambiarlos hay que reiniciar `php`. Contra producción usa la cuenta de prueba (la crea si no existe), y `--delete-account=1` la borra al terminar.
+
+```bash
+bin/dev sh -c 'cd prototypes/remote-desktop/relay-check && npx esbuild main.ts --bundle --platform=node --format=cjs --target=node22 --external:electron --outfile=out/main.cjs'
+ELECTRON_RUN_AS_NODE=1 node_modules/electron/dist/electron prototypes/remote-desktop/relay-check/out/main.cjs --api=https://absorconnect.absor.top --work=/tmp/absor-relay-check --out=/tmp/relay-check.json --relay-ip=46.38.240.212 --turn-host=turn.absor.top --delete-account=1
+```
 
 ## Salir de la cuenta y actualizar durante una sesión (`exit-check/`, tareas 4.10 y 4.2)
 

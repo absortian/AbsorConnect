@@ -77,6 +77,25 @@ token), conexiones (secretos cifrados) y los contadores de los límites de
 intentos (`cache_items`, pool `app.rate_limiter_cache`). A diferencia de
 Politinder, los límites son uno para todas las réplicas, no uno por pod.
 
+## Relé TURN (coturn en `head0`)
+El control remoto usa un relé TURN propio para las redes en las que WebRTC no conecta directo
+(add-remote-desktop D13). No está en el cluster: es coturn 4.6.3 en Docker en `head0`
+(46.38.240.212), con red del host, en `/root/infra-coturn/`:
+
+| Fichero | Qué es |
+|---|---|
+| `docker-compose.yaml` | El contenedor `coturn` (`restart: always`, `network_mode: host`). Se levanta con `docker-compose up -d` desde esa carpeta. |
+| `turnserver.conf` | Configuración, con el `static-auth-secret` (= `TURN_SECRET`). Es de `nobody` con permisos 600, porque la imagen corre como `nobody`. |
+| `sync-certs.sh` | Copia el certificado comodín `*.absor.top` de HAProxy (`/root/infra-haproxy-and-certs/letsencrypt/live/absor.top`) a `certs/` y le manda `SIGUSR2` a coturn para que lo recargue sin cortar sesiones. Lo lanza `/etc/cron.d/infra-coturn` a las 03:00, después de la renovación de las 02:45. |
+| `backend-env.txt` | Las tres líneas de `backend/.env_prod`: `TURN_URLS`, `STUN_URLS` y `TURN_SECRET`. Solo root. |
+
+- **Puertos:** 3478 UDP/TCP, TLS en 5349 TCP y relé en 49160–49259 UDP (unas 25 sesiones a la vez). Escucha solo en 46.38.240.212 (IPv4). `head0` no tiene cortafuegos: no hay que abrir nada.
+- **DNS:** `turn.absor.top` → 46.38.240.212 sin el proxy de Cloudflare, que no reenvía TURN.
+- **Cuotas:** 12 asignaciones por usuario (el PC y su controlador son la misma cuenta) y 100 en total, 1 MB/s por sesión y 100 Mbit/s en total.
+- **`denied-peer-ip`:** las redes privadas y reservadas, y además las IP públicas de `head0`, `data0`, `worker0-2`, `cp00` y `cp01`. Si no, una credencial válida bastaría para usar el relé para llegar a servicios que confían en esas máquinas, como el Postgres de `data0`. **Si cambia la IP de alguna, hay que actualizar la lista** y reiniciar el contenedor.
+- **Cambiar el secreto:** a la vez en `turnserver.conf` (con `docker restart coturn`) y en el Secret (`make-env-secret.sh` y reiniciar los pods). Mientras no coincidan, el relé rechaza las credenciales que firma la API.
+- **Comprobar:** `prototypes/remote-desktop/relay-check` hace una sesión solo por relé y mira que el par elegido pase por 46.38.240.212. Para probar el relé a mano, `turnutils_uclient` de la imagen `coturn/coturn:4.6.3`, con credenciales firmadas con el secreto (`<caducidad>:<id>` y HMAC-SHA1 en base64).
+
 ## Despliegue sin cortar peticiones
 `maxSurge: 1` / `maxUnavailable: 0`, `preStop` con `sleep 10`, readiness contra
 `/api/health` (atraviesa PHP y Postgres) y liveness contra `/healthz` (ruta
