@@ -79,22 +79,28 @@ Politinder, los límites son uno para todas las réplicas, no uno por pod.
 
 ## Relé TURN (coturn en `head0`)
 El control remoto usa un relé TURN propio para las redes en las que WebRTC no conecta directo
-(add-remote-desktop D13). No está en el cluster: es coturn 4.6.3 en Docker en `head0`
-(46.38.240.212), con red del host, en `/root/infra-coturn/`:
+(add-remote-desktop D13). No está en el cluster: es coturn 4.18.0 en Docker en `head0`
+(46.38.240.212), con red del host, en `/root/infra-coturn/`. Al actualizarlo, revisar antes los
+avisos de seguridad de coturn: la 4.6.3 con la que se desplegó tenía vulnerabilidades conocidas
+(entre ellas, saltarse `denied-peer-ip` con direcciones `::ffff:…`, CVE-2026-27624).
 
 | Fichero | Qué es |
 |---|---|
-| `docker-compose.yaml` | El contenedor `coturn` (`restart: always`, `network_mode: host`). Se levanta con `docker-compose up -d` desde esa carpeta. |
+| `docker-compose.yaml` | El contenedor `coturn` (`restart: always`, `network_mode: host`, logs con tope de 10 MB × 3). Se levanta con `docker-compose up -d` desde esa carpeta. |
 | `turnserver.conf` | Configuración, con el `static-auth-secret` (= `TURN_SECRET`). Es de `nobody` con permisos 600, porque la imagen corre como `nobody`. |
 | `sync-certs.sh` | Copia el certificado comodín `*.absor.top` de HAProxy (`/root/infra-haproxy-and-certs/letsencrypt/live/absor.top`) a `certs/` y le manda `SIGUSR2` a coturn para que lo recargue sin cortar sesiones. Lo lanza `/etc/cron.d/infra-coturn` a las 03:00, después de la renovación de las 02:45. |
-| `backend-env.txt` | Las tres líneas de `backend/.env_prod`: `TURN_URLS`, `STUN_URLS` y `TURN_SECRET`. Solo root. |
 
 - **Puertos:** 3478 UDP/TCP, TLS en 5349 TCP y relé en 49160–49259 UDP (unas 25 sesiones a la vez). Escucha solo en 46.38.240.212 (IPv4). `head0` no tiene cortafuegos: no hay que abrir nada.
 - **DNS:** `turn.absor.top` → 46.38.240.212 sin el proxy de Cloudflare, que no reenvía TURN.
-- **Cuotas:** 12 asignaciones por usuario (el PC y su controlador son la misma cuenta) y 100 en total, 1 MB/s por sesión y 100 Mbit/s en total.
+- **Cuotas:** 12 asignaciones por usuario TURN y 100 en total, 1 MB/s por sesión y 100 Mbit/s en total. La API da a cada cuenta el mismo usuario durante toda la hora (caducidad redondeada a la hora) y como mucho 120 credenciales por hora, así que la cuota por usuario es, en la práctica, por cuenta.
+- **Endurecido:**
+  - sin relé TCP (`no-tcp-relay`: WebRTC pide siempre relé UDP, también sobre TCP o TLS);
+  - solo TLS 1.2 y 1.3;
+  - sin DTLS ni CLI (en la 4.18 van apagados salvo con `--dtls` o `--cli`);
+  - sin versión en las respuestas (`no-software-attribute`).
 - **`denied-peer-ip`:** las redes privadas y reservadas, y además las IP públicas de `head0`, `data0`, `worker0-2`, `cp00` y `cp01`. Si no, una credencial válida bastaría para usar el relé para llegar a servicios que confían en esas máquinas, como el Postgres de `data0`. **Si cambia la IP de alguna, hay que actualizar la lista** y reiniciar el contenedor.
-- **Cambiar el secreto:** a la vez en `turnserver.conf` (con `docker restart coturn`) y en el Secret (`make-env-secret.sh` y reiniciar los pods). Mientras no coincidan, el relé rechaza las credenciales que firma la API.
-- **En el Secret:** `TURN_URLS`, `STUN_URLS` y `TURN_SECRET` se añadieron con `kubectl patch` (17/10/2026), sin pasar por `backend/.env_prod`. Hay que añadirlas también allí (`ssh head0 cat /root/infra-coturn/backend-env.txt >> backend/.env_prod`, quitando antes las que hubiera): si no, el siguiente `make-env-secret.sh` las borraría y la API dejaría de dar el relé.
+- **Cambiar el secreto:** generarlo con `openssl rand -hex 32` y cambiarlo a la vez en `turnserver.conf` (con `docker restart coturn`) y en `backend/.env_prod` (`make-env-secret.sh` y reiniciar los pods). Mientras no coincidan, el relé rechaza las credenciales que firma la API. No hay otra copia: el `backend-env.txt` del despliegue se borró después de pasarlo a `.env_prod`.
+- **En el Secret:** `TURN_URLS`, `STUN_URLS` y `TURN_SECRET`, también en `backend/.env_prod`.
 - **Comprobar:** `prototypes/remote-desktop/relay-check` hace una sesión solo por relé y mira que el par elegido pase por 46.38.240.212. Para probar el relé a mano, `turnutils_uclient` de la imagen `coturn/coturn:4.6.3`, con credenciales firmadas con el secreto (`<caducidad>:<id>` y HMAC-SHA1 en base64).
 
 ## Despliegue sin cortar peticiones

@@ -470,11 +470,13 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
   - `denied-peer-ip` para 10/8, 172.16/12, 192.168/16, 127/8, 169.254/16 y las redes del cluster, para que el relé no sirva para entrar en la red interna;
   - cuotas `user-quota` y `total-quota`, y `max-bps` por sesión.
 - **DNS:** `turn.absor.top` sin el proxy de Cloudflare, que no reenvía TURN.
-- **Credenciales temporales:** `username = "<caducidad unix>:<userId>"` y `credential = base64(HMAC-SHA1(TURN_SECRET, username))`, la API REST estándar de coturn, con 24 h de validez.
+- **Credenciales temporales:** `username = "<caducidad unix>:<userId>"` y `credential = base64(HMAC-SHA1(TURN_SECRET, username))`, la API REST estándar de coturn, con 24 h de validez como mucho.
+  - **La caducidad se redondea hacia abajo a la hora** (validez de entre 23 y 24 h). Así la misma cuenta recibe el mismo usuario durante toda la hora. La cuota `user-quota` de coturn cuenta por nombre de usuario: con la caducidad al segundo, cada petición daba un nombre nuevo, y una cuenta podía acumular asignaciones sin límite. Como el registro es abierto, el relé podía usarse de proxy UDP hasta los topes totales.
+  - **Límite de 120 peticiones por hora y cuenta** (`ice_servers_user`). Cada sesión pide una o dos: el PC y el controlador son la misma cuenta. Si se supera, el controlador de escritorio sigue sin servidores ICE (solo candidatos locales) y el PC rechaza la sesión.
 - **STUN:** el propio coturn, más `stun.cloudflare.com:3478` de respaldo.
 - **Configuración:** `TURN_URLS` y `STUN_URLS` en el Secret `absorconnect-env`.
 - **Dónde vive:** la configuración del relé está fuera de este repo (infraestructura). `kube/AGENTS.md` documenta las variables y dónde se despliega.
-- **Hecho (tarea 3.1):** coturn 4.6.3 en `head0` (46.38.240.212), en `/root/infra-coturn/` (ver `kube/AGENTS.md`).
+- **Hecho (tarea 3.1):** coturn en `head0` (46.38.240.212), en `/root/infra-coturn/` (ver `kube/AGENTS.md`). Se desplegó con la 4.6.3, y en la revisión de seguridad se pasó a la 4.18.0 (ver más abajo).
   - **Cómo está:** relé en 49160–49259 (100 puertos en vez de 41, unas 25 sesiones). La imagen corre como `nobody`, así que `sync-certs.sh` le copia el certificado comodín y le manda `SIGUSR2` cada noche, después de la renovación de certbot.
   - **`denied-peer-ip`:** además de las redes privadas, las IP públicas de la infraestructura (`head0`, `data0`, `worker0-2`, `cp00` y `cp01`). Si no, el relé serviría para llegar a servicios que confían en esas máquinas.
   - **Verificado con `turnutils_uclient`**, desde fuera:
@@ -490,6 +492,22 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
     - la API da `stun:`/`turn:`/`turns:` de `turn.absor.top`, con credenciales de 24 h;
     - una sesión solo por relé conecta en 5,6 s ("Por relé · 108 ms · 29 fps"), y el par elegido es `relay` 46.38.240.212 por UDP;
     - Chromium eligió UDP. TLS en 5349 se comprobó con `turnutils_uclient` en la 3.1.
+- **Revisión de seguridad (17/10/2026), tras la 3.2:**
+  - **coturn 4.6.3 → 4.18.0.** La 4.6.3, copiada de la versión de desarrollo, tenía vulnerabilidades conocidas. Entre ellas, la CVE-2026-27624 (saltarse `denied-peer-ip` con direcciones `::ffff:a.b.c.d`) y números aleatorios débiles en los nonces y los puertos del relé. La 4.18 ya no admite `no-tlsv1`, `no-tlsv1_1`, `no-dtls` ni `no-cli`: solo hay TLS 1.2 y 1.3, y DTLS y la CLI van apagados salvo que se pidan.
+  - **También en `head0`:**
+    - `no-tcp-relay`;
+    - logs de Docker con tope (10 MB × 3);
+    - borrado `backend-env.txt`, la copia del secreto que ya estaba en `.env_prod`.
+  - **Nombre TURN estable por hora y 120 credenciales por hora y cuenta** (ver arriba): sin eso, la cuota por usuario del relé no limitaba a nadie.
+  - **Verificado con `turnutils_uclient` 4.18:**
+    - credenciales válidas por UDP y por TLS (`turn.absor.top`), y caducadas rechazadas;
+    - 403 hacia 192.168.x, 10.x y `data0`;
+    - los pares `::ffff:10.1.2.3`, `::ffff:89.58.60.150` y `::ffff:127.0.0.1` no se relayan, igual que el control `::ffff:8.8.8.8`: el relé es solo IPv4 y contesta 440 a cualquier par IPv6;
+    - relé TCP rechazado (442) y TLS 1.1 sin protocolo.
+  - **Con `relay-check` contra producción, después de desplegar la API (Jenkins #7):**
+    - credenciales de 23,5 h;
+    - el mismo usuario en dos peticiones seguidas;
+    - una sesión solo por relé conecta ("Por relé · 100 ms · 30 fps").
 - **En desarrollo:** el servicio `turn` de `compose.override.yaml` (perfil `turn`, apagado por defecto) arranca coturn 4.6.3 con la IP de la red local en `TURN_RELAY_IP`. `TURN_URLS` y `TURN_SECRET` van en `backend/.env.local`, que no está en git; tras cambiarlos hay que reiniciar `php`, porque el worker de FrankenPHP no relee el entorno. Así se probó el relé entre dos equipos (6.5).
 
 ### D14. Modo en segundo plano (escritorio)

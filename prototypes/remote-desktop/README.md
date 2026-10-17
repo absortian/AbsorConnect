@@ -180,7 +180,7 @@ Dura unos 2 minutos. Usa la misma cuenta de prueba que `controller-check`.
 
 Un PC oculto y un controlador obligado a usar el relé (`ABSOR_CONNECT_FORCE_RELAY=1`), en el mismo Linux. Comprueba:
 
-- que la API da el TURN con credenciales de unas 24 h (y, con `--turn-host`, con ese nombre);
+- que la API da el TURN con credenciales de unas 24 h (y, con `--turn-host`, con ese nombre), y el mismo usuario TURN en dos peticiones de la misma hora;
 - que la sesión conecta y el visor dice "Por relé";
 - que el par elegido es un candidato `relay` con la IP de `--relay-ip`.
 

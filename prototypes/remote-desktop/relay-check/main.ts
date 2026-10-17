@@ -102,6 +102,11 @@ async function run(): Promise<void> {
   const expiry = Number(String(turnUrls[0]?.username ?? '').split(':')[0])
   const hours = (expiry * 1000 - Date.now()) / 3_600_000
   check('la API da el TURN con credenciales que caducan en unas 24 h', status === 200 && turnUrls.length > 0 && turnUrls.every((t) => t.hasCredential) && hours > 23 && hours <= 24.1 && (!TURN_HOST || turnUrls.every((t) => t.url.includes(TURN_HOST))), { status, urls: turn.map((t) => t.url), hours: Math.round(hours * 10) / 10 })
+  // La caducidad va redondeada a la hora: la misma cuenta recibe el mismo usuario (la cuota del relé cuenta por usuario)
+  const again = await api('GET', '/api/remote/ice-servers', observerToken)
+  const againUser = (again.data?.iceServers ?? []).find((s: { username?: string }) => s.username)?.username
+  const sameHour = Math.floor(Date.now() / 3_600_000) === Math.floor((expiry - 86_400) / 3600)
+  check('dos peticiones en la misma hora dan el mismo usuario TURN', !sameHour || againUser === turnUrls[0]?.username, { sameHour, first: turnUrls[0]?.username?.split(':')[0], second: againUser?.split(':')[0] })
 
   // El PC y el controlador (solo relé)
   const pcDir = path.join(WORK, 'pc')
