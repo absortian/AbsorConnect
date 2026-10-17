@@ -41,25 +41,50 @@ export function register(email: string, password: string): Promise<SignInResult>
   return signIn('/api/auth/register', email, password)
 }
 
-/** Fuera de la cuenta en este equipo: ni conexiones en memoria, ni SSH abiertas, ni token. */
-async function endLocalSession(): Promise<void> {
+/** Por qué se sale de la cuenta en este equipo. */
+export type AccountExit = 'signed_out' | 'expired' | 'deleted'
+
+/**
+ * Lo que se corta fuera de este módulo al salir de la cuenta: el control remoto, en los dos papeles
+ * (tarea 4.10). Lo fija index.ts. Recibe el token que había, porque dar de baja el equipo lo
+ * necesita y se hace después de olvidarlo.
+ */
+type AccountExitHandler = (exit: AccountExit, token: string | null) => Promise<void>
+let onAccountExit: AccountExitHandler = async () => {}
+
+export function setAccountExitHandler(handler: AccountExitHandler): void {
+  onAccountExit = handler
+}
+
+/**
+ * Fuera de la cuenta en este equipo: ni conexiones en memoria, ni SSH abiertas, ni control remoto,
+ * ni token. El control remoto se corta en el momento, pero lo que aún hace con el token (dar de
+ * baja el equipo) sigue en segundo plano: se devuelve para no revocar la sesión antes.
+ */
+async function endLocalSession(exit: AccountExit): Promise<{ remoteDone: Promise<void> }> {
+  const remoteDone = onAccountExit(exit, currentSession()?.token ?? null).catch(() => undefined)
   clearConnections()
   closeAllSsh()
   await forgetSession()
+  return { remoteDone }
 }
 
 /** Lo local se borra ya; la revocación en el servicio se intenta sin hacer esperar a nadie. */
 export async function logout(): Promise<CloudResult> {
   const session = currentSession()
-  await endLocalSession()
-  if (session) apiRequest('POST', '/api/auth/logout', { token: session.token }).catch(() => {})
+  const { remoteDone } = await endLocalSession('signed_out')
+  if (session) {
+    void remoteDone.then(() =>
+      apiRequest('POST', '/api/auth/logout', { token: session.token }).catch(() => {})
+    )
+  }
   return { ok: true }
 }
 
 /** Un 401 en una llamada autenticada: la sesión ya no vale (caducada, revocada o cuenta borrada). */
 export function expireSession(): void {
   if (!currentSession()) return
-  void endLocalSession()
+  void endLocalSession('expired')
   for (const window of BrowserWindow.getAllWindows()) window.webContents.send('session-expired')
 }
 
@@ -78,6 +103,6 @@ export async function deleteAccount(password: string): Promise<CloudResult> {
   } catch (error) {
     return { ok: false, code: errorCode(error) }
   }
-  await endLocalSession()
+  await endLocalSession('deleted')
   return { ok: true }
 }

@@ -4,12 +4,13 @@
 import { app, powerSaveBlocker } from 'electron'
 import * as os from 'os'
 import { join } from 'path'
+import type { AccountExit } from '../cloud/account'
 import { currentSession, loadSession } from '../cloud/session'
 import { getLanguage } from '../store'
-import { setRemoteStatus, showMainWindow } from '../background'
+import { getMainWindow, setRemoteStatus, showMainWindow } from '../background'
 import { DeviceApi, devicePlatform } from './deviceApi'
 import { DeviceIdentity } from './deviceIdentity'
-import { notifySession } from './hostNotice'
+import { notifyAccountExpired, notifySession } from './hostNotice'
 import { HostCloseReason, HostService } from './hostService'
 import { openHostSession } from './hostSession'
 import { linuxAudio } from './linuxAudio'
@@ -92,6 +93,29 @@ export async function stopRemoteHost(reason: HostCloseReason = 'stopped'): Promi
   const current = service
   service = null
   await current?.stop(reason)
+}
+
+/**
+ * La cuenta se cierra en este equipo (tarea 4.10): se corta la sesión en curso y el servicio queda
+ * parado hasta el siguiente inicio de sesión, conservando la configuración local.
+ *   - Al cerrar sesión, además, se da de baja el equipo con el token que había (la cuenta ya lo
+ *     ha olvidado), para que deje de aparecer en la cuenta. Sin red, deja de estar en línea a los
+ *     30 s sin consultas.
+ *   - Si caducó con la app en segundo plano y el control remoto activado, se avisa: si no, nadie
+ *     sabría que el PC ha dejado de estar disponible.
+ *   - Con la cuenta borrada, el servicio ya borró sus equipos.
+ */
+export async function signOutRemoteHost(exit: AccountExit, token: string | null): Promise<void> {
+  const current = service
+  if (!current) return
+  // Lo primero, antes de esperar a nada: así la sesión se corta en el momento
+  const device = await current.suspend()
+  if (exit === 'signed_out' && token) {
+    await new DeviceApi(() => token).remove(device).catch(() => undefined)
+  }
+  if (exit === 'expired' && (await store?.isEnabled()) && !getMainWindow()?.isVisible()) {
+    notifyAccountExpired(await getLanguage(), showMainWindow)
+  }
 }
 
 /** Para Ajustes (tarea 6.2), el cierre de sesión (4.10) y la lista de equipos (marcar este PC). */

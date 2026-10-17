@@ -156,6 +156,16 @@ function disposeViewer(viewer: ViewerWindow): void {
   viewer.saves.clear()
 }
 
+/**
+ * Al salir de la cuenta se cierran los visores, porque sus sesiones dependían de ella (tarea 4.10).
+ * Cada visor se despide del PC al cerrarse (`beforeunload`).
+ */
+export function closeAllViewers(): void {
+  for (const viewer of viewers.values()) {
+    if (!viewer.window.isDestroyed()) viewer.window.close()
+  }
+}
+
 /** Si la ventana es un visor: así index.ts no le pone los atajos de desarrollo (F12, Ctrl+R). */
 export function isViewerWindow(window: BrowserWindow): boolean {
   return !window.isDestroyed() && viewers.has(window.webContents.id)

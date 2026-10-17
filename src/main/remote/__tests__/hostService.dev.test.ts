@@ -197,4 +197,26 @@ describe.skipIf(!API)('HostService contra el backend de desarrollo', () => {
     expect(refused).toBeInstanceOf(ApiError)
     expect((refused as ApiError).code).toBe('remote_disabled')
   }, 60_000)
+
+  it('al cerrar sesión: corta la sesión, el equipo se da de baja y ninguna vuelta lo vuelve a registrar', async () => {
+    state.enabled = true
+    await service.settingsChanged()
+    await waitFor(listed, (d) => d?.remote.state === 'available')
+    const request = await requestSession()
+    await outcome(request.id)
+    const session = sessions.at(-1)!
+    session.start()
+    await sleep(500)
+
+    // Lo que hace signOutRemoteHost al cerrar sesión (hostRuntime.ts), con el token que había
+    const credentials = await service.suspend()
+    expect(session.closedWith).toBe('signed_out')
+    await new DeviceApi(() => pcToken).remove(credentials)
+    expect(await listed()).toBeUndefined()
+    await sleep(4_000)
+    expect(await listed()).toBeUndefined()
+
+    service.resume()
+    expect((await waitFor(listed, (d) => d?.online === true))?.remote.state).toBe('available')
+  }, 60_000)
 })

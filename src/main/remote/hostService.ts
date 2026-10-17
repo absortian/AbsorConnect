@@ -1,7 +1,7 @@
 // Servicio del PC controlado (add-remote-desktop D3/D7): registra el equipo en la cuenta, consulta
 // cada 3 s las solicitudes de sesión (la consulta es también su señal de vida), rechaza sin abrir
 // conexión las que no puede atender y lleva la sesión en curso: una a la vez, con aviso, registro
-// local y corte al desactivar o al cambiar la contraseña.
+// local y corte al desactivar, al cambiar la contraseña o al salir de la cuenta.
 //
 // Todo lo que toca Electron o la red llega inyectado: así se prueba con tests y contra el backend
 // de desarrollo. La conexión en sí (ventana oculta `host`, WebRTC, captura) la crea `openSession`.
@@ -87,6 +87,8 @@ interface Current {
 
 export class HostService {
   private running = false
+  /** Fuera de la cuenta (tarea 4.10): ni registro ni consultas hasta `resume()`. */
+  private suspended = false
   private timer: ReturnType<typeof setTimeout> | null = null
   private ticking: Promise<void> | null = null
   private registered: { fingerprint: string; at: number } | null = null
@@ -121,6 +123,31 @@ export class HostService {
     this.setStatus('off', null)
   }
 
+  /**
+   * La cuenta se cierra en este equipo (cerrar sesión, caducidad o cuenta borrada; tarea 4.10):
+   * corta la sesión en curso y deja de registrarse y de consultar hasta `resume()`. Devuelve el
+   * equipo cuando ya no queda ninguna vuelta en marcha, para darlo de baja sin que una vuelta
+   * atrasada lo vuelva a registrar.
+   */
+  async suspend(): Promise<DeviceCredentials> {
+    this.suspended = true
+    if (this.timer) clearTimeout(this.timer)
+    this.timer = null
+    this.current?.session.close('signed_out')
+    await this.ticking
+    // La conexión que se haya abierto durante esa última vuelta
+    this.current?.session.close('signed_out')
+    this.registered = null
+    this.updateLocal(null)
+    return this.deps.identity.get()
+  }
+
+  /** Tras iniciar sesión: registrarse y consultar en el momento. */
+  resume(): void {
+    this.suspended = false
+    this.refresh()
+  }
+
   /** Algo cambió (Ajustes, permisos, inicio de sesión): registrar y consultar ya. */
   refresh(): void {
     this.registrationDirty = true
@@ -151,7 +178,7 @@ export class HostService {
   }
 
   private schedule(delay: number): void {
-    if (!this.running) return
+    if (!this.running || this.suspended) return
     if (this.timer) clearTimeout(this.timer)
     this.timer = setTimeout(() => {
       this.timer = null
@@ -354,6 +381,8 @@ export class HostService {
       })
     }
     this.status = null
+    // Fuera de la cuenta no hay más vueltas: la bandeja se actualiza aquí
+    if (this.suspended) this.updateLocal(null)
     this.refresh()
   }
 

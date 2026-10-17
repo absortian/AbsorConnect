@@ -1,7 +1,7 @@
 // Lo que ve quien está delante del PC controlado (add-remote-desktop D7, remote-access-host):
 //   - el aviso siempre encima con el nombre del controlador y "Desconectar" durante toda la sesión;
 //   - la pregunta de confirmación local, que se rechaza sola a los 30 s;
-//   - las notificaciones al empezar y al terminar cada sesión.
+//   - las notificaciones al empezar y al terminar cada sesión, y la de la cuenta caducada.
 import { BrowserWindow, Notification, screen } from 'electron'
 
 const NOTICE_WIDTH = 420
@@ -23,6 +23,7 @@ interface Texts {
   countdown: string
   sessionStarted: (controller: string) => string
   sessionEnded: (controller: string) => string
+  accountExpired: string
 }
 
 const TEXTS: Record<'es' | 'en', Texts> = {
@@ -36,7 +37,9 @@ const TEXTS: Record<'es' | 'en', Texts> = {
     deny: 'Rechazar',
     countdown: 'Se rechaza sola en {s} s',
     sessionStarted: (c) => `${c} está controlando este PC.`,
-    sessionEnded: (c) => `${c} ha dejado de controlar este PC.`
+    sessionEnded: (c) => `${c} ha dejado de controlar este PC.`,
+    accountExpired:
+      'La sesión de la cuenta ha caducado y este PC ya no está disponible para el control remoto. Abre Absor Connect para volver a iniciar sesión.'
   },
   en: {
     controlling: (c) => `${c} is controlling this PC`,
@@ -48,7 +51,9 @@ const TEXTS: Record<'es' | 'en', Texts> = {
     deny: 'Decline',
     countdown: 'Declined automatically in {s} s',
     sessionStarted: (c) => `${c} is controlling this PC.`,
-    sessionEnded: (c) => `${c} stopped controlling this PC.`
+    sessionEnded: (c) => `${c} stopped controlling this PC.`,
+    accountExpired:
+      'Your account session expired and this PC is no longer available for remote control. Open Absor Connect to sign in again.'
   }
 }
 
@@ -217,6 +222,17 @@ export function notifySession(
   const notification = new Notification({
     title: 'Absor Connect',
     body: event === 'session-start' ? t.sessionStarted(controller) : t.sessionEnded(controller)
+  })
+  if (onClick) notification.on('click', onClick)
+  notification.show()
+}
+
+/** La sesión de la cuenta caducó con la app en segundo plano y el control remoto activado (4.10). */
+export function notifyAccountExpired(language: string, onClick?: () => void): void {
+  if (!Notification.isSupported()) return
+  const notification = new Notification({
+    title: 'Absor Connect',
+    body: texts(language).accountExpired
   })
   if (onClick) notification.on('click', onClick)
   notification.show()

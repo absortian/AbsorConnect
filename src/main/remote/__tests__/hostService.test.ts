@@ -20,6 +20,8 @@ class FakeApi {
   registerErrors: ApiError[] = []
   pollErrors: ApiError[] = []
   answerErrors: ApiError[] = []
+  /** Si está, la siguiente respuesta espera a que se resuelva (una vuelta a medias). */
+  answerGate: Promise<void> | null = null
 
   async register(device: DeviceCredentials, info: DeviceInfo): Promise<void> {
     const error = this.registerErrors.shift()
@@ -37,6 +39,9 @@ class FakeApi {
   }
 
   async answer(_device: DeviceCredentials, requestId: string, answer: string): Promise<void> {
+    const gate = this.answerGate
+    this.answerGate = null
+    if (gate) await gate
     const error = this.answerErrors.shift()
     if (error) throw error
     this.answers.push({ requestId, answer })
@@ -406,5 +411,61 @@ describe('HostService — solicitudes y sesiones', () => {
     expect(sessions[0].session.closedWith).toBe('stopped')
     expect(keepAwake).toEqual([true, false])
     expect(statuses.at(-1)).toBe('off')
+  })
+})
+
+describe('HostService — salir de la cuenta (tarea 4.10)', () => {
+  it('corta la sesión, deja de registrarse y de consultar, y vuelve al iniciar sesión', async () => {
+    const { api, statuses, sessions, service } = setup()
+    api.pending = [request('r1')]
+    service.start()
+    await flush()
+    sessions[0].start()
+    await flush()
+    expect(statuses.at(-1)).toBe('active:Portátil')
+
+    const device = await service.suspend()
+    expect(device).toEqual({ id: 'equipo-1', key: 'clave-1' })
+    expect(sessions[0].session.closedWith).toBe('signed_out')
+    await flush()
+    expect(statuses.at(-1)).toBe('off')
+    expect(service.isActive()).toBe(false)
+
+    const { polls } = api
+    const registrations = api.registrations.length
+    await flush(REGISTER_INTERVAL_MS + POLL_INTERVAL_MS)
+    expect(api.polls).toBe(polls)
+    expect(api.registrations).toHaveLength(registrations)
+
+    service.resume()
+    await flush()
+    expect(api.registrations).toHaveLength(registrations + 1)
+    expect(api.polls).toBe(polls + 1)
+    expect(statuses.at(-1)).toBe('available')
+    await service.stop()
+  })
+
+  it('espera a la vuelta en marcha y cierra la conexión que se abrió en ella', async () => {
+    const { api, sessions, service } = setup()
+    let release!: () => void
+    api.answerGate = new Promise((resolve) => (release = resolve))
+    api.pending = [request('r1')]
+    service.start()
+    await flush()
+    expect(sessions).toHaveLength(1)
+
+    let suspended = false
+    const done = service.suspend().then(() => (suspended = true))
+    await flush()
+    expect(suspended).toBe(false)
+
+    release()
+    await done
+    expect(api.answers).toEqual([{ requestId: 'r1', answer: 'v=0 respuesta' }])
+    expect(sessions[0].session.closedWith).toBe('signed_out')
+    const registrations = api.registrations.length
+    await flush(REGISTER_INTERVAL_MS)
+    expect(api.registrations).toHaveLength(registrations)
+    await service.stop()
   })
 })

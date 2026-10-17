@@ -11,7 +11,8 @@ import {
   getSessionState,
   login,
   logout,
-  register
+  register,
+  setAccountExitHandler
 } from './cloud/account'
 import { getMigrationOffer, migrateLocalConnections } from './cloud/migration'
 import { setUnauthorizedHandler } from './cloud/apiClient'
@@ -63,9 +64,14 @@ import {
 } from './background'
 import * as fs from 'fs/promises'
 import * as os from 'os'
-import { remoteHost, startRemoteHost, stopRemoteHost } from './remote/hostRuntime'
+import {
+  remoteHost,
+  signOutRemoteHost,
+  startRemoteHost,
+  stopRemoteHost
+} from './remote/hostRuntime'
 import { setupRemoteSettingsIpc } from './remote/remoteSettings'
-import { isViewerWindow, setupControllerIpc } from './remote/controllerRuntime'
+import { closeAllViewers, isViewerWindow, setupControllerIpc } from './remote/controllerRuntime'
 
 // Si la ventana principal se cerró (no ocultó): solo entonces cerrar la última ventana termina la
 // app. Las ventanas ocultas de las sesiones de control remoto y su aviso no cuentan: con la app
@@ -159,12 +165,18 @@ app.whenReady().then(async () => {
 
   // Cuenta en la nube: las conexiones se leen y guardan en la API (src/main/cloud/)
   setUnauthorizedHandler(expireSession)
+  // Al salir de la cuenta (cerrar sesión, caducidad o cuenta borrada) se cortan las sesiones de
+  // control remoto en los dos papeles: los visores de este equipo y la sesión de quien lo controla
+  setAccountExitHandler(async (exit, token) => {
+    closeAllViewers()
+    await signOutRemoteHost(exit, token)
+  })
   ipcMain.handle('get-session', async () => await getSessionState())
   // Tras entrar, el control remoto de este PC se liga a esa cuenta y se registra ya en ella
   const afterSignIn = async (result: SignInResult): Promise<SignInResult> => {
     if (result.ok) {
       await remoteHost().bindToAccount(result.email)
-      remoteHost().service?.refresh()
+      remoteHost().service?.resume()
     }
     return result
   }
