@@ -15,6 +15,7 @@ Pruebas de los puntos de riesgo del grupo 1 de `openspec/changes/add-remote-desk
 | `dev-check/` | 5.1 y 6.1 | Las tres páginas y sus preloads: la compilación, el modo desarrollo (`npm run dev`) y que cada ventana solo tenga su propio puente. |
 | `fullscreen-check/` | 6.5 | En un solo Linux: Alt+Tab y la tecla Windows en pantalla completa con un gestor de ventanas, y el controlador en Wayland (compositor anidado). |
 | `mobile-check/` | 7.1, 7.2 y 7.3 | La app móvil en el emulador de Android contra un PC de verdad (`lan-check/pc.ts`), con capturas: los escenarios de la spec `mobile-app`. En el Mac, la IPA y PBKDF2 por CommonCrypto (`test-mac.sh`). |
+| `package-check/` | 8.1 | El control remoto desde los paquetes de verdad, no desde el repo: el AppImage en Linux, el instalador NSIS en la VM de Windows y los `.app` de arm64 y x64 en el Mac, con lo que llevan dentro (koffi, permisos, bandeja). |
 | `relay-check/` | 3.1 y 3.2 | Una sesión solo por relé contra el TURN de verdad: la API da el TURN, la sesión conecta y el par elegido pasa por el relé esperado. |
 | `exit-check/` | 4.10 y 4.2 | Salir de la cuenta con una sesión abierta (en el PC, en el controlador y por caducidad con el PC en la bandeja) y, con un AppImage de prueba, una actualización descargada durante una sesión. |
 
@@ -207,6 +208,13 @@ prototypes/remote-desktop/mobile-check/run.sh
 ```
 
 - Si en el puerto 5555 del host ya escucha algo, adb ve un `emulator-5554` desconectado y el bueno es `emulator-5556`, el que usa `run.sh` por defecto (`ANDROID_SERIAL` para otro).
+- Para pararlo, `docker stop absor-emulator`. Quedan los cerrojos del AVD, así que al volver a arrancarlo con `docker start absor-emulator` el emulador no sale. Hay que borrarlos y arrancarlo dentro:
+
+  ```bash
+  docker exec absor-emulator sh -c 'rm -f /root/.android/avd/absor.avd/*.lock'
+  docker exec -d absor-emulator sh -c 'emulator -avd absor -no-window -gpu swiftshader_indirect -no-audio -no-boot-anim -no-snapshot -memory 4096 -cores 4'
+  ```
+- `APP=<ejecutable>` hace que el PC sea un paquete en vez de la app del repo. `PROBE_URL` y `PC_FILTER` (en `drive.sh`) apuntan a la sonda y al nombre de un PC de otro equipo (ver `package-check/`).
 - La primera vez compila el APK de depuración y descarga el NDK dentro del contenedor: unos 10 minutos.
 - La prueba dura unos 3 minutos. Usa la misma cuenta de prueba que `controller-check`.
 
@@ -221,6 +229,29 @@ prototypes/remote-desktop/mobile-check/test-mac.sh
 - PBKDF2 en cada iPhone o Android conectado por cable (`integration_test/pbkdf2_test.dart`). En el iPhone, Xcode tiene que poder firmar para él: el equipo personal se elige en `mobile/ios/Runner.xcworkspace` y ese cambio no se sube.
 
 Deja el resultado en `~/Downloads/absor-mobile-check-macos.json` y en el portapapeles. Necesita Xcode y Flutter, pero no CocoaPods: todos los plugins de iOS van por Swift Package Manager.
+
+## Paquetes (`package-check/`, tarea 8.1)
+
+El control remoto desde los paquetes que genera `release.yml`, empaquetados como en CI. El PC es siempre la prueba entre dos equipos (`lan-check/pc.ts`) con `--app=<ejecutable del paquete>`, en vez de la app del repo.
+
+- **Linux:** `npm run build:linux` y después `APP=dist/absor-connect-<versión>.AppImage prototypes/remote-desktop/mobile-check/run.sh`, que controla el AppImage desde el emulador.
+  - El `.rpm` necesita `rpmbuild`, que no está en el contenedor de desarrollo pero sí en el runner de Ubuntu.
+  - `dpkg-deb -f dist/*.deb Depends Recommends` enseña las dependencias del `.deb`.
+- **Windows** (la VM de `~/VMs/absor-windows`, con Node 22 y sin git):
+  1. Se copia un `tar` con lo del escritorio (`git ls-files` sin `backend`, `mobile`, `openspec`…).
+  2. Allí se ejecutan `npm.cmd ci` y `npm run build:win`, y el instalador se instala con `/S`. Queda en `%LOCALAPPDATA%\Programs\absor-file-explorer`.
+  3. `pc.cjs` se lanza en la sesión gráfica con una tarea programada (`schtasks … /it`), con el Electron del `node_modules` de esa copia, `--listen=127.0.0.1` y sin ventana de consola (`conhost.exe --headless cmd /c …`).
+     - Con la sonda abierta a la red, el cortafuegos pregunta por el Electron de la prueba y su diálogo se queda con el foco: los clics no dan el foco a la ventana de prueba y las teclas no llegan.
+     - Con Windows Terminal, `-WindowStyle Hidden` no esconde la consola de una tarea, y esa consola también roba el foco.
+  4. Lo controla el controlador de escritorio de este Linux: `controller.cjs --probe=http://127.0.0.1:8791`, con un túnel SSH a la sonda de la VM (`ssh -L 127.0.0.1:8791:127.0.0.1:8790 -p 2222 tester@127.0.0.1`).
+  - Desde el emulador no se puede: el emulador y la VM están cada uno tras su NAT, y sin TURN no hay camino entre ellos.
+  - Al reiniciar `pc.ts`, hay que esperar a que el PC anterior salga de la cuenta (unos segundos). Tienen el mismo nombre y, si no, el controlador puede elegir el viejo.
+- **macOS:** `package-check/test-mac.sh http://<ip de este equipo>:8020` en el Mac, con `package-check/control-mac.sh` en marcha aquí:
+  1. Empaqueta como en CI, con el paso de koffi de la otra arquitectura.
+  2. Mira los dos `.app`: el binario de koffi de su arquitectura (`lipo -archs`), `NSAudioCaptureUsageDescription`, los iconos de la bandeja y la firma ad-hoc.
+  3. Arranca como PC el `.app` de su arquitectura, que controla desde aquí el controlador de escritorio. A mitad hay que pulsar «Permitir» una vez.
+  4. Arranca como PC el de x64, con Rosetta, que controla el móvil del emulador por la red local.
+  - Los dos `.app` se lanzan desde Terminal y usan sus permisos. Que la app pida los suyos se ve en la matriz de la 9.3.
 
 ## Sesión solo por relé (`relay-check/`, tareas 3.1 y 3.2)
 

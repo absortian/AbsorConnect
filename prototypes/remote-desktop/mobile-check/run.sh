@@ -4,6 +4,8 @@
 #   - el móvil: la app en el emulador de Android del contenedor absor-emulator (ver el README),
 #     con la prueba integration_test/remote_desktop_test.dart.
 # Deja las capturas y report.json en mobile-check/out.
+# Con APP=<ejecutable>, el PC es ese paquete (un AppImage, linux-unpacked…) en vez de la app de
+# desarrollo del repo (tarea 8.1).
 set -eu
 here=$(cd "$(dirname "$0")" && pwd -P)
 root=$(cd "$here/../../.." && pwd -P)
@@ -23,9 +25,10 @@ docker compose exec -T database psql -U app -d app -qc "delete from cache_items"
 echo "==> PC de prueba en este equipo"
 bin/dev sh -c 'cd prototypes/remote-desktop/lan-check && npx esbuild pc.ts --bundle --platform=node --format=cjs --target=node22 --external:electron --outfile=out/pc.cjs --log-level=warning'
 work=$(mktemp -d)
-node_modules/electron/dist/electron prototypes/remote-desktop/lan-check/out/pc.cjs "--api=$api" "--work=$work/pc" "--out=$out/pc.json" --minutes=20 >"$out/pc.log" 2>&1 &
+node_modules/electron/dist/electron prototypes/remote-desktop/lan-check/out/pc.cjs "--api=$api" "--work=$work/pc" "--out=$out/pc.json" --minutes=20 ${APP:+"--app=$APP"} >"$out/pc.log" 2>&1 &
 pc=$!
-trap 'curl -s -X POST http://127.0.0.1:8790/done >/dev/null 2>&1; sleep 3; kill $pc 2>/dev/null || true' EXIT
+# Un AppImage lanza la app como hija: se cierra todo lo que use la carpeta de datos de la prueba
+trap 'curl -s -X POST http://127.0.0.1:8790/done >/dev/null 2>&1; sleep 3; kill $pc 2>/dev/null || true; pkill -f -- "--user-data-dir=$work/pc" 2>/dev/null || true' EXIT
 for _ in $(seq 1 60); do curl -sf http://127.0.0.1:8790/state >/dev/null && break; sleep 1; done
 
 echo "==> La app en el emulador ($serial)"

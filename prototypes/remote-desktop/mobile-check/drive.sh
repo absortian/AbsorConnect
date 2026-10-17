@@ -6,6 +6,8 @@
 #   BACK           pulsa Atrás (cierra la hoja de compartir del sistema)
 #   REPORT i/n <b> resultado de todas las comprobaciones: JSON en base64, a trozos (Android parte
 #                  las líneas largas del registro)
+# PROBE_URL: la sonda de un PC que no es este equipo (por ejemplo, un Mac de la red local), y
+# PC_FILTER, parte de su nombre en Equipos ("PC de prueba macOS"), por si hay varios
 set -u
 out=${1:?carpeta de salida}
 mkdir -p "$out/shots"
@@ -16,7 +18,8 @@ export SHOTS_DIR="$out/shots"
 # portapapeles): se da por visto antes de empezar
 adb shell settings put secure immersive_mode_confirmations confirmed
 flutter drive --driver=test_driver/integration_test.dart --target=integration_test/remote_desktop_test.dart \
-  --dart-define=API_URL=http://10.0.2.2:8020 --dart-define=PROBE_URL=http://10.0.2.2:8790 -d "$ANDROID_SERIAL" 2>&1 |
+  --dart-define=API_URL=http://10.0.2.2:8020 --dart-define=PROBE_URL="${PROBE_URL:-http://10.0.2.2:8790}" \
+  --dart-define=PC_FILTER="${PC_FILTER:-PC de prueba}" -d "$ANDROID_SERIAL" 2>&1 |
   while IFS= read -r line; do
     echo "$line" >>"$out/drive.log"
     case "$line" in

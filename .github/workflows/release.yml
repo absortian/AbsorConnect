@@ -38,6 +38,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # El runner de macOS es arm64 y también empaqueta x64: npm solo instala el binario de koffi
+      # del sistema donde corre, así que el de x64 se añade a mano, de la misma versión y sin
+      # tocar package.json ni el lockfile (add-remote-desktop D10)
+      - name: Koffi for macOS x64
+        if: runner.os == 'macOS'
+        run: |
+          VERSION=$(node -p "require('./node_modules/koffi/package.json').version")
+          npm install --no-save --force --ignore-scripts --no-audit --no-fund "@koromix/koffi-darwin-x64@$VERSION"
+          ls node_modules/@koromix
+
       - name: Build and package
         run: ${{ matrix.build_cmd }}
         env:

@@ -2,8 +2,13 @@
 // Node), porque además de la app de verdad abre una ventana de prueba:
 //
 //   node_modules/electron/dist/electron prototypes/remote-desktop/lan-check/out/pc.cjs \
-//     --api=http://<ip del backend>:8020 --work=<carpeta temporal> --out=<fichero.json> [--minutes=30]
+//     --api=http://<ip del backend>:8020 --work=<carpeta temporal> --out=<fichero.json> [--minutes=30] \
+//     [--app=<ejecutable de un paquete>] [--listen=127.0.0.1]
 //
+//   - Con --app, la app de verdad es ese ejecutable (un AppImage, linux-unpacked…) en vez de la de
+//     desarrollo del repo: así se prueba el paquete (tarea 8.1).
+//   - Con --listen, la sonda escucha solo en esa dirección. Con 127.0.0.1 (la VM de Windows, por un
+//     túnel SSH) el cortafuegos de Windows no pregunta, y su diálogo no le quita el foco a la prueba.
 //   - Prepara la app de verdad con la cuenta de prueba, la contraseña del PC y el control remoto
 //     activado, y la arranca con su ventana y su puerto de DevTools.
 //   - Tapa la pantalla principal con una ventana de prueba (un área de texto) que anota los clics,
@@ -113,7 +118,8 @@ function launchApp(): void {
   const log = fs.openSync(path.join(DATA, 'app.log'), 'a')
   const env: NodeJS.ProcessEnv = { ...process.env, ABSOR_CONNECT_API_URL: API }
   delete env.ELECTRON_RUN_AS_NODE
-  child = spawn(process.execPath, [ROOT, `--user-data-dir=${DATA}`, `--remote-debugging-port=${APP_DEBUG_PORT}`], {
+  const [command, ...argv] = args.app ? [path.resolve(args.app)] : [process.execPath, ROOT]
+  child = spawn(command, [...argv, `--user-data-dir=${DATA}`, `--remote-debugging-port=${APP_DEBUG_PORT}`], {
     env,
     stdio: ['ignore', log, log]
   })
@@ -197,6 +203,7 @@ async function keepAwake(): Promise<{ ids: string[]; detail: string }> {
     }
     return { ids, detail: `${ids.length} del ejecutable de Electron` }
   }
+  // Windows: `powercfg /requests` necesita un administrador
   return { ids: [], detail: 'sistema sin comprobación' }
 }
 
@@ -370,6 +377,20 @@ async function appAction(action: string, body: any): Promise<unknown> {
 let finish: () => void = () => undefined
 const finished = new Promise<void>((resolve) => (finish = resolve))
 
+/**
+ * Proceso de la ventana que está delante, en Windows (null en el resto). Tras la tecla Windows la
+ * ventana de prueba no recibe el keydown: se lo queda el sistema, que abre Inicio
+ * (StartMenuExperienceHost, o SearchHost en algunas versiones).
+ */
+async function foreground(): Promise<string | null> {
+  if (process.platform !== 'win32') return null
+  const script =
+    'Add-Type -MemberDefinition \'[DllImport("user32.dll")] public static extern System.IntPtr GetForegroundWindow(); ' +
+    '[DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(System.IntPtr h, out uint p);\' -Name W -Namespace U; ' +
+    '$p = 0; [void][U.W]::GetWindowThreadProcessId([U.W]::GetForegroundWindow(), [ref]$p); (Get-Process -Id $p).ProcessName'
+  return (await sh('powershell', ['-NoProfile', '-NonInteractive', '-Command', script])).trim() || null
+}
+
 /** Arranca la sonda; si el puerto está ocupado (otra prueba sin terminar), falla en vez de seguir. */
 function startProbe(): Promise<http.Server> {
   const server = http.createServer((request, response) => {
@@ -381,6 +402,7 @@ function startProbe(): Promise<http.Server> {
         const url = request.url ?? '/'
         if (request.method === 'GET' && url === '/state') return state()
         if (request.method === 'GET' && url === '/tray') return trayItems()
+        if (request.method === 'GET' && url === '/foreground') return foreground()
         if (request.method === 'POST' && url === '/reset') return inTarget('window.reset(), true')
         if (request.method === 'POST' && url === '/say') {
           return inTarget(`document.getElementById('say').textContent = ${JSON.stringify(String(body.text ?? ''))}, true`)
@@ -409,7 +431,7 @@ function startProbe(): Promise<http.Server> {
   })
   return new Promise((resolve, reject) => {
     server.once('error', (error) => reject(new Error(`La sonda no puede usar el puerto ${PROBE_PORT}: ${error.message}. ¿Queda otra prueba abierta?`)))
-    server.listen(PROBE_PORT, '0.0.0.0', () => resolve(server))
+    server.listen(PROBE_PORT, args.listen ?? '0.0.0.0', () => resolve(server))
   })
 }
 

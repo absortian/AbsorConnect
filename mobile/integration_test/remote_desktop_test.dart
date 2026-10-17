@@ -26,6 +26,9 @@ const accountEmail = String.fromEnvironment('ACCOUNT_EMAIL', defaultValue: 'prue
 const accountPassword = String.fromEnvironment('ACCOUNT_PASSWORD', defaultValue: 'contraseña-de-prueba-larga');
 const pcPassword = String.fromEnvironment('PC_PASSWORD', defaultValue: 'contraseña-del-pc-prueba');
 
+/// El PC de la prueba en Equipos: el primero disponible cuyo nombre contiene esto.
+const pcFilter = String.fromEnvironment('PC_FILTER', defaultValue: 'PC de prueba');
+
 /// Resultado de cada comprobación, que se imprime al final como JSON en base64 ("REPORT i/n …").
 final _checks = <Map<String, Object?>>[];
 
@@ -151,7 +154,7 @@ void main() {
     await tester.tap(find.byKey(const Key('auth-submit')));
     await waitFor(() => find.byKey(const Key('open-devices')).evaluate().isNotEmpty);
     await tester.tap(find.byKey(const Key('open-devices')));
-    final pcTile = find.ancestor(of: find.textContaining('PC de prueba'), matching: find.byType(ListTile));
+    final pcTile = find.ancestor(of: find.textContaining(pcFilter), matching: find.byType(ListTile));
     final listed = await waitFor(() => pcTile.evaluate().isNotEmpty && find.descendant(of: pcTile.first, matching: find.textContaining('Available')).evaluate().isNotEmpty);
     await outside('SHOT 01-equipos');
     _check('Equipos muestra el PC disponible', listed);

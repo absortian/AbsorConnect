@@ -14,6 +14,10 @@ files:
   - '!{Jenkinsfile,compose.yaml,compose.override.yaml,AGENTS.md,CLAUDE.md,*.tsbuildinfo}'
 asarUnpack:
   - resources/**
+  # koffi (inyección de entrada del control remoto) y su binario nativo, en
+  # @koromix/koffi-<so>-<arch>: un .node no se carga desde dentro de app.asar
+  - '**/node_modules/koffi/**'
+  - '**/node_modules/@koromix/**'
 win:
   executableName: AbsorConnect
 nsis:
@@ -48,6 +52,9 @@ mac:
     - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
+    # Sonido del Mac durante el control remoto (audio 'loopback', CoreAudio Tap desde macOS 14.2).
+    # Sin esta clave el sonido llega en silencio y sin error
+    - NSAudioCaptureUsageDescription: Absor Connect envía el sonido de este Mac al equipo que lo controla, solo durante una sesión de control remoto que hayas permitido.
   notarize: false
 dmg:
   artifactName: absor-connect-${version}-${arch}.${ext}
@@ -60,6 +67,13 @@ linux:
   artifactName: absor-connect-${version}-${arch}.${ext}
   maintainer: absortian
   category: Utility
+deb:
+  # pactl (pulseaudio-utils) da el sonido del PC durante el control remoto; sin él, la sesión va
+  # sin sonido. libxtst6, para la entrada, ya está en las dependencias por defecto.
+  # libappindicator3-1 es la recomendación por defecto de electron-builder
+  recommends:
+    - libappindicator3-1
+    - pulseaudio-utils
 appImage:
   artifactName: absor-connect-${version}.${ext}
 rpm:

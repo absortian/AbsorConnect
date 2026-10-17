@@ -4,12 +4,13 @@
 //
 //   node_modules/electron/dist/electron prototypes/remote-desktop/lan-check/out/controller.cjs \
 //     --api=http://<ip del backend>:8020 --work=<carpeta temporal> --out=<fichero.json> \
-//     [--wait=30] [--cut-network=<interfaz Wi-Fi de macOS>] [--relay=1]
+//     [--wait=30] [--cut-network=<interfaz Wi-Fi de macOS>] [--relay=1] [--probe=<url de la sonda>]
 //
 // Espera a que el otro equipo aparezca en la cuenta como "PC de prueba … @ip:puerto" (pc.ts) y
 // comprueba con su sonda lo que pasa allí: el ratón, el texto, el aviso, la bandeja, los ficheros,
 // el portapapeles, el bloqueo de suspensión y el registro. Con --relay=1 la app solo usa el relé
-// (TURN). Al terminar llama a /done para que el PC acabe también.
+// (TURN). Con --probe, la sonda del PC está en esa URL y no en la IP de su nombre (un PC tras un
+// NAT, como la VM de Windows, con un túnel SSH). Al terminar llama a /done para que el PC acabe también.
 import { app as electronApp, clipboard, nativeImage } from 'electron'
 import { ChildProcess, execFileSync, spawn } from 'child_process'
 import { createHash, randomBytes } from 'crypto'
@@ -77,7 +78,7 @@ async function findPc(token: string): Promise<any> {
     for (const device of candidates) {
       const address = device.name.match(/@([\d.]+:\d+)$/)?.[1]
       if (!address) continue
-      probe = `http://${address}`
+      probe = args.probe ?? `http://${address}`
       const ok = await pc('GET', '/state').then(() => true).catch(() => false)
       if (ok) return device
       note(`${device.name} está en la cuenta pero su sonda no responde en ${probe}`)
@@ -331,7 +332,13 @@ async function run(): Promise<void> {
   await viewer.eval(`[...document.querySelectorAll('#combo-list button')].find((b) => b.textContent === 'Win / Cmd').click()`)
   await sleep(1000)
   const comboEvents = ((await pc('GET', '/state')).target.events ?? []).filter((e: any) => e.type === 'keydown')
-  check('el menú de combinaciones envía la tecla Windows / Cmd al PC', comboEvents.some((e: any) => /Meta|OS/.test(`${e.code} ${e.key}`)), comboEvents)
+  // En Windows la ventana no recibe el keydown de la tecla Windows: el sistema abre Inicio
+  const startMenu = first.platform === 'win32' ? await pc<string | null>('GET', '/foreground').catch(() => null) : null
+  check(
+    'el menú de combinaciones envía la tecla Windows / Cmd al PC',
+    comboEvents.some((e: any) => /Meta|OS/.test(`${e.code} ${e.key}`)) || /StartMenuExperienceHost|SearchHost/.test(startMenu ?? ''),
+    first.platform === 'win32' ? { keydown: comboEvents, foreground: startMenu } : comboEvents
+  )
 
   // Ctrl pulsado y la ventana pierde el foco: el PC lo suelta (si no, la "x" sería Ctrl+X)
   const textArea = await at(0.2, 0.8)
@@ -610,7 +617,11 @@ async function run(): Promise<void> {
   const off = (await pc('GET', '/state')).keepAwake
   const added = on.ids.filter((id: string) => !before.ids.includes(id))
   const kept = added.filter((id: string) => off.ids.includes(id))
-  check('"Evitar que el PC se suspenda" bloquea la suspensión solo con la opción activada', added.length > 0 && kept.length === 0, { added, kept, before, on, off })
+  if (on.detail === 'sistema sin comprobación') {
+    note(`"Evitar que el PC se suspenda": no se puede comprobar en este PC (${first.platform})`)
+  } else {
+    check('"Evitar que el PC se suspenda" bloquea la suspensión solo con la opción activada', added.length > 0 && kept.length === 0, { added, kept, before, on, off })
+  }
 
   step('corte de la red')
   // --- Corte de la red ------------------------------------------------------------------------------

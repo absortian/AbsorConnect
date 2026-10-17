@@ -226,14 +226,14 @@ Errores con el formato habitual `{"error": {"code", "details"}}`.
   - No se captura el escritorio seguro: bloqueo, UAC, Ctrl+Alt+Supr.
 - **macOS:**
   - Pantalla con ScreenCaptureKit, que necesita el permiso de Grabación de pantalla (`systemPreferences.getMediaAccessStatus('screen')`). macOS 15 pide reconfirmarlo cada mes.
-  - Sonido con `audio: 'loopback'`. Electron 39 usa la API CoreAudio Tap, disponible desde macOS 14.2, que exige `NSAudioCaptureUsageDescription` en el `Info.plist` (`extendInfo` de `electron-builder.yml`). Sin esa clave el audio llega en silencio y sin error. En versiones anteriores de macOS no hay sonido. Comprobado en macOS 27 (prototipo 1.2).
+  - Sonido con `audio: 'loopback'`. Electron 39 usa la API CoreAudio Tap, disponible desde macOS 14.2, que exige `NSAudioCaptureUsageDescription` en el `Info.plist` (`extendInfo` de `electron-builder.yml`, desde la 8.1). Sin esa clave el audio llega en silencio y sin error. En versiones anteriores de macOS no hay sonido. Comprobado en macOS 27 (prototipo 1.2).
   - Sin el permiso de grabación, `getDisplayMedia()` no falla: se queda esperando. La app comprueba el permiso antes de capturar, y pone un tiempo máximo a la captura, para poder rechazar la sesión con `missing_permissions` en lugar de dejarla colgada.
 - **Linux X11:**
   - Pantalla con `desktopCapturer` (X11).
   - Sonido: **`audio: 'loopback'` no sirve en Linux**. Crea la pista "System audio", pero llega vacía (nivel 0 en origen; prototipo 1.2). Chromium tampoco lista los monitores de PulseAudio/PipeWire en `enumerateDevices()`.
   - Lo que sí funciona: al empezar una sesión con sonido, el proceso principal crea una fuente virtual que reenvía el monitor de la salida por defecto (`pactl load-module module-remap-source master=<salida por defecto>.monitor source_name=absor_connect_audio source_properties=device.description="Absor Connect"`). El renderer `host` la abre con `getUserMedia({audio: {deviceId}})`, sin cancelación de eco, supresión de ruido ni control de ganancia. La fuente se quita al terminar la sesión, y también al arrancar si quedó alguna de una sesión anterior.
   - Si la salida por defecto cambia durante la sesión (por ejemplo, al conectar unos auriculares), la fuente se vuelve a crear.
-  - Sin `pactl` (paquete `pulseaudio-utils`) o sin servidor compatible con PulseAudio, el sonido no está disponible.
+  - Sin `pactl` (paquete `pulseaudio-utils`, que el `.deb` recomienda) o sin servidor compatible con PulseAudio, el sonido no está disponible.
   - **Implementación (`linuxAudio.ts`, tarea 4.8):**
     - La ventana `host` pide la fuente con `audioSource()` al capturar, y solo se crea con la sesión autenticada y el sonido permitido.
     - La salida por defecto se mira cada 3 s. Si cambia, la fuente se vuelve a crear, y la ventana reabre la pista y la cambia con `replaceTrack`.
@@ -284,6 +284,15 @@ Errores con el formato habitual `{"error": {"code", "details"}}`.
 `koffi` es una FFI con binarios N-API precompilados (Windows, macOS y Linux; x64 y arm64). Funciona en Electron sin recompilar y `npm ci` no compila nada (prototipo 1.3).
 - **Binarios por plataforma:** desde la versión 3 van en paquetes opcionales `@koromix/koffi-<so>-<arch>`, y npm solo instala el del sistema donde corre. El job de macOS de `release.yml` (runner arm64) empaqueta también x64, así que debe instalar `@koromix/koffi-darwin-x64` (sin guardarlo) antes de empaquetar.
 - **Empaquetado:** `asarUnpack` de `**/node_modules/koffi/**` y `**/node_modules/@koromix/**`.
+  - En `release.yml`, la versión del binario de x64 se lee de `node_modules/koffi/package.json` con una ruta relativa: `require('koffi/package.json')` falla por los `exports` del paquete. Sin versión, npm instalaría la última (3.3.3 frente a koffi 3.3.2) y koffi diría "Mismatched native Koffi modules". `npm install --no-save --force` no toca `package.json` ni el lockfile.
+  - electron-builder copia lo que da `npm list` con los opcionales, sin filtrar por sistema: cada `.app` de macOS lleva los dos binarios de darwin.
+- **Verificado en los paquetes (8.1)**, con `prototypes/remote-desktop/package-check`:
+  - **Linux:** `npm run build:linux` (el `.rpm` necesita `rpmbuild`, que está en el runner de Ubuntu). El AppImage hace de PC y lo controla el móvil (emulador): 17/17. El `.deb` depende de `libxtst6` (por defecto en electron-builder) y recomienda `pulseaudio-utils`.
+  - **Windows 11 (VM):** el instalador NSIS se genera dentro de la VM como en CI (`npm ci` y `npm run build:win`) y se instala con `/S`. Hace de PC y lo controla el escritorio de Linux: 42/42.
+    - Con el binario de koffi desempaquetado: ratón, clics, teclado por posición (con la ñ), rueda, combinaciones, aviso, bandeja, ficheros, portapapeles, sonido, confirmación local y bloqueo.
+    - "Evitar que el PC se suspenda" no se puede comprobar sin administrador (`powercfg /requests`).
+    - La tecla Windows del menú de combinaciones no llega como keydown a la ventana que tiene el foco: el sistema la usa para abrir Inicio (`SearchHost` queda delante), que es lo que se espera.
+  - **macOS:** pendiente de `package-check/test-mac.sh`.
 
 Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Una tabla compartida (`src/shared/remote/keymap.ts`) las traduce al código de cada sistema, con datos de `dom_code_data.inc` de Chromium (licencia BSD, con su atribución). Así manda la distribución del PC controlado, como en Chrome Remote Desktop.
 
