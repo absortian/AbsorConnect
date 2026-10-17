@@ -99,7 +99,7 @@
 
 - [ ] 8.1 `electron-builder.yml`: `asarUnpack` de koffi y `@koromix`, `NSAudioCaptureUsageDescription`, iconos de la bandeja (incluida la imagen *template* de macOS) y dependencias de Linux (`libxtst6`, y `pulseaudio-utils` como recomendada) si faltan. En `release.yml`, instalar `@koromix/koffi-darwin-x64` en el job de macOS antes de empaquetar (D10). Verificar: los paquetes de CI se instalan y el control remoto funciona en cada sistema desde el paquete, no desde `npm run dev`.
 - [ ] 8.2 Documentación:
-  - README: la función, sus limitaciones por sistema y los permisos de macOS;
+  - README: la función, sus limitaciones por sistema y los permisos de macOS (Accesibilidad se llama "Control de dispositivos y acceso a datos" desde macOS 27);
   - `AGENTS.md`: decisiones que conviene no romper (token fuera del renderer, nada antes de autenticar, protocolo v1 compartido con el móvil, `backgroundThrottling`);
   - web (`backend/public/index.html`): la función nueva.
 
@@ -109,7 +109,7 @@
 
 - [ ] 9.1 `npm run typecheck` limpio, `npm test` en verde y `npx eslint` sobre los ficheros tocados sin errores nuevos (la deuda previa no cambia).
 - [ ] 9.2 `docker compose exec php php bin/phpunit` y `(cd mobile && flutter analyze && flutter test)` en verde.
-- [ ] 9.3 Matriz manual con paquetes reales: controlador en Windows, macOS, Linux, Android e iPhone frente a PC controlado en Windows, macOS y Linux X11. Incluir al menos una sesión por relé y un PC controlado con dos monitores de escalas distintas (clics en las esquinas de cada uno; la 4.6 se verificó con una sola pantalla), y revisar el disco y la base de datos según "Contraseña local del PC". Verificar: tabla de resultados en el PR.
+- [ ] 9.3 Matriz manual con paquetes reales: controlador en Windows, macOS, Linux, Android e iPhone frente a PC controlado en Windows, macOS y Linux X11. Incluir al menos una sesión por relé, un PC controlado con dos monitores de escalas distintas (clics en las esquinas de cada uno; la 4.6 se verificó con una sola pantalla) y, en Windows, la pista del cortafuegos en Ajustes y su aviso al activar el control remoto (6.2), y revisar el disco y la base de datos según "Contraseña local del PC". Verificar: tabla de resultados en el PR.
 
 ## Workflow follow-up
 

@@ -563,9 +563,15 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
     - Al volver a entrar con la misma cuenta sigue activado, y la misma contraseña vale. Con otra cuenta queda desactivado y sin contraseña, y el PC ya no está en la cuenta anterior.
     - Con `XDG_SESSION_TYPE=wayland`: el aviso de Wayland, que sugiere X11, el interruptor desactivado y el PC como `unsupported` en la cuenta.
   - **Corregido al probarlo:** el registro guardaba los intentos fallidos sin el equipo que los hizo, y el escenario "Consultar intentos fallidos" lo pide. Ahora `HostAuth` recibe el nombre del controlador y `registerFailure()` lo guarda en el intento y en el bloqueo. El texto es "Contraseña incorrecta desde {equipo}".
-  - **Falta:**
-    - los permisos de macOS en Ajustes: `settings-check/test-mac.sh`, desde el Mac;
-    - la pista del cortafuegos de Windows, con el instalador NSIS (9.3).
+  - **macOS 27.0.1** (`settings-check/test-mac.sh`, 5/6 en la primera pasada):
+    - Ajustes muestra los dos permisos con su estado y los límites de macOS, sin el aviso de Wayland ni la pista de Windows;
+    - la cuenta publica el PC como disponible, igual que Ajustes, y la persona delante del Mac confirma que coincide con Ajustes del Sistema;
+    - "Abrir Ajustes del Sistema" abre "Grabación de pantalla y del audio del sistema" y, para Accesibilidad, "Control de dispositivos y acceso a datos".
+  - **Corregido: el nombre de Accesibilidad en macOS 27.**
+    - macOS 27 renombró el permiso de Accesibilidad de Privacidad y seguridad como "Control de dispositivos y acceso a datos" ("Device Control and Data Access"). El enlace `Privacy_Accessibility` abre ese panel.
+    - La app seguía llamándolo "Accesibilidad" en Ajustes y en la notificación de permisos perdidos, un nombre que en macOS 27 no se encuentra.
+    - Ahora, desde macOS 27, usa el nombre nuevo (`accessibilityRenamed()` en `support.ts`, con test). La prueba exige que el panel que se abre se llame como lo nombra Ajustes.
+  - **Falta:** volver a pasar `test-mac.sh` con el nombre nuevo. La pista del cortafuegos de Windows se mira con el instalador NSIS (9.3).
 
 ### D15. Actualizaciones en segundo plano
 - **Búsqueda:** un temporizador de 6 h llama a `checkForUpdates()` y otro aviso al arrancar. Si hay versión nueva, notificación del sistema y entrada en el menú de la bandeja.
@@ -589,6 +595,7 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
 
 - **[macOS, firma ad-hoc]** Tras cada actualización macOS puede retirar Grabación de pantalla y Accesibilidad → la app lo detecta al arrancar, marca el equipo como `missing_permissions` y muestra una notificación con el permiso que falta. La solución definitiva es un certificado de Apple Developer (fuera de alcance).
 - **[macOS 15]** Pide reconfirmar la grabación de pantalla cada mes, y alguien tiene que aceptarlo delante del Mac → documentado en Ajustes y en la web. No hay forma oficial de evitarlo.
+- **[macOS 27]** Accesibilidad pasa a llamarse "Control de dispositivos y acceso a datos" en Privacidad y seguridad → la app usa el nombre de cada versión (6.2). La documentación (8.2) debe dar los dos.
 - **[macOS 27]** El permiso de Grabación de pantalla puede quedar caducado: aparece activado en Ajustes, pero `getMediaAccessStatus('screen')` da `denied`. Pasó con Terminal en las pruebas, y quitarlo y volver a ponerlo no bastó; lo arregló `tccutil reset ScreenCapture <id>`. → Ajustes ya marca el permiso como "falta" cuando pasa. Conviene que la ayuda explique cómo restablecerlo.
 - **[Windows]** Pantalla bloqueada, UAC y ventanas elevadas no se pueden controlar → Ajustes lo explica. Un servicio del sistema queda fuera de alcance.
 - **[Linux, Cinnamon 6.6.9 / muffin 6.6.3]** En el primer ensayo de `lan-check`, el shell de Cinnamon se cayó (SIGSEGV en `window_may_be_covered_by_above`, al atender una petición de activar una ventana). En ese momento la ventana de prueba, sin marco y siempre encima, tapaba el área de trabajo, y se abría la app del controlador. Linux Mint pasó al modo de emergencia (metacity y mate-panel). La ventana de prueba ya no va siempre encima, y no se ha repetido. `viewer-check`, que también usa el aviso siempre encima de la app, nunca lo provocó. → Vigilarlo en las pruebas con paquetes en Cinnamon (9.3), porque el aviso de la sesión también va siempre encima.
