@@ -30,6 +30,7 @@ export default function SettingsPanel({ email, theme, onThemeChange, onClose, on
   const [exportSuccess, setExportSuccess] = useState(false)
   const [appVersion, setAppVersion] = useState<string>('')
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>({ status: 'idle' })
+  const [installBlocked, setInstallBlocked] = useState(false)
   const [encryptionAvailable, setEncryptionAvailable] = useState<boolean | null>(null)
 
   useEffect(() => {
@@ -72,8 +73,9 @@ export default function SettingsPanel({ email, theme, onThemeChange, onClose, on
     }
   }, [])
 
-  const handleInstallUpdate = useCallback(() => {
-    window.api.installUpdate()
+  // Con otro equipo controlando este PC no se reinicia (app-updates): se explica en su lugar
+  const handleInstallUpdate = useCallback(async () => {
+    setInstallBlocked(!(await window.api.installUpdate()))
   }, [])
 
   const handleThemeChange = (newTheme: string) => {
@@ -185,6 +187,11 @@ export default function SettingsPanel({ email, theme, onThemeChange, onClose, on
               <div className="update-message update-success">
                 {t('settings.downloaded')}
               </div>
+              {installBlocked && (
+                <div className="update-message update-info">
+                  {t('settings.installBlockedBySession')}
+                </div>
+              )}
               <button className="settings-btn" onClick={handleInstallUpdate}>
                 <RotateCcw size={16} /> {t('settings.restartAndUpdate')}
               </button>

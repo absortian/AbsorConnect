@@ -19,6 +19,7 @@
     "downloading": "Downloading… {{percent}}%",
     "downloaded": "Update downloaded. Restart to apply.",
     "restartAndUpdate": "Restart and update",
+    "installBlockedBySession": "Another device is controlling this PC right now, so it won't restart. The update will be installed when you quit the app, or press again once the session ends.",
     "downloadFromGitHub": "Download from GitHub",
     "retry": "Retry",
     "errorCheckUpdates": "Could not check for updates.",

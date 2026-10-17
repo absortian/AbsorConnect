@@ -19,6 +19,7 @@
     "downloading": "Descargando… {{percent}}%",
     "downloaded": "Actualización descargada. Reinicia para aplicar.",
     "restartAndUpdate": "Reiniciar y actualizar",
+    "installBlockedBySession": "Ahora mismo otro equipo controla este PC, así que no se reinicia. La actualización se instalará al salir de la app, o vuelve a pulsar cuando termine la sesión.",
     "downloadFromGitHub": "Descargar desde GitHub",
     "retry": "Reintentar",
     "errorCheckUpdates": "No se pudo comprobar actualizaciones.",
