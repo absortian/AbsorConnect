@@ -482,10 +482,14 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
     - unas caducadas se rechazan ("Cannot find credentials");
     - los permisos hacia 192.168.1.10, 10.1.2.3 y `data0` dan 403 "Forbidden IP".
   - **Con una sesión de verdad** (`relay-check`): el backend de desarrollo con el secreto de producción en un `backend/.env.local` temporal, y el controlador obligado a usar el relé. La API da el TURN con credenciales de 24 h, y la sesión conecta en 5 s ("Por relé · 102 ms · 29 fps"). El par elegido es `relay` 46.38.240.212 por UDP, frente al candidato `srflx` del PC.
-  - **Falta para la 3.2:**
-    - el registro DNS;
-    - las variables en el Secret;
-    - desplegar en producción el backend del control remoto: la imagen actual no tiene `/api/devices` ni `/api/remote/ice-servers` (dan 404).
+- **Hecho (tarea 3.2):**
+  - **DNS:** `turn.absor.top` → 46.38.240.212, sin el proxy de Cloudflare. TLS en 5349 valida el certificado para ese nombre.
+  - **Secret:** `TURN_URLS`, `STUN_URLS` y `TURN_SECRET` en `absorconnect-env`, con `kubectl patch`. `backend/.env_prod` tiene que recogerlas también (ver `kube/AGENTS.md`).
+  - **Backend en producción:** Jenkins #6 desplegó el backend del control remoto, que hasta entonces no estaba (`/api/devices` y `/api/remote/ice-servers` daban 404). La migración solo crea `device` y `remote_request`, y los 3 pods se renovaron sin cortar el servicio. Es el paso 1 del Migration Plan.
+  - **Verificado** con `relay-check` contra producción, con la cuenta de prueba, borrada al terminar:
+    - la API da `stun:`/`turn:`/`turns:` de `turn.absor.top`, con credenciales de 24 h;
+    - una sesión solo por relé conecta en 5,6 s ("Por relé · 108 ms · 29 fps"), y el par elegido es `relay` 46.38.240.212 por UDP;
+    - Chromium eligió UDP. TLS en 5349 se comprobó con `turnutils_uclient` en la 3.1.
 - **En desarrollo:** el servicio `turn` de `compose.override.yaml` (perfil `turn`, apagado por defecto) arranca coturn 4.6.3 con la IP de la red local en `TURN_RELAY_IP`. `TURN_URLS` y `TURN_SECRET` van en `backend/.env.local`, que no está en git; tras cambiarlos hay que reiniciar `php`, porque el worker de FrankenPHP no relee el entorno. Así se probó el relé entre dos equipos (6.5).
 
 ### D14. Modo en segundo plano (escritorio)

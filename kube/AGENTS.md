@@ -94,6 +94,7 @@ El control remoto usa un relé TURN propio para las redes en las que WebRTC no c
 - **Cuotas:** 12 asignaciones por usuario (el PC y su controlador son la misma cuenta) y 100 en total, 1 MB/s por sesión y 100 Mbit/s en total.
 - **`denied-peer-ip`:** las redes privadas y reservadas, y además las IP públicas de `head0`, `data0`, `worker0-2`, `cp00` y `cp01`. Si no, una credencial válida bastaría para usar el relé para llegar a servicios que confían en esas máquinas, como el Postgres de `data0`. **Si cambia la IP de alguna, hay que actualizar la lista** y reiniciar el contenedor.
 - **Cambiar el secreto:** a la vez en `turnserver.conf` (con `docker restart coturn`) y en el Secret (`make-env-secret.sh` y reiniciar los pods). Mientras no coincidan, el relé rechaza las credenciales que firma la API.
+- **En el Secret:** `TURN_URLS`, `STUN_URLS` y `TURN_SECRET` se añadieron con `kubectl patch` (17/10/2026), sin pasar por `backend/.env_prod`. Hay que añadirlas también allí (`ssh head0 cat /root/infra-coturn/backend-env.txt >> backend/.env_prod`, quitando antes las que hubiera): si no, el siguiente `make-env-secret.sh` las borraría y la API dejaría de dar el relé.
 - **Comprobar:** `prototypes/remote-desktop/relay-check` hace una sesión solo por relé y mira que el par elegido pase por 46.38.240.212. Para probar el relé a mano, `turnutils_uclient` de la imagen `coturn/coturn:4.6.3`, con credenciales firmadas con el secreto (`<caducidad>:<id>` y HMAC-SHA1 en base64).
 
 ## Despliegue sin cortar peticiones
