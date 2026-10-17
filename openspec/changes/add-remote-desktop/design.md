@@ -427,7 +427,9 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
     - **Ensayo en un solo Linux:** 40/43; las tres sin probar necesitan dos equipos o un escritorio con bandeja.
   - **Falta (resto de la 6.5):**
     - el selector con varias pantallas: el Linux tiene ahora todas las salidas de vídeo desconectadas, y el Mac solo su pantalla. Se intentó simular con dos monitores RandR virtuales (`xrandr --setmonitor … none`), pero no sirve: `desktopCapturer` da una fuente por monitor (sin `display_id`), mientras que `screen.getAllDisplays()`, que es lo que usa el selector, sigue viendo una sola pantalla. Xephyr ignora esos monitores. Hace falta un equipo con dos monitores de verdad;
-    - salir de pantalla completa en el Mac, que en la prueba automática no termina (la pantalla completa nativa vive en su propio Escritorio): `lan-check/fullscreen-mac.sh`, a mano.
+  - **Salir de la pantalla completa en macOS, a mano** (`lan-check/fullscreen-mac.sh`, 4/4 en macOS 27.0.1, controlando el Linux):
+    - se sale con el botón verde de la ventana, con el botón de la barra del visor y con Esc;
+    - las tres veces el visor vuelve a 1280×800, enfocado y con imagen (siguen llegando fotogramas), y la persona confirma que vuelve a su Escritorio. Comentario: "Todo perfecto".
   - **Alt+Tab en pantalla completa y controlador en Wayland** (`fullscreen-check`, 11/11 en un solo Linux). El PC va en Xephyr `:77`, para que lo que inyecta no vuelva al visor.
     - **Alt+Tab y la tecla Windows**, con metacity como gestor de ventanas (la shell de Cinnamon estaba caída) y las teclas pulsadas de verdad con XTest:
       - con la ventana normal, del visor solo sale `AltLeft↓` y `release-all`: Tab se lo queda el gestor;
