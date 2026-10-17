@@ -12,6 +12,7 @@ Pruebas de los puntos de riesgo del grupo 1 de `openspec/changes/add-remote-desk
 | `input-check/test-mac.sh background` | 4.1 y 4.2 | La app empaquetada en macOS (AbsorCheck.app): barra de menús y su menú, Dock, cerrar a la bandeja, instancia única, arranque oculto, abrir al iniciar sesión y aviso de versión nueva. |
 | `controller-check/` | 4.8 | Un controlador de prueba contra la app de verdad como PC controlado, en el mismo Linux X11 y con el backend de desarrollo: autenticación, imagen, entrada, aviso, ocupado, Desconectar, confirmación local y bloqueo. |
 | `viewer-check/` | 4.9, 6.4 y 6.5 | Dos instancias de la app (PC oculto y controlador manejado por DevTools): Equipos, conectar, errores, imagen, estado, ratón, reconexión y que el token no llegue a ningún renderer. |
+| `dev-check/` | 5.1 y 6.1 | Las tres páginas y sus preloads: la compilación, el modo desarrollo (`npm run dev`) y que cada ventana solo tenga su propio puente. |
 | `exit-check/` | 4.10 y 4.2 | Salir de la cuenta con una sesión abierta (en el PC, en el controlador y por caducidad con el PC en la bandeja) y, con un AppImage de prueba, una actualización descargada durante una sesión. |
 
 Al abrirlo sin argumentos se ejecuta todo, y el resultado se guarda en `Descargas/absor-remote-prototype-<sistema>-<arquitectura>-<prueba>.json` (un fichero por prueba) y se muestra en una ventana. Durante la prueba aparece una ventanita en la esquina inferior derecha y suena un pitido suave. El ratón salta unos píxeles al principio y vuelve a su sitio. Nada sale del equipo.
@@ -136,6 +137,25 @@ ELECTRON_RUN_AS_NODE=1 node_modules/electron/dist/electron prototypes/remote-des
 Lleva el ratón al 10 % de la pantalla, una zona que no tapa el visor: si no, el cursor que mueve A caería sobre el visor de B y volvería a A en bucle. No hace clics en el PC.
 
 Usa la misma cuenta de prueba que `controller-check`.
+
+## Páginas y preloads (`dev-check/`, tareas 5.1 y 6.1)
+
+A es la app en modo desarrollo (`electron-vite dev`, lo que lanza `npm run dev`) y hace de PC. B es la app compilada y hace de controlador. Las dos se manejan por DevTools, en un Linux X11 con el backend de desarrollo. Comprueba:
+
+- que `npm run build` deja las tres páginas y los tres preloads;
+- que en desarrollo la ventana principal, un visor y la ventana `host` de una sesión de verdad salen del servidor de Vite;
+- que cada ventana solo tiene su puente (`api`, `absorViewer` o `absorHost`), y que el visor y la ventana `host`, con sandbox, no tienen `require` ni `process`.
+
+electron-vite lanza la app con su mismo entorno, así que la prueba le pasa un envoltorio en `ELECTRON_EXEC_PATH` que quita `ELECTRON_RUN_AS_NODE`. Los argumentos de la app van detrás de `--`. `electron-vite dev` recompila el proceso principal y los preloads en `out/` en modo desarrollo, así que conviene volver a compilar al terminar:
+
+```bash
+bin/dev npx electron-vite build
+bin/dev sh -c 'cd prototypes/remote-desktop/dev-check && npx esbuild main.ts --bundle --platform=node --format=cjs --target=node22 --external:electron --outfile=out/main.cjs'
+ELECTRON_RUN_AS_NODE=1 node_modules/electron/dist/electron prototypes/remote-desktop/dev-check/out/main.cjs --api=http://127.0.0.1:8020 --work=/tmp/absor-dev-check --out=/tmp/dev-check.json
+bin/dev npx electron-vite build
+```
+
+Dura menos de un minuto. Usa la misma cuenta de prueba que `controller-check`.
 
 ## Salir de la cuenta y actualizar durante una sesión (`exit-check/`, tareas 4.10 y 4.2)
 
