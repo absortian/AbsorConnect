@@ -57,7 +57,8 @@ services:
   #   TURN_SECRET=turn-de-desarrollo
   # En la red de casa no se bloquean las IP privadas (en producción, sí: denied-peer-ip).
   turn:
-    image: coturn/coturn:4.6.3
+    # La misma versión que en producción (head0): la 4.6.3 tenía vulnerabilidades conocidas
+    image: coturn/coturn:4.18.0
     profiles: [turn]
     network_mode: host
     command:
@@ -72,6 +73,5 @@ services:
       - --use-auth-secret
       - --static-auth-secret=turn-de-desarrollo
       - --fingerprint
+      # Desde coturn 4.18, DTLS y la CLI ya van apagados por defecto
       - --no-tls
-      - --no-dtls
-      - --no-cli
