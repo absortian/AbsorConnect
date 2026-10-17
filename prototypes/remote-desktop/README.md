@@ -12,6 +12,7 @@ Pruebas de los puntos de riesgo del grupo 1 de `openspec/changes/add-remote-desk
 | `input-check/test-mac.sh background` | 4.1 y 4.2 | La app empaquetada en macOS (AbsorCheck.app): barra de menús y su menú, Dock, cerrar a la bandeja, instancia única, arranque oculto, abrir al iniciar sesión y aviso de versión nueva. |
 | `controller-check/` | 4.8 | Un controlador de prueba contra la app de verdad como PC controlado, en el mismo Linux X11 y con el backend de desarrollo: autenticación, imagen, entrada, aviso, ocupado, Desconectar, confirmación local y bloqueo. |
 | `viewer-check/` | 4.9, 6.4 y 6.5 | Dos instancias de la app (PC oculto y controlador manejado por DevTools): Equipos, conectar, errores, imagen, estado, ratón, reconexión y que el token no llegue a ningún renderer. |
+| `exit-check/` | 4.10 y 4.2 | Salir de la cuenta con una sesión abierta (en el PC, en el controlador y por caducidad con el PC en la bandeja) y, con un AppImage de prueba, una actualización descargada durante una sesión. |
 
 Al abrirlo sin argumentos se ejecuta todo, y el resultado se guarda en `Descargas/absor-remote-prototype-<sistema>-<arquitectura>-<prueba>.json` (un fichero por prueba) y se muestra en una ventana. Durante la prueba aparece una ventanita en la esquina inferior derecha y suena un pitido suave. El ratón salta unos píxeles al principio y vuelve a su sitio. Nada sale del equipo.
 
@@ -135,6 +136,30 @@ ELECTRON_RUN_AS_NODE=1 node_modules/electron/dist/electron prototypes/remote-des
 Lleva el ratón al 10 % de la pantalla, una zona que no tapa el visor: si no, el cursor que mueve A caería sobre el visor de B y volvería a A en bucle. No hace clics en el PC.
 
 Usa la misma cuenta de prueba que `controller-check`.
+
+## Salir de la cuenta y actualizar durante una sesión (`exit-check/`, tareas 4.10 y 4.2)
+
+Dos instancias de la app compilada en el mismo Linux X11, con el backend de desarrollo, las dos manejadas por DevTools: A es el PC controlado y B el controlador. Una tercera sesión de la cuenta mira la lista de equipos. Las notificaciones se leen con `dbus-monitor` y la bandeja por D-Bus.
+
+1. **A cierra sesión** en Ajustes mientras B lo controla: el visor de B dice que el PC ha cerrado la sesión de la cuenta, A vuelve a la pantalla de acceso y deja de aparecer en la cuenta (y no vuelve solo), y su bandeja dice "Control remoto: desactivado". Al volver a entrar en A, vuelve a estar disponible.
+2. **B cierra sesión** con el visor abierto: el visor se cierra y A queda libre.
+3. **La sesión de A caduca** (se revoca su token) con A en la bandeja, sin ventana, y B conectado: la sesión termina, A muestra la notificación y deja de estar en línea, y la app sigue en marcha.
+4. **Con `--appimage`:** A es un AppImage 0.0.1 que encuentra la 9.9.9 en un servidor local (el mismo AppImage, servido en el puerto 8799). Comprueba el aviso al arrancar y la entrada de la bandeja. Con B conectado, descarga la versión nueva desde Ajustes y pulsa "Reiniciar y actualizar": la app no se reinicia, lo explica y siguen llegando imágenes al visor. Sin sesión, el mismo botón cierra la app y reemplaza el AppImage.
+
+El AppImage de prueba se llama AbsorCheck, con otro appId, y su actualizador apunta al servidor local. La configuración combinada se escribe en `dist/`:
+
+```bash
+bin/dev npx electron-vite build
+bin/dev node -e "const y=require('js-yaml'),fs=require('fs');const c=y.load(fs.readFileSync('electron-builder.yml','utf8'));Object.assign(c,{appId:'com.absor.connect.check',productName:'AbsorCheck',publish:{provider:'generic',url:'http://127.0.0.1:8799/'},electronDist:'node_modules/electron/dist'});c.directories.output='dist/check';c.linux.target=['AppImage'];fs.writeFileSync('dist/check-builder.yml',y.dump(c))"
+bin/dev npx electron-builder --linux AppImage --publish never --config dist/check-builder.yml -c.extraMetadata.name=absor-connect-check -c.extraMetadata.version=0.0.1
+bin/dev sh -c 'cd prototypes/remote-desktop/exit-check && npx esbuild main.ts --bundle --platform=node --format=cjs --target=node22 --external:electron --outfile=out/main.cjs'
+ELECTRON_RUN_AS_NODE=1 node_modules/electron/dist/electron prototypes/remote-desktop/exit-check/out/main.cjs --api=http://127.0.0.1:8020 --work=/tmp/absor-exit-check --out=/tmp/exit-check.json --appimage=dist/check/absor-connect-0.0.1.AppImage
+```
+
+- Sin `--appimage` hace solo las tres primeras fases. Dura unos 3 minutos (4 con el AppImage).
+- Si el escritorio no tiene servicio de notificaciones o bandeja (por ejemplo, con la shell de Cinnamon caída), `desktop-stub.py` (Python 3 con PyGObject) los pone mientras dura la prueba. El JSON dice en `desktop` lo que tuvo que poner.
+- Tras instalar, electron-updater vuelve a abrir el AppImage sin argumentos. Por eso el AppImage lleva su propio `XDG_CONFIG_HOME` y `XDG_CACHE_HOME` dentro de la carpeta de trabajo: así no escribe en `~/.config` ni en `~/.cache`, y la prueba reconoce y cierra la instancia reabierta.
+- Usa la misma cuenta de prueba que `controller-check`.
 
 ## Prueba de Ajustes (`settings-check/`, tarea 6.2)
 
