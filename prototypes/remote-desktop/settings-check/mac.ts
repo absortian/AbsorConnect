@@ -111,7 +111,10 @@ async function run(): Promise<void> {
   const permissions = await ui.eval<Record<string, string>>(`Object.fromEntries([...document.querySelectorAll('.settings-panel .settings-row')]
     .filter((r) => r.querySelector('.permission-missing, .permission-granted'))
     .map((r) => [r.querySelector('.settings-row-label').innerText, r.querySelector('.permission-missing') ? 'Falta' : 'Concedido']))`)
-  check('Ajustes muestra los dos permisos de macOS con su estado', Object.keys(permissions).length === 2 && 'Grabación de pantalla' in permissions && 'Accesibilidad' in permissions, permissions)
+  // Desde macOS 27, Accesibilidad se llama "Control de dispositivos y acceso a datos"
+  const renamed = Number(report.macos.split('.')[0]) >= 27
+  const accessibilityLabel = renamed ? 'Control de dispositivos y acceso a datos' : 'Accesibilidad'
+  check('Ajustes muestra los dos permisos de macOS, con el nombre de esta versión y su estado', Object.keys(permissions).length === 2 && 'Grabación de pantalla' in permissions && accessibilityLabel in permissions, permissions)
   check('Ajustes explica los límites de macOS y no muestra el aviso de Wayland ni la pista de Windows', text.includes('Desde macOS 15') && !text.includes('Wayland') && !text.includes('Windows puede preguntar'), null)
 
   // Lo que publica la cuenta, coherente con lo que muestra
@@ -135,17 +138,17 @@ async function run(): Promise<void> {
   const matches = await ask(`Ajustes de la app dice: ${summary}.\n\n¿Coincide con lo que tiene Terminal (o la app desde la que lanzaste la prueba) en Ajustes del Sistema > Privacidad y seguridad?`)
   check('lo que dice Ajustes coincide con Ajustes del Sistema (según la persona delante del Mac)', matches, summary)
 
-  // Cada botón abre su panel
-  for (const [label, expectedPane] of [['Grabación de pantalla', /Grabación|Screen/], ['Accesibilidad', /Accesibilidad|Accessibility/]] as const) {
+  // Cada botón abre su panel, y el panel se llama como lo nombra Ajustes de la app
+  for (const label of ['Grabación de pantalla', accessibilityLabel]) {
     await osascript('tell application "System Settings" to quit')
     await sleep(1500)
     await ui.eval(`[...document.querySelectorAll('.settings-panel .settings-row')].find((r) => r.querySelector('.settings-row-label')?.innerText === ${JSON.stringify(label)}).querySelector('button').click()`)
     let title = ''
-    for (let i = 0; i < 16 && !expectedPane.test(title); i++) {
+    for (let i = 0; i < 16 && !title.includes(label); i++) {
       await sleep(500)
       title = await osascript('tell application "System Events" to tell process "System Settings" to get name of front window', 10_000)
     }
-    check(`"Abrir Ajustes del Sistema" de ${label} abre su panel`, expectedPane.test(title), title)
+    check(`"Abrir Ajustes del Sistema" de ${label} abre el panel con ese nombre`, title.includes(label), title)
   }
   await osascript('tell application "System Settings" to quit')
   ui.close()

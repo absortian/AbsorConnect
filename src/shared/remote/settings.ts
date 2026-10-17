@@ -36,6 +36,8 @@ export interface RemoteSettingsState {
   encryptionAvailable: boolean
   support: RemoteSupportInfo
   platform: string
+  /** macOS 27 o posterior: el permiso de Accesibilidad se llama "Control de dispositivos y acceso a datos". */
+  accessibilityRenamed: boolean
   /** Alguien controla este PC ahora. */
   active: boolean
   log: RemoteLogInfo[]

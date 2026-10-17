@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
+  accessibilityRenamed,
   evaluateSupport,
   isWaylandSession,
   MacPermission,
@@ -81,6 +82,21 @@ describe('missingPermissionsMessage', () => {
     )
     expect(missingPermissionsMessage(['screen', 'accessibility'], 'fr')).toContain(
       'Screen Recording and Accessibility permissions'
+    )
+  })
+
+  it('desde macOS 27 nombra el permiso de Accesibilidad como "Control de dispositivos y acceso a datos"', () => {
+    expect(accessibilityRenamed('26.4')).toBe(false)
+    expect(accessibilityRenamed('27.0.1')).toBe(true)
+    expect(accessibilityRenamed('')).toBe(false)
+    expect(missingPermissionsMessage(['accessibility'], 'es', '27.0.1')).toContain(
+      'el permiso de Control de dispositivos y acceso a datos'
+    )
+    expect(missingPermissionsMessage(['screen', 'accessibility'], 'en', '27.0')).toContain(
+      'Screen Recording and Device Control and Data Access permissions'
+    )
+    expect(missingPermissionsMessage(['accessibility'], 'es', '15.6')).toContain(
+      'el permiso de Accesibilidad'
     )
   })
 })

@@ -310,6 +310,7 @@
     "permissions": "Permisos de macOS",
     "screen": "Grabación de pantalla",
     "accessibility": "Accesibilidad",
+    "accessibility27": "Control de dispositivos y acceso a datos",
     "granted": "Concedido",
     "missing": "Falta",
     "openPanel": "Abrir Ajustes del Sistema",

@@ -51,15 +51,42 @@ export function evaluateSupport(input: SupportInput): RemoteSupport {
   }
 }
 
-const PERMISSION_NAMES: Record<'es' | 'en', Record<MacPermission, string>> = {
-  es: { screen: 'Grabación de pantalla', accessibility: 'Accesibilidad' },
-  en: { screen: 'Screen Recording', accessibility: 'Accessibility' }
+/**
+ * macOS 27 cambió el nombre del permiso de Accesibilidad en Privacidad y seguridad: ahora es
+ * "Control de dispositivos y acceso a datos" (el enlace `Privacy_Accessibility` abre ese panel). La
+ * app lo nombra como se ve en Ajustes del Sistema. `macosVersion` es la de macOS, p. ej. "27.0.1".
+ */
+export function accessibilityRenamed(macosVersion: string): boolean {
+  return Number(macosVersion.split('.')[0]) >= 27
+}
+
+const PERMISSION_NAMES: Record<'es' | 'en', Record<MacPermission | 'accessibility27', string>> = {
+  es: {
+    screen: 'Grabación de pantalla',
+    accessibility: 'Accesibilidad',
+    accessibility27: 'Control de dispositivos y acceso a datos'
+  },
+  en: {
+    screen: 'Screen Recording',
+    accessibility: 'Accessibility',
+    accessibility27: 'Device Control and Data Access'
+  }
 }
 
 /** Texto de la notificación de permisos perdidos, con los que faltan. */
-export function missingPermissionsMessage(missing: MacPermission[], language: string): string {
+export function missingPermissionsMessage(
+  missing: MacPermission[],
+  language: string,
+  macosVersion = ''
+): string {
   const lang = language === 'es' ? 'es' : 'en'
-  const names = missing.map((permission) => PERMISSION_NAMES[lang][permission])
+  const renamed = accessibilityRenamed(macosVersion)
+  const names = missing.map(
+    (permission) =>
+      PERMISSION_NAMES[lang][
+        permission === 'accessibility' && renamed ? 'accessibility27' : permission
+      ]
+  )
   if (lang === 'es') {
     const list = names.join(' y ')
     return names.length > 1

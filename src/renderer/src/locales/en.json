@@ -310,6 +310,7 @@
     "permissions": "macOS permissions",
     "screen": "Screen Recording",
     "accessibility": "Accessibility",
+    "accessibility27": "Device Control and Data Access",
     "granted": "Granted",
     "missing": "Missing",
     "openPanel": "Open System Settings",

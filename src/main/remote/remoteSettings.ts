@@ -13,6 +13,7 @@ import {
 import { primeFirewall } from './hostSession'
 import { remoteHost } from './hostRuntime'
 import { openPermissionSettings } from './platformSupport'
+import { accessibilityRenamed } from './support'
 import { PasswordTooShortError } from './remoteAccessStore'
 
 async function state(): Promise<RemoteSettingsState | null> {
@@ -31,6 +32,8 @@ async function state(): Promise<RemoteSettingsState | null> {
     encryptionAvailable: snapshot.encryptionAvailable,
     support: support(),
     platform: process.platform,
+    accessibilityRenamed:
+      process.platform === 'darwin' && accessibilityRenamed(process.getSystemVersion()),
     active: service?.isActive() ?? false,
     log: await store.getLog()
   }

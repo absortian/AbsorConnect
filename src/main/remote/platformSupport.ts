@@ -58,7 +58,7 @@ export function notifyMissingPermissions(
   if (missing.length === 0 || !Notification.isSupported()) return
   const notification = new Notification({
     title: 'Absor Connect',
-    body: missingPermissionsMessage(missing, options.language)
+    body: missingPermissionsMessage(missing, options.language, process.getSystemVersion())
   })
   if (options.onClick) notification.on('click', options.onClick)
   notification.show()

@@ -350,7 +350,13 @@ function RemoteAccess(props: RemoteAccessProps): React.JSX.Element {
             return (
               <div className="settings-row" key={permission}>
                 <div>
-                  <div className="settings-row-label">{t(`remoteAccess.${permission}`)}</div>
+                  <div className="settings-row-label">
+                    {t(
+                      permission === 'accessibility' && remote.accessibilityRenamed
+                        ? 'remoteAccess.accessibility27'
+                        : `remoteAccess.${permission}`
+                    )}
+                  </div>
                   <div
                     className={`settings-row-hint ${missing ? 'permission-missing' : 'permission-granted'}`}
                   >
