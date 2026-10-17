@@ -426,7 +426,7 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
     - **Más del visor:** tamaño real a 1:1 con desplazamiento; "Win / Cmd" del menú de combinaciones llega al PC; con Ctrl pulsado, al perder el foco el PC lo suelta; y tras 5 contraseñas incorrectas, el sexto intento dice "Demasiados intentos fallidos. El PC no acepta conexiones durante 15 min.".
     - **Ensayo en un solo Linux:** 40/43; las tres sin probar necesitan dos equipos o un escritorio con bandeja.
   - **Falta (resto de la 6.5):**
-    - el selector con varias pantallas: el Linux tiene ahora todas las salidas de vídeo desconectadas, y el Mac solo su pantalla;
+    - el selector con varias pantallas: el Linux tiene ahora todas las salidas de vídeo desconectadas, y el Mac solo su pantalla. Se intentó simular con dos monitores RandR virtuales (`xrandr --setmonitor … none`), pero no sirve: `desktopCapturer` da una fuente por monitor (sin `display_id`), mientras que `screen.getAllDisplays()`, que es lo que usa el selector, sigue viendo una sola pantalla. Xephyr ignora esos monitores. Hace falta un equipo con dos monitores de verdad;
     - Alt+Tab capturado en pantalla completa (Windows o Linux con gestor de ventanas);
     - el controlador en Wayland;
     - salir de pantalla completa en el Mac, que en la prueba automática no termina (la pantalla completa nativa vive en su propio Escritorio) y falta comprobarlo a mano.
