@@ -556,10 +556,16 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
     - cambiar la contraseña funciona y el registro se muestra vacío;
     - desactivar publica `disabled`.
   - **Revisado en capturas:** la sección se ve bien en el tema oscuro, después de poner el botón de la contraseña en una sola línea.
-  - **Sin probar:**
-    - "Abrir al iniciar sesión" desde Ajustes (la prueba no lo toca porque escribiría en el autostart del usuario real; la función ya se verificó en 4.1);
-    - los permisos de macOS, la pista del cortafuegos de Windows y el aviso de Wayland, en sus sistemas;
-    - el registro con sesiones reales y el aviso de "controlado ahora".
+  - **Con sesiones de verdad** (`settings-check/sessions.ts`, 10/10 en Linux X11). El PC tiene su ventana y un controlador se maneja por DevTools:
+    - "Abrir al iniciar sesión" escribe el autostart con `--hidden` y desactivarla lo borra. El PC va con otro `HOME`, para no tocar el autostart real.
+    - El registro muestra el intento con la contraseña incorrecta ("17/10/2026, 17:41:26 · Contraseña incorrecta desde Controlador de prueba"), el inicio de la sesión y su fin con la duración. Durante la sesión dice "Alguien está controlando este PC ahora.".
+    - Desactivar durante la sesión la corta ("El PC ha desactivado el control remoto.") y se publica. Al volver a activarlo, como ya tiene contraseña, queda disponible.
+    - Al volver a entrar con la misma cuenta sigue activado, y la misma contraseña vale. Con otra cuenta queda desactivado y sin contraseña, y el PC ya no está en la cuenta anterior.
+    - Con `XDG_SESSION_TYPE=wayland`: el aviso de Wayland, que sugiere X11, el interruptor desactivado y el PC como `unsupported` en la cuenta.
+  - **Corregido al probarlo:** el registro guardaba los intentos fallidos sin el equipo que los hizo, y el escenario "Consultar intentos fallidos" lo pide. Ahora `HostAuth` recibe el nombre del controlador y `registerFailure()` lo guarda en el intento y en el bloqueo. El texto es "Contraseña incorrecta desde {equipo}".
+  - **Falta:**
+    - los permisos de macOS en Ajustes: `settings-check/test-mac.sh`, desde el Mac;
+    - la pista del cortafuegos de Windows, con el instalador NSIS (9.3).
 
 ### D15. Actualizaciones en segundo plano
 - **Búsqueda:** un temporizador de 6 h llama a `checkForUpdates()` y otro aviso al arrancar. Si hay versión nueva, notificación del sistema y entrada en el menú de la bandeja.
