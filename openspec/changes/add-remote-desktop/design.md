@@ -427,9 +427,17 @@ Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Un
     - **Ensayo en un solo Linux:** 40/43; las tres sin probar necesitan dos equipos o un escritorio con bandeja.
   - **Falta (resto de la 6.5):**
     - el selector con varias pantallas: el Linux tiene ahora todas las salidas de vídeo desconectadas, y el Mac solo su pantalla. Se intentó simular con dos monitores RandR virtuales (`xrandr --setmonitor … none`), pero no sirve: `desktopCapturer` da una fuente por monitor (sin `display_id`), mientras que `screen.getAllDisplays()`, que es lo que usa el selector, sigue viendo una sola pantalla. Xephyr ignora esos monitores. Hace falta un equipo con dos monitores de verdad;
-    - Alt+Tab capturado en pantalla completa (Windows o Linux con gestor de ventanas);
-    - el controlador en Wayland;
-    - salir de pantalla completa en el Mac, que en la prueba automática no termina (la pantalla completa nativa vive en su propio Escritorio) y falta comprobarlo a mano.
+    - salir de pantalla completa en el Mac, que en la prueba automática no termina (la pantalla completa nativa vive en su propio Escritorio): `lan-check/fullscreen-mac.sh`, a mano.
+  - **Alt+Tab en pantalla completa y controlador en Wayland** (`fullscreen-check`, 11/11 en un solo Linux). El PC va en Xephyr `:77`, para que lo que inyecta no vuelva al visor.
+    - **Alt+Tab y la tecla Windows**, con metacity como gestor de ventanas (la shell de Cinnamon estaba caída) y las teclas pulsadas de verdad con XTest:
+      - con la ventana normal, del visor solo sale `AltLeft↓` y `release-all`: Tab se lo queda el gestor;
+      - en pantalla completa salen `AltLeft↓ Tab↓ Tab↑ AltLeft↑` y `MetaLeft↓ MetaLeft↑`, y el visor sigue en pantalla completa y enfocado;
+      - al salir de la pantalla completa, Alt+Tab vuelve a ser del gestor.
+    - **Controlador en Wayland** (`muffin --wayland --nested`, `--ozone-platform=wayland`):
+      - llega la imagen ("Directa · 0 ms · 30 fps");
+      - el ratón al 25 % de la imagen cae en (800, 298) del PC, frente a (800, 300) esperado;
+      - las teclas van por posición (`KeyA`);
+      - la pantalla completa entra y sale.
 
 ### D12. App móvil
 - **WebRTC:** `flutter_webrtc` (`RTCPeerConnection`, `RTCVideoView`, canales de datos). Mismo protocolo (D9).
