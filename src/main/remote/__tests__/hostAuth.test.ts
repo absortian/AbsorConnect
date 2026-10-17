@@ -61,7 +61,7 @@ describe('HostAuth', () => {
   })
 
   it('una contraseña incorrecta falla y cuenta como intento; no hay segundo intento', async () => {
-    const auth = new HostAuth(store, OFFER, ANSWER)
+    const auth = new HostAuth(store, OFFER, ANSWER, 'Portátil')
     expect(await auth.verify(await controllerProof(auth, 'otra-contraseña'))).toEqual({
       ok: false,
       reason: 'wrong_password'
@@ -71,7 +71,10 @@ describe('HostAuth', () => {
       ok: false,
       reason: 'wrong_password'
     })
-    expect((await store.getLog()).filter((e) => e.type === 'auth-failed')).toHaveLength(1)
+    // En el registro, con el equipo que lo intentó (remote-access-host, "Consultar intentos fallidos")
+    expect((await store.getLog()).filter((e) => e.type === 'auth-failed')).toEqual([
+      expect.objectContaining({ controller: 'Portátil' })
+    ])
   })
 
   it('si alguien cambia las huellas por el camino, la prueba no coincide', async () => {

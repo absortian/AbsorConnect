@@ -324,7 +324,7 @@
     "logTypes": {
       "session-start": "Sesión iniciada desde {{controller}}",
       "session-end": "Sesión con {{controller}} terminada ({{duration}})",
-      "auth-failed": "Intento con contraseña incorrecta",
+      "auth-failed": "Contraseña incorrecta desde {{controller}}",
       "locked": "Bloqueado 15 minutos por intentos fallidos"
     },
     "errors": {

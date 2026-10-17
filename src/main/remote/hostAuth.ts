@@ -39,6 +39,8 @@ export class HostAuth {
     private readonly store: AuthStore,
     private readonly offer: string,
     private readonly answer: string,
+    /** Nombre del equipo que se conecta, para el registro de intentos fallidos. */
+    private readonly controller: string | null = null,
     private readonly now: () => number = Date.now
   ) {}
 
@@ -71,7 +73,7 @@ export class HostAuth {
       await this.store.clearFailures()
       return { ok: true }
     }
-    await this.store.registerFailure(now)
+    await this.store.registerFailure(now, this.controller ?? undefined)
     return { ok: false, reason: 'wrong_password' }
   }
 }

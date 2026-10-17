@@ -159,16 +159,17 @@ export class RemoteAccessStore {
     return lockRemainingSeconds(await this.lockState(), now)
   }
 
-  async registerFailure(now = Date.now()): Promise<void> {
+  /** Un intento con la contraseña incorrecta, con el equipo que lo hizo para el registro. */
+  async registerFailure(now = Date.now(), controller?: string): Promise<void> {
     const d = await this.load()
     const next = registerFailure(this.toLockState(d), now)
     d.failures = next.failures
     const wasLocked = d.lockedUntil
     d.lockedUntil = next.lockedUntil
     if (next.lockedUntil && next.lockedUntil !== wasLocked) {
-      d.log = appendLog(d.log, { at: now, type: 'locked' })
+      d.log = appendLog(d.log, { at: now, type: 'locked', controller })
     }
-    d.log = appendLog(d.log, { at: now, type: 'auth-failed' })
+    d.log = appendLog(d.log, { at: now, type: 'auth-failed', controller })
     await this.persist()
   }
 

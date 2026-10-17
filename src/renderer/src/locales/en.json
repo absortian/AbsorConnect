@@ -324,7 +324,7 @@
     "logTypes": {
       "session-start": "Session started from {{controller}}",
       "session-end": "Session with {{controller}} ended ({{duration}})",
-      "auth-failed": "Attempt with a wrong password",
+      "auth-failed": "Wrong password from {{controller}}",
       "locked": "Locked for 15 minutes after failed attempts"
     },
     "errors": {

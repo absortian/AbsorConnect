@@ -119,7 +119,12 @@ class ActiveHostSession implements HostSession {
       setTimeout(() => reject(new Error('answer_timeout')), ANSWER_TIMEOUT_MS)
     )
     this.answer = await Promise.race([this.answerReceived, timeout])
-    this.auth = new HostAuth(this.ctx.store, this.request.offer, this.answer)
+    this.auth = new HostAuth(
+      this.ctx.store,
+      this.request.offer,
+      this.answer,
+      this.request.controllerName
+    )
     this.setTimer(AUTH_TIMEOUT_MS, 'expired')
   }
 
