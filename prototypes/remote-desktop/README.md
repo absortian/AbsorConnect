@@ -192,8 +192,28 @@ ELECTRON_RUN_AS_NODE=1 node_modules/electron/dist/electron prototypes/remote-des
 ```
 
 - Con `--screenshot` guarda dos capturas de la sección del control remoto: `settings.png` y `settings-2.png`.
-- No toca "Abrir al iniciar sesión", porque en Linux escribiría en `~/.config/autostart` del usuario real.
+- No toca "Abrir al iniciar sesión", porque en Linux escribiría en `~/.config/autostart` del usuario real (eso lo prueba `sessions.ts`, con otro `HOME`).
 - Al terminar espera a que la app se cierre (tarda unos 2,5 s), porque la siguiente ejecución usa la misma carpeta y el mismo puerto.
+
+**Con sesiones de verdad (`sessions.ts`).** El PC (A, con su ventana) y un controlador (B), los dos manejados por DevTools:
+
+- "Abrir al iniciar sesión" desde Ajustes. A va con su propio `HOME`, así que el autostart se escribe en la carpeta de la prueba. En desarrollo, la línea `Exec` apunta al Electron de `node_modules`; en un paquete, a la app.
+- El registro: un intento con la contraseña incorrecta (con fecha, hora y equipo), el inicio y el fin de la sesión con su duración, y "Alguien está controlando este PC ahora".
+- Desactivar durante una sesión: el visor lo dice y la cuenta lo publica.
+- Volver a entrar con la misma cuenta (sigue activado y la misma contraseña vale) y con otra (desactivado y sin contraseña). La otra cuenta es `prueba-control-otra@example.test`, y se crea si no existe.
+- Con `XDG_SESSION_TYPE=wayland` (y la app dibujando con X11), el aviso de Wayland, el interruptor desactivado y el PC publicado como no compatible.
+
+```bash
+bin/dev sh -c 'cd prototypes/remote-desktop/settings-check && npx esbuild sessions.ts --bundle --platform=node --format=cjs --target=node22 --external:electron --outfile=out/sessions.cjs'
+ELECTRON_RUN_AS_NODE=1 node_modules/electron/dist/electron prototypes/remote-desktop/settings-check/out/sessions.cjs --api=http://127.0.0.1:8020 --work=/tmp/absor-settings-sessions --out=/tmp/settings-sessions.json
+```
+
+**En macOS (`test-mac.sh`).** Con el backend de desarrollo de otro equipo: `settings-check/test-mac.sh http://<ip del otro equipo>:8020`.
+
+- Comprueba que se ven los dos permisos y los límites de macOS, sin el aviso de Wayland ni la pista del cortafuegos de Windows.
+- Comprueba que lo que dice de los permisos coincide con lo que publica la cuenta.
+- Pregunta una vez si coincide con Ajustes del Sistema y comprueba que cada "Abrir Ajustes del Sistema" abre su panel.
+- Deja el JSON y una captura de la sección en `~/Downloads/absor-settings-check-macos.*`. Terminal necesita Accesibilidad y permiso para controlar System Events.
 
 `lib/cdp.ts` tiene lo común para manejar una ventana por DevTools: listar las páginas, evaluar código, esperar a que algo se cumpla y hacer capturas.
 
