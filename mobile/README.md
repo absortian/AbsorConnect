@@ -6,6 +6,7 @@ No hay cuenta de Google Play ni de Apple Developer, así que la app no está en 
 
 - **Android:** APK firmado con una clave propia, descargable desde la web y la release de GitHub. La app avisa en Ajustes cuando hay una versión nueva.
 - **iPhone:** IPA **sin firmar** que SideStore, AltStore Classic o Sideloadly firman con el Apple ID de cada persona. Con un Apple ID gratuito la app caduca a los 7 días (SideStore y AltStore Classic la renuevan solos) y hay un máximo de 3 apps instaladas así. La fuente es `altstore-source.json` en la última release (formato de AltStore, que también lee SideStore).
+- **Sin ordenador con AltStore Classic 2.3+:** en sus ajustes, "Remote AltServer" (con la VPN local LocalDevVPN) instala y renueva las apps desde el propio dispositivo. Como servidor se puede elegir el nuestro, `https://anisette.absor.top` (ver `kube/AGENTS.md`), en vez de los de la comunidad.
 - **AltStore PAL no sirve:** la versión de AltStore para la UE (la que se instala sin ordenador) solo instala apps notarizadas por Apple y rechaza la fuente con «missing a marketplaceID». Notarizar exige la cuenta de Apple Developer de pago.
 
 ## Estructura

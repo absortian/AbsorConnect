@@ -103,6 +103,27 @@ avisos de seguridad de coturn: la 4.6.3 con la que se desplegó tenía vulnerabi
 - **En el Secret:** `TURN_URLS`, `STUN_URLS` y `TURN_SECRET`, también en `backend/.env_prod`.
 - **Comprobar:** `prototypes/remote-desktop/relay-check` hace una sesión solo por relé y mira que el par elegido pase por 46.38.240.212. Para probar el relé a mano, `turnutils_uclient` de la imagen `coturn/coturn:4.6.3`, con credenciales firmadas con el secreto (`<caducidad>:<id>` y HMAC-SHA1 en base64).
 
+## Anisette para AltStore (`head0`)
+AltStore Classic 2.3+ instala y renueva las apps en el iPhone o el iPad sin ordenador ("Remote
+AltServer" en sus ajustes, con la VPN local LocalDevVPN). Para firmar necesita datos de *anisette*
+(la autenticación de máquina que Apple pide al firmar), y en vez de los servidores de la comunidad
+usamos uno propio: `anisette-v3-server` en Docker en `head0`, en `/root/infra-anisette/`, publicado como
+`https://anisette.absor.top`.
+- **Qué ve:** no recibe el Apple ID ni su contraseña, que van del dispositivo a Apple. Solo da las cabeceras
+  `X-Apple-I-MD…` de una máquina aprovisionada.
+- **Contenedor:** `dadoum/anisette-v3-server` con versión fija (`10-2026`; las etiquetas son mensuales),
+  `restart: always`, en `127.0.0.1:6969` y con logs con tope de 10 MB × 3. Al arrancar descarga de
+  Apple las librerías que necesita y las guarda en el volumen `infra-anisette_anisette-lib`. Se levanta
+  con `docker-compose up -d` desde esa carpeta.
+- **HAProxy:** `acl anisette_host` y `use_backend anisette_backend` en `web_443_frontend`, y el
+  backend a `127.0.0.1:6969` con `timeout tunnel 1h`, porque el aprovisionamiento va por websocket
+  (`/v3/provisioning_session`). Usa el certificado comodín. Para recargar, `reload.sh`. Al editar
+  `conf/haproxy.cfg`, hay que conservar el inodo (no vale `sed -i`), porque está montado en el contenedor.
+- **DNS:** `anisette.absor.top` con el proxy de Cloudflare, como las demás webs. Cloudflare deja
+  pasar los websockets.
+- **Comprobarlo:** `curl https://anisette.absor.top/` devuelve las cabeceras en JSON, y
+  `/v3/client_info` la versión del cliente.
+
 ## Despliegue sin cortar peticiones
 `maxSurge: 1` / `maxUnavailable: 0`, `preStop` con `sleep 10`, readiness contra
 `/api/health` (atraviesa PHP y Postgres) y liveness contra `/healthz` (ruta
