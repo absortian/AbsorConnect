@@ -69,7 +69,7 @@ app_of() {
   if [ "$1" = arm64 ]; then echo "$root/dist/mac-arm64/Absor Connect.app"; else echo "$root/dist/mac/Absor Connect.app"; fi
 }
 if [ "$only" = x64 ]; then
-  if [ ! -d "$(app_of x64)" ] || [ ! -f "$out/pc.cjs" ]; then
+  if [ ! -d "$(app_of x64)" ] || [ ! -f "$out/bundle-x64.txt" ]; then
     echo "Faltan los paquetes de una ejecución completa: lánzalo antes sin «x64»." >&2
     exit 1
   fi
@@ -78,8 +78,14 @@ else
 fi
 mkdir -p "$out"
 electron="$root/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron"
+build_pc() {
+  node_modules/.bin/esbuild "$lan/pc.ts" --bundle --platform=node --format=cjs --target=node22 \
+    --external:electron --outfile="$out/pc.cjs" --log-level=warning
+}
 
-if [ "$only" != x64 ]; then
+if [ "$only" = x64 ]; then
+  build_pc
+else
 
 echo "==> 1. Paquetes como en CI (npm ci y npm run build:mac; unos 5 minutos)"
 npm ci --no-audit --no-fund --loglevel=error >>"$log" 2>&1
@@ -110,9 +116,7 @@ for a in arm64 x64; do
   } >"$out/bundle-$a.txt"
 done
 ls "$root/dist" | grep -E '\.(dmg|zip)$' >"$out/artifacts.txt" || true
-
-node_modules/.bin/esbuild "$lan/pc.ts" --bundle --platform=node --format=cjs --target=node22 \
-  --external:electron --outfile="$out/pc.cjs" --log-level=warning
+build_pc
 
 echo
 echo "==> 3. El .app de $arch es el PC; lo controla el escritorio del otro equipo."

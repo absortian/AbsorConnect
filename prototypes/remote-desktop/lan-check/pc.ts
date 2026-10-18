@@ -493,7 +493,13 @@ async function run(): Promise<void> {
   await waitTarget(APP_DEBUG_PORT, (t) => t.url.endsWith('index.html'), 60_000)
   // Si este equipo no se puede controlar (permisos de macOS, Wayland), se dice ya: el otro equipo
   // esperaría hasta cansarse a que apareciera disponible
-  const support = await inApp<any>(`window.api.remoteSettings().then((r) => r.state?.support)`)
+  // Con un paquete anterior a remoteHostStarted, Ajustes podía preguntar antes de que la app
+  // arrancara el control remoto (más con Rosetta): se pregunta hasta que responde
+  let support: any = null
+  for (let i = 0; i < 30 && !support; i++) {
+    support = await inApp<any>(`window.api.remoteSettings().then((r) => r.state?.support ?? null)`)
+    if (!support) await sleep(1000)
+  }
   if (process.platform === 'darwin') Object.assign(report, { permissions: { realApp: support, ...(await macPermissionsDiagnosis()) } })
   if (support?.state !== 'available') {
     const missing = (support?.missing ?? []).map((p: string) => (p === 'screen' ? 'Grabación de pantalla' : 'Accesibilidad'))

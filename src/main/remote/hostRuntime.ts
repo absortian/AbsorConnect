@@ -35,11 +35,27 @@ function setKeepAwake(on: boolean): void {
   }
 }
 
+let starting: Promise<void> | null = null
+
 /**
  * Arranca el servicio. Carga antes la sesión de la cuenta: con la app arrancada oculta al iniciar
  * sesión en el sistema no hay ventana que la pida, y sin ella el PC no estaría disponible.
  */
-export async function startRemoteHost(): Promise<void> {
+export function startRemoteHost(): Promise<void> {
+  starting ??= start()
+  return starting
+}
+
+/**
+ * Termina cuando ha terminado el arranque. Ajustes puede preguntar antes (la ventana carga mientras
+ * la app prepara la bandeja y la sesión, y el primer arranque con Rosetta es lento) y, sin esperar,
+ * vería el control remoto como no disponible en este equipo.
+ */
+export function remoteHostStarted(): Promise<void> {
+  return starting?.catch(() => undefined) ?? Promise.resolve()
+}
+
+async function start(): Promise<void> {
   const platform = devicePlatform(process.platform)
   if (service || !platform) return
   await loadSession()

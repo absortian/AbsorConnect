@@ -11,7 +11,7 @@ import {
   RemoteSettingsState
 } from '../../shared/remote/settings'
 import { primeFirewall } from './hostSession'
-import { remoteHost } from './hostRuntime'
+import { remoteHost, remoteHostStarted } from './hostRuntime'
 import { openPermissionSettings } from './platformSupport'
 import { accessibilityRenamed } from './support'
 import { PasswordTooShortError } from './remoteAccessStore'
@@ -48,6 +48,7 @@ async function result(): Promise<RemoteSettingsResult> {
 
 /** La configuración es de la cuenta con la sesión iniciada: antes de leerla o cambiarla se comprueba. */
 async function bindToCurrentAccount(): Promise<void> {
+  await remoteHostStarted()
   const email = currentSession()?.email
   if (email) await remoteHost().bindToAccount(email)
 }
@@ -133,6 +134,7 @@ export function setupRemoteSettingsIpc(): void {
     return update(changes)
   })
   ipcMain.handle('remote-settings:open-permission', async (_event, permission) => {
+    await remoteHostStarted()
     if (permission === 'screen' || permission === 'accessibility') {
       await openPermissionSettings(permission)
     }
