@@ -43,4 +43,3 @@ Las pruebas y sus resultados detallados están en `design.md` (D8, D10, D11, D12
 - **iPhone:** instalar la IPA (SideStore, AltStore Classic, o Xcode con tu equipo personal), conectar a un PC de la cuenta y anotar lo que tarda "Comprobando la contraseña". Si tienes un Android modesto, lo mismo con el APK.
 - **Dos monitores de escalas distintas:** el Mac con un monitor externo que no sea Retina, o un Windows con dos escalas.
 - **macOS ↔ Windows:** tu Mac contra la VM, en los dos sentidos, con el mismo esquema que `package-check`.
-- **Por decidir:** la 9.3 pide esta tabla en el PR, pero el cambio va directamente a `main`. Puede quedarse aquí, o ir en el PR de la release conjunta.
