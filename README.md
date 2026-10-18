@@ -136,7 +136,7 @@ Para resetear la base de datos: `docker compose down && rm -rf .docker/postgres`
 | `GET /api/remote/ice-servers` | Servidores STUN y TURN, con credenciales TURN que caducan a las 24 h |
 | `GET /api/health` | Comprobación de PHP y PostgreSQL |
 
-Las rutas autenticadas llevan `Authorization: Bearer <token>`. Los errores son `{"error": {"code": "…"}}` con códigos estables (`email_taken`, `invalid_credentials`, `connections_conflict`…). El contrato completo está en `openspec/changes/archive/2026-10-12-add-cloud-backend/design.md` (D4) y, para el control remoto, en `openspec/changes/add-remote-desktop/design.md` (D4 y D5).
+Las rutas autenticadas llevan `Authorization: Bearer <token>`. Los errores son `{"error": {"code": "…"}}` con códigos estables (`email_taken`, `invalid_credentials`, `connections_conflict`…). El contrato completo está en `openspec/changes/archive/2026-10-12-add-cloud-backend/design.md` (D4) y, para el control remoto, en `openspec/changes/archive/2026-10-18-add-remote-desktop/design.md` (D4 y D5).
 
 ### Comandos de operación
 

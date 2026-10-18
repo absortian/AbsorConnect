@@ -1,6 +1,6 @@
 # Prototipos de add-remote-desktop
 
-Pruebas de los puntos de riesgo del grupo 1 de `openspec/changes/add-remote-desktop/tasks.md`. No forman parte de la app ni entran en su paquete. Se borran al terminar el cambio.
+Pruebas de los puntos de riesgo del grupo 1 de `openspec/changes/archive/2026-10-18-add-remote-desktop/tasks.md`. No forman parte de la app ni entran en su paquete. Se borran al terminar el cambio.
 
 | Prueba | Tarea | Qué comprueba |
 |---|---|---|
@@ -256,7 +256,7 @@ El control remoto desde los paquetes que genera `release.yml`, empaquetados como
   4. Arranca como PC el de x64, con Rosetta, que controla el móvil del emulador por la red local. Sin Rosetta se salta; tras instalarla, `test-mac.sh <api> x64` repite solo esta fase.
   - Los dos `.app` se lanzan desde Terminal y usan sus permisos. Que la app pida los suyos se ve en la matriz de la 9.3.
 
-**Para la matriz de la 9.3** (`openspec/changes/add-remote-desktop/verification.md`):
+**Para la matriz de la 9.3** (`openspec/changes/archive/2026-10-18-add-remote-desktop/verification.md`):
 
 - **Controlador empaquetado:** `controller.ts --app=<ejecutable>` lanza el paquete instalado como controlador. En la VM, el instalador controla el AppImage de este Linux, que es `pc.ts --app=…AppImage` aquí, y la VM llega a su sonda por la red local.
 - **Cortafuegos de Windows** (`package-check/windows-firewall.ts`, en la VM, en la sesión gráfica, con `ELECTRON_RUN_AS_NODE=1`):

@@ -4,6 +4,7 @@ Leyenda:
 - ✅ verificado con el paquete en el lado que se prueba;
 - 🟡 verificado, pero con la app del repo o en un solo equipo;
 - ⬜ pendiente;
+- ⏭ sin probar: se da por bueno y lo comprueba el propietario en el uso diario (decidido el 18/10/2026).
 - ➖ no se puede montar con lo que hay.
 
 Las pruebas y sus resultados detallados están en `design.md` (D8, D10, D11, D12 y D13) y en `prototypes/remote-desktop/README.md`. Paquetes del 18/10/2026 (código de `f0f9662` en adelante), empaquetados como en CI: el AppImage en Linux, el instalador NSIS dentro de la VM de Windows 11 y los `.app` en el Mac.
@@ -12,11 +13,11 @@ Las pruebas y sus resultados detallados están en `design.md` (D8, D10, D11, D12
 
 | Controlador ↓ · PC → | Windows | macOS | Linux X11 |
 |---|---|---|---|
-| **Windows** | ✅ Instalador → instalador, en dos VM, cada una tras su NAT: por relé, 41/41 aplicables. | ⬜ La VM controla el `.app` de tu Mac por la red local. | ✅ Instalador → AppImage: 44/44 aplicables. |
-| **macOS** | ⬜ Tu Mac controla el instalador de la VM. | ➖ Solo hay un Mac. | 🟡 Con la app del repo: `lan-test.sh` (28/30), ficheros, portapapeles, relé con coturn local y sonido de Linux. |
+| **Windows** | ✅ Instalador → instalador, en dos VM, cada una tras su NAT: por relé, 41/41 aplicables. | ⏭ La VM controlando el `.app` del Mac. | ✅ Instalador → AppImage: 44/44 aplicables. |
+| **macOS** | ⏭ El Mac controlando el instalador de la VM. | ➖ Solo hay un Mac. | 🟡 Con la app del repo: `lan-test.sh` (28/30), ficheros, portapapeles, relé con coturn local y sonido de Linux. |
 | **Linux** | ✅ PC: instalador. Controlador: app del repo. 42/42. | ✅ PC: `.app` de arm64. Controlador: app del repo. 43/43 aplicables. | 🟡 Con la app del repo en un solo equipo: `lan-check` 40/43 y `viewer-check`. |
 | **Android** | ✅ Instalador, por relé (el emulador y la VM están cada uno tras su NAT): 17/17. | ✅ `.app` de x64 con Rosetta: 17/17. | ✅ AppImage: 17/17. |
-| **iPhone** | ⬜ | ⬜ | ⬜ |
+| **iPhone** | ⏭ | ⏭ | ⏭ |
 
 - **Aplicables:** dos comprobaciones dependen del equipo de prueba y no del paquete:
   - La bandeja:
@@ -32,14 +33,16 @@ Las pruebas y sus resultados detallados están en `design.md` (D8, D10, D11, D12
 | Comprobación | Estado | Detalle |
 |---|---|---|
 | Al menos una sesión por relé | ✅ | Con paquetes y un coturn local: Android → instalador de Windows (17/17, "Via relay") y Windows → Windows (41/41, "Por relé"). Con el relé de producción, `relay-check` (app del repo, "Por relé · 100 ms · 30 fps"). |
-| PC con dos monitores de escalas distintas (clics en las esquinas de cada uno) | 🟡 | Selector de pantallas, 5/5, con el Mac y un iPad por Sidecar, pero los dos al 200 %. Falta un PC con dos escalas. |
+| PC con dos monitores de escalas distintas (clics en las esquinas de cada uno) | 🟡 ⏭ | Selector de pantallas, 5/5, con el Mac y un iPad por Sidecar, pero los dos al 200 %. Falta un PC con dos escalas. |
 | Windows: pista del cortafuegos en Ajustes y aviso al activar (6.2) | ✅ | `package-check/windows-firewall.ts` con el instalador (4/4). Desactivado, no hay pista. Al pulsar el interruptor, Windows pregunta enseguida por "Absor Connect" (`primeFirewall`) y Ajustes muestra la pista de elegir "Permitir". |
 | Contraseña local del PC: en disco | ✅ | La contraseña la crea la propia app. No está en claro en ninguno de los 54 ficheros de la carpeta de datos del AppImage ni en los 43 del instalador de Windows. K va cifrada con `safeStorage` (libsecret en Linux, DPAPI en Windows). |
 | Contraseña local del PC: en el servicio | ✅ | `password-check` (17/17 en la conexión). Ni la contraseña ni K (base64, base64url, hex) aparecen en el volcado de la base de datos ni en las 82 peticiones a la API: el alta del equipo, las solicitudes, las respuestas SDP y los servidores ICE. Como control, la búsqueda sí encuentra el nombre del PC y el SDP. |
-| "Comprobando la contraseña" en un Android modesto y un iPhone (7.2) | ⬜ | Con teléfonos reales. |
+| "Comprobando la contraseña" en un Android modesto y un iPhone (7.2) | ⏭ | Con teléfonos reales: si pasa de 3 s, revisar las iteraciones. |
 
-## Lo que falta (contigo)
+## Sin probar (⏭)
 
-- **iPhone:** instalar la IPA (SideStore, AltStore Classic, o Xcode con tu equipo personal), conectar a un PC de la cuenta y anotar lo que tarda "Comprobando la contraseña". Si tienes un Android modesto, lo mismo con el APK.
-- **Dos monitores de escalas distintas:** el Mac con un monitor externo que no sea Retina, o un Windows con dos escalas.
-- **macOS ↔ Windows:** tu Mac contra la VM, en los dos sentidos, con el mismo esquema que `package-check`.
+Se da por bueno, y el propietario lo comprueba en el uso diario:
+
+- **iPhone:** instalar la IPA, conectar a un PC de la cuenta y ver lo que tarda "Comprobando la contraseña". En un Android modesto, lo mismo.
+- **Dos monitores de escalas distintas:** los clics en las esquinas de cada uno.
+- **macOS ↔ Windows,** en los dos sentidos.

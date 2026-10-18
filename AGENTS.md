@@ -27,7 +27,7 @@ Lee primero el `README.md` (qué es, stack, comandos). Aquí va lo que no se ded
 - **macOS sin certificado de Apple**: `identity: '-'` en `electron-builder.yml` firma el paquete ad-hoc. Sin ella macOS dice que la app «está dañada» (firma rota) en vez de ofrecer «Abrir igualmente». Con firma ad-hoc, `hardenedRuntime` sigue en `false`, y las actualizaciones automáticas no pueden instalarse solas en Mac (Squirrel exige el mismo certificado).
 
 ### Control remoto
-El diseño completo está en `openspec/changes/add-remote-desktop/design.md`, y las pruebas con dos equipos, en `prototypes/remote-desktop/` (ver su README).
+El diseño completo está en `openspec/changes/archive/2026-10-18-add-remote-desktop/design.md`, y las pruebas con dos equipos, en `prototypes/remote-desktop/` (ver su README).
 - **El token de la cuenta no sale del proceso principal**: la señalización (solicitudes, respuestas, servidores ICE) la hace `src/main/remote/`. El visor (`preload/viewer.ts`) y la ventana oculta del PC (`preload/host.ts`) solo reciben lo que necesitan para WebRTC. `viewer-check` comprueba que el token no llega a ningún renderer.
 - **Nada antes de autenticar** (`hostSession.ts`): hasta que la prueba de la contraseña es correcta, el PC no captura, no añade pistas y no acepta entrada, portapapeles ni ficheros. Cada punto de entrada mira `authenticated`.
 - **Un solo protocolo (v1) para el escritorio y el móvil**: `src/shared/remote/` (mensajes, entrada, transferencias y la prueba con PBKDF2 y HMAC) y `mobile/lib/src/remote/` cambian a la vez. `auth-vectors.json` es la referencia que comprueban las pruebas de los dos lados. Un cambio incompatible es un `v: 2`, no un retoque del 1. Las iteraciones de PBKDF2 viajan en `hello`.
