@@ -6,43 +6,41 @@ Leyenda:
 - ⬜ pendiente;
 - ➖ no se puede montar con lo que hay.
 
-Las pruebas y sus resultados detallados están en `design.md` (D8, D10, D11, D12 y D13) y en `prototypes/remote-desktop/README.md`.
+Las pruebas y sus resultados detallados están en `design.md` (D8, D10, D11, D12 y D13) y en `prototypes/remote-desktop/README.md`. Paquetes del 18/10/2026 (código de `f0f9662` en adelante), empaquetados como en CI: el AppImage en Linux, el instalador NSIS dentro de la VM de Windows 11 y los `.app` en el Mac.
 
 ## Controlador × PC controlado
 
 | Controlador ↓ · PC → | Windows | macOS | Linux X11 |
 |---|---|---|---|
-| **Windows** | ⬜ Solo hay una VM: los dos papeles en ella (como el ensayo en un solo Linux). | ⬜ La VM controla el `.app` de tu Mac por la red local. | ⬜ La VM controla el AppImage de este Linux. |
-| **macOS** | ⬜ Tu Mac controla el instalador de la VM (la sonda, por un túnel abierto a la red local). | ➖ Solo hay un Mac. Como mucho, los dos papeles en el mismo Mac. | 🟡 Con la app del repo: `lan-test.sh` (28/30), ficheros, portapapeles, relé con coturn local y sonido de Linux. |
-| **Linux** | ✅ PC: instalador NSIS. Controlador: app del repo. 42/42. | ✅ PC: `.app` de arm64. Controlador: app del repo. 43/43 aplicables. | 🟡 Con la app del repo en un solo equipo: `lan-check` 40/43 y `viewer-check`. |
-| **Android** | ⬜ El emulador y la VM están cada uno tras su NAT: necesita el relé. | ✅ PC: `.app` de x64 con Rosetta. 17/17 (APK de depuración en el emulador). | ✅ PC: AppImage. 17/17 (APK de depuración en el emulador). |
+| **Windows** | ✅ Instalador → instalador, en dos VM, cada una tras su NAT: por relé, 41/41 aplicables. | ⬜ La VM controla el `.app` de tu Mac por la red local. | ✅ Instalador → AppImage: 44/44 aplicables. |
+| **macOS** | ⬜ Tu Mac controla el instalador de la VM. | ➖ Solo hay un Mac. | 🟡 Con la app del repo: `lan-test.sh` (28/30), ficheros, portapapeles, relé con coturn local y sonido de Linux. |
+| **Linux** | ✅ PC: instalador. Controlador: app del repo. 42/42. | ✅ PC: `.app` de arm64. Controlador: app del repo. 43/43 aplicables. | 🟡 Con la app del repo en un solo equipo: `lan-check` 40/43 y `viewer-check`. |
+| **Android** | ✅ Instalador, por relé (el emulador y la VM están cada uno tras su NAT): 17/17. | ✅ `.app` de x64 con Rosetta: 17/17. | ✅ AppImage: 17/17. |
 | **iPhone** | ⬜ | ⬜ | ⬜ |
 
-- El móvil se ha probado con el APK de depuración en el emulador: `flutter drive` no admite release. La IPA compila en el Mac (7.1), pero no se ha instalado en un iPhone.
-- En Linux → Windows y Linux → macOS el controlador era la app del repo. Falta al menos una sesión con el controlador también empaquetado.
+- **Aplicables:** dos comprobaciones dependen del equipo de prueba y no del paquete:
+  - La bandeja:
+    - en Windows, la prueba no la lee (se vio a mano en la 4.1);
+    - en este Linux, la sesión de Cinnamon no tiene `StatusNotifierWatcher`;
+    - en el Mac, System Events no deja leerla.
+  - Cortar la red: solo se prueba con el Mac de controlador.
+- **Windows → Windows:** "conexión directa en la red local" falla porque las dos VM están tras NAT distintos. La sesión va "Por relé · 1 ms", que es lo esperado ahí.
+- **Android:** se probó con el APK de depuración en el emulador, porque `flutter drive` no admite release. La IPA compila en el Mac (7.1), pero no se ha instalado en un iPhone.
 
 ## Comprobaciones aparte
 
 | Comprobación | Estado | Detalle |
 |---|---|---|
-| Al menos una sesión por relé | 🟡 | Con el relé de producción (`relay-check`, "Por relé · 100 ms · 30 fps") y con un coturn local entre el Linux y el Mac, siempre con la app del repo. Falta una con paquetes. |
-| PC con dos monitores de escalas distintas (clics en las esquinas de cada uno) | 🟡 | El selector de pantallas, 5/5, con el Mac y un iPad por Sidecar, pero las dos pantallas estaban al 200 %. Falta un PC con dos escalas. |
-| Windows: pista del cortafuegos en Ajustes y aviso al activar el control remoto (6.2) | 🟡 | En las pruebas de la 8.1, el instalador dejó las reglas del cortafuegos para `absorconnect.exe`, así que el aviso salió. Falta verlo a propósito: la pista en Ajustes y el aviso al activarlo. |
-| Contraseña local del PC: en disco | ⬜ | Buscar la contraseña en la carpeta de datos de un PC empaquetado. |
-| Contraseña local del PC: en el servicio | ⬜ | Buscar la contraseña y K en la base de datos y en el tráfico con la API, durante el alta y una conexión. |
+| Al menos una sesión por relé | ✅ | Con paquetes y un coturn local: Android → instalador de Windows (17/17, "Via relay") y Windows → Windows (41/41, "Por relé"). Con el relé de producción, `relay-check` (app del repo, "Por relé · 100 ms · 30 fps"). |
+| PC con dos monitores de escalas distintas (clics en las esquinas de cada uno) | 🟡 | Selector de pantallas, 5/5, con el Mac y un iPad por Sidecar, pero los dos al 200 %. Falta un PC con dos escalas. |
+| Windows: pista del cortafuegos en Ajustes y aviso al activar (6.2) | ✅ | `package-check/windows-firewall.ts` con el instalador (4/4). Desactivado, no hay pista. Al pulsar el interruptor, Windows pregunta enseguida por "Absor Connect" (`primeFirewall`) y Ajustes muestra la pista de elegir "Permitir". |
+| Contraseña local del PC: en disco | ✅ | La contraseña la crea la propia app. No está en claro en ninguno de los 54 ficheros de la carpeta de datos del AppImage ni en los 43 del instalador de Windows. K va cifrada con `safeStorage` (libsecret en Linux, DPAPI en Windows). |
+| Contraseña local del PC: en el servicio | ✅ | `password-check` (17/17 en la conexión). Ni la contraseña ni K (base64, base64url, hex) aparecen en el volcado de la base de datos ni en las 82 peticiones a la API: el alta del equipo, las solicitudes, las respuestas SDP y los servidores ICE. Como control, la búsqueda sí encuentra el nombre del PC y el SDP. |
+| "Comprobando la contraseña" en un Android modesto y un iPhone (7.2) | ⬜ | Con teléfonos reales. |
 
-## Cómo cubrir lo que falta
+## Lo que falta (contigo)
 
-**Sin ti** (este Linux, la VM de Windows y el emulador):
-1. Contraseña local: los datos del AppImage y del instalador de Windows, un volcado de la base de datos y el tráfico con la API (con un proxy que lo anota) durante el alta y una sesión.
-2. Windows: la pista del cortafuegos en Ajustes y el aviso al activar, con capturas. Para que vuelva a salir, primero se quitan de la VM las reglas que dejó la 8.1.
-3. Windows como controlador: el instalador de la VM controla el AppImage de este Linux. Así los dos lados van empaquetados.
-4. Relé con paquetes: Android → Windows por un coturn local (emulador y VM tras NAT). Cubre a la vez esa celda y la sesión por relé.
-5. Windows → Windows: los dos papeles en la VM.
-
-**Contigo:**
-- iPhone: instalar la IPA (SideStore, AltStore Classic, o Xcode con tu equipo personal) y conectar a un PC de la cuenta.
-- Dos monitores de escalas distintas: el Mac con un monitor externo que no sea Retina, o un Windows con dos escalas.
-- macOS ↔ Windows: tu Mac contra la VM, en los dos sentidos, con el mismo esquema que `package-check`.
-
-**Por decidir:** la 9.3 pide esta tabla en el PR, pero el cambio va directamente a `main`. Puede quedarse aquí, o ir en el PR de la release conjunta.
+- **iPhone:** instalar la IPA (SideStore, AltStore Classic, o Xcode con tu equipo personal), conectar a un PC de la cuenta y anotar lo que tarda "Comprobando la contraseña". Si tienes un Android modesto, lo mismo con el APK.
+- **Dos monitores de escalas distintas:** el Mac con un monitor externo que no sea Retina, o un Windows con dos escalas.
+- **macOS ↔ Windows:** tu Mac contra la VM, en los dos sentidos, con el mismo esquema que `package-check`.
+- **Por decidir:** la 9.3 pide esta tabla en el PR, pero el cambio va directamente a `main`. Puede quedarse aquí, o ir en el PR de la release conjunta.

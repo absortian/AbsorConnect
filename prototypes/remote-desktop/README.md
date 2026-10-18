@@ -16,6 +16,7 @@ Pruebas de los puntos de riesgo del grupo 1 de `openspec/changes/add-remote-desk
 | `fullscreen-check/` | 6.5 | En un solo Linux: Alt+Tab y la tecla Windows en pantalla completa con un gestor de ventanas, y el controlador en Wayland (compositor anidado). |
 | `mobile-check/` | 7.1, 7.2 y 7.3 | La app móvil en el emulador de Android contra un PC de verdad (`lan-check/pc.ts`), con capturas: los escenarios de la spec `mobile-app`. En el Mac, la IPA y PBKDF2 por CommonCrypto (`test-mac.sh`). |
 | `package-check/` | 8.1 | El control remoto desde los paquetes de verdad, no desde el repo: el AppImage en Linux, el instalador NSIS en la VM de Windows y los `.app` de arm64 y x64 en el Mac, con lo que llevan dentro (koffi, permisos, bandeja). |
+| `password-check/` | 9.3 | Contraseña local del PC: con el AppImage y el móvil, ni la contraseña ni K en la carpeta de datos, en la base de datos ni en el tráfico con la API. |
 | `relay-check/` | 3.1 y 3.2 | Una sesión solo por relé contra el TURN de verdad: la API da el TURN, la sesión conecta y el par elegido pasa por el relé esperado. |
 | `exit-check/` | 4.10 y 4.2 | Salir de la cuenta con una sesión abierta (en el PC, en el controlador y por caducidad con el PC en la bandeja) y, con un AppImage de prueba, una actualización descargada durante una sesión. |
 
@@ -216,6 +217,7 @@ prototypes/remote-desktop/mobile-check/run.sh
   docker exec -d absor-emulator sh -c 'emulator -avd absor -no-window -gpu swiftshader_indirect -no-audio -no-boot-anim -no-snapshot -memory 4096 -cores 4'
   ```
 - `APP=<ejecutable>` hace que el PC sea un paquete en vez de la app del repo. `PROBE_URL` y `PC_FILTER` (en `drive.sh`) apuntan a la sonda y al nombre de un PC de otro equipo (ver `package-check/`).
+- `API`, `MOBILE_API`, `WORK` y `PC_ARGS` cambian el backend del PC y el del emulador, la carpeta de datos del PC y las opciones de `pc.ts` (los usa `password-check/`).
 - La primera vez compila el APK de depuración y descarga el NDK dentro del contenedor: unos 10 minutos.
 - La prueba dura unos 3 minutos. Usa la misma cuenta de prueba que `controller-check`.
 
@@ -253,6 +255,36 @@ El control remoto desde los paquetes que genera `release.yml`, empaquetados como
   3. Arranca como PC el `.app` de su arquitectura, que controla desde aquí el controlador de escritorio. A mitad hay que pulsar «Permitir» una vez.
   4. Arranca como PC el de x64, con Rosetta, que controla el móvil del emulador por la red local. Sin Rosetta se salta; tras instalarla, `test-mac.sh <api> x64` repite solo esta fase.
   - Los dos `.app` se lanzan desde Terminal y usan sus permisos. Que la app pida los suyos se ve en la matriz de la 9.3.
+
+**Para la matriz de la 9.3** (`openspec/changes/add-remote-desktop/verification.md`):
+
+- **Controlador empaquetado:** `controller.ts --app=<ejecutable>` lanza el paquete instalado como controlador. En la VM, el instalador controla el AppImage de este Linux, que es `pc.ts --app=…AppImage` aquí, y la VM llega a su sonda por la red local.
+- **Cortafuegos de Windows** (`package-check/windows-firewall.ts`, en la VM, en la sesión gráfica, con `ELECTRON_RUN_AS_NODE=1`):
+  - quita las reglas que Windows guardó para la app en pruebas anteriores;
+  - arranca el paquete con sesión, crea la contraseña y pulsa el interruptor de Ajustes;
+  - comprueba que sale el aviso ("Windows Security", proceso `PickerHost`) y la pista;
+  - mira también que la contraseña no esté en claro en la carpeta de datos y que K vaya cifrada (`v1:`);
+  - deja una captura y cierra el aviso sin contestarlo, así que no deja reglas.
+- **Por relé:** el emulador y la VM están cada uno tras su NAT, así que Android → Windows necesita el coturn local de `compose.override.yaml` y `TURN_URLS`/`TURN_SECRET` en `backend/.env.local` (ver allí).
+  - El emulador va con `PROBE_URL=http://10.0.2.2:8791` y `PC_FILTER="PC de prueba Windows"` (el túnel de siempre).
+- **Windows → Windows:** una copia de la VM (`~/VMs/absor-windows-2`: el disco copiado con `cp --sparse=always`, otros puertos, 6 GB de memoria y otro nombre de equipo), también por relé.
+  - Con el mismo nombre de equipo, `controller.ts` cree que los dos papeles están en el mismo equipo y se salta el portapapeles.
+  - La sonda del PC llega a la otra VM con un túnel que escucha solo en el puente de Docker de esa VM (`ssh -L 172.16.7.1:8792:127.0.0.1:8790 -p 2232 …`), y `controller.ts --probe=http://172.16.7.1:8792`.
+  - "conexión directa en la red local" falla ahí por la topología: la sesión va por relé.
+
+## Contraseña local del PC (`password-check/`, tarea 9.3)
+
+```bash
+APP=dist/absor-connect-<versión>.AppImage prototypes/remote-desktop/password-check/check.sh
+```
+
+En un solo Linux, con el emulador en marcha (como `mobile-check`):
+
+1. `proxy.py` anota en el 8021 el tráfico de los dos equipos con la API, sin el token ni la clave del equipo.
+2. El PC es el AppImage, y la contraseña la crea la propia app, como desde Ajustes (`pc.ts --password-in-app=1`). El móvil se conecta: las 17 comprobaciones de `mobile-check`.
+3. Se vuelca la base de datos, y `analyze.py` busca la contraseña en la carpeta de datos del PC, en el volcado y en el tráfico: en UTF-8 (NFC y NFD), UTF-16, base64, y la parte ASCII por si va escapada en un JSON. También busca K, calculada con la sal y las iteraciones del propio PC.
+
+Deja `report.json` en `password-check/out`.
 
 ## Sesión solo por relé (`relay-check/`, tareas 3.1 y 3.2)
 

@@ -7,6 +7,8 @@
 //
 //   - Con --app, la app de verdad es ese ejecutable (un AppImage, linux-unpacked…) en vez de la de
 //     desarrollo del repo: así se prueba el paquete (tarea 8.1).
+//   - Con --password-in-app=1, la contraseña del PC la crea la propia app (como desde Ajustes) y
+//     no la prueba escribiendo remote-access.json: así se prueba dónde la guarda (tarea 9.3).
 //   - Con --listen, la sonda escucha solo en esa dirección. Con 127.0.0.1 (la VM de Windows, por un
 //     túnel SSH) el cortafuegos de Windows no pregunta, y su diálogo no le quita el foco a la prueba.
 //   - Prepara la app de verdad con la cuenta de prueba, la contraseña del PC y el control remoto
@@ -109,9 +111,18 @@ async function prepareApp(): Promise<void> {
   )
   const store = new RemoteAccessStore(path.join(DATA, 'remote-access.json'), createPlaintextBox(), pcName)
   await store.bindToAccount(TEST_EMAIL)
-  await store.setPassword(PC_PASSWORD)
   await store.setDeviceName(pcName)
+  if (args['password-in-app'] === '1') return
+  await store.setPassword(PC_PASSWORD)
   await store.setEnabled(true)
+}
+
+/** La contraseña y la activación por el mismo camino que Ajustes (--password-in-app=1). */
+async function passwordInApp(): Promise<void> {
+  const set = await inApp<any>(`window.api.setRemotePassword(${JSON.stringify(PC_PASSWORD)})`)
+  const enabled = await inApp<any>(`window.api.setRemoteEnabled(true)`)
+  note(`contraseña y activación desde la app: ${JSON.stringify({ password: set?.ok, enabled: enabled?.ok, encryption: set?.state?.encryptionAvailable })}`)
+  if (!set?.ok || !enabled?.ok) throw new Error(`La app no ha aceptado la contraseña o la activación: ${JSON.stringify({ set, enabled })}`)
 }
 
 function launchApp(): void {
@@ -197,7 +208,9 @@ async function keepAwake(): Promise<{ ids: string[]; detail: string }> {
         sh('gdbus', ['call', '--session', '--dest', 'org.gnome.SessionManager', '--object-path', p, '--method', `org.gnome.SessionManager.Inhibitor.${method}`])
       // El de powerSaveBlocker lleva el motivo "Electron"; Chromium pide otros propios (p. ej. al
       // reproducir sonido), y en una prueba en un solo equipo todas las apps son el mismo ejecutable
-      if (!(await q('GetAppId')).includes(process.execPath)) continue
+      // Con --app, el ejecutable es el del paquete (en un AppImage, /tmp/.mount_…/absor-file-explorer)
+      const appId = await q('GetAppId')
+      if (!(args.app ? appId.includes('absor-file-explorer') : appId.includes(process.execPath))) continue
       if (!(await q('GetReason')).includes("'Electron'")) continue
       ids.push(`${p} flags=${(await q('GetFlags')).match(/uint32 (\d+)/)?.[1] ?? '?'}`)
     }
@@ -491,6 +504,7 @@ async function run(): Promise<void> {
   prepareDownload()
   launchApp()
   await waitTarget(APP_DEBUG_PORT, (t) => t.url.endsWith('index.html'), 60_000)
+  if (args['password-in-app'] === '1') await passwordInApp()
   // Si este equipo no se puede controlar (permisos de macOS, Wayland), se dice ya: el otro equipo
   // esperaría hasta cansarse a que apareciera disponible
   // Con un paquete anterior a remoteHostStarted, Ajustes podía preguntar antes de que la app

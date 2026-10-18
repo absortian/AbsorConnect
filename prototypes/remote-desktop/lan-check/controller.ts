@@ -4,13 +4,15 @@
 //
 //   node_modules/electron/dist/electron prototypes/remote-desktop/lan-check/out/controller.cjs \
 //     --api=http://<ip del backend>:8020 --work=<carpeta temporal> --out=<fichero.json> \
-//     [--wait=30] [--cut-network=<interfaz Wi-Fi de macOS>] [--relay=1] [--probe=<url de la sonda>]
+//     [--wait=30] [--cut-network=<interfaz Wi-Fi de macOS>] [--relay=1] [--probe=<url de la sonda>] \
+//     [--app=<ejecutable de un paquete>]
 //
 // Espera a que el otro equipo aparezca en la cuenta como "PC de prueba … @ip:puerto" (pc.ts) y
 // comprueba con su sonda lo que pasa allí: el ratón, el texto, el aviso, la bandeja, los ficheros,
 // el portapapeles, el bloqueo de suspensión y el registro. Con --relay=1 la app solo usa el relé
 // (TURN). Con --probe, la sonda del PC está en esa URL y no en la IP de su nombre (un PC tras un
-// NAT, como la VM de Windows, con un túnel SSH). Al terminar llama a /done para que el PC acabe también.
+// NAT, como la VM de Windows, con un túnel SSH). Con --app, el controlador es ese paquete instalado
+// (tarea 9.3) en vez de la app del repo. Al terminar llama a /done para que el PC acabe también.
 import { app as electronApp, clipboard, nativeImage } from 'electron'
 import { ChildProcess, execFileSync, spawn } from 'child_process'
 import { createHash, randomBytes } from 'crypto'
@@ -72,8 +74,11 @@ async function findPc(token: string): Promise<any> {
   let announced = false
   while (Date.now() < deadline) {
     const { data } = await api('GET', '/api/devices', token).catch(() => ({ data: null }))
+    // Con --probe se sabe dónde está el PC: no se descarta aunque su nombre lleve la IP de este
+    // equipo (dos VM tras su NAT tienen la misma IP interna)
     const candidates = (data?.devices ?? []).filter(
-      (d: any) => d.online && d.remote?.state === 'available' && d.name.startsWith(PC_PREFIX) && !d.name.includes(`@${own}:`)
+      (d: any) =>
+        d.online && d.remote?.state === 'available' && d.name.startsWith(PC_PREFIX) && (args.probe || !d.name.includes(`@${own}:`))
     )
     for (const device of candidates) {
       const address = device.name.match(/@([\d.]+:\d+)$/)?.[1]
@@ -154,7 +159,8 @@ async function run(): Promise<void> {
     ...(RELAY ? { ABSOR_CONNECT_FORCE_RELAY: '1' } : {})
   }
   delete env.ELECTRON_RUN_AS_NODE
-  appProcess = spawn(ELECTRON, [ROOT, `--user-data-dir=${DATA}`, `--remote-debugging-port=${DEBUG_PORT}`], { env, stdio: ['ignore', log, log] })
+  const [command, ...argv] = args.app ? [path.resolve(args.app)] : [ELECTRON, ROOT]
+  appProcess = spawn(command, [...argv, `--user-data-dir=${DATA}`, `--remote-debugging-port=${DEBUG_PORT}`], { env, stdio: ['ignore', log, log] })
 
   const ui = await Page.open(await waitTarget(DEBUG_PORT, (t) => t.url.endsWith('index.html'), 60_000))
   await ui.waitFor<boolean>(`!!document.querySelector('button[title="Equipos"]')`, (v) => v === true)
