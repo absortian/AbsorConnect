@@ -119,8 +119,8 @@ usamos uno propio: `anisette-v3-server` en Docker en `head0`, en `/root/infra-an
   backend a `127.0.0.1:6969` con `timeout tunnel 1h`, porque el aprovisionamiento va por websocket
   (`/v3/provisioning_session`). Usa el certificado comodín. Para recargar, `reload.sh`. Al editar
   `conf/haproxy.cfg`, hay que conservar el inodo (no vale `sed -i`), porque está montado en el contenedor.
-- **DNS:** `anisette.absor.top` con el proxy de Cloudflare, como las demás webs. Cloudflare deja
-  pasar los websockets.
+- **DNS:** `anisette.absor.top` apunta directo a `head0`, sin el proxy de Cloudflare, como
+  `turn.absor.top`. Con el proxy también funcionaría, porque Cloudflare deja pasar los websockets.
 - **Comprobarlo:** `curl https://anisette.absor.top/` devuelve las cabeceras en JSON, y
   `/v3/client_info` la versión del cliente.
 
