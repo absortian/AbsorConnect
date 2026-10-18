@@ -98,7 +98,7 @@
 ## 8. Empaquetado, CI y documentación
 
 - [x] 8.1 `electron-builder.yml`: `asarUnpack` de koffi y `@koromix`, `NSAudioCaptureUsageDescription`, iconos de la bandeja (incluida la imagen *template* de macOS) y dependencias de Linux (`libxtst6`, y `pulseaudio-utils` como recomendada) si faltan. En `release.yml`, instalar `@koromix/koffi-darwin-x64` en el job de macOS antes de empaquetar (D10). Verificar: los paquetes de CI se instalan y el control remoto funciona en cada sistema desde el paquete, no desde `npm run dev`.
-- [ ] 8.2 Documentación:
+- [x] 8.2 Documentación:
   - README: la función, sus limitaciones por sistema y los permisos de macOS (Accesibilidad se llama "Control de dispositivos y acceso a datos" desde macOS 27);
   - `AGENTS.md`: decisiones que conviene no romper (token fuera del renderer, nada antes de autenticar, protocolo v1 compartido con el móvil, `backgroundThrottling`);
   - web (`backend/public/index.html`): la función nueva.
@@ -114,5 +114,5 @@
 ## Workflow follow-up
 
 - **Propietario:** probar el control remoto desde un iPhone real con SideStore o AltStore Classic.
-- Publicar la release conjunta de escritorio y móvil.
+- Publicar la release conjunta de escritorio y móvil, y desplegar con ella la web (`backend/public/index.html`), que ya describe el control remoto: no antes.
 - Archivar el change tras verificarlo.

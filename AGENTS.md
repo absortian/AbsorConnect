@@ -26,12 +26,28 @@ Lee primero el `README.md` (qué es, stack, comandos). Aquí va lo que no se ded
 - **Paquetes `.deb`**: se construyen en Linux; el `ar` de macOS genera paquetes rotos.
 - **macOS sin certificado de Apple**: `identity: '-'` en `electron-builder.yml` firma el paquete ad-hoc. Sin ella macOS dice que la app «está dañada» (firma rota) en vez de ofrecer «Abrir igualmente». Con firma ad-hoc, `hardenedRuntime` sigue en `false`, y las actualizaciones automáticas no pueden instalarse solas en Mac (Squirrel exige el mismo certificado).
 
+### Control remoto
+El diseño completo está en `openspec/changes/add-remote-desktop/design.md`, y las pruebas con dos equipos, en `prototypes/remote-desktop/` (ver su README).
+- **El token de la cuenta no sale del proceso principal**: la señalización (solicitudes, respuestas, servidores ICE) la hace `src/main/remote/`. El visor (`preload/viewer.ts`) y la ventana oculta del PC (`preload/host.ts`) solo reciben lo que necesitan para WebRTC. `viewer-check` comprueba que el token no llega a ningún renderer.
+- **Nada antes de autenticar** (`hostSession.ts`): hasta que la prueba de la contraseña es correcta, el PC no captura, no añade pistas y no acepta entrada, portapapeles ni ficheros. Cada punto de entrada mira `authenticated`.
+- **Un solo protocolo (v1) para el escritorio y el móvil**: `src/shared/remote/` (mensajes, entrada, transferencias y la prueba con PBKDF2 y HMAC) y `mobile/lib/src/remote/` cambian a la vez. `auth-vectors.json` es la referencia que comprueban las pruebas de los dos lados. Un cambio incompatible es un `v: 2`, no un retoque del 1. Las iteraciones de PBKDF2 viajan en `hello`.
+- **`backgroundThrottling: false`** en la ventana oculta del PC y en el visor: sin él, Chromium ralentiza los temporizadores y la captura de las ventanas ocultas o en segundo plano, y la sesión va a tirones.
+- **La contraseña del PC no se guarda**: se guarda `K` (PBKDF2, 600 000 iteraciones), cifrada con `safeStorage` cuando existe. Cambiarla corta las sesiones.
+- **Empaquetado** (`electron-builder.yml` y `release.yml`):
+  - koffi y `@koromix/*` van desempaquetados (`asarUnpack`).
+  - El runner de macOS es arm64 y también empaqueta x64, así que instala el binario de koffi de x64 con la misma versión que koffi. Sin fijarla, npm instala la última y koffi falla con "Mismatched native Koffi modules".
+  - `mac.extendInfo` tiene que ser un mapa: con una lista, electron-builder no aplica las claves y quedan los textos de Electron. `NSAudioCaptureUsageDescription` es necesaria para el sonido del Mac: sin ella llega en silencio y sin error.
+- **Linux con Wayland no puede ser PC controlado** (sí controlador). El sonido en Linux no usa `audio: 'loopback'` (llega vacío), sino una fuente de `pactl` que se crea al empezar la sesión y se quita al terminar.
+
 ### Apps móviles
 - **Misma lista de conexiones que el escritorio**: la app conserva los campos que no conoce al editar una entrada, y cualquier cambio de campos de una conexión hay que hacerlo en el escritorio, el backend (`EntryValidator`) y `mobile/lib/ui/connection_form.dart` a la vez.
 - **Claves privadas por dispositivo** (`mobile/lib/src/keys.dart`): en la cuenta solo va `privateKeyPath` (el nombre del fichero); el contenido se importa en cada móvil y nunca se sube.
 - **Clave de firma de Android única**: si cambia, Android no instala la versión nueva encima de la anterior. Vive en los secrets `ANDROID_KEYSTORE_*` y el propietario guarda una copia; no generar otra.
 - **iOS sin firmar**: no hay cuenta de Apple Developer. La IPA la firma SideStore/AltStore Classic/Sideloadly en cada iPhone, así que nada que necesite capabilities de pago (push, iCloud, App Groups). AltStore PAL no sirve (exige apps notarizadas con `marketplaceID`). La fuente debe declarar los mismos `UsageDescription` que el `Info.plist`, o AltStore no instala la app.
 - **El `versionCode` lo pone CI** (`github.run_number`): una release compilada en local con un número menor no se instalaría encima.
+- **PBKDF2 del control remoto** (`mobile/lib/src/remote/auth.dart`):
+  - en iOS, CommonCrypto por FFI;
+  - en Android, `pbkdf2.dart`, en Dart y en otro isolate. El `SecretKeyFactory` del sistema es BouncyCastle en Java: tarda más del doble y bloquea el hilo principal (la interfaz se congela).
 
 ### Backend
 - **Tokens opacos por dispositivo** (`acs_…`, `SessionManager`): en BD solo su SHA-256. La caducidad (90 días) se desliza y se escribe como mucho una vez por hora. La app trata cualquier 401 como sesión caducada, por eso `password_incorrect` es un 403.

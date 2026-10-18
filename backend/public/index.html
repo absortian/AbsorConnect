@@ -4,14 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Absor Connect · Tus conexiones S3, SFTP y SSH, gratis y en todos tus equipos</title>
-  <meta name="description" content="Aplicación gratuita y de código abierto para macOS, Windows, Linux, Android e iOS: explora buckets S3 y servidores SFTP en doble panel, abre terminales SSH y lleva tus conexiones a todos tus equipos con una cuenta gratis.">
+  <meta name="description" content="Aplicación gratuita y de código abierto para macOS, Windows, Linux, Android e iOS: explora buckets S3 y servidores SFTP en doble panel, abre terminales SSH, controla tus PCs a distancia y lleva tus conexiones a todos tus equipos con una cuenta gratis.">
   <meta name="theme-color" content="#121214">
   <link rel="icon" type="image/png" href="/icon.png">
   <link rel="apple-touch-icon" href="/icon.png">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://absorconnect.absor.top/">
   <meta property="og:title" content="Absor Connect · S3, SFTP y SSH en una sola app gratuita">
-  <meta property="og:description" content="Explora buckets S3 y servidores SFTP, abre terminales SSH y sincroniza tus conexiones entre equipos. Gratis para macOS, Windows y Linux.">
+  <meta property="og:description" content="Explora buckets S3 y servidores SFTP, abre terminales SSH, controla tus PCs a distancia y sincroniza tus conexiones entre equipos. Gratis para macOS, Windows, Linux, Android e iPhone.">
   <meta property="og:image" content="https://absorconnect.absor.top/icon.png">
   <style>
     :root {
@@ -241,6 +241,7 @@
       <symbol id="i-file" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></symbol>
       <symbol id="i-gift" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/></symbol>
       <symbol id="i-monitor" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></symbol>
+      <symbol id="i-remote" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="m10 6.5 5.5 3.2-2.4.7-1 2.3z"/></symbol>
       <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></symbol>
       <symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4M12 17h.01"/></symbol>
       <symbol id="i-github" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></symbol>
@@ -257,6 +258,7 @@
       <a class="brand" href="#inicio"><img src="/icon.png" alt="" width="30" height="30">Absor Connect</a>
       <nav class="nav-links" aria-label="Secciones">
         <a class="hide-sm" href="#funciones">Funciones</a>
+        <a class="hide-sm" href="#control-remoto">Control remoto</a>
         <a class="hide-sm" href="#seguridad">Seguridad</a>
         <a class="hide-sm" href="#preguntas">Preguntas</a>
         <a class="btn btn-primary btn-sm" href="#descargas">Descargar gratis</a>
@@ -269,7 +271,7 @@
       <div class="container">
         <span class="badge"><span class="dot"></span>Gratis · Escritorio, Android e iPhone · Código abierto</span>
         <h1>Tus buckets S3 y servidores SSH, <span class="grad">en una sola app</span></h1>
-        <p class="lead">Explora almacenamiento S3 y servidores SFTP, abre terminales SSH y lleva tus conexiones a todos tus equipos —ordenador, Android e iPhone— con una cuenta gratuita.</p>
+        <p class="lead">Explora almacenamiento S3 y servidores SFTP, abre terminales SSH, controla tus PCs a distancia y lleva tus conexiones a todos tus equipos —ordenador, Android e iPhone— con una cuenta gratuita.</p>
         <div class="hero-cta">
           <a class="btn btn-primary" id="hero-download" href="#descargas"><svg><use href="#i-download"/></svg><span>Descargar gratis</span></a>
           <a class="btn btn-ghost" href="#descargas">Todas las descargas</a>
@@ -343,6 +345,36 @@
           <article class="card"><div class="icon"><svg><use href="#i-terminal"/></svg></div><h3>Terminal SSH en pestañas</h3><p>Abre varias terminales sobre la misma conexión, sin volver a autenticarte. Colores, programas a pantalla completa y reconexión.</p></article>
           <article class="card"><div class="icon"><svg><use href="#i-cloud"/></svg></div><h3>Tus conexiones, en todos tus equipos</h3><p>Con tu cuenta gratuita, las conexiones y carpetas se guardan en la nube: crea una en el portátil y aparece en el sobremesa y en el móvil.</p></article>
           <article class="card"><div class="icon"><svg><use href="#i-download"/></svg></div><h3>Cola de transferencias</h3><p>Sigue cada subida y descarga en tiempo real, con su progreso, y reintenta las que fallen con un clic.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section id="control-remoto" style="padding-top:20px">
+      <div class="container">
+        <div class="section-head">
+          <span class="eyebrow">Control remoto</span>
+          <h2>Tus PCs, a mano desde cualquier equipo</h2>
+          <p>Entra en el ordenador de casa desde el portátil o desde el móvil, con la misma cuenta. Sin instalar nada más y sin abrir puertos en el router.</p>
+        </div>
+        <div class="split">
+          <div class="box">
+            <h3><svg width="18" height="18" style="vertical-align:-3px;color:var(--accent-2)"><use href="#i-remote"/></svg> Qué puedes hacer</h3>
+            <ul class="checks">
+              <li><svg><use href="#i-check"/></svg><span>Ver la pantalla y manejar el ratón y el teclado, con varias pantallas y a pantalla completa.</span></li>
+              <li><svg><use href="#i-check"/></svg><span>Oír el sonido del PC y compartir el portapapeles en los dos sentidos.</span></li>
+              <li><svg><use href="#i-check"/></svg><span>Enviar ficheros al PC y descargarlos de él; desde el móvil, también tus fotos.</span></li>
+              <li><svg><use href="#i-check"/></svg><span>Conexión directa entre los equipos siempre que la red lo permite y, si no, por nuestro relé.</span></li>
+            </ul>
+          </div>
+          <div class="box">
+            <h3><svg width="18" height="18" style="vertical-align:-3px;color:var(--accent-2)"><use href="#i-lock"/></svg> Tu PC, bajo tu control</h3>
+            <ul class="checks">
+              <li><svg><use href="#i-check"/></svg><span>Está apagado hasta que lo activas en <b>Ajustes › Control remoto de este PC</b>, con una contraseña propia de ese PC que <b>nunca sale de él</b>.</span></li>
+              <li><svg><use href="#i-check"/></svg><span>La imagen, el teclado y los ficheros van <b>cifrados de extremo a extremo</b>: nuestro servicio solo ayuda a que los equipos se encuentren.</span></li>
+              <li><svg><use href="#i-check"/></svg><span>Mientras te controlan, un aviso dice quién y tiene un botón para desconectar. Si quieres, el PC pide permiso antes de cada sesión.</span></li>
+              <li><svg><use href="#i-check"/></svg><span>Tú decides si se comparten el portapapeles, los ficheros y el sonido.</span></li>
+            </ul>
+          </div>
         </div>
       </div>
     </section>
@@ -525,8 +557,10 @@
           <details><summary>¿De verdad es gratis?</summary><div><p>Sí. La app y la cuenta son gratuitas, sin límite de conexiones ni periodo de prueba. El código es abierto (licencia MIT) y está en <a href="https://github.com/absortian/AbsorConnect" target="_blank" rel="noopener">GitHub</a>.</p></div></details>
           <details><summary>¿Por qué necesito una cuenta?</summary><div><p>Para que tus conexiones vivan en la nube y no en un solo equipo: las ves en todos tus ordenadores y no las pierdes si cambias de equipo. La cuenta solo pide un email y una contraseña.</p></div></details>
           <details><summary>Usaba una versión anterior (o Absor S3 Explorer). ¿Pierdo mis conexiones?</summary><div><p>No. Al actualizar e iniciar sesión, la app te ofrece subir a tu cuenta las conexiones que tenías guardadas en el equipo. Si eliges «Ahora no», siguen en el equipo y te lo vuelve a preguntar la próxima vez.</p></div></details>
-          <details><summary>¿Hay app para el móvil?</summary><div><p>Sí, para Android y para iPhone, con la misma cuenta y las mismas conexiones que el escritorio: explorador SFTP y S3 y terminal SSH. En Android se instala el APK desde esta web; en iPhone, con SideStore o AltStore Classic (más abajo te contamos por qué).</p></div></details>
+          <details><summary>¿Hay app para el móvil?</summary><div><p>Sí, para Android y para iPhone, con la misma cuenta y las mismas conexiones que el escritorio: explorador SFTP y S3, terminal SSH y control remoto de tus PCs. En Android se instala el APK desde esta web; en iPhone, con SideStore o AltStore Classic (más abajo te contamos por qué).</p></div></details>
           <details><summary>¿Por qué en iPhone hay que usar SideStore o AltStore Classic?</summary><div><p>Apple solo deja instalar apps de la App Store o firmadas por un desarrollador. Mientras Absor Connect no esté en la App Store, SideStore y AltStore Classic la firman con tu propio Apple ID, gratis. Con un Apple ID gratuito la firma dura 7 días y ellas la renuevan solas.</p><p>AltStore PAL, la versión para la Unión Europea, no sirve: solo instala apps notarizadas por Apple, y para eso hace falta una cuenta de desarrollador de pago.</p></div></details>
+          <details><summary>¿Cómo controlo un PC desde otro equipo?</summary><div><p>En el PC que quieres controlar, entra en <b>Ajustes › Control remoto de este PC</b>, crea su contraseña y activa «Permitir controlar este PC». Para que esté disponible aunque cierres la ventana, activa también «Mantener abierta en segundo plano» y «Abrir al iniciar sesión».</p><p>Después, desde otro ordenador o desde el móvil con la misma cuenta, abre <b>Equipos</b>, pulsa <b>Conectar</b> y escribe la contraseña del PC.</p></div></details>
+          <details><summary>¿Qué ordenadores se pueden controlar?</summary><div><p>Windows, macOS y Linux con sesión X11. En el Mac hay que conceder los permisos de Grabación de pantalla y Accesibilidad (en macOS 27, «Control de dispositivos y acceso a datos»); Ajustes te lleva a ellos. En Linux con Wayland el PC no se puede controlar, aunque sí puedes usarlo para controlar otros. Desde Android e iPhone puedes controlar tus PCs, pero no al revés.</p><p>Lo que no se puede manejar a distancia es la pantalla de bloqueo o de inicio de sesión y, en Windows, los avisos de Control de cuentas de usuario y los programas abiertos como administrador.</p></div></details>
           <details><summary>En el móvil, ¿cómo uso mis claves privadas SSH?</summary><div><p>La primera vez que abras una conexión por clave privada, la app te pedirá importar el fichero de la clave en ese teléfono. Se guarda solo en el almacén seguro del dispositivo y nunca se envía a ningún sitio.</p></div></details>
           <details><summary>¿Funciona sin conexión a internet?</summary><div><p>Necesitas conexión para entrar y cargar tus conexiones, porque se guardan en tu cuenta. Si el servicio no responde, la app te lo indica y puedes reintentarlo.</p></div></details>
           <details><summary>He olvidado mi contraseña</summary><div><p>Por ahora no hay recuperación automática por correo. <a href="https://github.com/absortian/AbsorConnect/issues" target="_blank" rel="noopener">Abre una incidencia en GitHub</a> (sin incluir contraseñas) y te ayudamos a restablecerla. Tus conexiones se conservan.</p></div></details>
@@ -541,7 +575,7 @@
       <div class="container">
         <div class="final">
           <h2>Tus conexiones, siempre a mano</h2>
-          <p>Descarga Absor Connect, crea tu cuenta gratis y trabaja con S3, SFTP y SSH desde cualquier equipo.</p>
+          <p>Descarga Absor Connect, crea tu cuenta gratis y trabaja con S3, SFTP y SSH, y con tus propios PCs, desde cualquier equipo.</p>
           <a class="btn btn-primary" href="#descargas"><svg><use href="#i-download"/></svg>Descargar gratis</a>
         </div>
       </div>

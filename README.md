@@ -4,7 +4,7 @@
 
 **Descarga e instrucciones de instalación: [absorconnect.absor.top](https://absorconnect.absor.top)** · gratis para macOS, Windows, Linux, Android e iPhone.
 
-Aplicación de escritorio para gestionar archivos entre el sistema de archivos local y servicios remotos (almacenamiento compatible con S3, como AWS S3, MinIO o DigitalOcean Spaces, y servidores SSH mediante SFTP) desde una interfaz unificada de doble panel.
+Aplicación de escritorio para gestionar archivos entre el sistema de archivos local y servicios remotos (almacenamiento compatible con S3, como AWS S3, MinIO o DigitalOcean Spaces, y servidores SSH mediante SFTP) desde una interfaz unificada de doble panel. Con la misma cuenta, también controla a distancia los PCs de la cuenta, desde otro ordenador o desde el móvil.
 
 > **Nota:** Este proyecto es un experimento de *vibe coding*. Fue desarrollado íntegramente utilizando VS Code con GitHub Copilot, sin instrucciones precisas preconfiguradas, con el objetivo de explorar cómo responde el editor y su agente de IA ante peticiones abiertas y progresivas. El resultado es esta aplicación funcional construida de forma conversacional.
 
@@ -18,7 +18,38 @@ Aplicación de escritorio para gestionar archivos entre el sistema de archivos l
 - **Transferencias drag-and-drop** — Arrastrar archivos entre paneles para subir o descargar. También disponible mediante menú contextual.
 - **Cola de transferencias** — Barra inferior que muestra el estado en tiempo real de cada transferencia (pendiente, subiendo, descargando, completado, error).
 - **Operaciones remotas** — Crear carpetas, eliminar objetos o archivos (en SFTP, las carpetas se borran con todo su contenido) y descargar archivos individuales.
+- **Control remoto de tus PCs** — Ver y manejar desde otro equipo o desde el móvil los PCs de tu cuenta: ratón, teclado, varias pantallas, sonido, portapapeles y ficheros. Cada PC tiene su propia contraseña, que no sale de él. Ver [Control remoto](#control-remoto).
+- **Segundo plano** — La app puede seguir en la bandeja del sistema con la ventana cerrada y abrirse sola al iniciar sesión, para que el PC esté disponible.
 - **Interfaz moderna** — Tema oscuro con elementos glassmorphism, sidebar colapsable e indicadores de estado en tiempo real.
+
+## Control remoto
+
+**En el PC que se va a controlar:**
+
+1. En **Ajustes › Control remoto de este PC**, crea la contraseña del PC y activa **Permitir controlar este PC**.
+2. Si quieres, activa en **Ajustes › Segundo plano** las opciones «Mantener abierta en segundo plano» y «Abrir al iniciar sesión». Solo se puede controlar el PC mientras la app está en marcha.
+
+**Desde otro equipo de la misma cuenta:** **Equipos** › **Conectar** y la contraseña del PC. En el móvil, **Equipos** está en la pantalla de inicio.
+
+- **Qué se puede hacer:**
+  - imagen a tamaño ajustado o real, pantalla completa y cambio de pantalla;
+  - ratón y teclado. Las teclas van por posición física, así que manda la distribución de teclado del PC;
+  - combinaciones como Ctrl+Alt+Supr o Alt+Tab, desde un menú;
+  - sonido del PC;
+  - portapapeles en los dos sentidos: texto e imágenes, y en el móvil, texto;
+  - enviar ficheros y descargarlos del PC.
+- **En el PC controlado:**
+  - mientras dura la sesión, un aviso dice quién lo controla y tiene un botón para desconectar;
+  - opciones para pedir confirmación en el PC antes de cada sesión, elegir qué se permite (portapapeles, ficheros, sonido) y evitar que el PC se suspenda;
+  - un registro de sesiones e intentos fallidos.
+- **Conexión:** directa entre los dos equipos (WebRTC) siempre que la red lo permite. Si no, por el relé del servicio, con el contenido cifrado igualmente de extremo a extremo.
+
+| Sistema | Como PC controlado | Como controlador |
+|---|---|---|
+| Windows | Sí. No se pueden manejar la pantalla de bloqueo o de inicio de sesión, los avisos de Control de cuentas de usuario (UAC) ni los programas abiertos como administrador. Si el cortafuegos pregunta, hay que elegir «Permitir», al menos en redes privadas. | Sí |
+| macOS | Sí, con los permisos de **Grabación de pantalla** y **Accesibilidad** (desde macOS 27 se llama **Control de dispositivos y acceso a datos**), que Ajustes ayuda a conceder. El sonido necesita macOS 14.2 o posterior. Desde macOS 15, el sistema pide confirmar cada mes el permiso de grabación, delante del Mac. No se puede manejar la pantalla de bloqueo. | Sí |
+| Linux | Solo con sesión X11: Wayland no deja capturar la pantalla ni manejar el ratón. El sonido necesita PulseAudio o PipeWire con `pactl` (paquete `pulseaudio-utils`). No se puede manejar la pantalla de bloqueo. | Sí, también con Wayland |
+| Android e iPhone | No | Sí |
 
 ## Stack tecnológico
 
@@ -35,6 +66,7 @@ Aplicación de escritorio para gestionar archivos entre el sistema de archivos l
 | Empaquetado | electron-builder |
 | Backend (cuentas en la nube) | Symfony 8.1 · PHP 8.5 · PostgreSQL 16 · FrankenPHP |
 | Apps móviles (`mobile/`) | Flutter · dartssh2 · xterm · cliente S3 propio |
+| Control remoto | WebRTC (Chromium en el escritorio, flutter_webrtc en el móvil) · koffi para la entrada (SendInput, CoreGraphics, XTest) · relé TURN con coturn |
 
 ## Desarrollo
 
@@ -67,7 +99,7 @@ bin/dev                    # shell dentro del contenedor
 
 ## Apps para Android e iPhone
 
-`mobile/` es la app de Flutter con la misma cuenta y las mismas conexiones: explorador SFTP y S3 y terminal SSH. No está en las tiendas (no hay cuentas de desarrollador): en Android se instala el APK firmado de la release y en iPhone la IPA sin firmar con SideStore, AltStore Classic o Sideloadly (AltStore PAL, la versión de la UE, no sirve: solo instala apps notarizadas por Apple). Cada release adjunta el APK, la IPA y `altstore-source.json` (la fuente de SideStore/AltStore). Desarrollo, pruebas y firma: [`mobile/README.md`](mobile/README.md).
+`mobile/` es la app de Flutter con la misma cuenta y las mismas conexiones: explorador SFTP y S3, terminal SSH y control remoto de los PCs de la cuenta. No está en las tiendas (no hay cuentas de desarrollador): en Android se instala el APK firmado de la release y en iPhone la IPA sin firmar con SideStore, AltStore Classic o Sideloadly (AltStore PAL, la versión de la UE, no sirve: solo instala apps notarizadas por Apple). Cada release adjunta el APK, la IPA y `altstore-source.json` (la fuente de SideStore/AltStore). Desarrollo, pruebas y firma: [`mobile/README.md`](mobile/README.md).
 
 ## Backend (cuentas y conexiones en la nube)
 
@@ -124,9 +156,9 @@ Jenkins construye la imagen `absortian/absortian:php-absorconnect-1.0.0` (`docke
 
 ## Plataformas soportadas
 
-- **macOS** — ARM64 (Apple Silicon), formatos DMG y ZIP
+- **macOS** — Apple Silicon e Intel, formatos DMG y ZIP
 - **Windows** — Instalador NSIS
-- **Linux** — AppImage, Snap y DEB
+- **Linux** — AppImage, DEB, RPM y tar.gz
 - **Android** — 7.0 o posterior, APK (fuera de Google Play)
 - **iPhone y iPad** — iOS 15 o posterior, IPA para instalar con SideStore, AltStore Classic o Sideloadly (fuera de la App Store; AltStore PAL no sirve)
 
@@ -134,6 +166,12 @@ Jenkins construye la imagen `absortian/absortian:php-absorconnect-1.0.0` (`docke
 
 - **Credenciales en el servicio:** las claves y contraseñas de las conexiones viajan por HTTPS y se guardan cifradas con una clave del servicio (`CONNECTIONS_KEY`). Quien tuviera a la vez la base de datos y esa clave podría leerlas. De las claves privadas SSH solo se guarda la ruta del fichero, nunca su contenido; en el móvil la clave se importa en cada dispositivo y se guarda en su almacén seguro (Keychain o Keystore).
 - **Sesión en el equipo:** el token de sesión se guarda cifrado con el almacén seguro del sistema (Llavero, DPAPI o libsecret/kwallet). En Linux sin keyring se guarda sin cifrar y Ajustes lo indica. Cambiar la contraseña cierra las sesiones de los demás equipos.
+
+- **Control remoto:**
+  - La contraseña de cada PC no sale de él, ni cifrada. El controlador demuestra que la conoce con un desafío: PBKDF2 y HMAC sobre las huellas de esa conexión.
+  - El servicio solo hace de intermediario para que los dos equipos se encuentren. La imagen, el sonido, la entrada, el portapapeles y los ficheros van cifrados de extremo a extremo (DTLS), también cuando pasan por el relé.
+  - El PC no envía nada ni acepta entrada hasta comprobar la contraseña.
+  - Cinco intentos fallidos en 15 minutos lo bloquean otros 15.
 
 - **Host key SSH sin verificar:** Absor Connect acepta la clave de host de cualquier servidor SSH sin comprobarla. Es una decisión consciente para esta versión, pero implica que en una red no confiable un atacante podría suplantar al servidor (man-in-the-middle) y capturar la contraseña o los datos transferidos. Usa autenticación por clave privada y redes de confianza siempre que puedas.
 - **Exportación de conexiones:** el fichero exportado contiene todas las credenciales sin cifrar.
