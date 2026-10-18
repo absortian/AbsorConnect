@@ -123,7 +123,11 @@ export default function Workspace({ email, theme, onThemeChange, onSignedOut }: 
                 <SquareTerminal size={20} />
               </button>
             )}
-            <button className="btn-icon" onClick={() => setShowDevices(true)} title={t('devices.open')}>
+            <button
+              className="btn-icon"
+              onClick={() => setShowDevices(true)}
+              title={t('devices.open')}
+            >
               <Monitor size={20} />
             </button>
             <button className="btn-icon" onClick={() => setShowSettings(true)} title={t('app.settings')}>
