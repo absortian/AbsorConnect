@@ -296,7 +296,7 @@ Errores con el formato habitual `{"error": {"code", "details"}}`.
     - El de arm64 hace de PC y lo controla el escritorio de Linux: 43/43 aplicables. La bandeja no se puede leer con System Events en ese Mac, igual que con la app del repo (el menú de la barra se comprobó con el `.app` en la 4.1). Cortar la red solo se prueba con el Mac de controlador.
     - El de x64, con Rosetta, lo controla el móvil desde el emulador: 17/17.
     - Salieron dos fallos, ya corregidos:
-      - `extendInfo` estaba escrito como lista y electron-builder no lo aplicaba, así que el `Info.plist` llevaba los textos por defecto de Electron (también el de `NSAudioCaptureUsageDescription`). Con un mapa se aplica: comprobado en un `.app` de macOS generado en Linux.
+      - `extendInfo` estaba escrito como lista y electron-builder no lo aplicaba, así que el `Info.plist` llevaba los textos por defecto de Electron (también el de `NSAudioCaptureUsageDescription`). Con un mapa se aplica: comprobado en un `.app` generado en Linux y en otro generado en el Mac.
       - Ajustes podía preguntar antes de que arrancara el control remoto, y lo daba por no disponible en este equipo. Ahora espera a `remoteHostStarted()`. Lo destapó el primer arranque con Rosetta, que es lento.
 
 Las teclas viajan como `KeyboardEvent.code`, es decir, por posición física. Una tabla compartida (`src/shared/remote/keymap.ts`) las traduce al código de cada sistema, con datos de `dom_code_data.inc` de Chromium (licencia BSD, con su atribución). Así manda la distribución del PC controlado, como en Chrome Remote Desktop.
