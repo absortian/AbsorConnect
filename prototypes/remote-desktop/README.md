@@ -208,7 +208,8 @@ prototypes/remote-desktop/mobile-check/run.sh
 ```
 
 - Si en el puerto 5555 del host ya escucha algo, adb ve un `emulator-5554` desconectado y el bueno es `emulator-5556`, el que usa `run.sh` por defecto (`ANDROID_SERIAL` para otro).
-- Para pararlo, `docker stop absor-emulator`. Quedan los cerrojos del AVD, así que al volver a arrancarlo con `docker start absor-emulator` el emulador no sale. Hay que borrarlos y arrancarlo dentro:
+- Para pararlo, primero el emulador y después el contenedor: `docker exec absor-emulator adb -s emulator-5556 emu kill` y `docker stop absor-emulator`. Así `docker start absor-emulator` lo vuelve a arrancar solo.
+- Con solo `docker stop` quedan los cerrojos del AVD y, al volver a arrancar el contenedor, el emulador no sale. Hay que borrarlos y arrancarlo dentro:
 
   ```bash
   docker exec absor-emulator sh -c 'rm -f /root/.android/avd/absor.avd/*.lock'
@@ -250,7 +251,7 @@ El control remoto desde los paquetes que genera `release.yml`, empaquetados como
   1. Empaqueta como en CI, con el paso de koffi de la otra arquitectura.
   2. Mira los dos `.app`: el binario de koffi de su arquitectura (`lipo -archs`), `NSAudioCaptureUsageDescription`, los iconos de la bandeja y la firma ad-hoc.
   3. Arranca como PC el `.app` de su arquitectura, que controla desde aquí el controlador de escritorio. A mitad hay que pulsar «Permitir» una vez.
-  4. Arranca como PC el de x64, con Rosetta, que controla el móvil del emulador por la red local.
+  4. Arranca como PC el de x64, con Rosetta, que controla el móvil del emulador por la red local. Sin Rosetta se salta; tras instalarla, `test-mac.sh <api> x64` repite solo esta fase.
   - Los dos `.app` se lanzan desde Terminal y usan sus permisos. Que la app pida los suyos se ve en la matriz de la 9.3.
 
 ## Sesión solo por relé (`relay-check/`, tareas 3.1 y 3.2)

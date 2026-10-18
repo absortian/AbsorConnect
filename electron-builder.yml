@@ -47,14 +47,16 @@ mac:
   gatekeeperAssess: false
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
+  # Un mapa, no una lista: electron-builder lo mezcla con deepAssign en el Info.plist, y con una
+  # lista las claves no llegaban (quedaban los textos por defecto de Electron)
   extendInfo:
-    - NSCameraUsageDescription: Application requests access to the device's camera.
-    - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
-    - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
-    - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
+    NSCameraUsageDescription: Application requests access to the device's camera.
+    NSMicrophoneUsageDescription: Application requests access to the device's microphone.
+    NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
+    NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
     # Sonido del Mac durante el control remoto (audio 'loopback', CoreAudio Tap desde macOS 14.2).
     # Sin esta clave el sonido llega en silencio y sin error
-    - NSAudioCaptureUsageDescription: Absor Connect envía el sonido de este Mac al equipo que lo controla, solo durante una sesión de control remoto que hayas permitido.
+    NSAudioCaptureUsageDescription: Absor Connect envía el sonido de este Mac al equipo que lo controla, solo durante una sesión de control remoto que hayas permitido.
   notarize: false
 dmg:
   artifactName: absor-connect-${version}-${arch}.${ext}

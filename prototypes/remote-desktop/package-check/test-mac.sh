@@ -2,7 +2,10 @@
 # Paquetes de macOS (add-remote-desktop 8.1), con el backend de desarrollo de otro equipo, que es
 # también el que controla este Mac (package-check/control-mac.sh):
 #
-#   prototypes/remote-desktop/package-check/test-mac.sh http://<ip del otro equipo>:8020
+#   prototypes/remote-desktop/package-check/test-mac.sh http://<ip del otro equipo>:8020 [x64]
+#
+# Con «x64» solo repite la fase 4 con los paquetes que ya están en dist (por ejemplo, después de
+# instalar Rosetta con «softwareupdate --install-rosetta --agree-to-license»).
 #
 # 1. Empaqueta como la CI (release.yml): npm ci, el binario de koffi de la otra arquitectura sin
 #    guardarlo y npm run build:mac, que hace el .dmg y el .zip de arm64 y de x64.
@@ -28,6 +31,7 @@ root=$(cd "$here/../../.." && pwd -P)
 lan="$root/prototypes/remote-desktop/lan-check"
 
 api=${1:-}
+only=${2:-}
 case "$api" in
   http://* | https://*) api=${api%/} ;;
   *)
@@ -60,8 +64,22 @@ fi
 cd "$root"
 out="$here/out"
 log="$out/test-mac.log"
-rm -rf "$out"
+# electron-builder deja el de x64 en dist/mac y el de arm64 en dist/mac-arm64
+app_of() {
+  if [ "$1" = arm64 ]; then echo "$root/dist/mac-arm64/Absor Connect.app"; else echo "$root/dist/mac/Absor Connect.app"; fi
+}
+if [ "$only" = x64 ]; then
+  if [ ! -d "$(app_of x64)" ] || [ ! -f "$out/pc.cjs" ]; then
+    echo "Faltan los paquetes de una ejecución completa: lánzalo antes sin «x64»." >&2
+    exit 1
+  fi
+else
+  rm -rf "$out"
+fi
 mkdir -p "$out"
+electron="$root/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron"
+
+if [ "$only" != x64 ]; then
 
 echo "==> 1. Paquetes como en CI (npm ci y npm run build:mac; unos 5 minutos)"
 npm ci --no-audit --no-fund --loglevel=error >>"$log" 2>&1
@@ -76,10 +94,6 @@ if ! MAIN_VITE_API_URL=https://absorconnect.absor.top npm run build:mac >>"$log"
 fi
 
 echo "==> 2. Lo que llevan los dos .app"
-# electron-builder deja el de x64 en dist/mac y el de arm64 en dist/mac-arm64
-app_of() {
-  if [ "$1" = arm64 ]; then echo "$root/dist/mac-arm64/Absor Connect.app"; else echo "$root/dist/mac/Absor Connect.app"; fi
-}
 for a in arm64 x64; do
   app=$(app_of "$a")
   unpacked="$app/Contents/Resources/app.asar.unpacked"
@@ -99,15 +113,16 @@ ls "$root/dist" | grep -E '\.(dmg|zip)$' >"$out/artifacts.txt" || true
 
 node_modules/.bin/esbuild "$lan/pc.ts" --bundle --platform=node --format=cjs --target=node22 \
   --external:electron --outfile="$out/pc.cjs" --log-level=warning
-electron="$root/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron"
 
-set +e
 echo
 echo "==> 3. El .app de $arch es el PC; lo controla el escritorio del otro equipo."
 echo "    Una ventana tapa la pantalla. No toques nada salvo lo que diga esa ventana (pulsar"
 echo "    «Permitir» en la pregunta de control remoto la segunda vez que salga)."
 "$electron" "$out/pc.cjs" "--api=$api" "--work=$out/work-$arch" "--out=$out/pc-$arch.json" --minutes=40 \
-  "--app=$(app_of "$arch")/Contents/MacOS/Absor Connect" 2>>"$log"
+  "--app=$(app_of "$arch")/Contents/MacOS/Absor Connect" 2>>"$log" || true
+fi
+
+set +e
 
 echo
 if [ "$other" = x64 ] && ! arch -x86_64 /usr/bin/true 2>/dev/null; then
