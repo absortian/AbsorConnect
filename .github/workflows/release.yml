@@ -63,7 +63,7 @@ jobs:
           body: |
             ## Absor Connect ${{ github.ref_name }} 🚀
 
-            Gestor de conexiones remotas para escritorio, Android e iPhone, gratuito y de código abierto: explorador de doble panel para almacenamiento compatible con S3 (AWS S3, MinIO, DigitalOcean Spaces, etc.) y servidores SSH (SFTP), terminal SSH integrada y tus conexiones guardadas en tu cuenta para usarlas en todos tus equipos.
+            Gestor de conexiones remotas para escritorio, Android e iPhone, gratuito y de código abierto: explorador de doble panel para almacenamiento compatible con S3 (AWS S3, MinIO, DigitalOcean Spaces, etc.) y servidores SSH (SFTP), terminal SSH integrada, control remoto de tus PCs y tus conexiones guardadas en tu cuenta para usarlas en todos tus equipos.
 
             **Web, descargas e instrucciones de instalación:** https://absorconnect.absor.top
 
@@ -75,6 +75,8 @@ jobs:
             - Arrastrar y soltar entre paneles y desde el sistema operativo
             - Cola de transferencias en tiempo real con progreso y reintento
             - Credenciales cifradas en el servicio; la sesión de cada equipo, en el almacén seguro del sistema
+            - Control remoto de tus PCs desde otro ordenador o desde el móvil: pantalla, ratón y teclado, varias pantallas, sonido, portapapeles y ficheros
+            - Segundo plano: la app puede seguir en la bandeja y abrirse al iniciar sesión, para que el PC esté disponible
 
             > La clave de host de los servidores SSH no se verifica en esta versión; úsala en redes de confianza.
 
@@ -90,6 +92,14 @@ jobs:
             | Linux (Genérico) | `.tar.gz` |
             | Android 7.0+ | `.apk` |
             | iPhone y iPad (iOS 15+) | `.ipa` sin firmar, para SideStore, AltStore Classic o Sideloadly |
+
+            ### Control remoto (desde la v0.4.0)
+            - **En el PC que se va a controlar:** en Ajustes › Control remoto de este PC, crea su contraseña y activa «Permitir controlar este PC». La contraseña no sale de ese PC.
+            - **Desde otro equipo de la misma cuenta:** Equipos › Conectar. En el móvil, Equipos está en la pantalla de inicio.
+            - **Conexión:** directa entre los equipos cuando la red lo permite y, si no, por el relé del servicio, cifrada de extremo a extremo en los dos casos.
+            - **macOS:** necesita los permisos de Grabación de pantalla y Accesibilidad (desde macOS 27, «Control de dispositivos y acceso a datos»). El sonido, desde macOS 14.2.
+            - **Linux:** como PC controlado, solo con sesión X11. El sonido necesita `pactl` (`pulseaudio-utils`).
+            - **Windows:** si el cortafuegos pregunta, elige «Permitir», al menos en redes privadas.
 
             ### Android e iPhone (desde la v0.3.0)
             Las mismas conexiones en el móvil: explorador SFTP y S3 (subir desde Archivos o Fotos, descargar y compartir) y terminal SSH con barra de teclas. Las apps no están en Google Play ni en la App Store:
