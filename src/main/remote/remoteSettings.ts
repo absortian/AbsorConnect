@@ -8,13 +8,28 @@ import {
   MIN_PC_PASSWORD_LENGTH,
   RemoteSettingsChanges,
   RemoteSettingsResult,
-  RemoteSettingsState
+  RemoteSettingsState,
+  PrivilegedHostState
 } from '../../shared/remote/settings'
 import { primeFirewall } from './hostSession'
 import { remoteHost, remoteHostStarted } from './hostRuntime'
 import { openPermissionSettings } from './platformSupport'
 import { accessibilityRenamed } from './support'
 import { PasswordTooShortError } from './remoteAccessStore'
+
+/**
+ * Si este Windows tiene instalado el componente con privilegios (add-windows-privileged-host). Hoy
+ * siempre false: el servicio aún no forma parte de la compilación. Cuando se implemente, aquí se
+ * comprobará que el servicio está instalado (solo en Windows).
+ */
+function privilegedHostAvailable(): boolean {
+  return false
+}
+
+function privilegedHostState(enabled: boolean): PrivilegedHostState {
+  if (process.platform !== 'win32' || !privilegedHostAvailable()) return 'unavailable'
+  return enabled ? 'enabled' : 'disabled'
+}
 
 async function state(): Promise<RemoteSettingsState | null> {
   const { store, service, support } = remoteHost()
@@ -29,6 +44,7 @@ async function state(): Promise<RemoteSettingsState | null> {
     features: snapshot.features,
     confirmLocal: snapshot.confirmLocal,
     preventSleep: snapshot.preventSleep,
+    privilegedHost: privilegedHostState(snapshot.privilegedHostEnabled),
     encryptionAvailable: snapshot.encryptionAvailable,
     support: support(),
     platform: process.platform,
@@ -108,6 +124,7 @@ async function update(changes: unknown): Promise<RemoteSettingsResult> {
   }
   if (typeof c.confirmLocal === 'boolean') await store.setConfirmLocal(c.confirmLocal)
   if (typeof c.preventSleep === 'boolean') await store.setPreventSleep(c.preventSleep)
+  if (typeof c.privilegedHostEnabled === 'boolean') await store.setPrivilegedHostEnabled(c.privilegedHostEnabled)
   await service?.settingsChanged()
   return result()
 }

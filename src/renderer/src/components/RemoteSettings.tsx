@@ -373,11 +373,27 @@ function RemoteAccess(props: RemoteAccessProps): React.JSX.Element {
         </>
       )}
 
+      {remote.platform === 'win32' && (
+        <SwitchRow
+          label={t('remoteAccess.privilegedHost')}
+          hint={t(
+            remote.privilegedHost === 'unavailable'
+              ? 'remoteAccess.privilegedHostUnavailable'
+              : 'remoteAccess.privilegedHostHint'
+          )}
+          checked={remote.privilegedHost === 'enabled'}
+          disabled={remote.privilegedHost === 'unavailable'}
+          onChange={(v) => props.onUpdate({ privilegedHostEnabled: v })}
+        />
+      )}
+
       <div className="settings-row-label" style={{ marginTop: '12px' }}>
         {t('remoteAccess.limits')}
       </div>
       <p className="settings-row-hint" style={{ marginBottom: '12px' }}>
-        {t(`remoteAccess.limits_${remote.platform}`, '')}
+        {remote.platform === 'win32' && remote.privilegedHost === 'enabled'
+          ? t('remoteAccess.limits_win32_privileged')
+          : t(`remoteAccess.limits_${remote.platform}`, '')}
       </p>
 
       <button className="settings-btn" onClick={() => setShowLog(!showLog)}>

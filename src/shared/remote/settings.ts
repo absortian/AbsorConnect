@@ -22,6 +22,12 @@ export interface RemoteFeaturesInfo {
   audio: boolean
 }
 
+/**
+ * Componente con privilegios de Windows para el escritorio seguro (add-windows-privileged-host):
+ * `unavailable` = no instalado en esta compilación; `disabled`/`enabled` = instalado y preferencia.
+ */
+export type PrivilegedHostState = 'unavailable' | 'disabled' | 'enabled'
+
 export interface RemoteSettingsState {
   /** El control remoto de este PC existe en este sistema (Windows, macOS o Linux). */
   available: boolean
@@ -32,6 +38,8 @@ export interface RemoteSettingsState {
   features: RemoteFeaturesInfo
   confirmLocal: boolean
   preventSleep: boolean
+  /** Solo en Windows: estado del componente con privilegios para el escritorio seguro. */
+  privilegedHost: PrivilegedHostState
   /** K se guarda cifrada con el almacén seguro del sistema. */
   encryptionAvailable: boolean
   support: RemoteSupportInfo
@@ -48,6 +56,7 @@ export interface RemoteSettingsChanges {
   features?: Partial<RemoteFeaturesInfo>
   confirmLocal?: boolean
   preventSleep?: boolean
+  privilegedHostEnabled?: boolean
 }
 
 export type RemoteSettingsResult =

@@ -35,6 +35,8 @@ interface RemoteAccessFile {
   features: RemoteFeatures
   confirmLocal: boolean
   preventSleep: boolean
+  /** Windows: usar el componente con privilegios para el escritorio seguro (add-windows-privileged-host). */
+  privilegedHostEnabled: boolean
   failures: number[]
   lockedUntil: number | null
   log: RemoteLogEntry[]
@@ -49,6 +51,7 @@ function defaults(deviceName: string): RemoteAccessFile {
     features: { clipboard: true, files: true, audio: true },
     confirmLocal: false,
     preventSleep: false,
+    privilegedHostEnabled: true,
     failures: [],
     lockedUntil: null,
     log: []
@@ -90,6 +93,7 @@ export class RemoteAccessStore {
     features: RemoteFeatures
     confirmLocal: boolean
     preventSleep: boolean
+    privilegedHostEnabled: boolean
     encryptionAvailable: boolean
   }> {
     const d = await this.load()
@@ -100,6 +104,7 @@ export class RemoteAccessStore {
       features: d.features,
       confirmLocal: d.confirmLocal,
       preventSleep: d.preventSleep,
+      privilegedHostEnabled: d.privilegedHostEnabled,
       encryptionAvailable: this.box.available
     }
   }
@@ -228,6 +233,12 @@ export class RemoteAccessStore {
   async setPreventSleep(value: boolean): Promise<void> {
     const d = await this.load()
     d.preventSleep = value
+    await this.persist()
+  }
+
+  async setPrivilegedHostEnabled(value: boolean): Promise<void> {
+    const d = await this.load()
+    d.privilegedHostEnabled = value
     await this.persist()
   }
 
