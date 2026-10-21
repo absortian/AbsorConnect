@@ -10,7 +10,7 @@
 # backend/Dockerfile cuando cambie (bump de PHP, extensiones...).
 
 # Versions
-FROM dunglas/frankenphp:1-php8.5 AS frankenphp_upstream
+FROM dunglas/frankenphp:1-php8.5.12 AS frankenphp_upstream
 
 # Base FrankenPHP image
 FROM frankenphp_upstream AS frankenphp_base

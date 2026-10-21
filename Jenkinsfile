@@ -9,7 +9,7 @@ pipeline {
                 script {
                     withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_PASSWORD')]) {
                         sh "docker login -u $DOCKERHUB_USER -p $DOCKERHUB_PASSWORD"
-                        sh "docker build -t absortian/absortian:php-absorconnect-1.0.0 -f docker/prod/php/Dockerfile ."
+                        sh "docker build --pull -t absortian/absortian:php-absorconnect-1.0.0 -f docker/prod/php/Dockerfile ."
                         sh "docker push absortian/absortian:php-absorconnect-1.0.0"
                     }
                 }
