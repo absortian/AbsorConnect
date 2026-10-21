@@ -2,6 +2,16 @@
 
 Lee primero el `README.md` (qué es, stack, comandos). Aquí va lo que no se deduce del código.
 
+## Versión de PHP: nunca la degrades
+
+Desde el 21/10/2026 (CVE-2026-109618 y CVE-2026-109619) la imagen fija una versión de PHP parcheada en lugar de una etiqueta flotante. En cualquier cambio, fusión o rebase conserva esto:
+
+- `FROM dunglas/frankenphp:1.13.2-php8.5.12` en `backend/Dockerfile` y `docker/prod/php/Dockerfile`, o una versión más nueva; nunca una más antigua ni una etiqueta flotante como `dunglas/frankenphp:1-php8.5`.
+- `--pull` en el `docker build` de la imagen PHP del `Jenkinsfile`: el servidor de Jenkins guarda imágenes base antiguas (por ejemplo `dunglas/frankenphp:1-php8.5` con PHP vulnerable) y sin `--pull` las reutiliza.
+- `session.upload_progress.enabled = 0` en `backend/frankenphp/conf.d/10-app.ini`.
+
+Si una rama creada antes de esa fecha choca en esos ficheros, resuelve el conflicto quedándote con lo de `main`. Para subir de versión, cambia los dos Dockerfiles a la vez y despliega con Jenkins.
+
 ## Idioma y estilo
 - Interfaz, comentarios y documentación **en español**; identificadores de código y mensajes de commit en inglés (Conventional Commits: `feat:`, `fix:`, `docs:`…). Los textos de la app van por i18n (`src/renderer/src/locales/es.json` y `en.json`).
 - Cambios con **OpenSpec** (`openspec/`): propuesta en `openspec/changes/<nombre>`, implementación con `/opsx:apply`, archivo con `/opsx:archive`. Las specs vigentes están en `openspec/specs/`. Si el host no tiene Node, donde las skills dicen `openspec …` usa `bin/openspec …` (el CLI del contenedor de desarrollo; devuelve las mismas rutas absolutas que en el host).
