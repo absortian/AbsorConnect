@@ -5,7 +5,7 @@
 # de PHP y las extensiones cuando cambien (bump de PHP, extensiones...).
 
 # Versions
-FROM dunglas/frankenphp:1-php8.5.12 AS frankenphp_upstream
+FROM dunglas/frankenphp:1.13.2-php8.5.12 AS frankenphp_upstream
 
 # Base FrankenPHP image
 FROM frankenphp_upstream AS frankenphp_base
