@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "status": "viability_candidate_not_adopted",
+  "webrtc": {
+    "repository": "https://webrtc.googlesource.com/src.git",
+    "revision": "5d27ce25e244b90d09de3429dd3e702fd70f400b",
+    "license": "BSD-3-Clause; revisar también PATENTS y las dependencias de DEPS"
+  },
+  "depotTools": {
+    "repository": "https://chromium.googlesource.com/chromium/tools/depot_tools.git",
+    "revision": "b1c2e86792a7f2b6576c181b7327ddd53b1a42a8"
+  },
+  "boringSslRevisionFromDeps": "890a85a274947ba27b386f1af8ddf183ac5947fa"
+}

@@ -1,0 +1,184 @@
+# Verificación de acceso desatendido
+
+## Estado al 23/10/2026
+
+Aplicación del cambio autorizada e iniciada. **0/57 tareas completas.** Hay avances
+parciales en 1.1–1.6 y 11.6; no existe todavía un agente operativo ni se ha publicado
+una release o modificado producción.
+
+Se han implementado herramientas de diagnóstico reproducibles en
+`prototypes/remote-desktop/unattended-check/`, separadas de la app instalada. No
+instalan servicios. Los inventarios/capturas no cambian UAC/TCC/LightDM; existe
+ahora un preparador UAC de la VM, todavía sin aplicar, con consulta por defecto
+y cambios/reinicio únicamente mediante opciones explícitas y coordinación.
+
+## Resultados observados
+
+| Prueba | Resultado | Lo que no demuestra |
+|---|---|---|
+| Inventario Mac | macOS 27.0.1, arm64, FileVault activado; identidad Apple Development local disponible | Identidad Developer ID, distribución ni permisos del agente |
+| Compilación nativa Mac | Swift 6.4; compilación para macOS 13+ y firma ad-hoc verificadas | Ejecución en macOS 13 o arquitecturas diferentes |
+| Permisos del prototipo Mac (primera ejecución) | Grabación de pantalla: no; Accesibilidad: no; proceso en sesión de consola iniciada | Captura/entrada, operación launchd, bloqueo ni `loginwindow` |
+| Captura nativa Mac ejecutada desde terminal | ScreenCaptureKit recibió 10 fotogramas completos en dos segundos, una pantalla; no se guardó ni transmitió imagen | Permiso propio del helper bajo launchd; entrada, bloqueo ni `loginwindow` |
+| Mismo binario Mac bajo launchd, dominio `gui/UID` | Trabajo temporal ejecutado: `screenPermission: false`, `missing_screen_permission`, salida 2; se retiró el trabajo y se comprobó su ausencia | Falta autorizar el helper por sí mismo; no certifica ni descarta la arquitectura de un daemon |
+| launchd tras autorización explícita del propietario en Ajustes | Captura correcta: 12 fotogramas con permiso de pantalla; después 11 fotogramas con pantalla y Accesibilidad activas. Trabajo temporal retirado al terminar | No se ha inyectado entrada ni probado un daemon, bloqueo, cierre de sesión o `loginwindow` |
+| launchd durante bloqueo coordinado del Mac | Tras bloquear desde la interfaz con autorización expresa, el mismo helper recibió 11 fotogramas completos; el propietario confirmó después el desbloqueo | No se inspeccionaron píxeles ni se obtuvo un indicador independiente del bloqueo: no certifica contenido visible de la pantalla bloqueada, entrada ni `loginwindow` |
+| Paquete de diagnóstico `LoginWindow` | Preparado e inspeccionado: mismo bundle, cuatro archivos, sin scripts ni enlaces, propiedad root y sin escritura de grupo/otros; ejecución de dos segundos, sin red/entrada ni KeepAlive | No instalado ni ejecutado en `LoginWindow`; siguen pendientes autorización administrativa y prueba coordinada de cierre de sesión |
+| Inventario Mint | Mint 22.3 x86_64, Cinnamon/X11, LightDM activo, usuario ordinario | Disponibilidad después de reiniciar |
+| Conexión X11 de Mint | XOpenDisplay correcto con autorización del propio usuario; extensión XTEST disponible | Inyección de entrada, captura, polkit ni acceso al greeter |
+| Inventario Windows | Windows 11 Pro ARM64, build 26300, .NET 4.0.30319.42000; agente de invitado UTM operativo; inventario desde SYSTEM en sesión 0; protección BitLocker Off | No certifica Windows x64, entrada, arranque ni captura de UAC |
+| Política UAC de la VM | EnableLUA=0 en vistas de registro de 32 y 64 bits; PromptOnSecureDesktop=1, ConsentPromptBehaviorAdmin=5 | No se puede certificar UAC en ese estado; activación y reinicio pendientes de coordinación, sin debilitar la política |
+| VM Windows | Windows 11 Pro instalado con licencia aceptada expresamente; usuario creado por el propietario y escritorio observado tras las actualizaciones iniciales | Estado final de todas las actualizaciones y pruebas administrativas pendientes |
+| Trabajador Win32 en consola | Dos capturas correctas desde trabajador separado creado con token SYSTEM en sesión 2: 6 y 7 fotogramas GDI a 320 × 180; todos no uniformes, escritorio `Default` | Sin servicio SCM, entrada, DXGI, UAC, bloqueo ni inicio de sesión. No se guardan imágenes; no certifica su contenido exacto |
+| Captura X11 en Mint | Diez imágenes XGetImage de una región central 128 × 72; las diez no uniformes, usuario ordinario y sesión Cinnamon activa | No prueba pantalla completa, entrada, polkit, bloqueo ni greeter |
+| Criptografía C++ con BoringSSL de WebRTC | 3 vectores compartidos correctos, incluidos PBKDF2 de 600 000 iteraciones y HMAC; 5 casos negativos rechazados por vector | Interoperabilidad del transporte, persistencia del bloqueo ni autenticación de un agente final |
+| Inicialización libwebrtc | Factoría creada/destruida; conexión/canal de datos y oferta local con huella SHA-256 generados correctamente | No se aplicó la descripción ni se estableció DTLS; faltan otro cliente, vídeo/entrada y TURN |
+| Canal nativo C++ ↔ Electron real | Última ejecución correcta: DTLS conectado, prueba válida aceptada, prueba incorrecta y huella cambiada rechazadas; un solo `hello` por conexión. Electron 39.8.5/Chromium 142.0.7444.265, candidatos host/host | No prueba captura real, entrada, TURN, Flutter, credenciales del agente ni revocación; captura y entrada desactivadas en los tres casos |
+| Vídeo artificial nativo ↔ Electron | VP8 a 320 × 180: cuatro fotogramas generados tras autenticar, dos decodificados y color rojo verificado. Antes de autenticar no se decodificó vídeo; los casos de prueba errónea y huella alterada generaron/recibieron cero fotogramas | No usa la pantalla del host, no aplica entrada ni prueba TURN/Flutter; no completa 1.5 |
+
+También se ha verificado que el prototipo Mac emite JSON válido, rechaza argumentos
+desconocidos con código 64 y rechaza `--capture` sin permiso con código 2 sin iniciar
+captura. La sintaxis de Bash, el plist y la sintaxis Python se han comprobado; el
+script Python además se ejecutó correctamente en el Mint real. La validación
+estricta de OpenSpec pasa. El 22/10 no se ejecutaron pruebas de la app porque su
+código no se había modificado. El 23/10 se verificaron además las suites existentes:
+
+- `npm run typecheck`: correcto.
+- `ABSOR_DEV_API=http://127.0.0.1:8020 npm test`: 159 pruebas correctas en 25 archivos,
+  incluida la integración real de HostService con el backend de desarrollo.
+- PHPUnit sobre la base de pruebas preparada: 133 pruebas, 735 aserciones,
+  PHP 8.5.12; imagen de desarrollo reconstruida con `--pull`.
+- `flutter analyze`: sin incidencias.
+- `flutter test` con `mobile/tool/test_env.sh`: 45 pruebas correctas. La primera
+  ejecución detectó una expectativa anterior fija a Linux en `remote_api_test.dart`;
+  se corrigió para usar `Platform.operatingSystem` y se repitieron test y análisis.
+
+Estas suites comprueban el producto existente y la corrección del test; no
+acreditan funciones del agente que todavía no existen ni completan por sí solas
+las tareas de aceptación final.
+
+Se corrigió el contexto factual de `openspec/config.yaml`: producto/repositorio,
+conexiones en la cuenta, SFTP/SSH/control remoto existentes, separación de procesos,
+pruebas automatizadas y firma ad-hoc. La tarea 11.6 sigue pendiente: esa corrección
+no sustituye la documentación operativa ni las pruebas de viaje del agente final.
+
+La preparación `prototypes/remote-desktop/webrtc-check/` fija la revisión candidata
+de libwebrtc `5d27ce25e244b90d09de3429dd3e702fd70f400b` y depot_tools
+`b1c2e86792a7f2b6576c181b7327ddd53b1a42a8`. Descarga/sincronización y hooks
+oficiales completados en un laboratorio externo. Compilación y ejecución de tres
+diagnósticos C++ correctas, con comprobación de dependencias de cabeceras (`gn check`).
+Después se compiló y ejecutó un cuarto diagnóstico con un canal de datos real
+frente a Electron. El controlador importa el cálculo de prueba y extracción de
+huellas del código compartido de la app y usa únicamente un vector público de
+pruebas, con nonce nuevo. Cada ejecución usa un perfil privado nuevo, sin cuenta,
+backend, captura ni entrada. Los tres casos descritos pasan; no se ha validado
+todavía la interoperabilidad audiovisual ni móvil.
+El BoringSSL descargado coincide con la revisión indicada por `DEPS`.
+
+Toolchain observado: Clang 24.0.0git fijado por las dependencias oficiales, Xcode
+27.1/SDK 27.0 y Mac arm64. La primera compilación de las dos pruebas iniciales
+registró 350 441 ms en `.ninja_log` (2473 pasos; dos trabajos). Tras añadir la prueba
+de oferta, la compilación incremental y los tres diagnósticos pasan. Espacio
+observado redondeado: 12 GiB para checkout/build y 711 MiB para depot_tools; no son
+el tamaño del futuro instalador ni una medida de compilación de todos los codecs.
+
+| Binario probado | SHA-256 |
+|---|---|
+| `auth_check` | `3e0e9c28c88cd908422f895246278dc0a251269bd84d8d1336d6654c911ae087` |
+| `factory_check` | `beb9102920e378a0862ea7a4d94baf462b16853c0b30101f0afacded92bbb3e9` |
+| `offer_check` | `6d70a0defb2f3bde64df2dcd27d380ea3013c6ad1986d115718ee0bac1def6d2` |
+| `channel_check` (última compilación y prueba) | `baf38c1f5cbb661876a6798a470ea9912c2d9d410e65f6a9e24e79a387ed37d6` |
+| `video_channel_check` | `ce38e58e74e8ff66abbe76d6414905747f0063df996b20439453e5b54e0f6dec` |
+
+Los fuentes externos, binarios y `webrtc-probe-results.json` permanecen en
+`/Users/absor/Documents/DEV/AbsorConnectLab`, conforme a la preferencia del
+propietario. La compilación y los tres diagnósticos básicos se repitieron con éxito
+después del traslado. El último informe del canal real es
+`interop-lyUFAw/interop-results.json`, repetido con éxito después de añadir el
+ejecutable de vídeo. El informe del patrón VP8 es
+`interop-vKeDw9/interop-results.json`. Chromium registra un aborto SCTP por `Close called` al cerrar deliberadamente
+cada conexión; los resultados de autenticación y salida 0 se verifican aparte.
+
+El diagnóstico Windows de la segunda ejecución tiene fuente SHA-256
+`abde5a5c94524f74d6cbb9870b07af58585e3cb66be4b5176fc44927a33c127f`
+y binario SHA-256 `bfff2a4cdd51160879442c88d9f3c67fcde858cc96cb0a165001d05f14cffcec`.
+Está en una carpeta nueva de ProgramData con propietario SYSTEM y DACL protegida
+SYSTEM/Administradores; no se ha instalado ni dado de alta ningún servicio.
+Los informes privados son `windows-inventory-20261023.json`,
+`windows-capture-20261023-b.json` y `mint-capture-20261023.json` en el laboratorio.
+
+La herramienta de espera UTM usa los protocolos oficiales de su revisión
+`1c5e2150696cf86dc6e451212a8ad4555b2b63b2` y corrige localmente la lectura de
+`exited` documentada en [UTM #7932](https://github.com/utmapp/UTM/issues/7932).
+La ejecución real de PowerShell y el inventario se comprobaron con salida JSON;
+no se deduce éxito del código 0 prematuro de `utmctl exec`.
+
+El paquete preparado es `mac-loginwindow-probe-d/AbsorLoginWindowProbe.pkg`, SHA-256
+`3fa4d84a85d577cd552a8b30220906206c2e710fd7dbf10edbb6c2294221a6e2`.
+`pkgbuild` terminó con código 0 y cuatro avisos `write: Permission denied`, cuya
+causa no se ha establecido. Se expandió el paquete y se verificaron la firma del
+bundle, igualdad SHA-256 de sus cuatro archivos con el staging, ausencia de
+scripts/enlaces y propietarios/permisos del BOM. Esto verifica el contenido del
+artefacto; todavía no acredita una instalación correcta. No se han retirado
+atributos de seguridad para silenciar los avisos.
+
+No se han exportado claves de firma, contraseñas, tokens ni cookies Xauthority. No
+se han guardado ni transmitido imágenes de pantalla desde los prototipos.
+
+## Reproducción
+
+```bash
+bash prototypes/remote-desktop/unattended-check/mac/build.sh /tmp/absor-probe-nueva
+/tmp/absor-probe-nueva/AbsorUnattendedProbe.app/Contents/MacOS/AbsorUnattendedProbe --probe
+bash -n prototypes/remote-desktop/unattended-check/mac/build.sh
+plutil -lint prototypes/remote-desktop/unattended-check/mac/Info.plist
+```
+
+En Mint, como usuario de la sesión gráfica:
+
+```bash
+python3 prototypes/remote-desktop/unattended-check/linux-probe.py --display :0 --authority "$HOME/.Xauthority"
+```
+
+La comprobación realizada envió el script por la entrada estándar de SSH y no
+instaló ficheros en Mint. La dirección y los datos del equipo no se incrustan en
+las herramientas. Los diagnósticos siempre informan `readyForUnattended: false`:
+el inventario no certifica la funcionalidad.
+
+## Dependencias para continuar
+
+- Windows de pruebas: el propietario propuso usar una VM en este Mac. Se ha
+  instalado UTM 5.0.8 desde Homebrew y creado «AbsorConnect Windows 11 ARM Lab» con
+  8 GiB, 4 CPU y disco virtual solicitado de 80 GiB, usando la ISO oficial de
+  Microsoft en español. La ISO descargada coincide con el SHA-256 publicado:
+  `dbf606ceb4ce1390f9f21ad1d96331848bc6b701cbab0012785881a1a1c0ec63`.
+  Solo se comparte `share/` en lectura; el portapapeles compartido está desactivado.
+  Inventario del invitado y capturas GDI comprobados. Pruebas de UAC/entrada aún
+  pendientes; una prueba en ARM no certificará Windows x64. La VM tiene UAC
+  desactivado: se ha preparado y ejecutado solo la consulta del procedimiento
+  para activarlo y reiniciar. No se ha aplicado el cambio ni reiniciado la VM.
+  La ISO y el laboratorio quedan fuera del repositorio, en
+  `~/Documents/VMs/AbsorConnectLab/`; no se incluye ninguna credencial del host en
+  el directorio de intercambio. El propietario confirmó expresamente aceptar la
+  licencia de Windows para esta VM y se aceptó en el instalador. No se ha
+  introducido ninguna clave de producto. El propietario creó las credenciales
+  directamente en el invitado; el agente no las conoce ni las ha registrado.
+- Conceder inicialmente pantalla y Accesibilidad al prototipo/helper Mac con la identidad que
+  se pruebe; la captura desde terminal no acredita esos permisos bajo launchd.
+  Inicialmente Terminal tenía grabación autorizada y el helper no figuraba en la
+  lista. El propietario confirmó expresamente ambos permisos y completó Touch ID;
+  se añadió el helper por la interfaz de Ajustes. La ejecución posterior bajo
+  launchd confirmó `screenPermission: true` y `accessibilityPermission: true`.
+  No se intentan heredar, modificar por base de datos ni evadir permisos de
+  la app instalada. Después se podrá probar entrada, autorización, bloqueo
+  y `loginwindow` en contextos coordinados con el propietario.
+- El usuario SSH de Mint no dispone de sudo general sin contraseña. La integración
+  LightDM/systemd requiere instalación administrativa autorizada cuando el
+  prototipo esté listo; las comprobaciones actuales no la han intentado.
+- Aún pendientes: vídeo y TURN con libwebrtc, compatibilidad Flutter, prueba
+  `LoginWindow`, prueba de entrada/captura privilegiada, estrategia de distribución Mac,
+  backend limitado, interfaz, pruebas de red exterior y todos los demás criterios.
+
+El despliegue permanece pendiente de la funcionalidad y verificaciones definidas
+en `design.md`. No se marca como fallo arquitectónico la ausencia de un permiso
+todavía no concedido, ni se reduce el alcance a una plataforma.
