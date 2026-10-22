@@ -98,7 +98,7 @@ avisos de seguridad de coturn: la 4.6.3 con la que se desplegó tenía vulnerabi
   - solo TLS 1.2 y 1.3;
   - sin DTLS ni CLI (en la 4.18 van apagados salvo con `--dtls` o `--cli`);
   - sin versión en las respuestas (`no-software-attribute`).
-- **`denied-peer-ip`:** las redes privadas y reservadas, y además las IP públicas de `head0`, `data0`, `worker0-2`, `cp00` y `cp01`. Si no, una credencial válida bastaría para usar el relé para llegar a servicios que confían en esas máquinas, como el Postgres de `data0`. **Si cambia la IP de alguna, hay que actualizar la lista** y reiniciar el contenedor.
+- **`denied-peer-ip`:** las redes privadas y reservadas, y además las IP públicas de `head0`, `data0`, `worker0-2` y `cp00`. Si no, una credencial válida bastaría para usar el relé para llegar a servicios que confían en esas máquinas, como el Postgres de `data0`. **Si cambia la IP de alguna, hay que actualizar la lista** y reiniciar el contenedor.
 - **Cambiar el secreto:** generarlo con `openssl rand -hex 32` y cambiarlo a la vez en `turnserver.conf` (con `docker restart coturn`) y en `backend/.env_prod` (`make-env-secret.sh` y reiniciar los pods). Mientras no coincidan, el relé rechaza las credenciales que firma la API. No hay otra copia: el `backend-env.txt` del despliegue se borró después de pasarlo a `.env_prod`.
 - **En el Secret:** `TURN_URLS`, `STUN_URLS` y `TURN_SECRET`, también en `backend/.env_prod`.
 - **Comprobar:** `prototypes/remote-desktop/relay-check` hace una sesión solo por relé y mira que el par elegido pase por 46.38.240.212. Para probar el relé a mano, `turnutils_uclient` de la imagen `coturn/coturn:4.6.3`, con credenciales firmadas con el secreto (`<caducidad>:<id>` y HMAC-SHA1 en base64).
