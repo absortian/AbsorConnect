@@ -21,7 +21,7 @@ cp "$source_dir/Info.plist" "$probe_app/Contents/Info.plist"
 xcrun swiftc -parse-as-library -swift-version 5 \
   -module-cache-path "$output_dir/module-cache" \
   -target "$(uname -m)-apple-macosx13.0" \
-  "$source_dir/Probe.swift" \
+  "$source_dir/Probe.swift" "$source_dir/OwnedInputProbe.swift" \
   -o "$probe_app/Contents/MacOS/AbsorUnattendedProbe"
 codesign --force --sign "$signing_identity" "$probe_app"
 codesign --verify --strict "$probe_app"

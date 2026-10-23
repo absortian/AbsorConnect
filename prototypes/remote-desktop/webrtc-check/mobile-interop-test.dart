@@ -1,5 +1,5 @@
 // Copiar a integration_test/ de una copia aislada de mobile/ y ejecutar en el
-// simulador. Usa el plugin real y la autenticación de producción; solo vídeo
+// simulador o emulador. Usa el plugin real y la autenticación de producción; solo vídeo
 // artificial y señalización HTTP en loopback, sin cuenta ni secretos reales.
 import 'dart:async';
 import 'dart:convert';
@@ -69,7 +69,7 @@ Map<String, dynamic> candidateTypes(List<StatsReport> stats) {
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   for (final name in ['correct', 'wrong-proof', 'fingerprint-mismatch']) {
-    testWidgets('libwebrtc nativo ↔ Flutter iOS: $name', (tester) async {
+    testWidgets('libwebrtc nativo ↔ Flutter móvil: $name', (tester) async {
       final renderer = RTCVideoRenderer();
       await renderer.initialize();
       await tester.pumpWidget(
@@ -212,8 +212,10 @@ void main() {
             expect(renderer.videoHeight, 180);
           }
           final candidates = candidateTypes(await pc.getStats());
-          expect(candidates['local'], relay ? 'relay' : 'host');
-          if (!relay) expect(candidates['remote'], 'host');
+          // El NAT del emulador puede descubrir un candidato peer-reflexive,
+          // incluso sin servidores ICE. Sigue siendo directo, no un relé TURN.
+          expect(candidates['local'], relay ? 'relay' : isIn(['host', 'prflx']));
+          if (!relay) expect(candidates['remote'], isIn(['host', 'prflx']));
           await channel.send(
             RTCDataChannelMessage(
               jsonEncode({'v': 1, 'type': 'bye', 'reason': 'closed'}),

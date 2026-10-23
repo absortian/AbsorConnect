@@ -1,0 +1,500 @@
+{
+  "source": {
+    "width": 1024,
+    "height": 768,
+    "frameRate": 30
+  },
+  "results": [
+    {
+      "profile": "native",
+      "capture": {
+        "width": 1024,
+        "height": 768,
+        "frameRate": 30
+      },
+      "summary": {
+        "decodedFps": 3.7329975168327207,
+        "sentFps": 3.875,
+        "kbps": 699.5450887799226,
+        "bufferMs": 13.82834375
+      },
+      "samples": [
+        {
+          "width": 1024,
+          "height": 768,
+          "sentFps": 4,
+          "decodedFps": 3.9808917197450384,
+          "kbps": 523.3519108280012,
+          "limitation": "none",
+          "codec": "video/VP8",
+          "encoder": "libvpx",
+          "decoder": "libvpx",
+          "encodeMs": 6.000000000000002,
+          "bufferMs": 2.2380000000000178
+        },
+        {
+          "width": 1024,
+          "height": 768,
+          "sentFps": 4,
+          "decodedFps": 3.974167908594138,
+          "kbps": 627.9662195727769,
+          "limitation": "none",
+          "codec": "video/VP8",
+          "encoder": "libvpx",
+          "decoder": "libvpx",
+          "encodeMs": 7.5,
+          "bufferMs": 1.5357500000000024
+        },
+        {
+          "width": 1024,
+          "height": 768,
+          "sentFps": 4,
+          "decodedFps": 2.991623454327743,
+          "kbps": 647.3554048663441,
+          "limitation": "none",
+          "codec": "video/VP8",
+          "encoder": "libvpx",
+          "decoder": "libvpx",
+          "encodeMs": 8.5,
+          "bufferMs": 5.675749999999979
+        },
+        {
+          "width": 1024,
+          "height": 768,
+          "sentFps": 3,
+          "decodedFps": 3.9836669654417816,
+          "kbps": 1172.3453839259312,
+          "limitation": "none",
+          "codec": "video/VP8",
+          "encoder": "libvpx",
+          "decoder": "libvpx",
+          "encodeMs": 10.333333333333334,
+          "bufferMs": 59.372000000000014
+        },
+        {
+          "width": 1024,
+          "height": 768,
+          "sentFps": 4,
+          "decodedFps": 3.9725891349686244,
+          "kbps": 746.0601847253776,
+          "limitation": "none",
+          "codec": "video/VP8",
+          "encoder": "libvpx",
+          "decoder": "libvpx",
+          "encodeMs": 7.5,
+          "bufferMs": 5.634499999999987
+        },
+        {
+          "width": 1024,
+          "height": 768,
+          "sentFps": 4,
+          "decodedFps": 3.986048829098156,
+          "kbps": 627.1569506726457,
+          "limitation": "none",
+          "codec": "video/VP8",
+          "encoder": "libvpx",
+          "decoder": "libvpx",
+          "encodeMs": 6.500000000000005,
+          "bufferMs": 14.06750000000001
+        },
+        {
+          "width": 1024,
+          "height": 768,
+          "sentFps": 4,
+          "decodedFps": 3.9836669654417816,
+          "kbps": 603.4857085947755,
+          "limitation": "none",
+          "codec": "video/VP8",
+          "encoder": "libvpx",
+          "decoder": "libvpx",
+          "encodeMs": 6.749999999999992,
+          "bufferMs": 13.257249999999999
+        },
+        {
+          "width": 1024,
+          "height": 768,
+          "sentFps": 4,
+          "decodedFps": 2.9913251570445016,
+          "kbps": 648.6389470535297,
+          "limitation": "none",
+          "codec": "video/VP8",
+          "encoder": "libvpx",
+          "decoder": "libvpx",
+          "encodeMs": 7.500000000000007,
+          "bufferMs": 8.845999999999984
+        }
+      ]
+    },
+    {
+      "profile": "balanced",
+      "capture": {
+        "width": 1024,
+        "height": 768,
+        "frameRate": 30
+      },
+      "summary": {
+        "decodedFps": 3.854446485525278,
+        "sentFps": 3.75,
+        "kbps": 590.8983548707595,
+        "bufferMs": 5.7921041666666655
+      },
+      "samples": [
+        {
+          "width": 1024,
+          "height": 768,
+          "sentFps": 4,
+          "decodedFps": 3.990821111443494,
+          "kbps": 595.2070238451284,
+          "limitation": "none",
+          "codec": "video/VP8",
+          "encoder": "libvpx",
+          "decoder": "libvpx",
+          "encodeMs": 6.000000000000005,
+          "bufferMs": 4.677500000000001
+        },
+        {
+          "width": 1024,
+          "height": 768,
+          "sentFps": 4,
+          "decodedFps": 3.9892290814801887,
+          "kbps": 593.3659120375263,
+          "limitation": "none",
+          "codec": "video/VP8",
+          "encoder": "libvpx",
+          "decoder": "libvpx",
+          "encodeMs": 5.999999999999991,
+          "bufferMs": 14.369000000000021
+        },
+        {
+          "width": 1024,
+          "height": 768,
+          "sentFps": 4,
+          "decodedFps": 3.9896269698784095,
+          "kbps": 578.5517654099476,
+          "limitation": "none",
+          "codec": "video/VP8",
+          "encoder": "libvpx",
+          "decoder": "libvpx",
+          "encodeMs": 7.000000000000006,
+          "bufferMs": 2.310499999999993
+        },
+        {
+          "width": 1024,
+          "height": 768,
+          "sentFps": 3,
+          "decodedFps": 2.9874526986653964,
+          "kbps": 535.9729137621614,
+          "limitation": "none",
+          "codec": "video/VP8",
+          "encoder": "libvpx",
+          "decoder": "libvpx",
+          "encodeMs": 5.000000000000004,
+          "bufferMs": 15.081333333333282
+        },
+        {
+          "width": 1024,
+          "height": 768,
+          "sentFps": 4,
+          "decodedFps": 3.924261748258878,
+          "kbps": 590.3894829785552,
+          "limitation": "none",
+          "codec": "video/VP8",
+          "encoder": "libvpx",
+          "decoder": "libvpx",
+          "encodeMs": 6.750000000000006,
+          "bufferMs": 1.7745000000000122
+        },
+        {
+          "width": 1024,
+          "height": 768,
+          "sentFps": 4,
+          "decodedFps": 3.9840637450199203,
+          "kbps": 632.1274900398407,
+          "limitation": "none",
+          "codec": "video/VP8",
+          "encoder": "libvpx",
+          "decoder": "libvpx",
+          "encodeMs": 7.249999999999979,
+          "bufferMs": 4.760250000000021
+        },
+        {
+          "width": 1024,
+          "height": 768,
+          "sentFps": 3,
+          "decodedFps": 3.9880358923230315,
+          "kbps": 546.2173479561317,
+          "limitation": "none",
+          "codec": "video/VP8",
+          "encoder": "libvpx",
+          "decoder": "libvpx",
+          "encodeMs": 6.500000000000005,
+          "bufferMs": 1.454999999999984
+        },
+        {
+          "width": 1024,
+          "height": 768,
+          "sentFps": 4,
+          "decodedFps": 3.9820806371329023,
+          "kbps": 655.3549029367846,
+          "limitation": "none",
+          "codec": "video/VP8",
+          "encoder": "libvpx",
+          "decoder": "libvpx",
+          "encodeMs": 5.500000000000005,
+          "bufferMs": 1.9087500000000146
+        }
+      ]
+    },
+    {
+      "profile": "smooth",
+      "capture": {
+        "width": 960,
+        "height": 720,
+        "frameRate": 30
+      },
+      "summary": {
+        "decodedFps": 3.842219214996364,
+        "sentFps": 4,
+        "kbps": 996.7933110528875,
+        "bufferMs": 37.12791666666667
+      },
+      "samples": [
+        {
+          "width": 960,
+          "height": 720,
+          "sentFps": 4,
+          "decodedFps": 3.982873643333942,
+          "kbps": 1187.3583590561414,
+          "limitation": "none",
+          "codec": "video/VP8",
+          "encoder": "libvpx",
+          "decoder": "libvpx",
+          "encodeMs": 9.500000000000009,
+          "bufferMs": 48.928499999999985
+        },
+        {
+          "width": 960,
+          "height": 720,
+          "sentFps": 4,
+          "decodedFps": 3.984460603645689,
+          "kbps": 1073.0869608526496,
+          "limitation": "none",
+          "codec": "video/VP8",
+          "encoder": "libvpx",
+          "decoder": "libvpx",
+          "encodeMs": 8.250000000000007,
+          "bufferMs": 40.58449999999997
+        },
+        {
+          "width": 960,
+          "height": 720,
+          "sentFps": 4,
+          "decodedFps": 3.9556962025318274,
+          "kbps": 932.1914556962454,
+          "limitation": "none",
+          "codec": "video/VP8",
+          "encoder": "libvpx",
+          "decoder": "libvpx",
+          "encodeMs": 6.500000000000005,
+          "bufferMs": 21.63850000000006
+        },
+        {
+          "width": 960,
+          "height": 720,
+          "sentFps": 4,
+          "decodedFps": 3.948667324777888,
+          "kbps": 1176.4896347482727,
+          "limitation": "none",
+          "codec": "video/VP8",
+          "encoder": "libvpx",
+          "decoder": "libvpx",
+          "encodeMs": 7.249999999999979,
+          "bufferMs": 47.12499999999997
+        },
+        {
+          "width": 960,
+          "height": 720,
+          "sentFps": 4,
+          "decodedFps": 2.993713202274944,
+          "kbps": 933.2082626483516,
+          "limitation": "none",
+          "codec": "video/VP8",
+          "encoder": "libvpx",
+          "decoder": "libvpx",
+          "encodeMs": 8.250000000000007,
+          "bufferMs": 35.14333333333338
+        },
+        {
+          "width": 960,
+          "height": 720,
+          "sentFps": 4,
+          "decodedFps": 3.9502271380605296,
+          "kbps": 839.6207781947655,
+          "limitation": "none",
+          "codec": "video/VP8",
+          "encoder": "libvpx",
+          "decoder": "libvpx",
+          "encodeMs": 8.666666666666673,
+          "bufferMs": 38.09449999999992
+        },
+        {
+          "width": 960,
+          "height": 720,
+          "sentFps": 4,
+          "decodedFps": 3.9439952672058607,
+          "kbps": 966.760007888035,
+          "limitation": "none",
+          "codec": "video/VP8",
+          "encoder": "libvpx",
+          "decoder": "libvpx",
+          "encodeMs": 11.00000000000001,
+          "bufferMs": 30.927499999999995
+        },
+        {
+          "width": 960,
+          "height": 720,
+          "sentFps": 4,
+          "decodedFps": 3.9781203381402284,
+          "kbps": 865.6310293386375,
+          "limitation": "none",
+          "codec": "video/VP8",
+          "encoder": "libvpx",
+          "decoder": "libvpx",
+          "encodeMs": 8.249999999999979,
+          "bufferMs": 34.58150000000004
+        }
+      ]
+    },
+    {
+      "profile": "native",
+      "capture": {
+        "width": 1024,
+        "height": 768,
+        "frameRate": 30
+      },
+      "summary": {
+        "decodedFps": 3.7319534024933216,
+        "sentFps": 3.875,
+        "kbps": 579.5931081393456,
+        "bufferMs": 15.420114583333334
+      },
+      "samples": [
+        {
+          "width": 1024,
+          "height": 768,
+          "sentFps": 4,
+          "decodedFps": 3.9840637450199203,
+          "kbps": 624.9322709163347,
+          "limitation": "none",
+          "codec": "video/VP8",
+          "encoder": "libvpx",
+          "decoder": "libvpx",
+          "encodeMs": 6.750000000000034,
+          "bufferMs": 11.02924999999999
+        },
+        {
+          "width": 1024,
+          "height": 768,
+          "sentFps": 4,
+          "decodedFps": 3.98247710075704,
+          "kbps": 491.9952210275247,
+          "limitation": "none",
+          "codec": "video/VP8",
+          "encoder": "libvpx",
+          "decoder": "libvpx",
+          "encodeMs": 6.249999999999978,
+          "bufferMs": 12.481500000000034
+        },
+        {
+          "width": 1024,
+          "height": 768,
+          "sentFps": 4,
+          "decodedFps": 2.9910269192422736,
+          "kbps": 772.123629112662,
+          "limitation": "none",
+          "codec": "video/VP8",
+          "encoder": "libvpx",
+          "decoder": "libvpx",
+          "encodeMs": 9.666666666666638,
+          "bufferMs": 20.7396666666666
+        },
+        {
+          "width": 1024,
+          "height": 768,
+          "sentFps": 4,
+          "decodedFps": 3.989229081479726,
+          "kbps": 609.4105914031688,
+          "limitation": "none",
+          "codec": "video/VP8",
+          "encoder": "libvpx",
+          "decoder": "libvpx",
+          "encodeMs": 6.750000000000034,
+          "bufferMs": 22.914750000000094
+        },
+        {
+          "width": 1024,
+          "height": 768,
+          "sentFps": 4,
+          "decodedFps": 3.9904229848363,
+          "kbps": 569.6807661611999,
+          "limitation": "none",
+          "codec": "video/VP8",
+          "encoder": "libvpx",
+          "decoder": "libvpx",
+          "encodeMs": 7.749999999999979,
+          "bufferMs": 13.034249999999915
+        },
+        {
+          "width": 1024,
+          "height": 768,
+          "sentFps": 4,
+          "decodedFps": 3.9872408293462773,
+          "kbps": 629.7607655502685,
+          "limitation": "none",
+          "codec": "video/VP8",
+          "encoder": "libvpx",
+          "decoder": "libvpx",
+          "encodeMs": 5.750000000000033,
+          "bufferMs": 23.85124999999999
+        },
+        {
+          "width": 1024,
+          "height": 768,
+          "sentFps": 4,
+          "decodedFps": 3.9389463318562283,
+          "kbps": 502.74347612013787,
+          "limitation": "none",
+          "codec": "video/VP8",
+          "encoder": "libvpx",
+          "decoder": "libvpx",
+          "encodeMs": 6.249999999999978,
+          "bufferMs": 12.65325000000006
+        },
+        {
+          "width": 1024,
+          "height": 768,
+          "sentFps": 3,
+          "decodedFps": 2.992220227408807,
+          "kbps": 436.09814482346917,
+          "limitation": "none",
+          "codec": "video/VP8",
+          "encoder": "libvpx",
+          "decoder": "libvpx",
+          "encodeMs": 6.666666666666672,
+          "bufferMs": 6.656999999999987
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "electron": "39.8.5",
+  "chromium": "142.0.7444.265",
+  "architecture": "x64",
+  "platform": "win32",
+  "realDisplayCapture": true,
+  "virtualMachineOnly": true,
+  "physicalWindowsTested": false,
+  "systemInputTested": false,
+  "authenticationTested": false,
+  "remoteNetworkTested": false
+}

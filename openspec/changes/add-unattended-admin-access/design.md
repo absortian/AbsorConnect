@@ -91,6 +91,12 @@ La contraseña del sistema se escribe directamente en su interfaz por el canal c
 
 ### D6. Compatibilidad y experiencia del controlador
 
+La revisión 1 concreta de esta extensión está en
+[`src/shared/remote/agentProtocol.md`](../../../src/shared/remote/agentProtocol.md):
+negociación mutua posterior a autenticación, sobre `v:1`/`extension:1`, límite de
+2048 bytes y esquemas cerrados. Los analizadores TypeScript/Dart están preparados;
+su integración con ejecución, deduplicación y visor sigue pendiente.
+
 Ampliar de forma opcional la respuesta de equipo con modo, versión de agente y capacidades. Anunciar extensiones del canal de control sin alterar mensajes v1 existentes: capacidades/contexto/operación/resultado con validación estricta y tamaño acotado, enviados solo cuando se negocian. Un mensaje desconocido no autoriza funciones. Si se necesita alterar autenticación o semántica existente, definir v2 y compatibilidad explícita en Rust, TypeScript y Dart antes de activarlo.
 
 Electron y Flutter muestran capacidades reales, confirmación de cierre/reinicio y espera en primer plano de hasta 5 minutos con consulta moderada de estado; solo crean una nueva solicitud cuando el equipo vuelve en línea y disponible. Siempre exigen prueba nueva tras reinicio. El móvil conserva el límite actual de 30 segundos al pasar a segundo plano.

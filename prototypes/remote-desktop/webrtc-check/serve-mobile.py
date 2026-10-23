@@ -123,8 +123,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
                   and isinstance(frames, int) and (frames >= 2 if expected else frames == 0)
                   and (native.get('syntheticVideoFrames', 0) > 0 if expected else native.get('syntheticVideoFrames') == 0))
             candidates = body.get('candidates', {})
-            ok = (ok and candidates.get('local') == ('relay' if native_ice else 'host')
-                  and (native_ice is not None or candidates.get('remote') == 'host'))
+            # Sin servidores ICE, el NAT del emulador puede producir prflx.
+            # No aceptar relay ni candidatos ausentes como prueba directa.
+            ok = (ok and (candidates.get('local') == 'relay' if native_ice else
+                          candidates.get('local') in {'host', 'prflx'} and
+                          candidates.get('remote') in {'host', 'prflx'}))
             result = {'name': name, 'ok': ok, 'native': native, 'controller': body,
                       'binarySha256': binary_hash, 'physicalDeviceTested': False,
                       'relayController': native_ice is not None}

@@ -860,3 +860,69 @@ Los cuatro avisos write/Permission denied de pkgbuild reaparecieron con exit 0;
 las verificaciones de payload e instalación siguen correctas, sin atribuir causa.
 
 Referencia: [Apple: CGWarpMouseCursorPosition](https://developer.apple.com/documentation/coregraphics/cgwarpmousecursorposition(_:)).
+
+### Android: interoperabilidad con el adaptador nativo
+
+Tarea 1.5, avance parcial del 23/10/2026. Android 16/API 36 arm64, emulador
+Google APIs existente, plugin real `flutter_webrtc` y PBKDF2/HMAC de producción.
+**9/9 casos**: contraseña correcta, prueba incorrecta y huella alterada, en
+directo, TURN UDP y TURN TLS. El positivo recibió al menos dos fotogramas
+artificiales de 320×180; los negativos generaron/recibieron cero. El binario
+conserva SHA-256 `f016a99680d201a5b13298b6efdb38cefc705fe5b49c70e2f7525c7fe61e9fbe`.
+
+El primer ensayo llegó a autenticar/recibir, pero falló una aserción que exigía
+`host/host`: el NAT del emulador seleccionó `prflx/host`. Se corrigió únicamente
+el criterio de ruta directa en cliente y servidor de laboratorio: acepta
+`host`/`prflx`, nunca `relay` ni valores ausentes, sin servidores ICE. `prflx`
+es un candidato peer-reflexive definido por [WebRTC](https://www.w3.org/TR/webrtc/#dom-rtcicecandidatetype).
+La repetición final pasó los nueve casos; por TURN seleccionó `relay/srflx` y
+el protocolo esperado. No se alteraron cuotas, ACL ni el relé.
+
+Evidencia sin SDP, IPs ni secretos: `android-native-results.json`. Se retiraron
+servidores loopback, credenciales temporales y `adb reverse`; se apagó el emulador.
+No certifica dispositivo físico, entrada del sistema, captura real integrada ni
+la sesión completa de Equipos. La tarea 1.5 sigue abierta.
+
+### Mac: diagnóstico de clic y Escape preparado, pendiente de permisos
+
+Tarea 1.3, preparación parcial. Versión 0.8.0/esquema 8 añade un modo exclusivo
+de VirtualMac/LoginWindow/root, que crea una ventana propia y verifica el foco
+ante cada pulsación. Solo intenta un clic y Escape sobre esa ventana; no escribe
+en la ventana de inicio de sesión ni contiene credenciales o red. Mantiene
+captura/puntero previos y temporizador independiente de 30 segundos. Esto no
+sustituye las pruebas de teclado sobre las pantallas reales del sistema.
+
+Compilación Swift/arm64, firma estricta, rechazo de argumento inválido (64),
+autoprueba del watchdog (70), payload de cuatro archivos sin scripts/enlaces y
+actualización 0.7.0 → 0.8.0 correctos en la VM. Hash del binario:
+`715318891faa7f319f76fec54355a19259ff8ec90dcc567529dc6c3a9d67bc8b`;
+paquete: `5d2839ec02e8d2c5b0a2bc6e6f2c1e7c64beb63177b88409c7ee752ef1c31668`.
+El sondeo bajo launchd gráfico devolvió **ambos permisos falsos** tras cambiar
+la firma. Se retiró el trabajo temporal y se renombró el plist automático como
+`.disabled-v8c`; no quedó proceso del diagnóstico ejecutándose.
+
+El Mac anfitrión está bloqueado y la herramienta de interfaz exige desbloqueo
+manual. No se renovaron permisos ni se ejecutó el ensayo de entrada. La tarea
+1.3 continúa abierta y `readyForUnattended` sigue siendo falso. No se tocó TCC,
+SIP ni la sesión del Mac físico.
+
+### Contrato administrativo compartido: tarea 8.2 completa
+
+Tipos y analizadores sin efectos en `src/shared/remote/agentProtocol.ts` y
+`mobile/lib/src/remote/agent_protocol.dart`; contrato exacto en `agentProtocol.md`.
+Sobre v1/extensión 1, hasta 2048 bytes, acciones enumeradas, UUID v4, contextos
+y resultados cerrados. No acepta parámetros, programas, campos extra, capacidades
+contradictorias, versiones desconocidas ni imagen vigente en transición.
+
+24 vectores válidos y 83 inválidos compartidos por ambos lenguajes, más límite,
+JSON roto, direcciones cruzadas y compatibilidad: **109 pruebas nuevas por lado**.
+El analizador legado sigue ignorando órdenes administrativas; el anuncio opcional
+no activa el agente ni negocia o ejecuta órdenes. La autenticación v1 no cambia.
+Ejecución, deduplicación, secuencias y renovación siguen pendientes de integración
+en 3.3–3.5 y 7–10; no se confunden con esta tarea de contrato.
+
+Verificación local: typecheck y ESLint correctos; Vitest **276 correctas y 5
+omitidas preexistentes**; Flutter analyze limpio y **159 pruebas correctas**,
+incluidos API/SSH/S3 de desarrollo; PHP 8.5.12, **162 pruebas/1077 aserciones**.
+OpenSpec confirma **8/57** tareas completas. No hay agentes nativos de producción
+certificados ni activados por estos cambios.

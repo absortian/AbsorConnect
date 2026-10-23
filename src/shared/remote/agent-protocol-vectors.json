@@ -1,0 +1,1444 @@
+{
+  "schema": 1,
+  "valid": [
+    {
+      "name": "negociación explícita",
+      "direction": "controller",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "agent-control-enable"
+      }
+    },
+    {
+      "name": "operación lock",
+      "direction": "controller",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "host-operation",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "lock"
+      }
+    },
+    {
+      "name": "operación logout",
+      "direction": "controller",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "host-operation",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "logout"
+      }
+    },
+    {
+      "name": "operación restart",
+      "direction": "controller",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "host-operation",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "restart"
+      }
+    },
+    {
+      "name": "operación secure_attention",
+      "direction": "controller",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "host-operation",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "secure_attention"
+      }
+    },
+    {
+      "name": "capacidades completas",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "agent-capabilities",
+        "agentVersion": "0.1.0+lab",
+        "capabilities": {
+          "administration": true,
+          "login": true,
+          "secureAttention": true,
+          "restart": true
+        },
+        "actions": [
+          "lock",
+          "logout",
+          "restart",
+          "secure_attention"
+        ]
+      }
+    },
+    {
+      "name": "ninguna capacidad",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "agent-capabilities",
+        "agentVersion": "0.1.0",
+        "capabilities": {
+          "administration": false,
+          "login": false,
+          "secureAttention": false,
+          "restart": false
+        },
+        "actions": []
+      }
+    },
+    {
+      "name": "contexto user_desktop",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "agent-context",
+        "sequence": 1,
+        "state": "user_desktop",
+        "imageAvailable": true
+      }
+    },
+    {
+      "name": "contexto locked",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "agent-context",
+        "sequence": 2,
+        "state": "locked",
+        "imageAvailable": true
+      }
+    },
+    {
+      "name": "contexto login",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "agent-context",
+        "sequence": 3,
+        "state": "login",
+        "imageAvailable": true
+      }
+    },
+    {
+      "name": "contexto secure_prompt",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "agent-context",
+        "sequence": 4,
+        "state": "secure_prompt",
+        "imageAvailable": true
+      }
+    },
+    {
+      "name": "contexto transition",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "agent-context",
+        "sequence": 5,
+        "state": "transition",
+        "imageAvailable": false
+      }
+    },
+    {
+      "name": "contexto unavailable",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "agent-context",
+        "sequence": 6,
+        "state": "unavailable",
+        "imageAvailable": false
+      }
+    },
+    {
+      "name": "secuencia máxima",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "agent-context",
+        "sequence": 2147483647,
+        "state": "locked",
+        "imageAvailable": false
+      }
+    },
+    {
+      "name": "aceptada lock",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "host-operation-result",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "lock",
+        "status": "accepted"
+      }
+    },
+    {
+      "name": "aceptada logout",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "host-operation-result",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "logout",
+        "status": "accepted"
+      }
+    },
+    {
+      "name": "aceptada restart",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "host-operation-result",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "restart",
+        "status": "accepted"
+      }
+    },
+    {
+      "name": "aceptada secure_attention",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "host-operation-result",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "secure_attention",
+        "status": "accepted"
+      }
+    },
+    {
+      "name": "resultado not_supported",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "host-operation-result",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "restart",
+        "status": "failed",
+        "code": "not_supported"
+      }
+    },
+    {
+      "name": "resultado not_allowed",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "host-operation-result",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "restart",
+        "status": "rejected",
+        "code": "not_allowed"
+      }
+    },
+    {
+      "name": "resultado busy",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "host-operation-result",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "restart",
+        "status": "failed",
+        "code": "busy"
+      }
+    },
+    {
+      "name": "resultado cancelled",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "host-operation-result",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "restart",
+        "status": "rejected",
+        "code": "cancelled"
+      }
+    },
+    {
+      "name": "resultado system_error",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "host-operation-result",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "restart",
+        "status": "failed",
+        "code": "system_error"
+      }
+    },
+    {
+      "name": "resultado session_expired",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "host-operation-result",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "restart",
+        "status": "rejected",
+        "code": "session_expired"
+      }
+    }
+  ],
+  "invalid": [
+    {
+      "name": "negociación explícita v desconocido",
+      "direction": "controller",
+      "message": {
+        "v": 2,
+        "extension": 1,
+        "type": "agent-control-enable"
+      }
+    },
+    {
+      "name": "negociación explícita extension desconocido",
+      "direction": "controller",
+      "message": {
+        "v": 1,
+        "extension": 2,
+        "type": "agent-control-enable"
+      }
+    },
+    {
+      "name": "negociación explícita unexpected desconocido",
+      "direction": "controller",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "agent-control-enable",
+        "unexpected": "extra"
+      }
+    },
+    {
+      "name": "negociación explícita sin v",
+      "direction": "controller",
+      "message": {
+        "extension": 1,
+        "type": "agent-control-enable"
+      }
+    },
+    {
+      "name": "negociación explícita sin extension",
+      "direction": "controller",
+      "message": {
+        "v": 1,
+        "type": "agent-control-enable"
+      }
+    },
+    {
+      "name": "operación lock v desconocido",
+      "direction": "controller",
+      "message": {
+        "v": 2,
+        "extension": 1,
+        "type": "host-operation",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "lock"
+      }
+    },
+    {
+      "name": "operación lock extension desconocido",
+      "direction": "controller",
+      "message": {
+        "v": 1,
+        "extension": 2,
+        "type": "host-operation",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "lock"
+      }
+    },
+    {
+      "name": "operación lock unexpected desconocido",
+      "direction": "controller",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "host-operation",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "lock",
+        "unexpected": "extra"
+      }
+    },
+    {
+      "name": "operación lock sin v",
+      "direction": "controller",
+      "message": {
+        "extension": 1,
+        "type": "host-operation",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "lock"
+      }
+    },
+    {
+      "name": "operación lock sin extension",
+      "direction": "controller",
+      "message": {
+        "v": 1,
+        "type": "host-operation",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "lock"
+      }
+    },
+    {
+      "name": "capacidades completas v desconocido",
+      "direction": "host",
+      "message": {
+        "v": 2,
+        "extension": 1,
+        "type": "agent-capabilities",
+        "agentVersion": "0.1.0+lab",
+        "capabilities": {
+          "administration": true,
+          "login": true,
+          "secureAttention": true,
+          "restart": true
+        },
+        "actions": [
+          "lock",
+          "logout",
+          "restart",
+          "secure_attention"
+        ]
+      }
+    },
+    {
+      "name": "capacidades completas extension desconocido",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 2,
+        "type": "agent-capabilities",
+        "agentVersion": "0.1.0+lab",
+        "capabilities": {
+          "administration": true,
+          "login": true,
+          "secureAttention": true,
+          "restart": true
+        },
+        "actions": [
+          "lock",
+          "logout",
+          "restart",
+          "secure_attention"
+        ]
+      }
+    },
+    {
+      "name": "capacidades completas unexpected desconocido",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "agent-capabilities",
+        "agentVersion": "0.1.0+lab",
+        "capabilities": {
+          "administration": true,
+          "login": true,
+          "secureAttention": true,
+          "restart": true
+        },
+        "actions": [
+          "lock",
+          "logout",
+          "restart",
+          "secure_attention"
+        ],
+        "unexpected": "extra"
+      }
+    },
+    {
+      "name": "capacidades completas sin v",
+      "direction": "host",
+      "message": {
+        "extension": 1,
+        "type": "agent-capabilities",
+        "agentVersion": "0.1.0+lab",
+        "capabilities": {
+          "administration": true,
+          "login": true,
+          "secureAttention": true,
+          "restart": true
+        },
+        "actions": [
+          "lock",
+          "logout",
+          "restart",
+          "secure_attention"
+        ]
+      }
+    },
+    {
+      "name": "capacidades completas sin extension",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "type": "agent-capabilities",
+        "agentVersion": "0.1.0+lab",
+        "capabilities": {
+          "administration": true,
+          "login": true,
+          "secureAttention": true,
+          "restart": true
+        },
+        "actions": [
+          "lock",
+          "logout",
+          "restart",
+          "secure_attention"
+        ]
+      }
+    },
+    {
+      "name": "contexto user_desktop v desconocido",
+      "direction": "host",
+      "message": {
+        "v": 2,
+        "extension": 1,
+        "type": "agent-context",
+        "sequence": 1,
+        "state": "user_desktop",
+        "imageAvailable": true
+      }
+    },
+    {
+      "name": "contexto user_desktop extension desconocido",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 2,
+        "type": "agent-context",
+        "sequence": 1,
+        "state": "user_desktop",
+        "imageAvailable": true
+      }
+    },
+    {
+      "name": "contexto user_desktop unexpected desconocido",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "agent-context",
+        "sequence": 1,
+        "state": "user_desktop",
+        "imageAvailable": true,
+        "unexpected": "extra"
+      }
+    },
+    {
+      "name": "contexto user_desktop sin v",
+      "direction": "host",
+      "message": {
+        "extension": 1,
+        "type": "agent-context",
+        "sequence": 1,
+        "state": "user_desktop",
+        "imageAvailable": true
+      }
+    },
+    {
+      "name": "contexto user_desktop sin extension",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "type": "agent-context",
+        "sequence": 1,
+        "state": "user_desktop",
+        "imageAvailable": true
+      }
+    },
+    {
+      "name": "aceptada lock v desconocido",
+      "direction": "host",
+      "message": {
+        "v": 2,
+        "extension": 1,
+        "type": "host-operation-result",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "lock",
+        "status": "accepted"
+      }
+    },
+    {
+      "name": "aceptada lock extension desconocido",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 2,
+        "type": "host-operation-result",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "lock",
+        "status": "accepted"
+      }
+    },
+    {
+      "name": "aceptada lock unexpected desconocido",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "host-operation-result",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "lock",
+        "status": "accepted",
+        "unexpected": "extra"
+      }
+    },
+    {
+      "name": "aceptada lock sin v",
+      "direction": "host",
+      "message": {
+        "extension": 1,
+        "type": "host-operation-result",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "lock",
+        "status": "accepted"
+      }
+    },
+    {
+      "name": "aceptada lock sin extension",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "type": "host-operation-result",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "lock",
+        "status": "accepted"
+      }
+    },
+    {
+      "name": "resultado not_supported v desconocido",
+      "direction": "host",
+      "message": {
+        "v": 2,
+        "extension": 1,
+        "type": "host-operation-result",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "restart",
+        "status": "failed",
+        "code": "not_supported"
+      }
+    },
+    {
+      "name": "resultado not_supported extension desconocido",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 2,
+        "type": "host-operation-result",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "restart",
+        "status": "failed",
+        "code": "not_supported"
+      }
+    },
+    {
+      "name": "resultado not_supported unexpected desconocido",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "host-operation-result",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "restart",
+        "status": "failed",
+        "code": "not_supported",
+        "unexpected": "extra"
+      }
+    },
+    {
+      "name": "resultado not_supported sin v",
+      "direction": "host",
+      "message": {
+        "extension": 1,
+        "type": "host-operation-result",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "restart",
+        "status": "failed",
+        "code": "not_supported"
+      }
+    },
+    {
+      "name": "resultado not_supported sin extension",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "type": "host-operation-result",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "restart",
+        "status": "failed",
+        "code": "not_supported"
+      }
+    },
+    {
+      "name": "resultado not_allowed v desconocido",
+      "direction": "host",
+      "message": {
+        "v": 2,
+        "extension": 1,
+        "type": "host-operation-result",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "restart",
+        "status": "rejected",
+        "code": "not_allowed"
+      }
+    },
+    {
+      "name": "resultado not_allowed extension desconocido",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 2,
+        "type": "host-operation-result",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "restart",
+        "status": "rejected",
+        "code": "not_allowed"
+      }
+    },
+    {
+      "name": "resultado not_allowed unexpected desconocido",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "host-operation-result",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "restart",
+        "status": "rejected",
+        "code": "not_allowed",
+        "unexpected": "extra"
+      }
+    },
+    {
+      "name": "resultado not_allowed sin v",
+      "direction": "host",
+      "message": {
+        "extension": 1,
+        "type": "host-operation-result",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "restart",
+        "status": "rejected",
+        "code": "not_allowed"
+      }
+    },
+    {
+      "name": "resultado not_allowed sin extension",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "type": "host-operation-result",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "restart",
+        "status": "rejected",
+        "code": "not_allowed"
+      }
+    },
+    {
+      "name": "versión no numérica True",
+      "direction": "controller",
+      "message": {
+        "v": true,
+        "extension": 1,
+        "type": "agent-control-enable"
+      }
+    },
+    {
+      "name": "versión no numérica 1",
+      "direction": "controller",
+      "message": {
+        "v": "1",
+        "extension": 1,
+        "type": "agent-control-enable"
+      }
+    },
+    {
+      "name": "versión no numérica None",
+      "direction": "controller",
+      "message": {
+        "v": null,
+        "extension": 1,
+        "type": "agent-control-enable"
+      }
+    },
+    {
+      "name": "versión no numérica 0",
+      "direction": "controller",
+      "message": {
+        "v": 0,
+        "extension": 1,
+        "type": "agent-control-enable"
+      }
+    },
+    {
+      "name": "operación inválida action shell",
+      "direction": "controller",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "host-operation",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "shell"
+      }
+    },
+    {
+      "name": "operación inválida action Restart",
+      "direction": "controller",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "host-operation",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "Restart"
+      }
+    },
+    {
+      "name": "operación inválida action None",
+      "direction": "controller",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "host-operation",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": null
+      }
+    },
+    {
+      "name": "operación inválida id 12345678-1234-4ABC-8DEF-123456789ABC",
+      "direction": "controller",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "host-operation",
+        "id": "12345678-1234-4ABC-8DEF-123456789ABC",
+        "action": "restart"
+      }
+    },
+    {
+      "name": "operación inválida id 12345678-1234-4abc-8def-123456789abc\n",
+      "direction": "controller",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "host-operation",
+        "id": "12345678-1234-4abc-8def-123456789abc\n",
+        "action": "restart"
+      }
+    },
+    {
+      "name": "operación inválida id ",
+      "direction": "controller",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "host-operation",
+        "id": "",
+        "action": "restart"
+      }
+    },
+    {
+      "name": "operación inválida id 12345678-1234-1abc-8def-123456789abc",
+      "direction": "controller",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "host-operation",
+        "id": "12345678-1234-1abc-8def-123456789abc",
+        "action": "restart"
+      }
+    },
+    {
+      "name": "operación inválida command cmd.exe",
+      "direction": "controller",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "host-operation",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "restart",
+        "command": "cmd.exe"
+      }
+    },
+    {
+      "name": "operación inválida arguments []",
+      "direction": "controller",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "host-operation",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "restart",
+        "arguments": []
+      }
+    },
+    {
+      "name": "operación inválida path C:\\Windows\\system32\\cmd.exe",
+      "direction": "controller",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "host-operation",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "restart",
+        "path": "C:\\Windows\\system32\\cmd.exe"
+      }
+    },
+    {
+      "name": "capacidad inválida agentVersion 1.0\n",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "agent-capabilities",
+        "agentVersion": "1.0\n",
+        "capabilities": {
+          "administration": true,
+          "login": true,
+          "secureAttention": true,
+          "restart": true
+        },
+        "actions": [
+          "lock",
+          "logout",
+          "restart",
+          "secure_attention"
+        ]
+      }
+    },
+    {
+      "name": "capacidad inválida agentVersion aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "agent-capabilities",
+        "agentVersion": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "capabilities": {
+          "administration": true,
+          "login": true,
+          "secureAttention": true,
+          "restart": true
+        },
+        "actions": [
+          "lock",
+          "logout",
+          "restart",
+          "secure_attention"
+        ]
+      }
+    },
+    {
+      "name": "capacidad inválida agentVersion ",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "agent-capabilities",
+        "agentVersion": "",
+        "capabilities": {
+          "administration": true,
+          "login": true,
+          "secureAttention": true,
+          "restart": true
+        },
+        "actions": [
+          "lock",
+          "logout",
+          "restart",
+          "secure_attention"
+        ]
+      }
+    },
+    {
+      "name": "capacidad inválida agentVersion versión",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "agent-capabilities",
+        "agentVersion": "versión",
+        "capabilities": {
+          "administration": true,
+          "login": true,
+          "secureAttention": true,
+          "restart": true
+        },
+        "actions": [
+          "lock",
+          "logout",
+          "restart",
+          "secure_attention"
+        ]
+      }
+    },
+    {
+      "name": "capacidad inválida actions ['restart', 'restart']",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "agent-capabilities",
+        "agentVersion": "0.1.0+lab",
+        "capabilities": {
+          "administration": true,
+          "login": true,
+          "secureAttention": true,
+          "restart": true
+        },
+        "actions": [
+          "restart",
+          "restart"
+        ]
+      }
+    },
+    {
+      "name": "capacidad inválida actions ['shell']",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "agent-capabilities",
+        "agentVersion": "0.1.0+lab",
+        "capabilities": {
+          "administration": true,
+          "login": true,
+          "secureAttention": true,
+          "restart": true
+        },
+        "actions": [
+          "shell"
+        ]
+      }
+    },
+    {
+      "name": "capacidad inválida actions ['secure_attention', 'secure_attention', 'secure_attention', 'secure_attention', 'secure_attention']",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "agent-capabilities",
+        "agentVersion": "0.1.0+lab",
+        "capabilities": {
+          "administration": true,
+          "login": true,
+          "secureAttention": true,
+          "restart": true
+        },
+        "actions": [
+          "secure_attention",
+          "secure_attention",
+          "secure_attention",
+          "secure_attention",
+          "secure_attention"
+        ]
+      }
+    },
+    {
+      "name": "capacidad inválida actions {}",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "agent-capabilities",
+        "agentVersion": "0.1.0+lab",
+        "capabilities": {
+          "administration": true,
+          "login": true,
+          "secureAttention": true,
+          "restart": true
+        },
+        "actions": {}
+      }
+    },
+    {
+      "name": "capacidad inválida capabilities {}",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "agent-capabilities",
+        "agentVersion": "0.1.0+lab",
+        "capabilities": {},
+        "actions": [
+          "lock",
+          "logout",
+          "restart",
+          "secure_attention"
+        ]
+      }
+    },
+    {
+      "name": "capacidad inválida capabilities []",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "agent-capabilities",
+        "agentVersion": "0.1.0+lab",
+        "capabilities": [],
+        "actions": [
+          "lock",
+          "logout",
+          "restart",
+          "secure_attention"
+        ]
+      }
+    },
+    {
+      "name": "capacidad inválida capabilities {'administration': True, 'login': True, 'secureAttention': True, 'restart': True, 'root': True}",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "agent-capabilities",
+        "agentVersion": "0.1.0+lab",
+        "capabilities": {
+          "administration": true,
+          "login": true,
+          "secureAttention": true,
+          "restart": true,
+          "root": true
+        },
+        "actions": [
+          "lock",
+          "logout",
+          "restart",
+          "secure_attention"
+        ]
+      }
+    },
+    {
+      "name": "capacidad inválida capabilities {'administration': True, 'login': 1, 'secureAttention': True, 'restart': True}",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "agent-capabilities",
+        "agentVersion": "0.1.0+lab",
+        "capabilities": {
+          "administration": true,
+          "login": 1,
+          "secureAttention": true,
+          "restart": true
+        },
+        "actions": [
+          "lock",
+          "logout",
+          "restart",
+          "secure_attention"
+        ]
+      }
+    },
+    {
+      "name": "capacidad inválida capabilities {'administration': True, 'login': True, 'secureAttention': True, 'restart': False}",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "agent-capabilities",
+        "agentVersion": "0.1.0+lab",
+        "capabilities": {
+          "administration": true,
+          "login": true,
+          "secureAttention": true,
+          "restart": false
+        },
+        "actions": [
+          "lock",
+          "logout",
+          "restart",
+          "secure_attention"
+        ]
+      }
+    },
+    {
+      "name": "capacidad inválida capabilities {'administration': True, 'login': True, 'secureAttention': False, 'restart': True}",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "agent-capabilities",
+        "agentVersion": "0.1.0+lab",
+        "capabilities": {
+          "administration": true,
+          "login": true,
+          "secureAttention": false,
+          "restart": true
+        },
+        "actions": [
+          "lock",
+          "logout",
+          "restart",
+          "secure_attention"
+        ]
+      }
+    },
+    {
+      "name": "contexto inválido sequence 0",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "agent-context",
+        "sequence": 0,
+        "state": "login",
+        "imageAvailable": true
+      }
+    },
+    {
+      "name": "contexto inválido sequence -1",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "agent-context",
+        "sequence": -1,
+        "state": "login",
+        "imageAvailable": true
+      }
+    },
+    {
+      "name": "contexto inválido sequence 1.5",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "agent-context",
+        "sequence": 1.5,
+        "state": "login",
+        "imageAvailable": true
+      }
+    },
+    {
+      "name": "contexto inválido sequence 2147483648",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "agent-context",
+        "sequence": 2147483648,
+        "state": "login",
+        "imageAvailable": true
+      }
+    },
+    {
+      "name": "contexto inválido sequence 1",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "agent-context",
+        "sequence": "1",
+        "state": "login",
+        "imageAvailable": true
+      }
+    },
+    {
+      "name": "contexto inválido sequence True",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "agent-context",
+        "sequence": true,
+        "state": "login",
+        "imageAvailable": true
+      }
+    },
+    {
+      "name": "contexto inválido state root",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "agent-context",
+        "sequence": 1,
+        "state": "root",
+        "imageAvailable": true
+      }
+    },
+    {
+      "name": "contexto inválido imageAvailable 1",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "agent-context",
+        "sequence": 1,
+        "state": "login",
+        "imageAvailable": 1
+      }
+    },
+    {
+      "name": "contexto inválido imageAvailable None",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "agent-context",
+        "sequence": 1,
+        "state": "login",
+        "imageAvailable": null
+      }
+    },
+    {
+      "name": "imagen vigente en transition",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "agent-context",
+        "sequence": 1,
+        "state": "transition",
+        "imageAvailable": true
+      }
+    },
+    {
+      "name": "imagen vigente en unavailable",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "agent-context",
+        "sequence": 1,
+        "state": "unavailable",
+        "imageAvailable": true
+      }
+    },
+    {
+      "name": "resultado inválido status ok",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "host-operation-result",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "restart",
+        "status": "ok"
+      }
+    },
+    {
+      "name": "resultado inválido status True",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "host-operation-result",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "restart",
+        "status": true
+      }
+    },
+    {
+      "name": "resultado inválido code system_error",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "host-operation-result",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "restart",
+        "status": "accepted",
+        "code": "system_error"
+      }
+    },
+    {
+      "name": "resultado inválido id 12345678-1234-4abc-8def-123456789abc\n",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "host-operation-result",
+        "id": "12345678-1234-4abc-8def-123456789abc\n",
+        "action": "restart",
+        "status": "accepted"
+      }
+    },
+    {
+      "name": "resultado inválido action shell",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "host-operation-result",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "shell",
+        "status": "accepted"
+      }
+    },
+    {
+      "name": "error sin código rejected",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "host-operation-result",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "restart",
+        "status": "rejected"
+      }
+    },
+    {
+      "name": "código desconocido rejected",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "host-operation-result",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "restart",
+        "status": "rejected",
+        "code": "arbitrary_error"
+      }
+    },
+    {
+      "name": "error sin código failed",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "host-operation-result",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "restart",
+        "status": "failed"
+      }
+    },
+    {
+      "name": "código desconocido failed",
+      "direction": "host",
+      "message": {
+        "v": 1,
+        "extension": 1,
+        "type": "host-operation-result",
+        "id": "12345678-1234-4abc-8def-123456789abc",
+        "action": "restart",
+        "status": "failed",
+        "code": "arbitrary_error"
+      }
+    }
+  ]
+}

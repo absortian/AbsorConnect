@@ -52,12 +52,14 @@ class AuthResultMessage extends HostMessage {
 
 /// Lo que el PC permite en esta sesión.
 class FeaturesMessage extends HostMessage {
-  const FeaturesMessage({required this.clipboard, required this.files, required this.audio, this.streamQuality = false});
+  const FeaturesMessage({required this.clipboard, required this.files, required this.audio, this.streamQuality = false, this.unattendedControl = false});
 
   final bool clipboard;
   final bool files;
   final bool audio;
   final bool streamQuality;
+  /// Anuncio solamente; los analizadores de la extensión están en agent_protocol.dart.
+  final bool unattendedControl;
 }
 
 enum StreamProfile { balanced, smooth, native }
@@ -108,7 +110,7 @@ HostMessage? parseHostMessage(String raw) {
       final retryAfter = data['retryAfter'];
       return AuthResultMessage(ok: false, reason: data['reason'] is String ? data['reason'] as String : 'connection_failed', retryAfter: retryAfter is num ? retryAfter.toInt() : null);
     case 'features':
-      return FeaturesMessage(clipboard: data['clipboard'] == true, files: data['files'] == true, audio: data['audio'] == true, streamQuality: data['v'] == 1 && data['streamQuality'] == true);
+      return FeaturesMessage(clipboard: data['clipboard'] == true, files: data['files'] == true, audio: data['audio'] == true, streamQuality: data['v'] == 1 && data['streamQuality'] == true, unattendedControl: data['v'] == 1 && data['unattendedControl'] == true);
     case 'stream-quality':
       final profile = parseStreamProfile(data['profile']);
       return data['v'] == 1 && profile != null ? StreamQualityMessage(profile) : null;

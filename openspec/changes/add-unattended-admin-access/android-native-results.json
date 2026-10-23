@@ -1,0 +1,258 @@
+{
+  "runtime": "Android 16 API 36, arm64, Google APIs emulator",
+  "physicalDeviceTested": false,
+  "cases": [
+    {
+      "name": "correct",
+      "ok": true,
+      "native": {
+        "dtlsConnected": true,
+        "authenticated": true,
+        "captureStarted": false,
+        "inputEnabled": false,
+        "relayOnly": false,
+        "syntheticVideoFrames": 2
+      },
+      "controller": {
+        "authenticated": true,
+        "decodedFrames": 2,
+        "helloCount": 1,
+        "candidates": {
+          "local": "prflx",
+          "remote": "host",
+          "relayProtocol": null
+        },
+        "width": 320,
+        "height": 180
+      },
+      "binarySha256": "f016a99680d201a5b13298b6efdb38cefc705fe5b49c70e2f7525c7fe61e9fbe",
+      "physicalDeviceTested": false,
+      "relayController": false,
+      "route": "direct"
+    },
+    {
+      "name": "wrong-proof",
+      "ok": true,
+      "native": {
+        "dtlsConnected": true,
+        "authenticated": false,
+        "captureStarted": false,
+        "inputEnabled": false,
+        "relayOnly": false,
+        "syntheticVideoFrames": 0
+      },
+      "controller": {
+        "authenticated": false,
+        "decodedFrames": 0,
+        "helloCount": 1,
+        "candidates": {
+          "local": "prflx",
+          "remote": "host",
+          "relayProtocol": null
+        },
+        "width": 0,
+        "height": 0
+      },
+      "binarySha256": "f016a99680d201a5b13298b6efdb38cefc705fe5b49c70e2f7525c7fe61e9fbe",
+      "physicalDeviceTested": false,
+      "relayController": false,
+      "route": "direct"
+    },
+    {
+      "name": "fingerprint-mismatch",
+      "ok": true,
+      "native": {
+        "dtlsConnected": true,
+        "authenticated": false,
+        "captureStarted": false,
+        "inputEnabled": false,
+        "relayOnly": false,
+        "syntheticVideoFrames": 0
+      },
+      "controller": {
+        "authenticated": false,
+        "decodedFrames": 0,
+        "helloCount": 1,
+        "candidates": {
+          "local": "prflx",
+          "remote": "host",
+          "relayProtocol": null
+        },
+        "width": 0,
+        "height": 0
+      },
+      "binarySha256": "f016a99680d201a5b13298b6efdb38cefc705fe5b49c70e2f7525c7fe61e9fbe",
+      "physicalDeviceTested": false,
+      "relayController": false,
+      "route": "direct"
+    },
+    {
+      "name": "correct",
+      "ok": true,
+      "native": {
+        "dtlsConnected": true,
+        "authenticated": true,
+        "captureStarted": false,
+        "inputEnabled": false,
+        "relayOnly": false,
+        "syntheticVideoFrames": 3
+      },
+      "controller": {
+        "authenticated": true,
+        "decodedFrames": 2,
+        "helloCount": 1,
+        "candidates": {
+          "local": "relay",
+          "remote": "srflx",
+          "relayProtocol": "udp"
+        },
+        "width": 320,
+        "height": 180
+      },
+      "binarySha256": "f016a99680d201a5b13298b6efdb38cefc705fe5b49c70e2f7525c7fe61e9fbe",
+      "physicalDeviceTested": false,
+      "relayController": true,
+      "route": "udp"
+    },
+    {
+      "name": "wrong-proof",
+      "ok": true,
+      "native": {
+        "dtlsConnected": true,
+        "authenticated": false,
+        "captureStarted": false,
+        "inputEnabled": false,
+        "relayOnly": false,
+        "syntheticVideoFrames": 0
+      },
+      "controller": {
+        "authenticated": false,
+        "decodedFrames": 0,
+        "helloCount": 1,
+        "candidates": {
+          "local": "relay",
+          "remote": "srflx",
+          "relayProtocol": "udp"
+        },
+        "width": 0,
+        "height": 0
+      },
+      "binarySha256": "f016a99680d201a5b13298b6efdb38cefc705fe5b49c70e2f7525c7fe61e9fbe",
+      "physicalDeviceTested": false,
+      "relayController": true,
+      "route": "udp"
+    },
+    {
+      "name": "fingerprint-mismatch",
+      "ok": true,
+      "native": {
+        "dtlsConnected": true,
+        "authenticated": false,
+        "captureStarted": false,
+        "inputEnabled": false,
+        "relayOnly": false,
+        "syntheticVideoFrames": 0
+      },
+      "controller": {
+        "authenticated": false,
+        "decodedFrames": 0,
+        "helloCount": 1,
+        "candidates": {
+          "local": "relay",
+          "remote": "srflx",
+          "relayProtocol": "udp"
+        },
+        "width": 0,
+        "height": 0
+      },
+      "binarySha256": "f016a99680d201a5b13298b6efdb38cefc705fe5b49c70e2f7525c7fe61e9fbe",
+      "physicalDeviceTested": false,
+      "relayController": true,
+      "route": "udp"
+    },
+    {
+      "name": "correct",
+      "ok": true,
+      "native": {
+        "dtlsConnected": true,
+        "authenticated": true,
+        "captureStarted": false,
+        "inputEnabled": false,
+        "relayOnly": false,
+        "syntheticVideoFrames": 3
+      },
+      "controller": {
+        "authenticated": true,
+        "decodedFrames": 2,
+        "helloCount": 1,
+        "candidates": {
+          "local": "relay",
+          "remote": "srflx",
+          "relayProtocol": "tls"
+        },
+        "width": 320,
+        "height": 180
+      },
+      "binarySha256": "f016a99680d201a5b13298b6efdb38cefc705fe5b49c70e2f7525c7fe61e9fbe",
+      "physicalDeviceTested": false,
+      "relayController": true,
+      "route": "tls"
+    },
+    {
+      "name": "wrong-proof",
+      "ok": true,
+      "native": {
+        "dtlsConnected": true,
+        "authenticated": false,
+        "captureStarted": false,
+        "inputEnabled": false,
+        "relayOnly": false,
+        "syntheticVideoFrames": 0
+      },
+      "controller": {
+        "authenticated": false,
+        "decodedFrames": 0,
+        "helloCount": 1,
+        "candidates": {
+          "local": "relay",
+          "remote": "srflx",
+          "relayProtocol": "tls"
+        },
+        "width": 0,
+        "height": 0
+      },
+      "binarySha256": "f016a99680d201a5b13298b6efdb38cefc705fe5b49c70e2f7525c7fe61e9fbe",
+      "physicalDeviceTested": false,
+      "relayController": true,
+      "route": "tls"
+    },
+    {
+      "name": "fingerprint-mismatch",
+      "ok": true,
+      "native": {
+        "dtlsConnected": true,
+        "authenticated": false,
+        "captureStarted": false,
+        "inputEnabled": false,
+        "relayOnly": false,
+        "syntheticVideoFrames": 0
+      },
+      "controller": {
+        "authenticated": false,
+        "decodedFrames": 0,
+        "helloCount": 1,
+        "candidates": {
+          "local": "relay",
+          "remote": "srflx",
+          "relayProtocol": "tls"
+        },
+        "width": 0,
+        "height": 0
+      },
+      "binarySha256": "f016a99680d201a5b13298b6efdb38cefc705fe5b49c70e2f7525c7fe61e9fbe",
+      "physicalDeviceTested": false,
+      "relayController": true,
+      "route": "tls"
+    }
+  ]
+}
