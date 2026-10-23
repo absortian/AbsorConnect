@@ -289,9 +289,19 @@ capturar con ambos permisos en falso; fue retirado. Tras autenticación del
 propietario se retiraron las entradas antiguas y se añadió por la interfaz el
 bundle instalado 0.3.0 para pantalla y Accesibilidad. El trabajo temporal posterior
 `gui/501` recibió once fotogramas en 2183 ms con ambos permisos activos; no pidió
-ni aplicó entrada. Se retiró el trabajo. El ensayo real de puntero en `LoginWindow`
-sigue pendiente, con cierre de sesión autorizado. VM apagada y plist verificado
-antes de la prueba. Metadatos privados en `mac-diagnostic-v3-install-20261023.json`.
+ni aplicó entrada. Se retiró el trabajo. Se confirmó el cierre de sesión autorizado
+con la VM apagada y el plist verificado. Tras volver a iniciar sesión, el
+propietario ejecutó la lectura administrativa de los dos informes `-v3` y pegó
+una salida vacía, sin errores de `cat`. No hay JSON que permita certificar captura
+o movimiento: todavía no se conocen los tamaños y fechas de esos archivos ni si
+el proceso no arrancó, terminó o quedó interrumpido antes de emitir el resultado.
+No se observaron procesos activos del helper ni informes de caída accesibles al
+usuario ordinario. La consulta del registro unificado, incluidos info/debug,
+no proporcionó un resultado de ejecución en `LoginWindow`; los avisos sobre el
+label ausente en `gui/501` no acreditan qué ocurrió en el contexto de login.
+El ensayo es inconcluso y no se repite todavía el cierre de sesión. Los once
+buffers de 0.2.0 siguen siendo evidencia de esa versión; no prueban entrada en
+0.3.0. Metadatos privados en `mac-diagnostic-v3-install-20261023.json`.
 
 Para preparar la siguiente prueba se intentó guardar la suspensión de la VM.
 UTM la rechazó porque la GPU habilitada no admite instantáneas; aunque su CLI
