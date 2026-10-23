@@ -1,0 +1,165 @@
+{
+  "date": "2026-10-24",
+  "scope": "diagnóstico local en VirtualMac; no certifica entrada en pantallas del sistema ni hardware físico",
+  "probeVersion": "0.9.0",
+  "schema": 9,
+  "binarySha256": "269ced62205006be21870a0ff3265e21a8f5b99a37d90377900afe49fbbfbc16",
+  "packageSha256": "f4f0b1c9640c9d8985cec0a65980217650bb6f3482e6fd7f9cc09cbea35717db",
+  "captureElapsedExcludesInput": true,
+  "freshRebootReportVerified": true,
+  "automaticJobDisabledAfterTest": true,
+  "results": [
+    {
+      "transition": "logout",
+      "report": {
+        "accessibilityPermission": true,
+        "attempt": 1,
+        "attempts": [
+          {
+            "attempt": 1,
+            "captureTested": true,
+            "completeFrames": 11,
+            "displayCount": 1,
+            "elapsedMilliseconds": 2440,
+            "graphicsContext": {
+              "displayQueryStatus": 0,
+              "hasGraphicAccess": true,
+              "isRootSecuritySession": false,
+              "onlineDisplayCount": 1,
+              "securitySessionQueryStatus": 0
+            },
+            "status": "capture_ok_not_certified"
+          }
+        ],
+        "captureRequested": true,
+        "captureTested": true,
+        "completeFrames": 11,
+        "displayCount": 1,
+        "elapsedMilliseconds": 2440,
+        "graphicsContext": {
+          "displayQueryStatus": 0,
+          "hasGraphicAccess": true,
+          "isRootSecuritySession": false,
+          "onlineDisplayCount": 1,
+          "securitySessionQueryStatus": 0
+        },
+        "inputScope": "pointer_movement_and_owned_window_only",
+        "inputTested": true,
+        "keyboardTested": false,
+        "loginComplete": false,
+        "onConsole": true,
+        "osVersion": "Version 27.0.1 (Build 26A434)",
+        "ownedInput": {
+          "clickObserved": false,
+          "clickTested": false,
+          "credentialsTested": false,
+          "escapeDownCount": 0,
+          "escapeObserved": false,
+          "escapeUpCount": 0,
+          "inputScope": "owned_window_click_and_escape_only",
+          "keyboardTested": false,
+          "mouseDownCount": 0,
+          "mouseUpCount": 0,
+          "status": "owned_window_focus_unavailable",
+          "timerStrategy": "modal_run_loop"
+        },
+        "platform": "macos",
+        "pointer": {
+          "moveObserved": true,
+          "moveStatus": 0,
+          "pointerStrategy": "public_cursor_warp",
+          "pointerTested": true,
+          "postEventPermission": true,
+          "requestedDistancePixels": 8,
+          "restoreObserved": true,
+          "restoreStatus": 0,
+          "status": "pointer_ok_not_certified"
+        },
+        "pointerRequested": true,
+        "pointerTested": true,
+        "preLoginTested": false,
+        "processUid": 0,
+        "readyForUnattended": false,
+        "schema": 9,
+        "screenPermission": true,
+        "status": "capture_ok_owned_input_not_verified"
+      }
+    },
+    {
+      "transition": "reboot",
+      "report": {
+        "accessibilityPermission": true,
+        "attempt": 1,
+        "attempts": [
+          {
+            "attempt": 1,
+            "captureTested": true,
+            "completeFrames": 11,
+            "displayCount": 1,
+            "elapsedMilliseconds": 2681,
+            "graphicsContext": {
+              "displayQueryStatus": 0,
+              "hasGraphicAccess": true,
+              "isRootSecuritySession": false,
+              "onlineDisplayCount": 1,
+              "securitySessionQueryStatus": 0
+            },
+            "status": "capture_ok_not_certified"
+          }
+        ],
+        "captureRequested": true,
+        "captureTested": true,
+        "completeFrames": 11,
+        "displayCount": 1,
+        "elapsedMilliseconds": 2681,
+        "graphicsContext": {
+          "displayQueryStatus": 0,
+          "hasGraphicAccess": true,
+          "isRootSecuritySession": false,
+          "onlineDisplayCount": 1,
+          "securitySessionQueryStatus": 0
+        },
+        "inputScope": "pointer_movement_and_owned_window_only",
+        "inputTested": true,
+        "keyboardTested": false,
+        "loginComplete": false,
+        "onConsole": true,
+        "osVersion": "Version 27.0.1 (Build 26A434)",
+        "ownedInput": {
+          "clickObserved": false,
+          "clickTested": false,
+          "credentialsTested": false,
+          "escapeDownCount": 0,
+          "escapeObserved": false,
+          "escapeUpCount": 0,
+          "inputScope": "owned_window_click_and_escape_only",
+          "keyboardTested": false,
+          "mouseDownCount": 0,
+          "mouseUpCount": 0,
+          "status": "owned_window_focus_unavailable",
+          "timerStrategy": "modal_run_loop"
+        },
+        "platform": "macos",
+        "pointer": {
+          "moveObserved": true,
+          "moveStatus": 0,
+          "pointerStrategy": "public_cursor_warp",
+          "pointerTested": true,
+          "postEventPermission": true,
+          "requestedDistancePixels": 8,
+          "restoreObserved": true,
+          "restoreStatus": 0,
+          "status": "pointer_ok_not_certified"
+        },
+        "pointerRequested": true,
+        "pointerTested": true,
+        "preLoginTested": false,
+        "processUid": 0,
+        "readyForUnattended": false,
+        "schema": 9,
+        "screenPermission": true,
+        "status": "capture_ok_owned_input_not_verified"
+      }
+    }
+  ]
+}

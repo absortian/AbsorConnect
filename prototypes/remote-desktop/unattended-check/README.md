@@ -308,7 +308,7 @@ contexto; no se usa una imagen de `Default` como evidencia de prelogin.
 Las APIs utilizadas son [WTSLogoffSession](https://learn.microsoft.com/en-us/windows/win32/api/wtsapi32/nf-wtsapi32-wtslogoffsession)
 y [WTSQuerySessionInformation](https://learn.microsoft.com/en-us/windows/win32/api/wtsapi32/nf-wtsapi32-wtsquerysessioninformationw).
 
-### Mac 0.8.0: ventana propia para comprobar eventos
+### Mac 0.9.0: ventana propia para comprobar eventos
 
 El paquete actual prepara `--capture-owned-input-loginwindow`. Conserva los modos
 anteriores y añade un ensayo exclusivo de VirtualMac, root y LoginWindow. Tras
@@ -319,9 +319,31 @@ propia vista y restaura el puntero. No introduce texto ni actúa sobre la ventan
 de entrada del sistema. Un foco no verificable cancela el ensayo.
 
 El payload sigue teniendo cuatro archivos y ningún script de instalación. Los
-informes usan `loginwindow-report-v8.json` y `loginwindow-stderr-v8.txt`. El modo
+informes usan `loginwindow-report-v9.json` y `loginwindow-stderr-v9.txt`. El modo
 no acredita credenciales, autorización de macOS ni el Mac físico aunque llegue a
 recibir sus eventos. La compilación, paquete y actualización en VM están
-verificados; la firma nueva perdió ambos permisos. El ensayo no se ha ejecutado,
-el plist automático queda `.disabled-v8c` y `readyForUnattended` sigue falso.
-No renovar permisos mediante TCC ni presumir que sobrevivieron a la actualización.
+verificados; la firma nueva requirió retirar y añadir el bundle instalado en
+los dos paneles de Ajustes de la VM. No renovar permisos mediante TCC ni presumir
+que sobrevivieron a la actualización.
+
+La versión 0.8.0 agotaba los 30 segundos dentro de `NSApplication.runModal`:
+el trabajo pendiente de `DispatchQueue.main` no se ejecutaba desde ese contexto
+`main() async`. Se reprodujo en una ventana aislada sin captura ni entrada.
+0.9.0 usa temporizadores de `RunLoop.main` en modo `.modalPanel`, invalida los
+pendientes al salir y registra las fases del ensayo. El watchdog independiente
+sigue limitando los bloqueos dentro del SDK.
+
+El 24/10/2026, bajo launchd gráfico recibió seis fotogramas en 2481 ms. Tras
+logout y arranque limpio recibió once en 2440/2681 ms, con UID 0, consola,
+`loginComplete:false` y ambos permisos. El puntero se movió y restauró. En ambos
+casos **canceló antes de crear/publicar clics o teclas** porque no pudo confirmar
+el conjunto de condiciones de foco (`owned_window_focus_unavailable`). No se
+identificó cuál de ellas falló; no se interpreta como imposibilidad general de
+entrada en macOS. `inputTested:true` corresponde al ensayo separado del puntero,
+no a clics ni teclado. El plist automático quedó `.disabled-v9-after-reboot`,
+sin proceso activo y con la sesión de test restaurada. `readyForUnattended`
+sigue falso y la tarea 1.3 continúa abierta. Resultados sin datos personales:
+[`mac-owned-input-results.json`](../../../openspec/changes/add-unattended-admin-access/mac-owned-input-results.json).
+
+Referencia del modo de temporizador:
+[Apple: RunLoop.Mode](https://developer.apple.com/documentation/foundation/runloop/mode).
