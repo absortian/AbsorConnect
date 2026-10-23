@@ -15,6 +15,7 @@ private final class ProbeDiagnostics: @unchecked Sendable {
   private var finished = false
   private var stage = "process_start"
   private var timeoutSeconds = 30
+  private var progress: [String: Any] = [:]
 
   func start(timeout: Int = 30) {
     timeoutSeconds = timeout
@@ -25,15 +26,29 @@ private final class ProbeDiagnostics: @unchecked Sendable {
       lock.lock()
       guard !finished else { lock.unlock(); return }
       finished = true
-      write(["schema": 4, "platform": "macos", "status": "diagnostic_timeout",
-             "lastStage": stage, "timeoutSeconds": timeoutSeconds,
-             "captureTested": false, "inputTested": false,
-             "completionUnverified": true, "readyForUnattended": false])
+      var report = progress
+      report["schema"] = 6
+      report["platform"] = "macos"
+      report["status"] = "diagnostic_timeout"
+      report["lastStage"] = stage
+      report["timeoutSeconds"] = timeoutSeconds
+      report["captureTested"] = progress["captureTested"] ?? false
+      report["inputTested"] = false
+      report["completionUnverified"] = true
+      report["readyForUnattended"] = false
+      write(report)
       lock.unlock()
       _exit(70)
     }
     self.timer = timer
     timer.resume()
+  }
+
+  func recordProgress(_ report: [String: Any]) {
+    lock.lock()
+    defer { lock.unlock() }
+    guard !finished else { return }
+    progress = report
   }
 
   func checkpoint(_ name: String) {
@@ -104,7 +119,7 @@ private struct Probe {
     if arguments == ["--watchdog-self-test"] {
       diagnostics.checkpoint("watchdog_self_test_wait")
       try? await Task.sleep(nanoseconds: 5_000_000_000)
-      diagnostics.finish(["schema": 4, "status": "watchdog_failed", "readyForUnattended": false])
+      diagnostics.finish(["schema": 6, "status": "watchdog_failed", "readyForUnattended": false])
       exit(71)
     }
     let pointer = arguments == ["--capture-pointer-loginwindow"]
@@ -117,7 +132,7 @@ private struct Probe {
     diagnostics.checkpoint("session.current")
     let session = CGSessionCopyCurrentDictionary() as? [String: Any] ?? [:]
     var report: [String: Any] = [
-      "schema": 4,
+      "schema": 6,
       "platform": "macos",
       "osVersion": ProcessInfo.processInfo.operatingSystemVersionString,
       "processUid": getuid(),
@@ -169,6 +184,7 @@ private struct Probe {
         for (key, value) in finalAttempt { report[key] = value }
       }
       report["attempts"] = attempts
+      diagnostics.recordProgress(report)
       if pointer && result == 0 {
         let input = await checkPointer()
         report["pointer"] = input
@@ -188,7 +204,8 @@ private struct Probe {
 
   private static func checkPointer() async -> [String: Any] {
     var report: [String: Any] = ["pointerTested": false, "moveObserved": false,
-                               "restoreObserved": false, "requestedDistancePixels": 8]
+                               "restoreObserved": false, "requestedDistancePixels": 8,
+                               "eventSource": "default"]
     ProbeDiagnostics.shared.checkpoint("pointer.session")
     let session = CGSessionCopyCurrentDictionary() as? [String: Any] ?? [:]
     guard getuid() == 0, session[kCGSessionLoginDoneKey as String] as? Bool == false,
@@ -214,17 +231,23 @@ private struct Probe {
       report["status"] = "pointer_position_unavailable"
       return report
     }
+    ProbeDiagnostics.shared.checkpoint("pointer.display_bounds")
     let bounds = CGDisplayBounds(CGMainDisplayID())
     guard bounds.width > 20, bounds.contains(initial) else {
       report["status"] = "pointer_outside_main_display"
       return report
     }
     let target = CGPoint(x: initial.x + (initial.x + 8 < bounds.maxX ? 8 : -8), y: initial.y)
-    guard let source = CGEventSource(stateID: .hidSystemState),
-          let move = CGEvent(mouseEventSource: source, mouseType: .mouseMoved,
-                             mouseCursorPosition: target, mouseButton: .left),
-          let restore = CGEvent(mouseEventSource: source, mouseType: .mouseMoved,
-                                mouseCursorPosition: initial, mouseButton: .left) else {
+    // La API pública admite nil como fuente predeterminada; mismo permiso y tap.
+    ProbeDiagnostics.shared.checkpoint("pointer.create_move")
+    guard let move = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved,
+                            mouseCursorPosition: target, mouseButton: .left) else {
+      report["status"] = "pointer_event_unavailable"
+      return report
+    }
+    ProbeDiagnostics.shared.checkpoint("pointer.create_restore")
+    guard let restore = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved,
+                               mouseCursorPosition: initial, mouseButton: .left) else {
       report["status"] = "pointer_event_unavailable"
       return report
     }

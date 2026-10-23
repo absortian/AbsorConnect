@@ -687,6 +687,73 @@ de muestreo venció antes del cierre de sesión y el segundo intento llegó cuan
 el proceso ya había terminado; no son ensayos de entrada adicionales. No quedan
 colectores ni procesos del diagnóstico activos.
 
+La revisión 0.5.0 (esquema 5) separó los checkpoints del puntero y conservó la
+captura completada en caso de timeout. El cambio de fuente explícita de eventos
+a `privateState` no amplió permisos ni entrada. Binario SHA-256
+`aed564435c11d7880ef8f427157c9870ad25bdd0e19e719c906cc3b26f2ba2c5`;
+paquete `mac-loginwindow-v5-vm-20261023/AbsorLoginWindowProbe.pkg`, SHA-256
+`4ee1d0374a2b8dcbf31696802526a6ff2c02817b13e9856c57922f0d80ae47fb`.
+Instalación 0.4.0 → 0.5.0 correcta, recibo y hash instalado verificados. La firma
+ad-hoc nueva invalidó ambos permisos: apagar/encender los interruptores no bastó;
+se retiraron las entradas anteriores y se añadió de nuevo el bundle instalado
+en Ajustes. Después, bajo launchd gráfico, ambos permisos verdaderos y seis
+fotogramas completos en 2262 ms; trabajo temporal retirado. El watchdog y el
+rechazo del modo de puntero en sesión de usuario también pasaron en la VM.
+
+Tras el cierre real de la sesión de la VM, 0.5.0 obtuvo diez fotogramas completos
+en 2379 ms con UID 0, `loginComplete: false`, consola y ambos permisos activos.
+Terminó sin timeout con `capture_ok_pointer_failed`: la fuente privada no pudo
+crearse (`pointer_source_unavailable`). No construyó ni publicó eventos, por lo
+que no se verificó entrada ni restauración. Informe privado
+`mac-v5-vm-loginwindow-first-20261023.json` y checkpoints `.jsonl`. FileVault de
+esta VM está desactivado: el resultado no prueba prearranque cifrado. Se pudo
+volver a iniciar sesión y no quedó ningún proceso del diagnóstico activo.
+
+La revisión 0.6.0 (esquema 6) sustituyó la fuente explícita por la fuente
+predeterminada `nil`, admitida en el encabezado público `CGEvent.h` del SDK.
+Conservó permisos, guards, tap HID y movimiento/restauración de ocho píxeles,
+sin clics ni teclas. Binario SHA-256
+`c92db9f39b343c521d38405f804fe411eeb54cb786271d08009ab784c5af500e`;
+paquete `mac-loginwindow-v6-vm-20261023/AbsorLoginWindowProbe.pkg`, SHA-256
+`62f04d03f5d5f1b47665fe62225397bc7981d91ea54f9eb6fc8f106aa84c8347`.
+La actualización 0.5.0 → 0.6.0 requirió retirar y añadir de nuevo las dos entradas
+en Ajustes; recibo, firma estricta y hash instalado correctos. Bajo launchd del
+usuario recibió seis fotogramas en 2260 ms con ambos permisos verdaderos; se
+retiró el trabajo temporal. Watchdog y rechazo del modo de puntero en sesión de
+usuario pasaron también en la VM.
+
+En el primer `LoginWindow` real con 0.6.0 recibió once fotogramas completos en
+2381 ms, UID 0, consola y ambos permisos verdaderos, `loginComplete: false`.
+Construyó y publicó los dos eventos sin bloqueo; observó la posición original
+tras restaurar, pero **no el desplazamiento solicitado** (`moveObserved: false`,
+`restoreObserved: true`, `capture_ok_pointer_failed`). `inputTested: true` solo
+indica que se intentó publicar entrada; no demuestra éxito. `keyboardTested`,
+`preLoginTested` y `readyForUnattended` siguen en falso. El colector acotado de
+pila detectó que el proceso había terminado antes de sus ocho segundos y no
+tomó muestra. Informes privados `mac-v6-vm-loginwindow-first-20261023.*`.
+
+Un reinicio completo de la VM, sin interacción de UI durante la ejecución,
+repitió el resultado: once fotogramas completos en 2691 ms, permisos conservados,
+UID 0 y login incompleto; eventos publicados, desplazamiento no observado y
+posición original observada después de restaurar. Informes privados
+`mac-v6-vm-loginwindow-reboot-20261023.*`. Esto descarta que el fallo observado
+solo aparezca en la transición de cierre de sesión, pero no establece su causa
+ni demuestra imposibilidad de otras arquitecturas. Se verificó que el proceso
+había terminado y se apartó el plist propio de `/Library/LaunchAgents/` a la
+carpeta del laboratorio con sufijo `.disabled-v6`; el bundle, recibo y los
+informes privados permanecen. No hay ejecución automática en próximos logouts.
+**1.3 sigue abierta y el agente Mac definitivo debe volver a revisión antes de
+implementarse**, según la puerta de viabilidad de la propia tarea. Tampoco se
+certifica el acceso desatendido completo ni se publica un agente nativo.
+
+En los builds de paquetes 0.5.0 y 0.6.0, `pkgbuild` imprimió avisos
+`write: Permission denied`, aunque salió con código 0. Se aisló su origen a
+`pkgbuild` mediante una ejecución trazada; `ditto` y ambas verificaciones de
+firma por separado no los emitieron. La expansión de cada paquete conservó los
+cuatro archivos y sus hashes, propiedad root, modos sin escritura ajena y sin
+scripts ni enlaces. La instalación real y la comprobación del binario instalado
+pasaron; no se atribuye una causa definitiva a esos avisos.
+
 Se instalaron los runtimes oficiales de Simulator desde Xcode y se creó
 **AbsorConnect iPad Lab**, iPad Pro 11 pulgadas M4, iOS 27.0 (24A434), arm64.
 El runtime 27.1 instalado solo anuncia compatibilidad con iPhone Duo; no se
