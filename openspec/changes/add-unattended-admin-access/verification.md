@@ -584,3 +584,13 @@ instaladores, revocación real a 30 segundos y el piloto exterior. La propuesta 
 activa y no se archiva como terminada. La VM quedó apagada mediante cierre normal;
 no se modificó la sesión del Mac. Las evidencias privadas permanecen en el
 laboratorio de desarrollo para continuar sin repetir pruebas ya demostradas.
+
+
+La revisión de tipos distinguió un campo ausente de un `null` explícito en las
+capacidades: `null` ya no se convierte implícitamente en `false`, sino que recibe
+400 `agent_invalid`, igual que enteros o cadenas. PHPUnit con estos cuatro
+casos adicionales: **162 tests, 1077 aserciones** (29 pruebas del agente).
+La repetición posterior del ensayo HTTP se detuvo en el límite local de cinco
+registros por hora (429), antes de crear cuenta; no se cuenta como ensayo pasado
+ni se alteró ese límite para saltarlo. Los cinco ensayos anteriores siguen
+acreditados por su informe, con el código transaccional sin cambios.

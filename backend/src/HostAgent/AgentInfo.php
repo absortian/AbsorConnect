@@ -19,13 +19,13 @@ final readonly class AgentInfo
         if (!\is_string($version) || !preg_match('/^[0-9A-Za-z.+-]{1,32}$/D', $version)) {
             throw new ApiException('agent_invalid', 400, ['field' => 'agentVersion']);
         }
-        $values = $data['capabilities'] ?? [];
+        $values = \array_key_exists('capabilities', $data) ? $data['capabilities'] : [];
         if (!\is_array($values) || array_diff(array_keys($values), self::CAPABILITIES)) {
             throw new ApiException('agent_invalid', 400, ['field' => 'capabilities']);
         }
         $capabilities = [];
         foreach (self::CAPABILITIES as $name) {
-            $value = $values[$name] ?? false;
+            $value = \array_key_exists($name, $values) ? $values[$name] : false;
             if (!\is_bool($value)) {
                 throw new ApiException('agent_invalid', 400, ['field' => "capabilities.$name"]);
             }
