@@ -26,6 +26,7 @@ con consulta por defecto y cambios/reinicio mediante opciones explícitas.
 | launchd durante bloqueo coordinado del Mac | Tras bloquear desde la interfaz con autorización expresa, el mismo helper recibió 11 fotogramas completos; el propietario confirmó después el desbloqueo | No se inspeccionaron píxeles ni se obtuvo un indicador independiente del bloqueo: no certifica contenido visible de la pantalla bloqueada, entrada ni `loginwindow` |
 | Paquete de diagnóstico `LoginWindow` | Instalado tras autorización expresa del propietario; recibo 0.1.0, firma y hash del binario correctos, archivos root/wheel y directorio de informes 0700; sin scripts, red, entrada ni KeepAlive | La instalación no acredita disponibilidad gráfica ni captura |
 | Cierre de sesión real del Mac | Cierre confirmado en la interfaz tras autorización expresa; el propietario volvió a iniciar sesión y facilitó el JSON administrativo: UID 0, `loginComplete: false`, ambos permisos activos, `capture_error`, dominio CoreGraphics, código 1003 | Captura fallida; sin fase de error, duración ni atributo de acceso gráfico de la sesión. No demuestra entrada ni imposibilidad de toda arquitectura de acceso previo al login |
+| Segunda captura Mac en `LoginWindow`, diagnóstico 0.2.0 | Informe administrativo facilitado por el propietario: once fotogramas completos en el primer intento, 2390 ms, UID 0, `loginComplete: false`, `onConsole: true`, acceso gráfico y ambos permisos activos, una pantalla | Sin inspección del contenido de los fotogramas, entrada ni transición continua. Los campos `preLoginTested` y `readyForUnattended` siguen en falso; la tarea 1.3 no está completa |
 | Bundle instalado bajo launchd del usuario | Once fotogramas completos, permisos de pantalla/Accesibilidad activos, mismo hash firmado que el prototipo inicial; trabajo temporal retirado | No prueba permisos de root/`LoginWindow`, actualización entre versiones ni entrada |
 | Inventario Mint | Mint 22.3 x86_64, Cinnamon/X11, LightDM activo, usuario ordinario | Disponibilidad después de reiniciar |
 | Conexión X11 de Mint | XOpenDisplay correcto con autorización del propio usuario; extensión XTEST disponible | Inyección de entrada, captura, polkit ni acceso al greeter |
@@ -162,7 +163,7 @@ CoreGraphics asigna 1003 a `kCGErrorInvalidContext`, no a una denegación de TCC
 `onConsole: false` no basta para clasificar toda la sesión: esa primera versión
 no consultaba `SessionGetInfo` ni identificaba qué llamada había fallado.
 
-Se preparó la revisión diagnóstica 0.2.0, todavía sin instalar: añade fase del
+Se preparó la revisión diagnóstica 0.2.0: añade fase del
 error, consulta de acceso gráfico de la sesión de seguridad y de pantallas, y
 hasta tres enumeraciones ante `invalidContext` exclusivamente en
 `SCShareableContent`, con esperas de 3 y 5 segundos. Conserva los resultados de
@@ -207,9 +208,25 @@ de renovar ambos permisos, otro trabajo temporal recibió once fotogramas con
 `screenPermission: true`, `accessibilityPermission: true`, acceso gráfico y una
 pantalla disponibles. No se guardaron píxeles ni se aplicó entrada. Los trabajos
 temporales se retiraron; informes privados `mac-installed-v2-gui-20261023-{a,b,c,d}`.
-La segunda prueba real en `LoginWindow` está preparada con cierre de sesión
-autorizado; aún no se ha obtenido su resultado. Metadatos privados en
-`mac-diagnostic-v2-install-20261023.json`. La VM se comprobó apagada antes del cierre.
+La segunda prueba real en `LoginWindow` se ejecutó tras el cierre autorizado;
+el propietario regresó a su sesión y facilitó la salida de los informes `-v2`.
+El JSON de esquema 2 informa once fotogramas completos, una pantalla, primer
+intento y 2390 ms. El proceso tenía UID 0, `loginComplete: false`, `onConsole: true`,
+`hasGraphicAccess: true`, `isRootSecuritySession: false` y ambos permisos activos.
+No hay error de captura. La condición de sesión de seguridad raíz es distinta
+del UID: el trabajador root tenía acceso a una sesión gráfica.
+
+El resultado acredita recepción de buffers completos antes de completar el
+inicio de sesión en esta configuración. No se examinaron sus píxeles; no prueba
+el contenido exacto de la pantalla, teclado/ratón, avisos administrativos ni
+continuidad entre sesiones. `preLoginTested: false`, `inputTested: false` y
+`readyForUnattended: false` son indicadores conservadores del prototipo, no un
+error que invalide los once buffers ni una certificación pendiente que deba
+forzarse a verdadero. No hizo falta ningún reintento: no se atribuye el éxito al
+retardo añadido y sigue sin aislarse la causa del error 1003 de la primera prueba.
+Metadatos privados en `mac-diagnostic-v2-install-20261023.json`; transcripción
+facilitada por el propietario en `mac-loginwindow-v2-owner-provided-20261023.json`.
+La VM se comprobó apagada antes del cierre. La tarea 1.3 permanece incompleta.
 
 Para preparar la siguiente prueba se intentó guardar la suspensión de la VM.
 UTM la rechazó porque la GPU habilitada no admite instantáneas; aunque su CLI

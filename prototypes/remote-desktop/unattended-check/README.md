@@ -100,8 +100,11 @@ solo retira el recibo; no desinstala los archivos.
 Esta prueba no presupone que TCC autorice la captura fuera de la sesión del usuario.
 El primer informe de `LoginWindow`, facilitado por el propietario, indicó root,
 ambos permisos activos y `capture_error`/`CoreGraphicsErrorDomain` 1003, sin
-captura. No identificaba la fase: no demuestra imposibilidad del acceso Mac ni
-viabilidad de esta arquitectura. La prueba instrumentada sigue pendiente.
+captura. Tras instalar 0.2.0, renovar sus permisos por la interfaz y cerrar sesión,
+el segundo informe recibió once buffers completos en el primer intento, como
+root, con acceso gráfico y `loginComplete: false`. No se inspeccionaron píxeles ni
+se aplicó entrada. El éxito sin reintentos no identifica la causa del error
+anterior; se mantiene pendiente la validación del contenido y del control remoto.
 
 ## Mint con X11
 
