@@ -92,3 +92,44 @@ la última versión pública hasta completar los cinco destinos y fuente AltStor
 Antes de publicarla se verificará el resultado de CI y después sus assets,
 manifiestos y salud HTTPS. Para retirar una versión, volver a borrador 0.4.1 y
 restablecer 0.4.0 como latest; no hay migraciones de datos/API en esta entrega.
+
+## Matriz final del PR 18
+
+Commit verificado `e361dc26781dea4550d226e30d7806df1b622cfe`:
+
+- Release PR run 40020116073: builds Windows, macOS y Linux correctos, con
+  typecheck y 167 Vitest en la matriz. Publicación omitida por ser PR.
+- Mobile PR run 40020116067: APK firmado y verificado, IPA sin firma correctos.
+- Comprobados los cinco jobs terminados correctamente antes de fusionar.
+
+La retirada de una release cambia la oferta de actualización; no degrada
+automáticamente instalaciones que ya estén en 0.4.1. Para esas instalaciones
+se precisa reinstalar 0.4.0 o publicar una corrección con versión superior.
+
+## Versión publicada y verificada
+
+[Release 0.4.1](https://github.com/absortian/AbsorConnect/releases/tag/v0.4.1),
+fusionada mediante PR 18. Tag en `35ed4b60a18b7e5a5a5f57d72a5c91e36df56a6f`.
+Run Release 40021035085 / número 22: los cinco builds y mobile-publish correctos.
+La release se hizo pública solo después de adjuntar APK, IPA y fuente AltStore.
+GitHub la devuelve como latest, sin marca draft/prerelease.
+
+- Descargados los 20 assets públicos completos: tamaños y SHA-256 coinciden con
+  sus digests de GitHub. `publication-results.json` contiene los resultados.
+- Los tres manifiestos latest*.yml indican 0.4.1; comprobados los ocho hashes
+  SHA-512 y tamaños de sus archivos referenciados contra las descargas reales.
+- APK: apksigner correcto; conserva el mismo certificado SHA-256 que 0.4.0.
+  Package com.absor.connect, versión 0.4.1, versionCode 22.
+- IPA: versión/build 0.4.1/22, bundleIdentifier, tamaño y los tres textos de
+  privacidad coinciden con la fuente AltStore publicada.
+- Paquetes Mac: binarios arm64/x64 correctos y módulos koffi de su arquitectura
+  desempaquetados. Los dos app.asar, APK e IPA contienen la extensión de perfiles.
+- Cabeceras de NSIS/DEB/RPM/AppImage/DMG correctas. La instalación funcional en
+  cada equipo físico sigue siendo parte de la matriz posterior, no de esta lectura.
+- HTTPS producción: /api/health devuelve 200/status ok y la landing 200. La web
+  resuelve las descargas con releases/latest; el enlace estable de AltStore ya
+  devuelve 0.4.1. No hace falta desplegar otra imagen PHP para esta entrega.
+
+Esta entrega de fluidez está completa (8/8 tareas). No cierra ni certifica el
+cambio separado add-unattended-admin-access. Mac sigue requiriendo actualización
+manual por firma ad-hoc; iOS sigue distribuyéndose como IPA sin firmar.
