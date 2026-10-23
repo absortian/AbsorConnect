@@ -30,10 +30,72 @@ no intercambia candidatos ni publica el SDP. Todavía no establece DTLS ni verif
 comunicación con otro cliente. Los binarios exitosos
 emiten su SHA-256 para identificar el artefacto probado.
 
-**Pendiente:** captura real/entrada posteriores a la autenticación y conexión con
-Android/iOS. Vídeo artificial y recorrido TURN del controlador están probados
-por separado, como se describe abajo.
+**Pendiente:** captura real/entrada posteriores a la autenticación, Android y
+dispositivos iOS físicos. El simulador iPad ya tiene una prueba de interoperabilidad
+con vídeo artificial, descrita al final. El recorrido TURN del controlador se
+verifica por separado; no equivale a certificar cualquier combinación de NAT.
 Ninguna de estas pruebas iniciales completa la tarea 1.5 por sí sola.
+
+## Controlador Flutter en el simulador de iPad
+
+`mobile-interop-test.dart` usa el plugin real `flutter_webrtc` y las funciones
+`deriveKey`, `computeProof` y `sdpFingerprint` de `mobile/`. No usa una cuenta ni
+credenciales del propietario: la contraseña y K son las del vector público.
+`serve-mobile.py` acepta solo tres nombres de caso y ejecuta exclusivamente el
+binario artificial identificado por SHA-256 en `webrtc-probe-results.json`.
+Escucha en `127.0.0.1:8793`, guarda SDP/informes en un directorio privado y se
+cierra como máximo a los 30 minutos. No publica un servicio en la red local.
+
+Usar una copia de `mobile/` en el laboratorio externo para que la generación de
+archivos de Xcode/Flutter no altere cambios del propietario. Excluir `build/`,
+`.dart_tool/`, `Pods/`, `ephemeral/`, `.swiftpm/` y `xcuserdata/` al copiar. Después
+copiar `mobile-interop-test.dart` a `integration_test/native_interop_test.dart`
+de esa copia y ejecutar `flutter pub get` allí. Con el runtime oficial y un iPad
+de pruebas arrancado, iniciar el servidor desde la raíz del repositorio:
+
+```bash
+python3 prototypes/remote-desktop/webrtc-check/serve-mobile.py /ruta/externa/laboratorio
+```
+
+En otra terminal, desde la copia de `mobile/`:
+
+```bash
+flutter analyze integration_test/native_interop_test.dart --no-pub
+flutter drive --no-pub --driver=test_driver/integration_test.dart \
+  --target=integration_test/native_interop_test.dart -d <udid-del-simulador>
+```
+
+El servidor debe arrancarse de nuevo antes de repetir una ejecución: cada caso
+se acepta una sola vez. Ctrl+C o SIGTERM cierran sus procesos y archivos propios.
+Para obligar al controlador a usar relé, iniciar el servidor con
+`--turn-config /ruta/privada/turn-temporal.json`. El JSON tiene la misma estructura
+`iceServers` descrita para Electron, pero cada servidor debe contener exactamente
+`urls`, `username` y `credential`. Incluir un TURN y, cuando haga falta, un STUN
+para el candidato reflejado del host. El archivo debe ser ordinario, del usuario,
+privado y de hasta 16 KiB. El servidor retira su copia al salir; quien lo invoca
+retira el original. Nunca usar el secreto HMAC ni el token de la cuenta.
+
+Cada ejecución verifica:
+
+- DTLS y una única solicitud `hello`, PBKDF2/CommonCrypto compatible con el vector
+  completo y prueba HMAC vinculada a las huellas de esa conexión.
+- Contraseña correcta: al menos dos fotogramas decodificados de 320×180; no se
+  recibe vídeo antes de responder al desafío.
+- Prueba incorrecta y huella alterada: autenticación rechazada y cero fotogramas
+  generados/decodificados.
+- Par real `host/host` en directo o candidato local `relay` cuando se exige TURN.
+  El informe conserva también `relayProtocol`, sin direcciones IP ni credenciales.
+
+Resultado del 23/10/2026: **9/9 casos**, iPad Pro 11 pulgadas M4 simulado,
+iOS 27.0 (24A434), arm64: tres directos, tres con el controlador por TURN UDP y
+tres por TURN TLS. Por relé se eligió `relay/srflx`, con el protocolo esperado.
+El binario nativo conserva SHA-256
+`f016a99680d201a5b13298b6efdb38cefc705fe5b49c70e2f7525c7fe61e9fbe`.
+
+Es una prueba del transporte y la autenticación con vídeo artificial. No ejecuta
+el flujo completo de `ViewerSession`/Equipos, no prueba la captura de Windows,
+la entrada, el rendimiento del iPad físico ni una sesión real desde otra red.
+La tarea 1.5 permanece abierta.
 
 ## Fuentes y distribución
 
