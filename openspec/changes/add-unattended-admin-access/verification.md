@@ -261,8 +261,7 @@ Metadatos privados en `mac-diagnostic-v2-install-20261023.json`; transcripción
 facilitada por el propietario en `mac-loginwindow-v2-owner-provided-20261023.json`.
 La VM se comprobó apagada antes del cierre. La tarea 1.3 permanece incompleta.
 
-Para la siguiente parte de 1.3 se preparó el diagnóstico Mac 0.3.0, todavía sin
-instalar ni ejecutar en `LoginWindow`. Su modo explícito
+Para la siguiente parte de 1.3 se preparó el diagnóstico Mac 0.3.0. Su modo explícito
 `--capture-pointer-loginwindow` exige root antes de completar el login, captura
 correcta, sesión gráfica de consola, Accesibilidad y permiso de publicar eventos;
 rechaza actuar si encuentra un botón del ratón pulsado. Mueve el puntero ocho
@@ -281,7 +280,14 @@ binario SHA-256
 Se verificó el paquete expandido completo y su firma pese a los cuatro avisos
 `write: Permission denied` de pkgbuild, que terminó con 0. Usa informes `-v3`,
 conservando los resultados anteriores. La actualización, sus permisos y el nuevo
-cierre de sesión deben coordinarse con el propietario antes de ejecutarlos.
+cierre de sesión se coordinaron con el propietario, que autorizó expresamente
+instalar, renovar permisos y probar el movimiento/restauración del puntero tras
+cerrar sesión. La instalación terminó después de que completara la autenticación
+local: se verificaron recibo 0.3.0, hash, firma estricta, modo de ejecución y rutas
+de informes `-v3`. Antes de renovar permisos, el trabajo temporal `gui/501` rechazó
+capturar con ambos permisos en falso; fue retirado. Autenticación en Ajustes para
+renovar los permisos en curso; el ensayo real de puntero en `LoginWindow` sigue
+pendiente. Metadatos privados en `mac-diagnostic-v3-install-20261023.json`.
 
 Para preparar la siguiente prueba se intentó guardar la suspensión de la VM.
 UTM la rechazó porque la GPU habilitada no admite instantáneas; aunque su CLI
