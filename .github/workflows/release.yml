@@ -4,6 +4,13 @@ on:
   push:
     tags:
       - 'v*'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'package*.json'
+      - 'electron*.yml'
+      - 'electron*.ts'
+      - '.github/workflows/release.yml'
 
 permissions:
   contents: write
@@ -48,6 +55,9 @@ jobs:
           npm install --no-save --force --ignore-scripts --no-audit --no-fund "@koromix/koffi-darwin-x64@$VERSION"
           ls node_modules/@koromix
 
+      - name: Validate desktop
+        run: npm run typecheck && npm test
+
       - name: Build and package
         run: ${{ matrix.build_cmd }}
         env:
@@ -56,9 +66,10 @@ jobs:
           MAIN_VITE_API_URL: ${{ vars.MAIN_VITE_API_URL || 'https://absorconnect.absor.top' }}
 
       - name: Upload release assets
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          draft: false
+          draft: true
           prerelease: false
           body: |
             ## Absor Connect ${{ github.ref_name }} 🚀
@@ -66,6 +77,13 @@ jobs:
             Gestor de conexiones remotas para escritorio, Android e iPhone, gratuito y de código abierto: explorador de doble panel para almacenamiento compatible con S3 (AWS S3, MinIO, DigitalOcean Spaces, etc.) y servidores SSH (SFTP), terminal SSH integrada, control remoto de tus PCs y tus conexiones guardadas en tu cuenta para usarlas en todos tus equipos.
 
             **Web, descargas e instrucciones de instalación:** https://absorconnect.absor.top
+
+            ### Novedades 0.4.1
+            - Perfil Equilibrado por defecto (hasta 1080p) y selector Fluido (hasta 720p) / Resolución original en escritorio, Android e iOS.
+            - Estadísticas locales de resolución, fps, RTT, kbit/s y búfer de vídeo para diagnosticar tirones.
+            - Cambios de pantalla y calidad ordenados; cierre seguro de capturas pendientes.
+            - Esta versión requiere la sesión gráfica del usuario. El agente desatendido, el inicio de sesión y el control de UAC siguen en pruebas y no se habilitan con esta actualización.
+            - macOS: la actualización sigue siendo manual por la firma ad-hoc. iOS: IPA sin firmar para SideStore/AltStore/Sideloadly.
 
             ### Características
             - Cuenta gratuita: tus conexiones y carpetas en todos tus equipos
@@ -135,6 +153,7 @@ jobs:
   # Apps móviles (mobile.yml) y, cuando están las de escritorio, sus ficheros en la misma
   # release. Se suben con `gh release upload` para no tocar las notas ni los latest*.yml.
   mobile:
+    if: startsWith(github.ref, 'refs/tags/v')
     uses: ./.github/workflows/mobile.yml
     with:
       version: ${{ github.ref_name }}
@@ -207,5 +226,11 @@ jobs:
 
       - name: Upload to the release
         run: gh release upload "$GITHUB_REF_NAME" dist-mobile/*.apk dist-mobile/*.ipa dist-mobile/altstore-source.json --clobber --repo "$GITHUB_REPOSITORY"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Ninguna actualización se anuncia hasta disponer de las cinco plataformas.
+      - name: Publish complete release
+        run: gh release edit "$GITHUB_REF_NAME" --draft=false --latest --repo "$GITHUB_REPOSITORY"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

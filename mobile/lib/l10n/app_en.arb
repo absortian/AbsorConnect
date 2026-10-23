@@ -344,5 +344,10 @@
         "type": "String"
       }
     }
-  }
+  },
+  "remoteStreamQuality": "Video quality",
+  "remoteStreamBalanced": "Balanced",
+  "remoteStreamSmooth": "Smooth",
+  "remoteStreamNative": "Original resolution",
+  "remoteStreamBuffer": "Video buffer"
 }

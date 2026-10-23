@@ -8,21 +8,14 @@ import '../api.dart';
 import 'auth.dart';
 import 'input.dart';
 import 'protocol.dart';
+import 'quality_selection.dart';
 import 'remote_api.dart';
 import 'transfer.dart';
+import 'video_stats.dart';
+export 'video_stats.dart' show ViewerStats;
 
 /// En qué punto está la sesión con el PC (como el visor de escritorio, D11).
 enum ViewerPhase { idle, connecting, waiting, authenticating, connected, reconnecting, failed, closed }
-
-/// Por dónde va la conexión, la latencia y las imágenes por segundo.
-class ViewerStats {
-  const ViewerStats({this.relay, this.rttMs, this.fps});
-
-  /// null mientras no hay par de candidatos elegido.
-  final bool? relay;
-  final int? rttMs;
-  final int? fps;
-}
 
 /// Fallo con el código que traduce la interfaz (los mismos que el escritorio).
 class SessionFailure implements Exception {
@@ -75,6 +68,9 @@ class ViewerSession extends ChangeNotifier {
   FeaturesMessage features = const FeaturesMessage(clipboard: false, files: false, audio: false);
   ViewerStats stats = const ViewerStats();
   bool audioMuted = false;
+  final _quality = QualitySelection();
+  StreamProfile get streamProfile => _quality.confirmed;
+  bool _authenticated = false;
 
   /// Trozo del portapapeles del PC.
   void Function(ClipboardPiece piece)? onClipboard;
@@ -95,7 +91,8 @@ class ViewerSession extends ChangeNotifier {
   bool _recovering = false;
   bool _disposed = false;
   bool _rendererReady = false;
-  ({double at, int frames})? _framesDecoded;
+  final _statsSampler = VideoStatsSampler();
+  final _statsPending = <RTCPeerConnection>{};
 
   bool get hasKey => _key != null;
 
@@ -164,6 +161,12 @@ class ViewerSession extends ChangeNotifier {
     currentDisplay = id;
     sendControl(selectDisplayMessage(id));
     notifyListeners();
+  }
+
+  void selectQuality(StreamProfile profile) {
+    if (!features.streamQuality || !connected) return;
+    final message = _quality.select(profile);
+    if (message != null) sendControl(message);
   }
 
   void setAudioMuted(bool muted) {
@@ -305,6 +308,7 @@ class ViewerSession extends ChangeNotifier {
       if (state == RTCDataChannelState.RTCDataChannelClosed) fail('connection_failed');
     };
     control.onMessage = (message) async {
+      if (pc != _pc || _closed || _disposed) return;
       if (message.isBinary) return;
       switch (parseHostMessage(message.text)) {
         case HelloMessage(:final salt, :final iterations, :final nonce, :final hostName):
@@ -321,7 +325,8 @@ class ViewerSession extends ChangeNotifier {
             fail('connection_failed');
           }
         case AuthResultMessage(:final ok, :final reason, :final retryAfter):
-          if (ok) {
+          if (ok && pc == _pc && !_closed) {
+            _authenticated = true;
             if (!done.isCompleted) done.complete();
           } else {
             fail(reason ?? 'connection_failed', retryAfter);
@@ -341,6 +346,7 @@ class ViewerSession extends ChangeNotifier {
   /// Con la sesión en marcha: mensajes del PC, caídas de la red y estadísticas.
   void _watch(RTCPeerConnection pc, RTCDataChannel control) {
     control.onMessage = (message) {
+      if (pc != _pc || _closed) return;
       if (message.isBinary) return;
       final parsed = parseHostMessage(message.text);
       if (parsed != null) _handle(parsed);
@@ -365,6 +371,7 @@ class ViewerSession extends ChangeNotifier {
   }
 
   void _handle(HostMessage message) {
+    if (!_authenticated || _closed || _disposed) return;
     switch (message) {
       case DisplaysMessage(:final displays, :final current):
         this.displays = displays;
@@ -372,7 +379,14 @@ class ViewerSession extends ChangeNotifier {
         notifyListeners();
       case FeaturesMessage():
         features = message;
+        final request = _quality.negotiate(message.streamQuality);
+        if (request != null) sendControl(request);
         notifyListeners();
+      case StreamQualityMessage(:final profile):
+        if (features.streamQuality) {
+          _quality.confirm(profile);
+          notifyListeners();
+        }
       case ClipboardMessage(:final piece):
         onClipboard?.call(piece);
       case ByeMessage(:final reason):
@@ -417,39 +431,21 @@ class ViewerSession extends ChangeNotifier {
   }
 
   Future<void> _collectStats(RTCPeerConnection pc) async {
-    if (pc != _pc) return;
-    final List<StatsReport> reports;
+    if (pc != _pc || _closed || _disposed || !_statsPending.add(pc)) return;
     try {
-      reports = await pc.getStats();
+      final reports = await pc.getStats();
+      if (pc != _pc || _closed || _disposed) return;
+      stats = _statsSampler.sample(reports);
+      notifyListeners();
     } on Object {
-      return;
-    }
-    final byId = {for (final r in reports) r.id: r};
-    StatsReport? pair;
-    int? fps;
-    for (final r in reports) {
-      if (r.type == 'transport' && r.values['selectedCandidatePairId'] is String) pair = byId[r.values['selectedCandidatePairId']];
-      if (r.type == 'inbound-rtp' && (r.values['kind'] ?? r.values['mediaType']) == 'video') {
-        final perSecond = r.values['framesPerSecond'];
-        final decoded = r.values['framesDecoded'];
-        if (perSecond is num) {
-          fps = perSecond.round();
-        } else if (decoded is num) {
-          final previous = _framesDecoded;
-          if (previous != null && r.timestamp > previous.at) fps = ((decoded - previous.frames) * 1000 / (r.timestamp - previous.at)).round();
-          _framesDecoded = (at: r.timestamp, frames: decoded.toInt());
-        }
+      if (pc == _pc && !_closed && !_disposed) {
+        _statsSampler.reset();
+        stats = const ViewerStats();
+        notifyListeners();
       }
+    } finally {
+      _statsPending.remove(pc);
     }
-    // Sin `transport` (algunas versiones): el par nominado que funciona
-    pair ??= reports.where((r) => r.type == 'candidate-pair' && r.values['state'] == 'succeeded' && r.values['nominated'] == true).firstOrNull;
-    final local = pair == null ? null : byId[pair.values['localCandidateId']];
-    final remote = pair == null ? null : byId[pair.values['remoteCandidateId']];
-    // Un candidato aprendido a través del relé sale como `prflx`, pero con `relayProtocol`
-    final relayed = local?.values['candidateType'] == 'relay' || remote?.values['candidateType'] == 'relay' || local?.values['relayProtocol'] is String;
-    final rtt = pair?.values['currentRoundTripTime'];
-    stats = ViewerStats(relay: pair == null ? null : relayed, rttMs: rtt is num ? (rtt * 1000).round() : null, fps: fps);
-    if (!_disposed) notifyListeners();
   }
 
   Future<void> _teardown() async {
@@ -457,7 +453,11 @@ class ViewerSession extends ChangeNotifier {
     _statsTimer = null;
     _disconnectedTimer?.cancel();
     _disconnectedTimer = null;
-    _framesDecoded = null;
+    _statsSampler.reset();
+    _authenticated = false;
+    _quality.reset();
+    stats = const ViewerStats();
+    features = const FeaturesMessage(clipboard: false, files: false, audio: false);
     final pc = _pc;
     _pc = null;
     _control = null;

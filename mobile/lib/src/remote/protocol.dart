@@ -6,8 +6,8 @@ import 'transfer.dart';
 /// `src/shared/remote/protocol.ts`. Los mensajes son JSON con `v` y `type`; los tipos desconocidos
 /// se ignoran.
 ///
-/// PC → móvil: hello, auth-result, features, displays, clipboard, bye.
-/// Móvil → PC: auth, select-display, clipboard, bye.
+/// PC → móvil: hello, auth-result, features, displays, stream-quality, clipboard, bye.
+/// Móvil → PC: auth, select-display, set-stream-quality, clipboard, bye.
 const protocolVersion = 1;
 
 /// Etiquetas de los canales de datos que crea el controlador (D9).
@@ -52,11 +52,21 @@ class AuthResultMessage extends HostMessage {
 
 /// Lo que el PC permite en esta sesión.
 class FeaturesMessage extends HostMessage {
-  const FeaturesMessage({required this.clipboard, required this.files, required this.audio});
+  const FeaturesMessage({required this.clipboard, required this.files, required this.audio, this.streamQuality = false});
 
   final bool clipboard;
   final bool files;
   final bool audio;
+  final bool streamQuality;
+}
+
+enum StreamProfile { balanced, smooth, native }
+
+StreamProfile? parseStreamProfile(Object? value) => StreamProfile.values.where((p) => p.name == value).firstOrNull;
+
+class StreamQualityMessage extends HostMessage {
+  const StreamQualityMessage(this.profile);
+  final StreamProfile profile;
 }
 
 class DisplaysMessage extends HostMessage {
@@ -98,7 +108,10 @@ HostMessage? parseHostMessage(String raw) {
       final retryAfter = data['retryAfter'];
       return AuthResultMessage(ok: false, reason: data['reason'] is String ? data['reason'] as String : 'connection_failed', retryAfter: retryAfter is num ? retryAfter.toInt() : null);
     case 'features':
-      return FeaturesMessage(clipboard: data['clipboard'] == true, files: data['files'] == true, audio: data['audio'] == true);
+      return FeaturesMessage(clipboard: data['clipboard'] == true, files: data['files'] == true, audio: data['audio'] == true, streamQuality: data['v'] == 1 && data['streamQuality'] == true);
+    case 'stream-quality':
+      final profile = parseStreamProfile(data['profile']);
+      return data['v'] == 1 && profile != null ? StreamQualityMessage(profile) : null;
     case 'displays':
       final list = data['displays'];
       if (list is! List) return null;
@@ -130,3 +143,5 @@ String authMessage(String proof) => jsonEncode({'v': protocolVersion, 'type': 'a
 String selectDisplayMessage(String id) => jsonEncode({'v': protocolVersion, 'type': 'select-display', 'id': id});
 
 String byeMessage([String reason = 'closed']) => jsonEncode({'v': protocolVersion, 'type': 'bye', 'reason': reason});
+
+String setStreamQualityMessage(StreamProfile profile) => jsonEncode({'v': protocolVersion, 'type': 'set-stream-quality', 'profile': profile.name});

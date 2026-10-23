@@ -10,6 +10,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../l10n/app_localizations.dart';
 import '../src/remote/input.dart';
+import '../src/remote/protocol.dart';
 import '../src/remote/remote_api.dart';
 import '../src/remote/remote_transfers.dart';
 import '../src/remote/viewer_session.dart';
@@ -702,6 +703,9 @@ class _Toolbar extends StatelessWidget {
       if (stats.relay != null) stats.relay! ? t.remoteRelay : t.remoteDirect,
       if (stats.rttMs != null) '${stats.rttMs} ms',
       if (stats.fps != null) '${stats.fps} fps',
+      if (stats.width != null && stats.height != null) '${stats.width}×${stats.height}',
+      if (stats.kbps != null) '${stats.kbps} kbit/s',
+      if (stats.bufferMs != null) '${t.remoteStreamBuffer}: ${stats.bufferMs} ms',
     ].join(' · ');
     final features = session.features;
     return Container(
@@ -733,6 +737,21 @@ class _Toolbar extends StatelessWidget {
             itemBuilder: (context) => [
               for (final (index, display) in session.displays.indexed)
                 CheckedPopupMenuItem(value: display.id, checked: display.id == session.currentDisplay, child: Text(t.remoteDisplay('${index + 1}'))),
+            ],
+          ),
+        if (features.streamQuality)
+          PopupMenuButton<StreamProfile>(
+            key: const Key('remote-quality'),
+            tooltip: t.remoteStreamQuality,
+            icon: const Icon(Icons.tune, color: Colors.white),
+            onSelected: session.selectQuality,
+            itemBuilder: (context) => [
+              for (final profile in StreamProfile.values)
+                CheckedPopupMenuItem(value: profile, checked: session.streamProfile == profile, child: Text(switch (profile) {
+                  StreamProfile.balanced => t.remoteStreamBalanced,
+                  StreamProfile.smooth => t.remoteStreamSmooth,
+                  StreamProfile.native => t.remoteStreamNative,
+                })),
             ],
           ),
         if (features.audio)

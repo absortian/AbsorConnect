@@ -8,9 +8,12 @@ import {
   CHANNELS,
   DisplayInfo,
   FeaturesMessage,
-  PROTOCOL_VERSION
+  PROTOCOL_VERSION,
+  isStreamProfile,
+  StreamProfile
 } from '../../shared/remote/protocol'
 import { ClipboardPiece, parseClipboardPiece } from '../../shared/remote/transfer'
+import { VideoStats, VideoStatsSampler, emptyVideoStats } from './videoStats'
 
 export type Phase =
   | 'idle'
@@ -22,11 +25,7 @@ export type Phase =
   | 'failed'
   | 'closed'
 
-export interface Stats {
-  route: 'direct' | 'relay' | null
-  rttMs: number | null
-  fps: number | null
-}
+export type Stats = VideoStats
 
 export interface SessionEvents {
   phase(phase: Phase, detail?: { code?: string; retryAfter?: number; reason?: string }): void
@@ -34,6 +33,7 @@ export interface SessionEvents {
   audio(stream: MediaStream): void
   displays(displays: DisplayInfo[], current: string): void
   features(features: Omit<FeaturesMessage, 'v' | 'type'>): void
+  quality?(profile: StreamProfile): void
   stats(stats: Stats): void
   /** Canal de ficheros de la conexión en marcha, o null cuando se cierra (D9). */
   fileChannel(channel: RTCDataChannel | null): void
@@ -106,7 +106,10 @@ export class ViewerSession {
   private disconnectedTimer: ReturnType<typeof setTimeout> | null = null
   private closed = false
   private recovering = false
-  private framesDecoded: { at: number; frames: number } | null = null
+  private readonly statsSampler = new VideoStatsSampler()
+  private readonly statsPending = new Set<RTCPeerConnection>()
+  private qualitySupported = false
+  private desiredProfile: StreamProfile | null = null
 
   constructor(
     private readonly bridge: AbsorViewerApi,
@@ -156,6 +159,12 @@ export class ViewerSession {
 
   selectDisplay(id: string): void {
     this.sendControl({ v: PROTOCOL_VERSION, type: 'select-display', id })
+  }
+
+  selectQuality(profile: StreamProfile): void {
+    if (!this.qualitySupported || !this.connected) return
+    this.desiredProfile = profile
+    this.sendControl({ v: 1, type: 'set-stream-quality', profile })
   }
 
   /** Cierra la sesión (Desconectar o cerrar la ventana): se despide del PC. */
@@ -297,6 +306,7 @@ export class ViewerSession {
   /** Con la sesión en marcha: mensajes del PC, caídas de la red y estadísticas. */
   private watch(pc: RTCPeerConnection, control: RTCDataChannel): void {
     control.onmessage = (event) => {
+      if (pc !== this.pc || this.closed) return
       let message: Record<string, unknown>
       try {
         message = JSON.parse(String(event.data))
@@ -306,11 +316,23 @@ export class ViewerSession {
       if (message.type === 'displays' && Array.isArray(message.displays)) {
         this.events.displays(message.displays as DisplayInfo[], String(message.current))
       } else if (message.type === 'features') {
+        this.qualitySupported = message.v === 1 && message.streamQuality === true
         this.events.features({
           clipboard: message.clipboard === true,
           files: message.files === true,
-          audio: message.audio === true
+          audio: message.audio === true,
+          streamQuality: this.qualitySupported
         })
+        if (this.qualitySupported && this.desiredProfile) {
+          this.sendControl({ v: 1, type: 'set-stream-quality', profile: this.desiredProfile })
+        }
+      } else if (
+        message.v === 1 &&
+        message.type === 'stream-quality' &&
+        this.qualitySupported &&
+        isStreamProfile(message.profile)
+      ) {
+        this.events.quality?.(message.profile)
       } else if (message.type === 'clipboard') {
         const piece = parseClipboardPiece(message)
         if (piece) this.events.clipboard(piece)
@@ -369,44 +391,21 @@ export class ViewerSession {
   }
 
   private async collectStats(pc: RTCPeerConnection): Promise<void> {
-    if (pc !== this.pc) return
-    const report = await pc.getStats()
-    let pair: RTCIceCandidatePairStats | undefined
-    let fps: number | null = null
-    report.forEach((entry) => {
-      if (entry.type === 'transport' && entry.selectedCandidatePairId) {
-        pair = report.get(entry.selectedCandidatePairId)
+    if (pc !== this.pc || this.closed || this.statsPending.has(pc)) return
+    this.statsPending.add(pc)
+    try {
+      const report = await pc.getStats()
+      if (pc !== this.pc || this.closed) return
+      this.events.stats(this.statsSampler.sample(report))
+    } catch {
+      // Una consulta fallida no termina la sesión ni reutiliza contadores anteriores.
+      if (pc === this.pc && !this.closed) {
+        this.statsSampler.reset()
+        this.events.stats(emptyVideoStats())
       }
-      if (entry.type === 'inbound-rtp' && entry.kind === 'video') {
-        const now = performance.now()
-        if (typeof entry.framesPerSecond === 'number') fps = entry.framesPerSecond
-        else if (typeof entry.framesDecoded === 'number') {
-          // Sin framesPerSecond: se calcula con los decodificados desde la última vez
-          if (this.framesDecoded) {
-            fps =
-              ((entry.framesDecoded - this.framesDecoded.frames) * 1000) /
-              (now - this.framesDecoded.at)
-          }
-          this.framesDecoded = { at: now, frames: entry.framesDecoded }
-        }
-      }
-    })
-    const local = pair ? report.get(pair.localCandidateId) : undefined
-    const remote = pair ? report.get(pair.remoteCandidateId) : undefined
-    // Un candidato aprendido a través del relé sale como `prflx`, pero con `relayProtocol` (que
-    // solo tienen los que pasan por un relé): también es relé
-    const relayed =
-      local?.candidateType === 'relay' ||
-      remote?.candidateType === 'relay' ||
-      typeof local?.relayProtocol === 'string'
-    this.events.stats({
-      route: pair ? (relayed ? 'relay' : 'direct') : null,
-      rttMs:
-        typeof pair?.currentRoundTripTime === 'number'
-          ? Math.round(pair.currentRoundTripTime * 1000)
-          : null,
-      fps: fps === null ? null : Math.round(fps)
-    })
+    } finally {
+      this.statsPending.delete(pc)
+    }
   }
 
   private teardown(): void {
@@ -414,7 +413,10 @@ export class ViewerSession {
     this.statsTimer = null
     if (this.disconnectedTimer) clearTimeout(this.disconnectedTimer)
     this.disconnectedTimer = null
-    this.framesDecoded = null
+    this.statsSampler.reset()
+    this.qualitySupported = false
+    this.events.features({ clipboard: false, files: false, audio: false, streamQuality: false })
+    this.events.stats(emptyVideoStats())
     const pc = this.pc
     this.pc = null
     this.control = null

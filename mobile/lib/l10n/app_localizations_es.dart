@@ -687,4 +687,19 @@ class AppLocalizationsEs extends AppLocalizations {
   String remoteTransferErrOther(String code) {
     return 'Error ($code)';
   }
+
+  @override
+  String get remoteStreamQuality => 'Calidad de vídeo';
+
+  @override
+  String get remoteStreamBalanced => 'Equilibrado';
+
+  @override
+  String get remoteStreamSmooth => 'Fluido';
+
+  @override
+  String get remoteStreamNative => 'Resolución original';
+
+  @override
+  String get remoteStreamBuffer => 'Búfer de vídeo';
 }

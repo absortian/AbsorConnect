@@ -197,5 +197,10 @@
   "remoteTransferErrSize": "El tamaño no coincide",
   "remoteTransferErrConnectionLost": "Se perdió la conexión",
   "remoteTransferErrRead": "No se ha podido leer el fichero",
-  "remoteTransferErrOther": "Error ({code})"
+  "remoteTransferErrOther": "Error ({code})",
+  "remoteStreamQuality": "Calidad de vídeo",
+  "remoteStreamBalanced": "Equilibrado",
+  "remoteStreamSmooth": "Fluido",
+  "remoteStreamNative": "Resolución original",
+  "remoteStreamBuffer": "Búfer de vídeo"
 }
