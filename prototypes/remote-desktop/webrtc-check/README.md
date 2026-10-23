@@ -138,3 +138,11 @@ comando GN es conservar `--root-target=//absor_connect_probe:all`, necesario par
 el laboratorio reducido. No modifica fuentes de terceros ni acepta bibliotecas
 sin licencia identificada. Genera `LICENSE.md` y un informe de hashes; los avisos
 no completan por sí solos la revisión de distribución/patentes del agente final.
+
+
+El caso `relay/relay` también pasó después en un coturn **local aislado** 4.18.0,
+publicado solo en loopback y con secreto temporal propio. Se verificó STUN antes
+de conectar; los tres casos de autenticación seleccionaron `relay/relay`, con
+vídeo artificial solo en el positivo. El contenedor y las credenciales se retiraron.
+Esto separa la viabilidad del adaptador de la política del relé de producción:
+no demuestra que el recorrido doble esté permitido en ese servidor.

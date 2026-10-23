@@ -84,7 +84,7 @@ Implementación y despliegue autorizados por el propietario el 22/10/2026 y cont
 - [ ] 11.4 Incorporar manifiestos firmados y actualización transaccional compatible de app/agente; verificar paquete manipulado, enlaces/rutas maliciosos, fallo de salud, rollback y credencial revocada que no revive tras restaurar binarios.
 - [ ] 11.5 Ampliar CI para binarios nativos y excluir fuentes/herramientas `agent/` de `app.asar`, empaquetando solo los componentes necesarios; verificar contenido de los paquetes, dependencias/licencias y los builds existentes de escritorio/móvil.
 - [ ] 11.6 Actualizar README, instrucciones de viaje, límites por sistema y contexto factual de OpenSpec; verificar que distinguen sesión del sistema/cuenta/interfaz, versiones certificadas, desbloqueo previo al arranque y recuperación por acceso alternativo.
-- [ ] 11.7 Preparar el despliegue aditivo y rollback del backend por Jenkins; verificar antes/después `/api/health`, clientes anteriores y migraciones, conservando los Dockerfiles PHP y `--pull` exigidos. No activar agentes existentes por el despliegue.
+- [x] 11.7 Preparar el despliegue aditivo y rollback del backend por Jenkins; verificar antes/después `/api/health`, clientes anteriores y migraciones, conservando los Dockerfiles PHP y `--pull` exigidos. No activar agentes existentes por el despliegue.
 
 ## 12. Verificación integrada y piloto
 

@@ -338,6 +338,24 @@ final class HostAgentTest extends ApiTestCase
         self::assertTrue($this->client->getResponse()->headers->has('Retry-After'));
     }
 
+    #[DataProvider('invalidCapabilities')]
+    public function testExplicitInvalidCapabilityTypesAreRejected(mixed $capabilities): void
+    {
+        $agent = $this->agent();
+        $payload = self::deviceInfo() + ['agentVersion' => '0.1.0', 'capabilities' => $capabilities];
+        $this->putJson('/api/host-agent/device', $payload, self::auth($agent));
+        self::assertResponseStatusCodeSame(400);
+        self::assertSame('agent_invalid', $this->errorCode());
+    }
+
+    public static function invalidCapabilities(): iterable
+    {
+        yield 'null collection' => [null];
+        yield 'null permission' => [['restart' => null]];
+        yield 'integer permission' => [['login' => 1]];
+        yield 'string permission' => [['administration' => 'true']];
+    }
+
     public function testUpdateAndInvalidCapabilities(): void
     {
         $agent = $this->agent($host);

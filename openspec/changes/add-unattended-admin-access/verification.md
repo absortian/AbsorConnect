@@ -2,9 +2,10 @@
 
 ## Estado al 23/10/2026
 
-Aplicación del cambio autorizada e iniciada. **6/57 tareas completas (2.1–2.6).** El backend del agente está implementado y verificado en desarrollo. Hay avances
+Aplicación del cambio autorizada e iniciada. **7/57 tareas completas (2.1–2.6 y 11.7).** El backend del agente está implementado, desplegado y verificado en producción. Hay avances
 parciales en 1.1–1.6 y 11.6; no existe todavía un agente operativo ni se ha publicado
-una release. El despliegue aditivo del backend se registra por separado al verificarse.
+una release de acceso desatendido. El despliegue aditivo del backend está documentado
+abajo; no instala ni activa agentes en equipos existentes.
 
 Se han implementado herramientas de diagnóstico reproducibles en
 `prototypes/remote-desktop/unattended-check/`, separadas de la app instalada. No
@@ -506,3 +507,90 @@ IP**, con `Retry-After`. PHPUnit final: **158 tests, 1057 aserciones**, incluida
 integración local. Informes privados `backend-agent-phpunit-final-20261023.log`,
 `backend-agent-concurrency-final-20261023.json`, `flutter-analyze-final-20261023.log`
 y `flutter-test-final-20261023.log`.
+
+
+### Caso doble relé aislado y compilación móvil en CI
+
+Un coturn local 4.18.0, publicado exclusivamente en loopback, permitió probar
+ambos extremos con política `relay` sin cambiar el servicio de producción.
+Imagen del fixture: SHA-256
+`bbefd3e1fdfdc0d58770fe01b581fd8b00d9f3a5580d00acb77cf719a6bc78e3`.
+Tras verificar que el contenedor estaba ejecutándose y respondía a STUN, los
+casos correcto/prueba incorrecta/huella alterada seleccionaron **relay/relay** y
+pasaron. Solo el positivo generó/decodificó el patrón artificial; los negativos
+se mantuvieron en cero. Contenedor y credenciales temporales retirados.
+Informe privado `webrtc-relay-both-isolated-b-20261023.log`, resultado
+`interop-Sy1diI/interop-results.json`. Un primer fixture no respondió; se conserva
+su fallo y no se contabiliza como éxito. El paso en el fixture aislado no acredita
+que la política de producción admita ese recorrido.
+
+La PR #13 pasó el workflow Mobile, ejecución **39992477943**:
+Android correcto (6 min 11 s, APK con firma verificada) e iOS correcto
+(3 min 13 s, IPA sin firma, conforme al método de distribución existente).
+Se generaron los artefactos `mobile-android` y `mobile-ios`. Esto acredita
+compilación del cliente actual, no interoperabilidad Flutter con el host nativo,
+instalación en el teléfono ni control administrativo. Los cambios locales del
+propietario en los archivos iOS se conservaron fuera de los commits.
+
+
+## Backend aditivo desplegado en producción: tarea 11.7
+
+- [PR #13](https://github.com/absortian/AbsorConnect/pull/13) fusionada en el commit
+  `f79b5838503484bc5e885fd36602b63e690a231a`, después de pasar los checks Android/iOS.
+- Jenkins **Deploy AbsorConnect #11**, resultado `SUCCESS`, construyó ese mismo
+  commit con `docker build --pull`, ejecutó el Job de migraciones antes del rollout
+  y completó la renovación del Deployment. No se publicó un tag/release de la app.
+- Migración real: `Version20261023163229`, una migración y once consultas SQL,
+  29.5 ms según el Job; las tablas son aditivas. Informe privado
+  `backend-agent-production-migrations-20261023.log`.
+- Tres réplicas listas con imagen
+  `absortian/absortian@sha256:39b4341cc9361ed08c361bee0710acee2cb917e85af6867a73bc6e206fcadbc6`.
+  En cada una: PHP **8.5.12**, `session.upload_progress.enabled=0` y el hash del
+  registro del agente idéntico al código local. Informe privado
+  `backend-agent-production-replicas-20261023.json`.
+- `/api/health` correcto antes y después. **30 comprobaciones HTTPS reales** con
+  una cuenta temporal nueva: flujo legado completo de oferta/consulta/respuesta,
+  alta y canje únicos, denegación de cuenta al agente, traspaso, capacidades falsas
+  por defecto, señalización del agente, ICE, revocación/baja idempotente,
+  recuperación del propietario legado y revocación por logout de origen.
+  Todas devolvieron el estado esperado, incluidos los rechazos 400/401/409.
+- La cuenta temporal se eliminó. Consulta administrativa posterior: **cero
+  agentes y cero altas pendientes**. El despliegue no convirtió ninguna instalación
+  existente en host desatendido. Informe privado
+  `backend-agent-production-smoke-20261023.json` y
+  `backend-agent-production-empty-agents-20261023.log`.
+
+Rollback preparado con el digest anterior:
+`absortian/absortian@sha256:bc00adb360e85cdc0f0e74fafae2633359b818ad72e6af0cc610b727940c076d`.
+Tras asegurar que no queden agentes activos, se puede restaurar esa imagen del
+Deployment y esperar su rollout; las tablas aditivas permanecen. No se ejecutó
+rollback en producción porque las comprobaciones pasaron. La reversión y
+reaplicación de migración se probaron únicamente en la base de tests. Plan y log
+privados `backend-agent-deployment-plan-20261023.json` y
+`backend-agent-jenkins-11-20261023.log`.
+
+### Trabajo que sigue pendiente
+
+La API desplegada no es un agente nativo ni habilita administración por sí sola.
+Las puertas de viabilidad siguen abiertas: credenciales/entrada de login/SAS y
+configuraciones reales de Windows; LightDM/polkit y acceso administrativo limitado
+en Mint; entrada y distribución del helper Mac; interoperabilidad Flutter con el
+adaptador nativo. El propietario dejó el trabajo del Mac para su vuelta. No se
+adoptó una vía para eludir sudo, TCC, credenciales o la política TURN de producción.
+
+Hasta resolver esas pruebas, no se certifican los agentes Windows/Mac/Mint ni se
+publica una app de acceso completo. Quedan su implementación e integración,
+instaladores, revocación real a 30 segundos y el piloto exterior. La propuesta sigue
+activa y no se archiva como terminada. La VM quedó apagada mediante cierre normal;
+no se modificó la sesión del Mac. Las evidencias privadas permanecen en el
+laboratorio de desarrollo para continuar sin repetir pruebas ya demostradas.
+
+
+La revisión de tipos distinguió un campo ausente de un `null` explícito en las
+capacidades: `null` ya no se convierte implícitamente en `false`, sino que recibe
+400 `agent_invalid`, igual que enteros o cadenas. PHPUnit con estos cuatro
+casos adicionales: **162 tests, 1077 aserciones** (29 pruebas del agente).
+La repetición posterior del ensayo HTTP se detuvo en el límite local de cinco
+registros por hora (429), antes de crear cuenta; no se cuenta como ensayo pasado
+ni se alteró ese límite para saltarlo. Los cinco ensayos anteriores siguen
+acreditados por su informe, con el código transaccional sin cambios.
