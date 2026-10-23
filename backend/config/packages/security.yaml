@@ -19,6 +19,14 @@ security:
         public_api:
             pattern: ^/api/(auth/(register|login)|health)$
             security: false
+        agent_enrollment:
+            pattern: ^/api/host-agent/enroll$
+            security: false
+        host_agent:
+            request_matcher: App\HostAgent\AgentRequestMatcher
+            stateless: true
+            custom_authenticators: [App\HostAgent\AgentAuthenticator]
+            entry_point: App\HostAgent\AgentAuthenticator
         api:
             pattern: ^/api
             stateless: true
@@ -30,6 +38,8 @@ security:
 
     # Note: Only the *first* matching rule is applied
     access_control:
+        - { path: ^/api/host-agent/, roles: ROLE_HOST_AGENT }
+        - { path: '^/api/devices/[0-9a-fA-F-]{36}/agent$', methods: [DELETE], roles: [ROLE_USER, ROLE_HOST_AGENT] }
         - { path: ^/api, roles: ROLE_USER }
 
 when@test:

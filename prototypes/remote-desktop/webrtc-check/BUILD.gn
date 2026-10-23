@@ -1,0 +1,86 @@
+import("//webrtc.gni")
+
+group("all") {
+  deps = [ ":auth_check", ":factory_check", ":offer_check", ":channel_check", ":video_channel_check" ]
+}
+
+rtc_executable("video_channel_check") {
+  sources = [ "channel_check.cc", "synthetic_video.h" ]
+  defines = [ "ABSOR_SYNTHETIC_VIDEO" ]
+  deps = [
+    "//api:create_modular_peer_connection_factory",
+    "//api:enable_media",
+    "//api:data_channel_interface",
+    "//api:jsep",
+    "//api:make_ref_counted",
+    "//api:media_stream_interface",
+    "//api:rtp_parameters",
+    "//api:peer_connection_interface",
+    "//api:rtp_sender_interface",
+    "//api:rtp_transceiver_interface",
+    "//api:set_local_description_observer_interface",
+    "//api:set_remote_description_observer_interface",
+    "//api/audio_codecs:builtin_audio_decoder_factory",
+    "//api/audio_codecs:builtin_audio_encoder_factory",
+    "//api/environment:environment_factory",
+    "//api/video:adapted_video_track_source",
+    "//api/video:video_frame",
+    "//api/video_codecs:video_encoder_factory_template",
+    "//api/video_codecs:video_encoder_factory_template_libvpx_vp8_adapter",
+    "//api/video_codecs:video_decoder_factory_template",
+    "//api/video_codecs:video_decoder_factory_template_libvpx_vp8_adapter",
+    "//modules/audio_device:audio_device_impl",
+    "//rtc_base:ssl_adapter",
+    "//rtc_base:threading",
+    "//third_party/boringssl:boringssl",
+    "//third_party/jsoncpp:jsoncpp",
+  ]
+}
+
+rtc_executable("channel_check") {
+  sources = [ "channel_check.cc" ]
+  deps = [
+    "//api:create_modular_peer_connection_factory",
+    "//api:data_channel_interface",
+    "//api:jsep",
+    "//api:make_ref_counted",
+    "//api:peer_connection_interface",
+    "//api:set_local_description_observer_interface",
+    "//api:set_remote_description_observer_interface",
+    "//api/environment:environment_factory",
+    "//rtc_base:ssl_adapter",
+    "//rtc_base:threading",
+    "//third_party/boringssl:boringssl",
+    "//third_party/jsoncpp:jsoncpp",
+  ]
+}
+
+rtc_executable("offer_check") {
+  sources = [ "offer_check.cc" ]
+  deps = [
+    "//api:create_modular_peer_connection_factory",
+    "//api:data_channel_interface",
+    "//api:jsep",
+    "//api:make_ref_counted",
+    "//api:peer_connection_interface",
+    "//api/environment:environment_factory",
+    "//rtc_base:ssl_adapter",
+    "//rtc_base:threading",
+  ]
+}
+
+rtc_executable("auth_check") {
+  sources = [ "auth_check.cc" ]
+  deps = [ "//third_party/boringssl:boringssl" ]
+}
+
+rtc_executable("factory_check") {
+  sources = [ "factory_check.cc" ]
+  deps = [
+    "//api:create_modular_peer_connection_factory",
+    "//api:peer_connection_interface",
+    "//api/environment:environment_factory",
+    "//rtc_base:ssl_adapter",
+    "//rtc_base:threading",
+  ]
+}

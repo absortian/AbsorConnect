@@ -56,7 +56,7 @@ void main() {
 
     final pending = await pc.poll();
     expect(pending.map((r) => (r['id'], r['offer'])), [(requestId, 'v=0 oferta del móvil')]);
-    expect(pending.single['controllerName'], startsWith('linux'), reason: 'el nombre del dispositivo del móvil (en las pruebas, el sistema)');
+    expect(pending.single['controllerName'], startsWith(Platform.operatingSystem), reason: 'el nombre del dispositivo del móvil (en las pruebas, el sistema)');
     await pc.answer(requestId, {'answer': 'v=0 respuesta del PC'});
 
     expect(await api.poll(requestId), isA<RequestAnswered>().having((a) => a.answer, 'answer', 'v=0 respuesta del PC'));

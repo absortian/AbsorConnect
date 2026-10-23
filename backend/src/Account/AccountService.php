@@ -5,6 +5,7 @@ namespace App\Account;
 use App\Api\ApiException;
 use App\Entity\User;
 use App\Entity\UserSession;
+use App\HostAgent\AgentRegistry;
 use App\Repository\UserRepository;
 use App\Security\SessionManager;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
@@ -19,6 +20,7 @@ final class AccountService
         private readonly UserRepository $users,
         private readonly UserPasswordHasherInterface $hasher,
         private readonly SessionManager $sessions,
+        private readonly AgentRegistry $agents,
     ) {
     }
 
@@ -72,9 +74,13 @@ final class AccountService
     public function changePassword(User $user, UserSession $current, #[\SensitiveParameter] string $currentPassword, #[\SensitiveParameter] string $newPassword): void
     {
         $this->assertPassword($user, $currentPassword);
-        $user->setPassword($this->hasher->hashPassword($user, $newPassword));
-        $this->em->flush();
-        $this->sessions->closeAll($user, keep: $current);
+        $this->em->getConnection()->transactional(function () use ($user, $current, $newPassword): void {
+            // También revoca el agente vinculado a la sesión actual, que conserva su token de cuenta.
+            $this->agents->revokeSources($user);
+            $user->setPassword($this->hasher->hashPassword($user, $newPassword));
+            $this->em->flush();
+            $this->sessions->closeAll($user, keep: $current);
+        });
     }
 
     /** Borra la cuenta; sesiones y conexiones caen con ella (ON DELETE CASCADE). */
@@ -89,9 +95,12 @@ final class AccountService
     public function resetPassword(User $user): string
     {
         $password = rtrim(strtr(base64_encode(random_bytes(15)), '+/', '-_'), '=');
-        $user->setPassword($this->hasher->hashPassword($user, $password));
-        $this->em->flush();
-        $this->sessions->closeAll($user);
+        $this->em->getConnection()->transactional(function () use ($user, $password): void {
+            $this->agents->revokeSources($user);
+            $user->setPassword($this->hasher->hashPassword($user, $password));
+            $this->em->flush();
+            $this->sessions->closeAll($user);
+        });
 
         return $password;
     }

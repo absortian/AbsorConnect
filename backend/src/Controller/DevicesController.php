@@ -6,6 +6,7 @@ use App\Api\JsonBody;
 use App\Entity\Device;
 use App\Entity\RemoteRequest;
 use App\Entity\User;
+use App\HostAgent\AgentRegistry;
 use App\Remote\DeviceInfo;
 use App\Remote\DeviceKey;
 use App\Remote\Devices;
@@ -30,6 +31,7 @@ final class DevicesController extends AbstractController
         private readonly RemoteRequests $requests,
         private readonly RemoteLimiter $limiter,
         private readonly SessionManager $sessions,
+        private readonly AgentRegistry $agents,
     ) {
     }
 
@@ -39,7 +41,7 @@ final class DevicesController extends AbstractController
         $now = new \DateTimeImmutable();
 
         return new JsonResponse([
-            'devices' => array_map(static fn (Device $device) => self::present($device, $now), $this->devices->list($user)),
+            'devices' => array_map(fn (Device $device) => $this->present($device, $now), $this->devices->list($user)),
         ]);
     }
 
@@ -50,14 +52,14 @@ final class DevicesController extends AbstractController
         $key = DeviceKey::fromRequest($request);
         $device = $this->devices->register($user, $id, $key, DeviceInfo::fromJson(JsonBody::from($request)));
 
-        return new JsonResponse(self::present($device, new \DateTimeImmutable()));
+        return new JsonResponse($this->present($device, new \DateTimeImmutable()));
     }
 
     /** El equipo se retira de la cuenta (al cerrar sesión o al entrar con otra cuenta). */
     #[Route('/{id}', methods: ['DELETE'], requirements: ['id' => Requirement::UUID])]
     public function remove(Uuid $id, Request $request, #[CurrentUser] User $user): Response
     {
-        $this->devices->remove($this->devices->own($user, $id, DeviceKey::fromRequest($request)));
+        $this->devices->legacyOperation($user, $id, DeviceKey::fromRequest($request), fn (Device $device) => $this->devices->remove($device));
 
         return new Response(null, Response::HTTP_NO_CONTENT);
     }
@@ -66,19 +68,20 @@ final class DevicesController extends AbstractController
     #[Route('/{id}/remote-requests', methods: ['GET'], requirements: ['id' => Requirement::UUID])]
     public function pendingRequests(Uuid $id, Request $request, #[CurrentUser] User $user): JsonResponse
     {
-        $device = $this->devices->own($user, $id, DeviceKey::fromRequest($request));
-        $this->limiter->poll($device);
-        $now = new \DateTimeImmutable();
-        $this->devices->heartbeat($device, $now);
+        return $this->devices->legacyOperation($user, $id, DeviceKey::fromRequest($request), function (Device $device): JsonResponse {
+            $this->limiter->poll($device);
+            $now = new \DateTimeImmutable();
+            $this->devices->heartbeat($device, $now);
 
-        return new JsonResponse([
-            'requests' => array_map(static fn (RemoteRequest $pending) => [
-                'id' => $pending->getId()->toRfc4122(),
-                'controllerName' => $pending->getControllerName(),
-                'offer' => $pending->getOffer(),
-                'createdAt' => $pending->getCreatedAt()->format(\DateTimeInterface::ATOM),
-            ], $this->requests->pendingFor($device, $now)),
-        ]);
+            return new JsonResponse([
+                'requests' => array_map(static fn (RemoteRequest $pending) => [
+                    'id' => $pending->getId()->toRfc4122(),
+                    'controllerName' => $pending->getControllerName(),
+                    'offer' => $pending->getOffer(),
+                    'createdAt' => $pending->getCreatedAt()->format(\DateTimeInterface::ATOM),
+                ], $this->requests->pendingFor($device, $now)),
+            ]);
+        });
     }
 
     /** Un controlador de la cuenta pide sesión con su oferta. */
@@ -97,7 +100,7 @@ final class DevicesController extends AbstractController
     }
 
     /** @return array<string, mixed> */
-    private static function present(Device $device, \DateTimeImmutable $now): array
+    private function present(Device $device, \DateTimeImmutable $now): array
     {
         return [
             'id' => $device->getId()->toRfc4122(),
@@ -106,7 +109,7 @@ final class DevicesController extends AbstractController
             'appVersion' => $device->getAppVersion(),
             'online' => $device->isOnline($now),
             'lastSeenAt' => $device->getLastSeenAt()->format(\DateTimeInterface::ATOM),
-            'remote' => [
+            'remote' => $this->agents->metadata($device) + [
                 'state' => $device->getRemoteState()->value,
                 // Siempre en el mismo orden: JSONB reordena las claves al guardarlas
                 'features' => array_map(static fn (string $feature) => $device->getFeatures()[$feature] ?? false, array_combine(DeviceInfo::FEATURES, DeviceInfo::FEATURES)),

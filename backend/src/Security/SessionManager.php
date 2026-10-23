@@ -4,6 +4,7 @@ namespace App\Security;
 
 use App\Entity\User;
 use App\Entity\UserSession;
+use App\HostAgent\AgentRegistry;
 use App\Repository\UserSessionRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -25,6 +26,7 @@ final class SessionManager
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly UserSessionRepository $sessions,
+        private readonly AgentRegistry $agents,
     ) {
     }
 
@@ -73,20 +75,31 @@ final class SessionManager
 
     public function close(UserSession $session): void
     {
-        $this->em->remove($session);
-        $this->em->flush();
+        $this->em->getConnection()->transactional(function () use ($session): void {
+            $this->em->getConnection()->fetchOne('SELECT id FROM user_session WHERE id = ? FOR UPDATE', [$session->getId()->toRfc4122()]);
+            $this->agents->revokeSource($session->getId()->toRfc4122());
+            $this->em->remove($session);
+            $this->em->flush();
+        });
     }
 
     /** Revoca todas las sesiones de la cuenta, salvo $keep si se indica. */
     public function closeAll(User $user, ?UserSession $keep = null): void
     {
-        $this->sessions->deleteForUser($user, $keep);
+        $this->em->getConnection()->transactional(function () use ($user, $keep): void {
+            $this->agents->revokeSources($user, $keep);
+            $this->sessions->deleteForUser($user, $keep);
+        });
     }
 
     /** Limpieza al iniciar sesión: así no hace falta un CronJob para las caducadas. */
     public function purgeExpired(User $user): void
     {
-        $this->sessions->deleteExpiredForUser($user, new \DateTimeImmutable());
+        $this->em->getConnection()->transactional(function () use ($user): void {
+            $now = new \DateTimeImmutable();
+            $this->agents->revokeSources($user, expired: $now);
+            $this->sessions->deleteExpiredForUser($user, $now);
+        });
     }
 
     public static function hash(#[\SensitiveParameter] string $token): string

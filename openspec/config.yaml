@@ -6,13 +6,17 @@ context: |
   Keep OpenSpec structural headings and SHALL/MUST keywords in English.
 
   ## Producto
-  Absor Connect (antes "Absor S3 Explorer", repo GitHub absortian/AbsorS3Explorer):
-  app de escritorio multiplataforma (macOS arm64/x64, Windows, Linux) para gestionar
-  conexiones remotas. Hoy: explorador de doble panel (local ↔ S3-compatible: AWS S3,
-  MinIO, DO Spaces…) con drag & drop y cola de transferencias. Hoja de ruta: renombrado
-  a Absor Connect, conexiones SFTP en el explorador y terminal SSH interactiva.
-  Ya hay usuarios con la v0.0.7 instalada: cualquier cambio de nombre, ruta de datos,
-  cifrado o canal de actualización debe preservar sus conexiones y su auto-update.
+  Absor Connect (antes "Absor S3 Explorer", repo GitHub absortian/AbsorConnect):
+  app de escritorio multiplataforma (macOS arm64/x64, Windows, Linux), con
+  controladores móviles Android/iOS en mobile/. Explorador de doble panel local ↔
+  S3/SFTP, terminal SSH y control remoto de PCs de la cuenta mediante WebRTC.
+  Las conexiones se guardan en la cuenta y sus secretos se cifran en el backend.
+  El host remoto actual depende de Electron y de una sesión gráfica de usuario;
+  abrir al iniciar sesión no equivale a un servicio del sistema. El acceso a UAC,
+  bloqueo e inicio de sesión sigue excluido del soporte publicado hasta completar
+  y verificar add-unattended-admin-access. No anunciar la propuesta como implementada.
+  Cualquier cambio de nombre, ruta de datos, cifrado o canal de actualización debe
+  preservar las conexiones y compatibilidad de las instalaciones existentes.
 
   ## Stack
   - Electron 39 + electron-vite 5 + Vite 7; React 19 + TypeScript 5.9 (renderer).
@@ -21,41 +25,47 @@ context: |
     con provider GitHub Releases. CI: .github/workflows/release.yml al pushear tags v*.
   - i18next/react-i18next con locales en y es; iconos lucide-react; CSS propio
     (src/renderer/src/assets/main.css, tema oscuro/claro, estilo glassmorphism).
+  - Backend Symfony 8.1/PHP 8.5/PostgreSQL en backend/; despliegue Kubernetes por
+    Jenkins. Conservar las versiones PHP y opciones de compilación de AGENTS.md.
+  - Flutter en mobile/; WebRTC en Chromium y flutter_webrtc, entrada nativa con koffi.
 
   ## Arquitectura
   - src/main: proceso principal. index.ts registra los handlers ipcMain.handle;
-    s3.ts (cliente S3), localFs.ts (FS local), store.ts (persistencia), updater.ts.
+    s3.ts, ssh.ts, localFs.ts, cloud/ (cuenta y conexiones), remote/ (host y señalización),
+    background.ts (bandeja e inicio con sesión), updater.ts.
   - src/preload/index.ts expone window.api vía contextBridge; los tipos en
     src/preload/index.d.ts. Todo acceso a red/FS pasa por IPC main ↔ renderer.
-  - src/shared/types.ts: tipos compartidos (S3Connection). src/shared/utils.ts.
-  - src/renderer/src: App.tsx (layout sidebar + split view LocalExplorer | S3Explorer),
-    components/, context/TransferQueueContext.tsx (cola y progreso vía evento
-    'transfer-progress').
-  - Persistencia: JSON en app.getPath('userData') (connections.json, settings.json).
-    Los secretos se cifran campo a campo con safeStorage (base64) y _encrypted: true.
+  - src/shared/: tipos de conexiones y protocolo remoto v1. Cambiar el protocolo
+    junto con mobile/lib/src/remote/; auth-vectors.json verifica ambos clientes.
+  - src/renderer/src: interfaz React, components/, context/TransferQueueContext.tsx.
+    src/renderer/host y viewer implementan las ventanas de control remoto.
+  - Persistencia: conexiones en la API de la cuenta; settings/sesión/identidad y K
+    del host en el perfil local con la protección correspondiente. connections.json
+    solo se lee para migración. Token de cuenta y K no se entregan a los renderers.
   - Identificadores actuales: package.json name "absor-file-explorer", appId
-    "com.absor.fileexplorer", productName "Absor S3 Explorer", executableName (win)
-    "AbsorS3Explorer". electronApp.setAppUserModelId('com.electron') es un resto de la
-    plantilla.
+    "com.absor.fileexplorer", productName "Absor Connect", executableName (win)
+    "AbsorConnect". Conservar la identidad/ruta de datos de instalaciones previas.
 
   ## Convenciones
   - Canales IPC en kebab-case con prefijo de dominio (s3-*, local-*, get-/save-*).
     Cada canal nuevo: handler en main, método en preload y tipo en index.d.ts.
   - Todo texto visible al usuario va por i18n y se añade en en.json y es.json.
-  - Credenciales nunca en claro en disco ni en logs; nunca se envían al renderer más
-    allá de lo que ya hace el formulario de edición.
+  - Credenciales nunca en claro en disco ni en logs. El token de cuenta permanece
+    en main. El host no captura ni acepta entrada antes de autenticar al controlador.
   - Prettier + ESLint (npm run lint, npm run format). Commits estilo conventional
     (feat:, fix:, chore:).
 
   ## Calidad y verificación
-  - No hay tests automatizados todavía. Puerta mínima: npm run typecheck (pasa en limpio).
-  - npm run lint arrastra deuda previa (~110 errores, sobre todo
-    explicit-function-return-type y no-explicit-any): no limpiarla de paso; el código
-    nuevo o tocado no debe añadir errores de lint.
+  - Hay pruebas Vitest (npm test), PHPUnit (docker compose exec php php bin/phpunit)
+    y Flutter (flutter analyze y flutter test; entorno en mobile/tool/test_env.sh).
+    Puerta mínima de escritorio: npm run typecheck y npm test.
+  - npm run lint arrastra deuda previa: no limpiarla de paso ni asumir un recuento
+    histórico como medida actual; el código nuevo o tocado no debe añadir errores.
   - La verificación funcional es manual (npm run dev) y, cuando el cambio toca
     empaquetado, datos de usuario o updates, con builds reales por plataforma.
-  - macOS no está firmado ni notarizado: Squirrel.Mac no puede auto-instalar; en mac
-    la actualización acaba siendo descarga manual del DMG.
+  - macOS se distribuye con firma ad-hoc y sin notarización. Squirrel.Mac no puede
+    auto-instalar esas actualizaciones; la instalación es manual. Esa firma no
+    demuestra identidad estable ni conservación de permisos de un helper privilegiado.
 
 rules:
   proposal:

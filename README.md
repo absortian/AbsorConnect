@@ -105,6 +105,10 @@ bin/dev                    # shell dentro del contenedor
 
 `backend/` es la API con la que la app guarda las conexiones en una cuenta (registro con email y contraseña). En producción vive en `https://absorconnect.absor.top`. Las credenciales de las conexiones se guardan cifradas con una clave del servicio (`CONNECTIONS_KEY`), y de los tokens de sesión solo se guarda su hash.
 
+El contrato aditivo del futuro agente desatendido se documenta en
+[`backend/AGENT_API.md`](backend/AGENT_API.md). Su presencia en la API no cambia
+los límites actuales de los hosts ni instala o activa agentes por sí sola.
+
 ### Desarrollo
 
 Requisito único: **Docker** (no hace falta PHP en local).

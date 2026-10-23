@@ -24,26 +24,39 @@ final class RemoteRequests
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly RemoteRequestRepository $requests,
+        private readonly Devices $devices,
     ) {
     }
 
     public function create(Device $device, UserSession $controller, mixed $offer): RemoteRequest
     {
-        $now = new \DateTimeImmutable();
-        $offer = self::description($offer, 'offer');
-        if (!$device->getRemoteState()->acceptsRequests()) {
-            throw new ApiException('remote_disabled', 409);
-        }
-        if (!$device->isOnline($now)) {
-            throw new ApiException('device_offline', 409);
-        }
+        return $this->em->getConnection()->transactional(function () use ($device, $controller, $offer): RemoteRequest {
+            $now = new \DateTimeImmutable();
+            if (!$this->em->getConnection()->fetchOne('SELECT id FROM user_session WHERE id = ? AND expires_at > ? FOR SHARE', [$controller->getId()->toRfc4122(), $now->format('Y-m-d H:i:s')])) {
+                throw new ApiException('unauthenticated', 401);
+            }
+            if (!$this->em->getConnection()->fetchOne('SELECT id FROM device WHERE id = ? FOR UPDATE', [$device->getId()->toRfc4122()])) {
+                throw new ApiException('device_not_found', 404);
+            }
+            $this->em->refresh($device);
+            if (!$device->getUser()->getId()->equals($controller->getUser()->getId())) {
+                throw new ApiException('device_not_found', 404);
+            }
+            $offer = self::description($offer, 'offer');
+            if (!$device->getRemoteState()->acceptsRequests()) {
+                throw new ApiException('remote_disabled', 409);
+            }
+            if (!$device->isOnline($now)) {
+                throw new ApiException('device_offline', 409);
+            }
 
-        $this->requests->deleteExpired($now);
-        $request = new RemoteRequest($device, $controller, $offer, $now);
-        $this->em->persist($request);
-        $this->em->flush();
+            $this->requests->deleteExpired($now);
+            $request = new RemoteRequest($device, $controller, $offer, $now);
+            $this->em->persist($request);
+            $this->em->flush();
 
-        return $request;
+            return $request;
+        });
     }
 
     /**
@@ -63,9 +76,33 @@ final class RemoteRequests
     public function answer(User $user, Uuid $id, #[\SensitiveParameter] string $deviceKey, array $data): void
     {
         $request = $this->find($user, $id, new \DateTimeImmutable());
-        if (!hash_equals($request->getDevice()->getKeyHash(), DeviceKey::hash($deviceKey))) {
-            throw new ApiException('device_key_invalid', 403);
+        $this->devices->legacyOperation($user, $request->getDevice()->getId(), $deviceKey, function () use ($request, $data): void {
+            if (!$this->em->getConnection()->fetchOne('SELECT id FROM remote_request WHERE id = ?', [$request->getId()->toRfc4122()])) {
+                throw new ApiException('remote_request_not_found', 404);
+            }
+            $this->em->refresh($request);
+            if ($request->isExpired(new \DateTimeImmutable())) {
+                throw new ApiException('remote_request_expired', 410);
+            }
+            $this->applyAnswer($request, $data);
+        });
+    }
+
+    /** La credencial de servicio solo responde solicitudes de su propio equipo. */
+    public function answerForAgent(Device $device, Uuid $id, array $data): void
+    {
+        $request = $this->requests->findOneForUser($device->getUser(), $id);
+        if (null === $request || !$request->getDevice()->getId()->equals($device->getId())) {
+            throw new ApiException('remote_request_not_found', 404);
         }
+        if ($request->isExpired(new \DateTimeImmutable())) {
+            throw new ApiException('remote_request_expired', 410);
+        }
+        $this->applyAnswer($request, $data);
+    }
+
+    private function applyAnswer(RemoteRequest $request, array $data): void
+    {
         if (!$request->isPending()) {
             throw new ApiException('remote_request_answered', 409);
         }
