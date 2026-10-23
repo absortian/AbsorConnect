@@ -715,7 +715,7 @@ class _Toolbar extends StatelessWidget {
       child: Row(children: [
         IconButton(tooltip: '', icon: const Icon(Icons.expand_less, color: Colors.white), onPressed: () => onExpanded(false)),
         Expanded(
-          child: Text(status, key: const Key('remote-status'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+          child: Tooltip(message: status, child: Text(status, key: const Key('remote-status'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white70, fontSize: 12))),
         ),
         IconButton(
           key: const Key('remote-mode'),

@@ -36,6 +36,15 @@ let disconnectedTimer: ReturnType<typeof setTimeout> | null = null
 const capture = new HostCapture({
   allowed: () => authenticated && !ending && pc !== null,
   acquire: acquireCapture,
+  prepare: async (stream) => {
+    if (audioLabel && !ending) {
+      const track = await openAudioSource(audioLabel)
+      if (track) {
+        if (ending) track.stop()
+        else stream.addTrack(track)
+      }
+    }
+  },
   transceivers: () => pc?.getTransceivers() ?? []
 })
 
@@ -104,7 +113,8 @@ function attach(channel: RTCDataChannel): void {
   switch (channel.label) {
     case CHANNELS.control:
       control = channel
-      channel.onmessage = (event) => void onControl(event.data)
+      channel.onmessage = (event) =>
+        void onControl(event.data).catch((error) => fail('ended', error))
       channel.onclose = () => end('ended')
       if (channel.readyState === 'open') void sendHello()
       else channel.onopen = () => void sendHello()
@@ -113,7 +123,7 @@ function attach(channel: RTCDataChannel): void {
     case CHANNELS.pointer:
       // Antes de autenticar se descarta todo (y el proceso principal lo vuelve a comprobar)
       channel.onmessage = (event) => {
-        if (!authenticated || typeof event.data !== 'string') return
+        if (!authenticated || ending || typeof event.data !== 'string') return
         try {
           host.input(JSON.parse(event.data))
         } catch {
@@ -211,16 +221,7 @@ async function acquireCapture(profile: StreamProfile): Promise<MediaStream> {
     video: videoConstraints(profile),
     audio: features.audio && audioLabel === null
   })
-  try {
-    if (audioLabel && !ending) {
-      const track = await openAudioSource(audioLabel)
-      if (track) next.addTrack(track)
-    }
-    return next
-  } catch (error) {
-    next.getTracks().forEach((track) => track.stop())
-    throw error
-  }
+  return next
 }
 
 /**
@@ -298,6 +299,7 @@ function fail(reason: string, error: unknown): void {
 function end(reason: string, fromMain = false): void {
   if (ending) return
   ending = true
+  authenticated = false
   send({ v: PROTOCOL_VERSION, type: 'bye', reason })
   transfers.detach()
   capture.close()

@@ -53,6 +53,7 @@ export async function configureVideo(
 interface CaptureOptions {
   allowed(): boolean
   acquire(profile: StreamProfile): Promise<MediaStream>
+  prepare?(stream: MediaStream): Promise<void>
   transceivers(): RTCRtpTransceiver[]
 }
 
@@ -62,6 +63,7 @@ export class HostCapture {
   profile: StreamProfile = 'balanced'
   private tail: Promise<unknown> = Promise.resolve()
   private closed = false
+  private pending: MediaStream | null = null
 
   constructor(private readonly options: CaptureOptions) {}
 
@@ -77,7 +79,10 @@ export class HostCapture {
   async replace(): Promise<void> {
     if (!this.active) return
     const next = await this.options.acquire(this.profile)
+    this.pending = next
     try {
+      if (!this.active) return
+      await this.options.prepare?.(next)
       if (!this.active) return
       for (const transceiver of this.options.transceivers()) {
         const kind = transceiver.receiver.track.kind
@@ -91,6 +96,7 @@ export class HostCapture {
       this.stop(this.stream)
       this.stream = next
     } finally {
+      if (this.pending === next) this.pending = null
       if (this.stream !== next || !this.active) this.stop(next)
     }
   }
@@ -113,6 +119,8 @@ export class HostCapture {
   close(): void {
     this.closed = true
     this.stop(this.stream)
+    this.stop(this.pending)
+    this.pending = null
     this.stream = null
   }
 

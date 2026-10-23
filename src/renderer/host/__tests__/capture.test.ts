@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, type Mock } from 'vitest'
 import { HostCapture, videoConstraints } from '../capture'
 
-function fixture(): {
+function fixture(prepare?: (stream: MediaStream) => Promise<void>): {
   track: { kind: string; stop: Mock; applyConstraints: Mock; contentHint: string }
   stream: MediaStream
   sender: { replaceTrack: Mock; getParameters: () => { encodings: object[] }; setParameters: Mock }
@@ -28,7 +28,7 @@ function fixture(): {
     [{ receiver: { track: { kind: 'video' } }, sender }] as unknown as RTCRtpTransceiver[]
   const acquire = vi.fn().mockResolvedValue(stream)
   let allowed = true
-  const capture = new HostCapture({ allowed: () => allowed, acquire, transceivers })
+  const capture = new HostCapture({ allowed: () => allowed, acquire, prepare, transceivers })
   return {
     track,
     stream,
@@ -114,6 +114,24 @@ describe('captura autenticada y ordenada', () => {
     expect(f.track.stop).toHaveBeenCalled()
     expect(f.sender.replaceTrack).not.toHaveBeenCalled()
     expect(f.capture.stream).toBeNull()
+  })
+
+  it('para la pista pendiente inmediatamente al cerrar durante la preparación de audio', async () => {
+    let release!: () => void
+    const prepare = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          release = resolve
+        })
+    )
+    const f = fixture(prepare)
+    const pending = f.capture.run(() => f.capture.replace())
+    await vi.waitFor(() => expect(prepare).toHaveBeenCalled())
+    f.capture.close()
+    expect(f.track.stop).toHaveBeenCalled()
+    release()
+    await pending
+    expect(f.sender.replaceTrack).not.toHaveBeenCalled()
   })
 
   it('para pistas también si falla la instalación o se cierra durante replaceTrack', async () => {

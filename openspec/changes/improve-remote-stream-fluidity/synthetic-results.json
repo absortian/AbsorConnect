@@ -1,0 +1,348 @@
+{
+  "syntheticOnly": true,
+  "physicalWindowsTested": false,
+  "physicalIpadTested": false,
+  "capturePresizedForProfile": true,
+  "desktop": {
+    "direct": [
+      {
+        "profile": "native",
+        "summary": {
+          "decodedFps": 28.077861654830244,
+          "sentFps": 28.666666666666668,
+          "kbps": 2671.2243038613165,
+          "encodeMs": 6.454075383583169,
+          "decodeMs": 4.962157885529822,
+          "jitterBufferMs": 168.9134808510556,
+          "transportRttP50": 0.30000007152557373,
+          "transportRttP95": 0.40000009536743164,
+          "presentationIntervalP95": 58.30000000000018,
+          "presentations": 338,
+          "loss": 0,
+          "freezes": 0
+        },
+        "receivedSizes": [
+          "3840x2160"
+        ]
+      },
+      {
+        "profile": "balanced",
+        "summary": {
+          "decodedFps": 29.239962336026647,
+          "sentFps": 29.583333333333332,
+          "kbps": 1717.9396371089324,
+          "encodeMs": 5.523747947454844,
+          "decodeMs": 2.647640407110192,
+          "jitterBufferMs": 37.40178492924237,
+          "transportRttP50": 0.5,
+          "transportRttP95": 0.8999999761581421,
+          "presentationIntervalP95": 41.79999999999927,
+          "presentations": 353,
+          "loss": 0,
+          "freezes": 0
+        },
+        "receivedSizes": [
+          "1920x1080"
+        ]
+      },
+      {
+        "profile": "smooth",
+        "summary": {
+          "decodedFps": 29.55332992537994,
+          "sentFps": 29.416666666666668,
+          "kbps": 2823.072456780072,
+          "encodeMs": 3.330644940586542,
+          "decodeMs": 2.5782679211469532,
+          "jitterBufferMs": 19.48159843035472,
+          "transportRttP50": 0.5,
+          "transportRttP95": 0.8999999761581421,
+          "presentationIntervalP95": 41.799999999995634,
+          "presentations": 353,
+          "loss": 0,
+          "freezes": 0
+        },
+        "receivedSizes": [
+          "480x270",
+          "640x360",
+          "960x540"
+        ]
+      }
+    ],
+    "limited": [
+      {
+        "profile": "native",
+        "summary": {
+          "decodedFps": 11.093021957371773,
+          "sentFps": 11.416666666666666,
+          "kbps": 940.1169812969405,
+          "encodeMs": 19.161595117845113,
+          "decodeMs": 5.9196027537277525,
+          "jitterBufferMs": 90.25556105604922,
+          "transportRttP50": 0.5,
+          "transportRttP95": 0.8000000715255737,
+          "presentationIntervalP95": 159.89999999999964,
+          "presentations": 133,
+          "loss": 0,
+          "freezes": 1
+        },
+        "receivedSizes": [
+          "3840x2160"
+        ]
+      },
+      {
+        "profile": "balanced",
+        "summary": {
+          "decodedFps": 28.676794284857422,
+          "sentFps": 28.5,
+          "kbps": 979.2591248981611,
+          "encodeMs": 5.257454785152227,
+          "decodeMs": 1.4138058775010645,
+          "jitterBufferMs": 24.168181835355465,
+          "transportRttP50": 0.5,
+          "transportRttP95": 0.7999999523162842,
+          "presentationIntervalP95": 50,
+          "presentations": 345,
+          "loss": 0,
+          "freezes": 1
+        },
+        "receivedSizes": [
+          "1920x1080"
+        ]
+      },
+      {
+        "profile": "smooth",
+        "summary": {
+          "decodedFps": 29.376464487185824,
+          "sentFps": 29.416666666666668,
+          "kbps": 982.7686687886063,
+          "encodeMs": 0.9651062909405511,
+          "decodeMs": 0.4686140804597702,
+          "jitterBufferMs": 10.80745879681127,
+          "transportRttP50": 0.30000007152557373,
+          "transportRttP95": 0.7000000476837158,
+          "presentationIntervalP95": 41.80000000000291,
+          "presentations": 351,
+          "loss": 0,
+          "freezes": 0
+        },
+        "receivedSizes": [
+          "320x180",
+          "480x270"
+        ]
+      }
+    ],
+    "udp": [
+      {
+        "profile": "native",
+        "summary": {
+          "decodedFps": 29.26060988997565,
+          "sentFps": 29.333333333333332,
+          "kbps": 3057.5834203288546,
+          "encodeMs": 6.27003902042834,
+          "decodeMs": 4.904744144728711,
+          "jitterBufferMs": 83.93341141391669,
+          "transportRttP50": 106.60000002384186,
+          "transportRttP95": 130.20000004768372,
+          "presentationIntervalP95": 42,
+          "presentations": 352,
+          "loss": 0,
+          "freezes": 0
+        },
+        "receivedSizes": [
+          "3840x2160"
+        ]
+      },
+      {
+        "profile": "balanced",
+        "summary": {
+          "decodedFps": 18.30308525843432,
+          "sentFps": 18.083333333333332,
+          "kbps": 530.5457703195278,
+          "encodeMs": 6.9076498245763895,
+          "decodeMs": 2.909857992572561,
+          "jitterBufferMs": 295.0876966251006,
+          "transportRttP50": 141,
+          "transportRttP95": 417.40000009536743,
+          "presentationIntervalP95": 133.39999999999782,
+          "presentations": 215,
+          "loss": 0,
+          "freezes": 5
+        },
+        "receivedSizes": [
+          "1920x1080"
+        ]
+      },
+      {
+        "profile": "smooth",
+        "summary": {
+          "decodedFps": 29.40041874049106,
+          "sentFps": 29.5,
+          "kbps": 1795.0487114660184,
+          "encodeMs": 2.7414170506912434,
+          "decodeMs": 1.5933136756890371,
+          "jitterBufferMs": 84.43489283485177,
+          "transportRttP50": 101.10000002384186,
+          "transportRttP95": 166.59999990463257,
+          "presentationIntervalP95": 41.700000000004366,
+          "presentations": 355,
+          "loss": 0,
+          "freezes": 0
+        },
+        "receivedSizes": [
+          "480x270"
+        ]
+      }
+    ],
+    "tls": [
+      {
+        "profile": "native",
+        "summary": {
+          "decodedFps": 29.430115339552415,
+          "sentFps": 29.666666666666668,
+          "kbps": 2715.501739127989,
+          "encodeMs": 6.12126127796317,
+          "decodeMs": 4.668526819923371,
+          "jitterBufferMs": 90.32089904214557,
+          "transportRttP50": 96.79999995231628,
+          "transportRttP95": 115.30000007152557,
+          "presentationIntervalP95": 41.70000000000073,
+          "presentations": 354,
+          "loss": 0,
+          "freezes": 0
+        },
+        "receivedSizes": [
+          "3840x2160"
+        ]
+      },
+      {
+        "profile": "balanced",
+        "summary": {
+          "decodedFps": 29.286915044194235,
+          "sentFps": 29.5,
+          "kbps": 1779.7868936553457,
+          "encodeMs": 5.097150493493651,
+          "decodeMs": 2.827268455691509,
+          "jitterBufferMs": 30.6492449668503,
+          "transportRttP50": 101.29999995231628,
+          "transportRttP95": 117.10000002384186,
+          "presentationIntervalP95": 43.10000000000218,
+          "presentations": 352,
+          "loss": 0,
+          "freezes": 0
+        },
+        "receivedSizes": [
+          "1920x1080"
+        ]
+      },
+      {
+        "profile": "smooth",
+        "summary": {
+          "decodedFps": 29.40705479159732,
+          "sentFps": 29.5,
+          "kbps": 3022.59271977348,
+          "encodeMs": 3.781142186203365,
+          "decodeMs": 2.2986892843900626,
+          "jitterBufferMs": 10.455585507044868,
+          "transportRttP50": 107.10000002384186,
+          "transportRttP95": 135.29999995231628,
+          "presentationIntervalP95": 42.5,
+          "presentations": 352,
+          "loss": 0,
+          "freezes": 0
+        },
+        "receivedSizes": [
+          "640x360"
+        ]
+      }
+    ]
+  },
+  "flutterIpadSimulator": {
+    "direct": [
+      {
+        "profile": "native",
+        "width": 3840,
+        "height": 2160,
+        "fps": 16.5,
+        "kbps": 937,
+        "bufferMs": 12,
+        "relay": false
+      },
+      {
+        "profile": "balanced",
+        "width": 1920,
+        "height": 1080,
+        "fps": 29.5,
+        "kbps": 313,
+        "bufferMs": 35,
+        "relay": false
+      },
+      {
+        "profile": "smooth",
+        "width": 1280,
+        "height": 720,
+        "fps": 29.375,
+        "kbps": 1710,
+        "bufferMs": 32,
+        "relay": false
+      }
+    ],
+    "udp": [
+      {
+        "profile": "native",
+        "width": 3840,
+        "height": 2160,
+        "fps": 16.125,
+        "kbps": 851,
+        "bufferMs": 49,
+        "relay": true
+      },
+      {
+        "profile": "balanced",
+        "width": 1920,
+        "height": 1080,
+        "fps": 29.625,
+        "kbps": 517,
+        "bufferMs": 98,
+        "relay": true
+      },
+      {
+        "profile": "smooth",
+        "width": 1280,
+        "height": 720,
+        "fps": 29.375,
+        "kbps": 2100,
+        "bufferMs": 79,
+        "relay": true
+      }
+    ],
+    "tls": [
+      {
+        "profile": "native",
+        "width": 3840,
+        "height": 2160,
+        "fps": 15.5,
+        "kbps": 872,
+        "bufferMs": 171,
+        "relay": true
+      },
+      {
+        "profile": "balanced",
+        "width": 1920,
+        "height": 1080,
+        "fps": 28.875,
+        "kbps": 351,
+        "bufferMs": 88,
+        "relay": true
+      },
+      {
+        "profile": "smooth",
+        "width": 1280,
+        "height": 720,
+        "fps": 29.375,
+        "kbps": 1966,
+        "bufferMs": 71,
+        "relay": true
+      }
+    ]
+  }
+}
