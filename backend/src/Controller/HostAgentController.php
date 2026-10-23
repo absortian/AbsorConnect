@@ -50,6 +50,7 @@ final class HostAgentController
     #[Route('/api/host-agent/enroll', methods: ['POST'])]
     public function enroll(Request $request): JsonResponse
     {
+        $this->limiter->agentEnrollmentIp($request->getClientIp() ?? 'unknown');
         $data = JsonBody::from($request);
 
         return new JsonResponse($this->agents->enroll($data['enrollmentToken'] ?? null, AgentInfo::fromJson($data)), 201, ['Cache-Control' => 'no-store']);

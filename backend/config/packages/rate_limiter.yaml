@@ -21,6 +21,13 @@ framework:
             interval: '1 minute'
             cache_pool: app.rate_limiter_cache
 
+        # Canje público de altas opacas: limita trabajo de BD antes de conocer la cuenta.
+        agent_enrollment_ip:
+            policy: sliding_window
+            limit: 30
+            interval: '1 minute'
+            cache_pool: app.rate_limiter_cache
+
         # Control remoto (add-remote-desktop D5): solicitudes de sesión de cada cuenta y
         # consultas de cada equipo, que lo normal es que lleguen cada 3 s.
         remote_request_user:

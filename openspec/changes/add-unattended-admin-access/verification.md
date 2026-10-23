@@ -497,3 +497,12 @@ Las tareas 1.5 y 1.6 continúan abiertas.
 La migración del backend se revirtió y reaplicó únicamente en la base de pruebas,
 con esquema válido después y las 24 pruebas del agente de nuevo correctas.
 No se probó rollback destructivo en producción.
+
+
+La revisión final añadió límite compartido de **30 canjes públicos por minuto e
+IP**, con `Retry-After`. PHPUnit final: **158 tests, 1057 aserciones**, incluidas
+25 pruebas del agente. Los cinco ensayos de concurrencia volvieron a pasar.
+`flutter analyze` y las **45 pruebas Flutter** también pasaron con el entorno de
+integración local. Informes privados `backend-agent-phpunit-final-20261023.log`,
+`backend-agent-concurrency-final-20261023.json`, `flutter-analyze-final-20261023.log`
+y `flutter-test-final-20261023.log`.

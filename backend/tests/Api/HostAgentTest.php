@@ -326,6 +326,18 @@ final class HostAgentTest extends ApiTestCase
         self::assertSame(1, (int) $this->db()->fetchOne('SELECT COUNT(*) FROM host_agent'));
     }
 
+    public function testPublicRedemptionHasSharedIpLimit(): void
+    {
+        for ($i = 0; $i < 30; ++$i) {
+            $this->postJson('/api/host-agent/enroll', ['enrollmentToken' => 'ace_'.str_repeat('x', 43)] + self::AGENT_INFO);
+            self::assertResponseStatusCodeSame(400);
+        }
+        $this->postJson('/api/host-agent/enroll', self::AGENT_INFO);
+        self::assertResponseStatusCodeSame(429);
+        self::assertSame('too_many_requests', $this->errorCode());
+        self::assertTrue($this->client->getResponse()->headers->has('Retry-After'));
+    }
+
     public function testUpdateAndInvalidCapabilities(): void
     {
         $agent = $this->agent($host);

@@ -15,7 +15,13 @@ final class RemoteLimiter
         private readonly RateLimiterFactoryInterface $remoteRequestUserLimiter,
         private readonly RateLimiterFactoryInterface $devicePollLimiter,
         private readonly RateLimiterFactoryInterface $iceServersUserLimiter,
+        private readonly RateLimiterFactoryInterface $agentEnrollmentIpLimiter,
     ) {
+    }
+
+    public function agentEnrollmentIp(string $ip): void
+    {
+        self::consume($this->agentEnrollmentIpLimiter->create($ip));
     }
 
     public function iceServers(User $user): void

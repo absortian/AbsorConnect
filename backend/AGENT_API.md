@@ -85,7 +85,9 @@ Cerrar otra sesión no vinculada no revoca el agente.
 No se permite al agente leer conexiones o cuenta, listar otros equipos, crear
 solicitudes de controlador ni dar de alta otros agentes. Las consultas usan el
 mismo contador por equipo del host legado; ICE usa el mismo contador y usuario
-TURN por cuenta. Crear altas comparte el límite de solicitudes de la cuenta.
+TURN por cuenta. Crear altas comparte el límite de solicitudes de la cuenta. El canje público
+tiene además un límite compartido de 30 intentos por minuto e IP, antes de
+consultar el alta. Se aplican los proxies de confianza existentes.
 
 ## Verificación reproducible
 
