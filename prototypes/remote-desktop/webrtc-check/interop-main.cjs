@@ -7,6 +7,12 @@ const work = process.argv.find((arg) => arg.startsWith('--lab-work='))?.slice(11
 const binary = process.argv.find((arg) => arg.startsWith('--lab-binary='))?.slice(13)
 const syntheticVideo = process.argv.includes('--lab-synthetic-video')
 if (!work || !binary) process.exit(64)
+const relayOnly = process.argv.includes('--lab-relay-only')
+const relayController = process.argv.includes('--lab-relay-controller')
+const turnPath = path.join(work, 'turn-config.json')
+const ice = relayOnly ? { ...JSON.parse(fs.readFileSync(turnPath, 'utf8')), iceTransportPolicy: 'relay' } : { iceServers: [], iceTransportPolicy: 'all' }
+const nativeIcePath = path.join(work, 'native-ice.json')
+if (relayOnly) fs.writeFileSync(nativeIcePath, JSON.stringify({ iceServers: ice.iceServers, iceTransportPolicy: relayController ? 'all' : 'relay' }), { mode: 0o600, flag: 'wx' })
 const cases = new Map()
 let window
 app.setPath('userData', path.join(work, 'electron-profile'))
@@ -18,6 +24,11 @@ function validate(event, name) {
   }
 }
 
+ipcMain.handle('lab-ice', (event) => {
+  if (event.sender !== window?.webContents) throw new Error('Emisor inválido')
+  return ice
+})
+
 ipcMain.handle('lab-offer', async (event, name, offer) => {
   validate(event, name)
   if (cases.has(name) || typeof offer !== 'string' || Buffer.byteLength(offer) > 262144) {
@@ -28,7 +39,7 @@ ipcMain.handle('lab-offer', async (event, name, offer) => {
   const offerPath = path.join(directory, 'offer.sdp')
   const answerPath = path.join(directory, 'answer.sdp')
   fs.writeFileSync(offerPath, offer, { mode: 0o600, flag: 'wx' })
-  const child = spawn(binary, [offerPath, answerPath], { stdio: ['ignore', 'pipe', 'pipe'] })
+  const child = spawn(binary, [offerPath, answerPath, ...(relayOnly ? [nativeIcePath] : [])], { stdio: ['ignore', 'pipe', 'pipe'] })
   let stdout = ''
   let stderr = ''
   child.stdout.on('data', (data) => { stdout = (stdout + data).slice(-16384) })
@@ -64,7 +75,7 @@ ipcMain.handle('lab-result', async (event, name, controller) => {
   if (state.code !== 0 || !state.summary?.dtlsConnected || !controller.connected ||
       state.summary.authenticated !== controller.authenticated ||
       state.summary.authenticated !== (name === 'correct') ||
-      state.summary.captureStarted || state.summary.inputEnabled) {
+      state.summary.captureStarted || state.summary.inputEnabled || state.summary.relayOnly !== (relayOnly && !relayController)) {
     throw new Error('El extremo nativo y el controlador no concuerdan')
   }
   if (syntheticVideo && (name === 'correct'
@@ -78,7 +89,7 @@ ipcMain.handle('lab-result', async (event, name, controller) => {
 ipcMain.handle('lab-done', (event, result) => {
   if (event.sender !== window?.webContents) throw new Error('Emisor inválido')
   const report = { ...result, electron: process.versions.electron, chromium: process.versions.chrome,
-    videoTested: false, syntheticVideoTested: syntheticVideo, turnTested: false, mobileTested: false, readyForUnattended: false }
+    videoTested: false, syntheticVideoTested: syntheticVideo, turnTested: relayOnly && result.ok, relayPolicy: relayOnly ? (relayController ? 'controller' : 'both') : 'none', mobileTested: false, readyForUnattended: false }
   fs.writeFileSync(path.join(work, 'interop-results.json'), JSON.stringify(report, null, 2) + '\n', { mode: 0o600 })
   console.log(JSON.stringify(report))
   setImmediate(() => { cleanup(); app.exit(result.ok ? 0 : 1) })
@@ -92,7 +103,7 @@ app.whenReady().then(async () => {
     preload: path.join(__dirname, 'interop-preload.cjs'), contextIsolation: true,
     nodeIntegration: false, sandbox: true, backgroundThrottling: false,
     autoplayPolicy: 'no-user-gesture-required',
-    additionalArguments: syntheticVideo ? ['--lab-synthetic-video'] : []
+    additionalArguments: [...(syntheticVideo ? ['--lab-synthetic-video'] : []), ...(relayOnly ? ['--lab-relay-only'] : []), ...(relayController ? ['--lab-relay-controller'] : [])]
   } })
   await window.loadFile(path.join(work, 'index.html'))
 })

@@ -20,7 +20,13 @@ async function deriveKey(hello) {
 }
 
 async function runCase(name) {
-  const pc = new RTCPeerConnection({ iceServers: [] })
+  const pc = new RTCPeerConnection(await window.lab.ice())
+  const iceErrors = []
+  const candidateCounts = {}
+  pc.onicecandidateerror = ({ errorCode }) => { if (iceErrors.length < 16) iceErrors.push(errorCode) }
+  pc.onicecandidate = ({ candidate }) => {
+    if (candidate) candidateCounts[candidate.type] = (candidateCounts[candidate.type] ?? 0) + 1
+  }
   const syntheticVideo = window.lab.syntheticVideo
   const video = document.createElement('video')
   video.muted = true
@@ -71,11 +77,13 @@ async function runCase(name) {
   auth.catch(() => {})
   try {
     await pc.setLocalDescription(await pc.createOffer())
-    const gatheringDeadline = Date.now() + 15000
-    while (pc.iceGatheringState !== 'complete') {
-      if (Date.now() > gatheringDeadline) throw new Error('Venció la recopilación ICE del controlador')
+    const gatheringDeadline = Date.now() + (window.lab.relayOnly ? 30000 : 15000)
+    while (pc.iceGatheringState !== 'complete' && !(window.lab.relayOnly && candidateCounts.relay > 0)) {
+      if (Date.now() > gatheringDeadline) throw new Error(`Venció la recopilación ICE del controlador: ${JSON.stringify({ candidateCounts, iceErrors })}`)
       await delay(50)
     }
+    // No se exige finalizar toda la búsqueda si ya hay relé utilizable; se verifica el par real después.
+    if (window.lab.relayOnly) await delay(500)
     offer = pc.localDescription.sdp
     answer = await window.lab.offer(name, offer)
     await pc.setRemoteDescription({ type: 'answer', sdp: answer })
@@ -117,14 +125,15 @@ async function runCase(name) {
     const pair = transport && stats.get(transport.selectedCandidatePairId)
     const local = pair && stats.get(pair.localCandidateId)
     const remote = pair && stats.get(pair.remoteCandidateId)
-    if (!local || !remote || local.candidateType !== 'host' || remote.candidateType !== 'host') {
-      throw new Error('No se ha comprobado un par de candidatos de host')
+    if (!local || !remote || local.candidateType !== (window.lab.relayOnly ? 'relay' : 'host') || (!window.lab.relayController && remote.candidateType !== (window.lab.relayOnly ? 'relay' : 'host'))) {
+      throw new Error('No se ha comprobado el par de candidatos exigido')
     }
     const connected = pc.connectionState === 'connected'
     channel.send(JSON.stringify({ v: 1, type: 'bye', reason: 'closed' }))
     return await window.lab.result(name, {
       authenticated: result.ok, connected, helloCount,
       candidateTypes: [local.candidateType, remote.candidateType],
+      relayProtocol: local.relayProtocol ?? null,
       ...(syntheticVideo ? { decodedFrames, syntheticColorVerified } : {})
     })
   } finally { video.pause(); video.srcObject = null; channel.close(); pc.close() }

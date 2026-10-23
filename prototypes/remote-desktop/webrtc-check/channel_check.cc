@@ -12,6 +12,7 @@
 #include <span>
 #include <string>
 #include <utility>
+#include <thread>
 #include <vector>
 
 #include "api/create_modular_peer_connection_factory.h"
@@ -96,7 +97,7 @@ class Answer : public webrtc::CreateSessionDescriptionObserver {
 
 class Observer final : public webrtc::PeerConnectionObserver, public webrtc::DataChannelObserver {
  public:
-  explicit Observer(webrtc::Thread* signaling) : signaling_(signaling) {
+  explicit Observer(webrtc::Thread* signaling, bool server_candidates) : signaling_(signaling), server_candidates_(server_candidates) {
     std::array<uint8_t, 32> bytes{};
     if (RAND_bytes(bytes.data(), bytes.size())) nonce = Encode(bytes.data(), bytes.size());
   }
@@ -113,7 +114,12 @@ class Observer final : public webrtc::PeerConnectionObserver, public webrtc::Dat
   webrtc::scoped_refptr<webrtc::DataChannelInterface> channel;
 
   void OnSignalingChange(webrtc::PeerConnectionInterface::SignalingState) override {}
-  void OnIceCandidate(const webrtc::IceCandidate*) override {}
+  void OnIceCandidate(const webrtc::IceCandidate* candidate) override {
+    // Con TURN puede seguir buscando otros caminos pese a tener candidatos utilizables.
+    if (server_candidates_ && candidate && (candidate->candidate().is_relay() || candidate->candidate().is_stun()) && !gathered_.exchange(true)) {
+      gathered.set_value(true);
+    }
+  }
   void OnConnectionChange(webrtc::PeerConnectionInterface::PeerConnectionState state) override {
     if (state == webrtc::PeerConnectionInterface::PeerConnectionState::kConnected) connected = true;
   }
@@ -213,6 +219,7 @@ class Observer final : public webrtc::PeerConnectionObserver, public webrtc::Dat
            CRYPTO_memcmp(proof.data(), expected.data(), proof.size()) == 0;
   }
   webrtc::Thread* signaling_;
+  bool server_candidates_;
   std::atomic<bool> gathered_{false};
   bool acknowledged_ = false;
   bool hello_sent_ = false;
@@ -252,6 +259,7 @@ bool Exchange(webrtc::scoped_refptr<webrtc::PeerConnectionInterface> connection,
   auto local_future = local->get_future();
   connection->SetLocalDescription(std::move(answer), webrtc::make_ref_counted<LocalSet>(local));
   if (!Wait(local_future) || !Wait(gathered_future)) return false;
+  std::this_thread::sleep_for(std::chrono::milliseconds(500));
   std::string final_sdp;
   signaling->BlockingCall([&] { connection->local_description()->ToString(&final_sdp); });
   if (final_sdp.size() > 262144) return false;
@@ -265,7 +273,8 @@ bool Exchange(webrtc::scoped_refptr<webrtc::PeerConnectionInterface> connection,
   return Wait(acknowledged);
 }
 
-int Run(const std::string& offer, const char* answer_path) {
+int Run(const std::string& offer, const char* answer_path,
+        const webrtc::PeerConnectionInterface::RTCConfiguration& configuration) {
   auto network = webrtc::Thread::CreateWithSocketServer();
   auto signaling = webrtc::Thread::Create();
   if (!network->Start() || !signaling->Start()) return 2;
@@ -278,8 +287,7 @@ int Run(const std::string& offer, const char* answer_path) {
 #endif
   auto factory = webrtc::CreateModularPeerConnectionFactory(std::move(dependencies));
   if (!factory) return 3;
-  Observer observer(signaling.get());
-  webrtc::PeerConnectionInterface::RTCConfiguration configuration;
+  Observer observer(signaling.get(), !configuration.servers.empty());
   auto connection_result = factory->CreatePeerConnectionOrError(
       configuration, webrtc::PeerConnectionDependencies(&observer));
   if (!connection_result.ok()) return 4;
@@ -308,7 +316,8 @@ int Run(const std::string& offer, const char* answer_path) {
   if (!exchanged || !connected) return 5;
   std::cout << "{\"dtlsConnected\":true,\"authenticated\":"
             << (authenticated ? "true" : "false")
-            << ",\"captureStarted\":false,\"inputEnabled\":false"
+            << ",\"captureStarted\":false,\"inputEnabled\":false,\"relayOnly\":"
+            << (configuration.type == webrtc::PeerConnectionInterface::kRelay ? "true" : "false")
 #ifdef ABSOR_SYNTHETIC_VIDEO
             << ",\"syntheticVideoFrames\":" << synthetic_frames
 #endif
@@ -318,8 +327,8 @@ int Run(const std::string& offer, const char* answer_path) {
 }  // namespace
 
 int main(int argc, char** argv) {
-  if (argc != 3) { std::cerr << "Uso: channel_check <oferta.sdp> <respuesta.sdp>\n"; return 64; }
-  // Límite de la ABI de C: argc validado garantiza tres elementos accesibles en argv.
+  if (argc != 3 && argc != 4) { std::cerr << "Uso: channel_check <oferta.sdp> <respuesta.sdp> [turn-privado.json]\n"; return 64; }
+  // Límite de la ABI de C: argc validado garantiza los elementos accesibles en argv.
 #pragma clang unsafe_buffer_usage begin
   const std::span<char*> arguments(argv, static_cast<size_t>(argc));
 #pragma clang unsafe_buffer_usage end
@@ -327,8 +336,40 @@ int main(int argc, char** argv) {
   if (!file || file.tellg() < 0 || file.tellg() > 262144) return 65;
   file.seekg(0);
   std::string offer((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+  webrtc::PeerConnectionInterface::RTCConfiguration configuration;
+  if (argc == 4) {
+    std::ifstream config_file(arguments[3], std::ios::binary | std::ios::ate);
+    if (!config_file || config_file.tellg() < 0 || config_file.tellg() > 16384) return 65;
+    config_file.seekg(0);
+    Json::Value config;
+    Json::CharReaderBuilder builder;
+    builder["rejectDupKeys"] = true;
+    builder["failIfExtra"] = true;
+    std::string errors;
+    if (!Json::parseFromStream(builder, config_file, &config, &errors) || !config.isObject() ||
+        !config["iceServers"].isArray() || config["iceServers"].size() < 1 || config["iceServers"].size() > 8) return 65;
+    for (const auto& server : config["iceServers"]) {
+      if (!server.isObject() || !server["urls"].isArray() || server["urls"].size() < 1 ||
+          server["urls"].size() > 8 || !server["username"].isString() || !server["credential"].isString() ||
+          server["username"].asString().empty() || server["username"].asString().size() > 1024 ||
+          server["credential"].asString().empty() || server["credential"].asString().size() > 1024) return 65;
+      webrtc::PeerConnectionInterface::IceServer ice;
+      for (const auto& value : server["urls"]) {
+        if (!value.isString()) return 65;
+        auto url = value.asString();
+        if (url.size() > 512 || (!url.starts_with("turn:") && !url.starts_with("turns:") && !url.starts_with("stun:"))) return 65;
+        ice.urls.push_back(std::move(url));
+      }
+      ice.username = server["username"].asString();
+      ice.password = server["credential"].asString();
+      configuration.servers.push_back(std::move(ice));
+    }
+    if (config.isMember("iceTransportPolicy") && config["iceTransportPolicy"] != "relay" && config["iceTransportPolicy"] != "all") return 65;
+    configuration.type = config["iceTransportPolicy"] == "all"
+        ? webrtc::PeerConnectionInterface::kAll : webrtc::PeerConnectionInterface::kRelay;
+  }
   if (!webrtc::InitializeSSL()) return 1;
-  const int result = Run(offer, arguments[2]);
+  const int result = Run(offer, arguments[2], configuration);
   webrtc::CleanupSSL();
   return result;
 }

@@ -2,9 +2,9 @@
 
 ## Estado al 23/10/2026
 
-Aplicación del cambio autorizada e iniciada. **0/57 tareas completas.** Hay avances
+Aplicación del cambio autorizada e iniciada. **6/57 tareas completas (2.1–2.6).** El backend del agente está implementado y verificado en desarrollo. Hay avances
 parciales en 1.1–1.6 y 11.6; no existe todavía un agente operativo ni se ha publicado
-una release o modificado producción.
+una release. El despliegue aditivo del backend se registra por separado al verificarse.
 
 Se han implementado herramientas de diagnóstico reproducibles en
 `prototypes/remote-desktop/unattended-check/`, separadas de la app instalada. No
@@ -372,3 +372,128 @@ el inventario no certifica la funcionalidad.
 El despliegue permanece pendiente de la funcionalidad y verificaciones definidas
 en `design.md`. No se marca como fallo arquitectónico la ausencia de un permiso
 todavía no concedido, ni se reduce el alcance a una plataforma.
+
+
+## Continuación automática sin intervenir en el Mac (23/10/2026)
+
+El propietario pidió continuar automáticamente con todo lo ajeno al Mac mientras
+está fuera de casa. No se actualizó el diagnóstico Mac ni se renovaron permisos,
+bloqueó o cerró su sesión. Confirmó que ambos archivos v3 tienen cero bytes,
+modificados el 23/10 a las 16:49:09 según su terminal, y que la búsqueda administrativa
+de informes de caída no devolvió coincidencias. Sigue siendo inconcluso: no se
+atribuye a una caída ni se certifica entrada.
+
+### Backend terminado en desarrollo: tareas 2.1–2.6
+
+- Migración aditiva `Version20261023163229`: `agent_enrollment` y `host_agent`,
+  con hashes SHA-256, origen de sesión y un único propietario por equipo.
+  `doctrine:schema:validate` y `lint:container` correctos; no cambia `cache_items`
+  ni las claves de cifrado, Dockerfiles PHP o `--pull` de Jenkins.
+- Alta `ace_…` de cinco minutos y canje atómico por credencial distinta `acg_…`.
+  Firewall/principal propios sin `ROLE_USER`; solo opera el equipo vinculado.
+- Revocación por propietario/agente, logout de origen, cambio y reset de contraseña,
+  caducidad de origen o de agente y borrado de cuenta. El uso del agente no renueva
+  la sesión de cuenta. Una sesión ajena no vinculada puede cerrarse sin revocarlo.
+- Traspaso serializado con operaciones del host legado; el antiguo host recibe
+  409 hasta la baja. La baja deja el equipo desactivado para un registro nuevo.
+  Se conservan equipos y solicitudes de otros hosts de la cuenta.
+- Heartbeat con autorización de 30 segundos y capacidades opcionales; cuotas de
+  consulta y TURN compartidas y `REMOTE_ENABLED=0` probado. Esto verifica la API,
+  **no acredita todavía el corte de un trabajador real a los 30 segundos**.
+- PHPUnit: **157 tests, 1024 aserciones** (24 tests nuevos del agente). Vitest:
+  **159 tests, 25 archivos**, con integración real contra la API local. Typecheck
+  correcto. Informe privado `backend-agent-phpunit-20261023.log` y
+  `backend-agent-vitest-20261023.log` en el laboratorio de desarrollo.
+- `prototypes/backend-agent-check/run.py`: cinco ensayos HTTP paralelos reales:
+  tres canjes dobles (un 201 y un 400 cada vez), canje frente a actualización
+  del host legado y canje frente a logout de origen. Un solo propietario y
+  ninguna credencial superviviente al logout. Cuenta temporal retirada.
+  Informe privado `backend-agent-concurrency-20261023.json`.
+- Contrato y ejemplos ejecutables permitidos/denegados en `backend/AGENT_API.md`
+  y `prototypes/backend-agent-check/`. No contienen credenciales reales.
+
+### Windows: captura posterior al cierre de sesión
+
+`SessionProbe.cs`, compilado dentro de una carpeta con propietario SYSTEM y escritura
+solo para SYSTEM/Administradores, limita la operación a QEMU y SYSTEM en sesión 0.
+Consulta el usuario mediante WTS sin imprimir su nombre y solicita el cierre de
+la sesión de consola con `WTSLogoffSession`; no introduce credenciales ni aplica
+entrada. Argumento desconocido rechazado con 64. Fuente SHA-256
+`9ec8f789b58b0b2d7c1dcbda6d0a1ecf23f9e9b5554ca55de17d53e6947bcc3a`, binario
+`ad4f54a3b9c32484d94b325a0a7562486de90581d2d5db67b7100977f74fe872`.
+
+La primera captura tras arrancar encontró un usuario ya conectado y nueve
+fotogramas de `Default`; se conserva como escritorio ordinario. Después del cierre
+WTS de la sesión 1, WTS y CIM informaron ausencia de usuario interactivo. El mismo
+capturador previamente identificado por SHA-256
+`0294a1e231b6622e63e012b68fda89014b09abf7a129fa98155216da4210cb40`
+creó su trabajador en la nueva sesión de consola 2 y recibió **nueve fotogramas no
+uniformes en `Winlogon`**, sin guardar ni transmitir píxeles. UAC sigue activo,
+ningún proceso de prueba restante. Informes privados
+`windows-session-build-b-20261023.log`, `windows-prelogin-capture-a-20261023.log`
+y `windows-prelogin-capture-b-20261023.log`.
+
+Esto acredita captura tras logout en esa VM ARM64, no entrada en campos de login,
+credenciales, atención segura, servicio SCM, DXGI, monitores múltiples ni recuperación
+real de una sesión WebRTC. La tarea 1.2 sigue abierta.
+
+### Mint: captura y entrada limitada de usuario
+
+El diagnóstico X11 esquema 2 añade `--pointer`: exige sesión activa, X11,
+desbloqueada, del propio UID y el display de logind; no actúa con un botón del
+ratón pulsado. Con XTest mueve ocho píxeles, observa el resultado y restaura la
+posición, sin clics ni teclas ni coordenadas en el informe.
+
+En Mint 22.3/Cinnamon/X11, como UID 1000, recibió **10 muestras no uniformes** de
+la región central y observó tanto movimiento como restauración. Informe privado
+`mint-pointer-capture-20261023.json`. Sigue sin acceso administrativo no interactivo:
+`sudo -n true` requiere contraseña. No se cerró o bloqueó la sesión ni se cambiaron
+LightDM, polkit, Xauthority, sudo o el control de acceso X. No certifica el greeter
+ni permite marcar 1.4 completa.
+
+
+### libwebrtc: matriz directa, TURN UDP y TURN TLS
+
+Se amplió el laboratorio, sin integrar todavía la dependencia en un agente final.
+Revisión WebRTC fijada y vectores iguales a los anteriores. Binarios finales:
+
+- `channel_check`: SHA-256 `a32b17ba799d29dc476c73d4909d0143c8e058c4f676657131294c829c3448f7`.
+- `video_channel_check`: SHA-256 `f016a99680d201a5b13298b6efdb38cefc705fe5b49c70e2f7525c7fe61e9fbe`.
+
+Con Electron 39.8.5/Chromium 142 pasaron **nueve conexiones**: contraseña correcta,
+prueba incorrecta y huella alterada, en cada uno de estos recorridos:
+
+| Recorrido | Candidatos seleccionados del controlador/host | Resultado |
+|---|---|---|
+| Directo | host/host | DTLS y desafío; patrón VP8 decodificado solo con autenticación válida |
+| TURN UDP por nombre DNS | relay/srflx; relayProtocol udp | Mismos tres casos correctos; controlador obligado a relé |
+| TURN TLS por nombre DNS | relay/srflx; relayProtocol tls | Mismos tres casos correctos; controlador obligado a relé |
+
+Los casos negativos generaron/decodificaron cero fotogramas; el positivo verificó
+al menos dos y el patrón rojo 320 × 180. Informes privados
+`webrtc-matrix-final-20261023.json`, `webrtc-direct-final-20261023.log`,
+`webrtc-turn-dns-final-20261023.log` y `webrtc-turn-tls-final-20261023.log`.
+Se rechazaron también cuatro casos de argumentos/configuración inválidos;
+no se creó SDP de respuesta en el caso nativo inválido.
+
+Se conservaron los fallos previos: espera a completar ICE agotada pese a haber
+candidatos y ensayo relay/relay rechazado con 403 CreatePermission. En este último,
+ambos peers usan la IP pública del propio relé, que está en su política de denegación.
+No se debilitó esa política ni se certificó relay/relay. La corrección del laboratorio
+acepta candidatos utilizables y valida el par real después. TURN desde el controlador
+ya pasaba por diseño en la prueba existente `relay-check`; no se sustituye por una
+conexión directa. Se usaron credenciales temporales y se retiraron sus archivos al
+terminar; no se cambiaron secretos o configuración de producción.
+
+El generador oficial de licencias, con el argumento GN del target reducido,
+identificó 25 grupos incluyendo WebRTC, rechazando desconocidos y omitiendo solo
+la dependencia de compilación que el propio generador clasifica así. Generó
+136185 bytes de avisos, SHA-256
+`8a3f66a2bd0b0e0c3d230f7146fa9f4d5e4d46dfd634ae83f8358f88d261d8a0`;
+informe privado `webrtc-notices-20261023/report.json`. Falta la revisión de
+redistribución del paquete final, más captura real, entrada y Android/iOS.
+Las tareas 1.5 y 1.6 continúan abiertas.
+
+La migración del backend se revirtió y reaplicó únicamente en la base de pruebas,
+con esquema válido después y las 24 pruebas del agente de nuevo correctas.
+No se probó rollback destructivo en producción.

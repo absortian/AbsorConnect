@@ -13,12 +13,12 @@ Implementación y despliegue autorizados por el propietario el 22/10/2026 y cont
 
 ## 2. Backend: identidad y permisos del agente
 
-- [ ] 2.1 Añadir alta de un solo uso, credencial hasheada, propietario del host y vínculo a sesión origen con migraciones aditivas; verificar con PHPUnit alta válida, expiración a los 5 minutos y dos canjes concurrentes de los que solo uno tiene éxito.
-- [ ] 2.2 Implementar las rutas y autenticador limitado de D3; verificar que el agente solo consulta/responde su equipo y recibe denegación en conexiones, cuenta, otros equipos y operaciones de controlador.
-- [ ] 2.3 Incorporar revocación por propietario, logout, cambio/restablecimiento de contraseña, caducidad de sesión origen y borrado de cuenta; verificar cada evento con pruebas de credencial invalidada y sin posibilidad de renovar el alta revocada.
-- [ ] 2.4 Añadir capacidades opcionales y autorización de 30 segundos al heartbeat; verificar contratos de clientes anteriores, fechas, límites compartidos por cuenta/equipo y efecto de `REMOTE_ENABLED=0`.
-- [ ] 2.5 Impedir mutaciones del host por el flujo legado tras transferirlo al agente y devolver la propiedad al darlo de baja; verificar carreras app/agente sin duplicación ni interrupción de otros equipos de la cuenta.
-- [ ] 2.6 Documentar en el README/backend el contrato del agente y sus códigos de error; verificar ejemplos de acceso permitido/denegado contra el backend de desarrollo, sin tokens reales en documentación.
+- [x] 2.1 Añadir alta de un solo uso, credencial hasheada, propietario del host y vínculo a sesión origen con migraciones aditivas; verificar con PHPUnit alta válida, expiración a los 5 minutos y dos canjes concurrentes de los que solo uno tiene éxito.
+- [x] 2.2 Implementar las rutas y autenticador limitado de D3; verificar que el agente solo consulta/responde su equipo y recibe denegación en conexiones, cuenta, otros equipos y operaciones de controlador.
+- [x] 2.3 Incorporar revocación por propietario, logout, cambio/restablecimiento de contraseña, caducidad de sesión origen y borrado de cuenta; verificar cada evento con pruebas de credencial invalidada y sin posibilidad de renovar el alta revocada.
+- [x] 2.4 Añadir capacidades opcionales y autorización de 30 segundos al heartbeat; verificar contratos de clientes anteriores, fechas, límites compartidos por cuenta/equipo y efecto de `REMOTE_ENABLED=0`.
+- [x] 2.5 Impedir mutaciones del host por el flujo legado tras transferirlo al agente y devolver la propiedad al darlo de baja; verificar carreras app/agente sin duplicación ni interrupción de otros equipos de la cuenta.
+- [x] 2.6 Documentar en el README/backend el contrato del agente y sus códigos de error; verificar ejemplos de acceso permitido/denegado contra el backend de desarrollo, sin tokens reales en documentación.
 
 ## 3. Agente común y protocolo
 

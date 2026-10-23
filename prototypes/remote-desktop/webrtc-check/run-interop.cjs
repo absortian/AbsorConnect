@@ -6,8 +6,35 @@ const { spawn } = require('node:child_process')
 const esbuild = require('esbuild')
 const lab = process.argv[2] && fs.realpathSync(process.argv[2])
 if (!lab) { console.error('Uso: node run-interop.cjs <laboratorio-externo>'); process.exit(64) }
-const syntheticVideo = process.argv[3] === '--synthetic-video'
-if (process.argv.length > 4 || (process.argv[3] && !syntheticVideo)) throw new Error('Opción desconocida')
+const options = process.argv.slice(3)
+let syntheticVideo = false
+let relayController = false
+let turnConfig
+for (let i = 0; i < options.length; i++) {
+  if (options[i] === '--relay-controller' && !relayController) relayController = true
+  else if (options[i] === '--synthetic-video' && !syntheticVideo) syntheticVideo = true
+  else if (options[i] === '--turn-config' && !turnConfig && options[i + 1]) turnConfig = options[++i]
+  else throw new Error('Opción desconocida o repetida')
+}
+if (relayController && !turnConfig) throw new Error('--relay-controller exige --turn-config')
+let relayConfiguration
+if (turnConfig) {
+  const stat = fs.lstatSync(turnConfig)
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 16384 || (stat.mode & 0o077) !== 0 || stat.uid !== process.getuid()) {
+    throw new Error('La configuración TURN debe ser un archivo privado del usuario, de hasta 16 KiB')
+  }
+  const value = JSON.parse(fs.readFileSync(turnConfig, 'utf8'))
+  if (!value || Object.keys(value).some((key) => key !== 'iceServers') || !Array.isArray(value.iceServers) ||
+      value.iceServers.length < 1 || value.iceServers.length > 8 || value.iceServers.some((server) =>
+        !server || Object.keys(server).some((key) => !['urls', 'username', 'credential'].includes(key)) ||
+        !Array.isArray(server.urls) || server.urls.length < 1 || server.urls.length > 8 ||
+        server.urls.some((url) => typeof url !== 'string' || url.length > 512 || !/^(?:turns?|stun):[^\s]+$/.test(url)) ||
+        ['username', 'credential'].some((key) => typeof server[key] !== 'string' || server[key].length < 1 || server[key].length > 1024))) {
+    throw new Error('Configuración TURN inválida; usar únicamente credenciales temporales')
+  }
+  if (!value.iceServers.some((server) => server.urls.some((url) => /^turns?:/.test(url)))) throw new Error('Falta servidor TURN')
+  relayConfiguration = value
+}
 const binary = path.join(lab, 'webrtc-native/src/out/AbsorProbe', syntheticVideo ? 'video_channel_check' : 'channel_check')
 if (!fs.statSync(binary).isFile()) throw new Error('Falta compilar channel_check')
 const build = JSON.parse(fs.readFileSync(path.join(lab, 'webrtc-probe-results.json'), 'utf8'))
@@ -18,6 +45,7 @@ if (build.webrtcRevision !== require('./dependencies.json').webrtc.revision ||
 }
 const work = fs.mkdtempSync(path.join(lab, 'interop-'))
 fs.chmodSync(work, 0o700)
+if (relayConfiguration) fs.writeFileSync(path.join(work, 'turn-config.json'), JSON.stringify(relayConfiguration), { mode: 0o600, flag: 'wx' })
 for (const name of ['interop-main.cjs', 'interop-preload.cjs']) fs.copyFileSync(path.join(__dirname, name), path.join(work, name))
 fs.writeFileSync(path.join(work, 'index.html'), '<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'"><title>Prueba WebRTC nativa</title><script type="module" src="renderer.js"></script>', { mode: 0o600 })
 esbuild.buildSync({ entryPoints: [path.join(__dirname, 'interop-renderer.js')], bundle: true,
@@ -26,8 +54,8 @@ fs.writeFileSync(path.join(work, 'artifact.json'), JSON.stringify({
   binarySha256,
   sourceRevision: require('./dependencies.json').webrtc.revision
 }, null, 2) + '\n', { mode: 0o600 })
-const child = spawn(require('electron'), [path.join(work, 'interop-main.cjs'), `--lab-work=${work}`, `--lab-binary=${binary}`, ...(syntheticVideo ? ['--lab-synthetic-video'] : [])], {
+const child = spawn(require('electron'), [path.join(work, 'interop-main.cjs'), `--lab-work=${work}`, `--lab-binary=${binary}`, ...(syntheticVideo ? ['--lab-synthetic-video'] : []), ...(relayConfiguration ? ['--lab-relay-only'] : []), ...(relayController ? ['--lab-relay-controller'] : [])], {
   env: { ...process.env, ELECTRON_RUN_AS_NODE: '' }, stdio: 'inherit'
 })
 child.on('error', (error) => { console.error(error.message); process.exitCode = 1 })
-child.on('exit', (code) => { console.log(`Informe local: ${path.join(work, 'interop-results.json')}`); process.exitCode = code ?? 1 })
+child.on('exit', (code) => { if (relayConfiguration) { fs.rmSync(path.join(work, 'turn-config.json'), { force: true }); fs.rmSync(path.join(work, 'native-ice.json'), { force: true }) }; console.log(`Informe local: ${path.join(work, 'interop-results.json')}`); process.exitCode = code ?? 1 })

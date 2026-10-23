@@ -146,6 +146,12 @@ Poder abrir el display del usuario no demuestra acceso al greeter LightDM.
 eran uniformes; no publica píxeles ni hashes de contenido. No demuestra captura
 de toda la pantalla, entrada, polkit ni transiciones LightDM/Cinnamon.
 
+`--pointer` añade un ensayo explícito de XTest limitado al usuario de la sesión
+X11 activa y desbloqueada, con UID/display coincidentes con logind. Si un botón
+está pulsado, no mueve nada. Desplaza el puntero ocho píxeles y comprueba su
+restauración, sin clics, teclas ni coordenadas en el informe. El resultado sigue
+sin acreditar bloqueo, polkit ni LightDM. Puede combinarse con `--capture`.
+
 ## Windows
 
 En el equipo de pruebas, desde PowerShell:
@@ -239,3 +245,21 @@ Conservar las tareas sin marcar hasta completar todos sus escenarios reales.
 Registrar por separado los casos comprobados y los pendientes en el cambio
 OpenSpec. No publicar «acceso completo» ni activar el servicio a partir de estos
 diagnósticos de entorno.
+
+
+### Cierre de sesión de la VM de laboratorio
+
+`windows/SessionProbe.cs` es un ejecutable separado, sin red ni servicio,
+que requiere QEMU y SYSTEM en sesión 0. `--status` consulta si hay un usuario
+en consola, sin imprimir su nombre. `--logout-qemu-lab` solicita cerrar esa
+sesión y espera hasta quince segundos a observar que ya no tiene usuario.
+**Cierra las aplicaciones de esa sesión de la VM:** usar únicamente en el
+laboratorio autorizado y con el trabajo guardado. No cambia autologin, UAC,
+contraseñas o la configuración de inicio de sesión. No sirve para desbloquear.
+Compilar con `Add-Type -Path ... -OutputType ConsoleApplication -OutputAssembly ...`
+en una carpeta nueva protegida como la del capturador; verificar su hash antes
+de ejecutarlo. El capturador se lanza después desde sesión 0 en su propio
+contexto; no se usa una imagen de `Default` como evidencia de prelogin.
+
+Las APIs utilizadas son [WTSLogoffSession](https://learn.microsoft.com/en-us/windows/win32/api/wtsapi32/nf-wtsapi32-wtslogoffsession)
+y [WTSQuerySessionInformation](https://learn.microsoft.com/en-us/windows/win32/api/wtsapi32/nf-wtsapi32-wtsquerysessioninformationw).

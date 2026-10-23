@@ -54,6 +54,63 @@ def capture_region(x11, display):
             "status": "region_capture_ok_not_certified"}
 
 
+def check_pointer(x11, display, session, display_name):
+    """Ensayo explícito en X11 del propio usuario: movimiento acotado, sin clics ni teclas."""
+    report = {"pointerTested": False, "moveObserved": False, "restoreObserved": False,
+              "requestedDistancePixels": 8, "keyboardTested": False}
+    if (session.get("Type") != "x11" or session.get("State") != "active"
+            or session.get("LockedHint") != "no" or session.get("User") != str(os.getuid())
+            or session.get("Display") != display_name):
+        return {**report, "status": "active_own_unlocked_x11_required"}
+    xtst = ctypes.CDLL(ctypes.util.find_library("Xtst") or "libXtst.so.6")
+    xtst.XTestFakeMotionEvent.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int,
+                                        ctypes.c_int, ctypes.c_ulong]
+    xtst.XTestFakeMotionEvent.restype = ctypes.c_int
+    x11.XDefaultScreen.argtypes = [ctypes.c_void_p]
+    x11.XDefaultScreen.restype = ctypes.c_int
+    x11.XRootWindow.argtypes = [ctypes.c_void_p, ctypes.c_int]
+    x11.XRootWindow.restype = ctypes.c_ulong
+    x11.XDisplayWidth.argtypes = [ctypes.c_void_p, ctypes.c_int]
+    x11.XDisplayWidth.restype = ctypes.c_int
+    x11.XQueryPointer.argtypes = [ctypes.c_void_p, ctypes.c_ulong,
+                                 ctypes.POINTER(ctypes.c_ulong), ctypes.POINTER(ctypes.c_ulong),
+                                 *([ctypes.POINTER(ctypes.c_int)] * 4), ctypes.POINTER(ctypes.c_uint)]
+    x11.XQueryPointer.restype = ctypes.c_int
+    x11.XSync.argtypes = [ctypes.c_void_p, ctypes.c_int]
+    screen = x11.XDefaultScreen(display)
+    root = x11.XRootWindow(display, screen)
+    def query():
+        root_return, child = ctypes.c_ulong(), ctypes.c_ulong()
+        x, y, child_x, child_y, mask = ctypes.c_int(), ctypes.c_int(), ctypes.c_int(), ctypes.c_int(), ctypes.c_uint()
+        if not x11.XQueryPointer(display, root, ctypes.byref(root_return), ctypes.byref(child),
+                                ctypes.byref(x), ctypes.byref(y), ctypes.byref(child_x),
+                                ctypes.byref(child_y), ctypes.byref(mask)):
+            raise RuntimeError("pointer_position_unavailable")
+        return x.value, y.value, mask.value
+    x, y, mask = query()
+    if mask & 0x1F00:
+        return {**report, "status": "pressed_mouse_button_prevents_probe"}
+    width = x11.XDisplayWidth(display, screen)
+    if width < 20 or not 0 <= x < width:
+        return {**report, "status": "pointer_outside_display"}
+    target_x = x + 8 if x + 8 < width else x - 8
+    try:
+        report["pointerTested"] = bool(xtst.XTestFakeMotionEvent(display, screen, target_x, y, 0))
+        x11.XSync(display, False)
+        time.sleep(0.2)
+        observed_x, observed_y, _ = query()
+        report["moveObserved"] = (observed_x, observed_y) == (target_x, y)
+    finally:
+        xtst.XTestFakeMotionEvent(display, screen, x, y, 0)
+        x11.XSync(display, False)
+    time.sleep(0.2)
+    restored_x, restored_y, _ = query()
+    report["restoreObserved"] = (restored_x, restored_y) == (x, y)
+    report["status"] = ("pointer_ok_not_certified" if report["pointerTested"] and report["moveObserved"]
+                        and report["restoreObserved"] else "pointer_not_verified")
+    return report
+
+
 def command(*args):
     result = subprocess.run(args, capture_output=True, text=True, timeout=10, check=False)
     return result.stdout.strip() if result.returncode == 0 else None
@@ -68,6 +125,7 @@ def main():
     parser.add_argument("--display", help="Display X11 que se va a comprobar, por ejemplo :0")
     parser.add_argument("--authority", help="Fichero Xauthority del usuario; nunca se muestra su contenido")
     parser.add_argument("--capture", action="store_true", help="Cuenta imágenes durante dos segundos sin guardarlas")
+    parser.add_argument("--pointer", action="store_true", help="Mueve ocho píxeles y restaura el puntero, sin clics ni teclas")
     args = parser.parse_args()
     if args.authority:
         os.environ["XAUTHORITY"] = args.authority
@@ -84,15 +142,16 @@ def main():
     if session_id:
         session = properties(command(
             "loginctl", "show-session", session_id, "-p", "Type", "-p", "Desktop",
-            "-p", "State", "-p", "LockedHint", "-p", "Display"))
+            "-p", "State", "-p", "LockedHint", "-p", "Display", "-p", "User"))
     manager = properties(command(
         "systemctl", "show", "display-manager", "-p", "Id", "-p", "ActiveState"))
     display_name = args.display or os.environ.get("DISPLAY") or session.get("Display")
     report = {
-        "schema": 1, "platform": "linux", "architecture": platform.machine(),
+        "schema": 2, "platform": "linux", "architecture": platform.machine(),
         "distribution": distribution, "session": session, "displayManager": manager,
         "processUid": os.getuid(), "x11Connected": False,
         "xtestAvailable": False, "captureTested": False, "inputTested": False,
+        "pointerRequested": args.pointer, "keyboardTested": False,
         "preLoginTested": False, "readyForUnattended": False,
         "status": "probe_only_not_certified",
     }
@@ -117,10 +176,16 @@ def main():
                         ctypes.byref(error)))
                     if args.capture:
                         report.update(capture_region(x11, display))
+                    if args.pointer and report["xtestAvailable"]:
+                        report["pointer"] = check_pointer(x11, display, session, display_name)
+                        report["inputTested"] = report["pointer"]["pointerTested"]
+                        report["inputScope"] = "pointer_movement_only"
                 finally:
                     x11.XCloseDisplay(display)
         except OSError:
             report["status"] = "missing_x11_library"
+        except RuntimeError as error:
+            report["status"] = str(error)
     print(json.dumps(report, ensure_ascii=False, sort_keys=True, indent=2))
 
 

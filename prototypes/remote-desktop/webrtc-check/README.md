@@ -3,7 +3,9 @@
 Parte inicial de las tareas 1.5 y 1.6 de `add-unattended-admin-access`. La revisión
 es una candidata para pruebas; todavía no se adopta como dependencia del agente.
 Las fuentes, herramientas y artefactos grandes quedan fuera del repositorio y
-de los instaladores de Electron. No se usan credenciales ni se instala un servicio.
+de los instaladores de Electron. La compilación y las pruebas directas no usan
+cuentas; el ensayo TURN opcional usa exclusivamente credenciales temporales del
+relé. No se instala un servicio.
 
 ```bash
 python3 prototypes/remote-desktop/webrtc-check/sync.py /ruta/externa/laboratorio
@@ -28,8 +30,9 @@ no intercambia candidatos ni publica el SDP. Todavía no establece DTLS ni verif
 comunicación con otro cliente. Los binarios exitosos
 emiten su SHA-256 para identificar el artefacto probado.
 
-**Pendiente:** vídeo/entrada posteriores a la autenticación, conexión con
-Android/iOS y transporte solo TURN.
+**Pendiente:** captura real/entrada posteriores a la autenticación y conexión con
+Android/iOS. Vídeo artificial y recorrido TURN del controlador están probados
+por separado, como se describe abajo.
 Ninguna de estas pruebas iniciales completa la tarea 1.5 por sí sola.
 
 ## Fuentes y distribución
@@ -86,3 +89,52 @@ alterada verifica cero fotogramas generados y recibidos durante la conexión.
 El informe distingue `syntheticVideoTested` de `videoTested`: pasar el patrón
 artificial acredita ese transporte/códec y su condición de autenticación;
 todavía no acredita captura real conectada a WebRTC, entrada, TURN ni Flutter.
+
+
+## Recorrido TURN autenticado
+
+```bash
+node prototypes/remote-desktop/webrtc-check/run-interop.cjs /ruta/externa/laboratorio \
+  --synthetic-video --turn-config /ruta/privada/turn-temporal.json --relay-controller
+```
+
+El archivo debe pertenecer al usuario, ser ordinario, sin permisos para grupo u
+otros y de hasta 16 KiB. Es `{iceServers: [{urls: ["turn:…", "stun:…"], username,
+credential}]}` con credencial **temporal**, nunca el secreto HMAC del servidor ni
+un token de cuenta. Las URLs pueden ser TURN UDP/TCP/TLS y STUN; debe existir TURN.
+Se pasan mediante archivos privados, no argumentos con credenciales. Las copias
+locales se retiran cuando sale Electron. El archivo original sigue perteneciendo
+al llamador, que debe retirarlo cuando termine. El SDP y stderr son privados.
+
+`--relay-controller` obliga al controlador a seleccionar `relay` y deja al host
+usar los candidatos del servidor. Es el recorrido de la prueba existente de la
+app: un par `relay/srflx` pasa por TURN y no puede elegir conexión directa entre
+ambos extremos. El informe incluye el par seleccionado y `relayProtocol`
+(`udp` o `tls` en los ensayos realizados), además de la política efectiva del host.
+Sin esta opción, ambos extremos se fuerzan a relé. Esta variante produjo 403
+CreatePermission en el relé actual al usar su propia IP como peer, coherente con
+su lista `denied-peer-ip`. No se cambiaron cuotas, ACL ni protecciones del servidor
+para permitirla; **relay/relay permanece sin validar**.
+
+El diagnóstico acepta un candidato utilizable sin exigir que termine toda la
+búsqueda ICE y después comprueba el transporte seleccionado real. La primera
+versión esperaba la finalización y venció pese a tener candidatos `relay`; el
+fallo se conservó y no se contó como éxito. La matriz posterior pasó directo,
+TURN UDP por nombre DNS y TURN TLS por nombre DNS, en cada caso con contraseña
+correcta, prueba incorrecta y huella alterada. Los negativos generaron y
+recibieron cero fotogramas. Solo se transmite el patrón artificial: sigue sin
+captura real, entrada de sistema ni controladores Flutter certificados.
+
+## Avisos de dependencias del target compilado
+
+```bash
+python3 prototypes/remote-desktop/webrtc-check/licenses.py \
+  /ruta/externa/laboratorio /ruta/nueva/avisos
+```
+
+El wrapper comprueba la revisión fijada y utiliza el generador oficial de WebRTC
+para los targets `channel_check` y `video_channel_check`. Su única adaptación del
+comando GN es conservar `--root-target=//absor_connect_probe:all`, necesario para
+el laboratorio reducido. No modifica fuentes de terceros ni acepta bibliotecas
+sin licencia identificada. Genera `LICENSE.md` y un informe de hashes; los avisos
+no completan por sí solos la revisión de distribución/patentes del agente final.

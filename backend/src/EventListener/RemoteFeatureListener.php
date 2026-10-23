@@ -26,7 +26,7 @@ final class RemoteFeatureListener
             return;
         }
         $path = $event->getRequest()->getPathInfo();
-        if (str_starts_with($path, '/api/devices') || str_starts_with($path, '/api/remote')) {
+        if (str_starts_with($path, '/api/devices') || str_starts_with($path, '/api/remote') || str_starts_with($path, '/api/host-agent')) {
             throw new ApiException('remote_unavailable', 503);
         }
     }

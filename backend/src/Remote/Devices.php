@@ -5,6 +5,7 @@ namespace App\Remote;
 use App\Api\ApiException;
 use App\Entity\Device;
 use App\Entity\User;
+use App\HostAgent\AgentRegistry;
 use App\Repository\DeviceRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Uid\Uuid;
@@ -20,6 +21,7 @@ final class Devices
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly DeviceRepository $devices,
+        private readonly AgentRegistry $agents,
     ) {
     }
 
@@ -32,23 +34,30 @@ final class Devices
     /** Alta o actualización del equipo que hace la petición, identificado por su clave. */
     public function register(User $user, Uuid $id, #[\SensitiveParameter] string $key, DeviceInfo $info): Device
     {
-        $now = new \DateTimeImmutable();
-        // Limpieza al registrar: así no hace falta un CronJob para los equipos olvidados
-        $this->devices->deleteNotSeenSince($now->modify(self::FORGET_AFTER));
+        return $this->em->getConnection()->transactional(function () use ($user, $id, $key, $info): Device {
+            $now = new \DateTimeImmutable();
+            // Limpieza al registrar: así no hace falta un CronJob para los equipos olvidados
+            $this->devices->deleteNotSeenSince($now->modify(self::FORGET_AFTER));
 
-        $device = $this->devices->findById($id);
-        if (null === $device) {
-            $device = new Device($id, $user, DeviceKey::hash($key), $info, $now);
-            $this->em->persist($device);
-        } elseif (!$device->getUser()->getId()->equals($user->getId())) {
-            throw new ApiException('device_taken', 409);
-        } else {
-            self::checkKey($device, $key);
-            $device->update($info, $now);
-        }
-        $this->em->flush();
+            $this->em->getConnection()->fetchOne('SELECT id FROM device WHERE id = ? FOR UPDATE', [$id->toRfc4122()]);
+            $device = $this->devices->findById($id);
+            if (null !== $device) {
+                $this->em->refresh($device);
+            }
+            if (null === $device) {
+                $device = new Device($id, $user, DeviceKey::hash($key), $info, $now);
+                $this->em->persist($device);
+            } elseif (!$device->getUser()->getId()->equals($user->getId())) {
+                throw new ApiException('device_taken', 409);
+            } else {
+                self::checkKey($device, $key);
+                $this->agents->assertLegacy($device);
+                $device->update($info, $now);
+            }
+            $this->em->flush();
 
-        return $device;
+            return $device;
+        });
     }
 
     /** Equipo de la cuenta. Uno de otra cuenta responde igual que uno inexistente. */
@@ -67,8 +76,24 @@ final class Devices
     {
         $device = $this->ofUser($user, $id);
         self::checkKey($device, $key);
+        $this->agents->assertLegacy($device);
 
         return $device;
+    }
+
+    /** Impide que el host legado actúe durante un traspaso concurrente al agente. */
+    public function legacyOperation(User $user, Uuid $id, string $key, callable $action): mixed
+    {
+        return $this->em->getConnection()->transactional(function () use ($user, $id, $key, $action): mixed {
+            $this->em->getConnection()->fetchOne('SELECT id FROM device WHERE id = ? FOR UPDATE', [$id->toRfc4122()]);
+            $device = $this->devices->findById($id);
+            if (null !== $device) {
+                $this->em->refresh($device);
+            }
+            $device = $this->own($user, $id, $key);
+
+            return $action($device);
+        });
     }
 
     public function remove(Device $device): void
