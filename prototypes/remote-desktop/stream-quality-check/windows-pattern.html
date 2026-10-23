@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>
+  body { margin: 0; background: #eee; color: #222; overflow: hidden; font: 18px monospace }
+  #lines { line-height: 32px; white-space: pre; animation: scroll 1s linear infinite }
+  .bar { position: fixed; top: 35%; width: 20%; height: 30%; background: #4060b0; animation: slide 3s linear infinite }
+  @keyframes slide { from { left: -20% } to { left: 100% } }
+  @keyframes scroll { from { transform: translateY(-32px) } to { transform: translateY(0) } }
+</style>
+<div id="lines"></div><div class="bar"></div>
+<script>
+  document.getElementById('lines').textContent = Array(100).fill('AbsorConnect - laboratorio Windows - texto artificial 0123456789').join('\n')
+</script>

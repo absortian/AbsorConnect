@@ -61,7 +61,7 @@ Implementación y despliegue autorizados por el propietario el 22/10/2026 y cont
 ## 8. Preload y tipos compartidos
 
 - [ ] 8.1 Exponer únicamente estado, alta/baja autorizadas y resultados por canales IPC tipados; verificar remitentes, validación de parámetros, permisos y ausencia de token/K/credencial del agente en los renderers.
-- [ ] 8.2 Añadir tipos y analizadores de capacidades, contextos y acciones negociadas en `src/shared/remote/`; verificar rechazo de versiones/mensajes inválidos y pruebas de compatibilidad con v1. Documentar campos y límites nuevos junto al protocolo.
+- [x] 8.2 Añadir tipos y analizadores de capacidades, contextos y acciones negociadas en `src/shared/remote/`; verificar rechazo de versiones/mensajes inválidos y pruebas de compatibilidad con v1. Documentar campos y límites nuevos junto al protocolo.
 
 ## 9. Renderer y visor
 

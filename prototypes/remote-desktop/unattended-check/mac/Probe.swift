@@ -1,5 +1,5 @@
 // Diagnóstico nativo de viabilidad. No guarda imagen ni concede permisos.
-// El modo opcional de puntero mueve ocho píxeles y restaura la posición, sin clics ni teclas.
+// El modo de puntero no pulsa nada; el modo de ventana propia añade clic y Escape solo en VM.
 import ApplicationServices
 import CoreMedia
 import Foundation
@@ -27,7 +27,7 @@ private final class ProbeDiagnostics: @unchecked Sendable {
       guard !finished else { lock.unlock(); return }
       finished = true
       var report = progress
-      report["schema"] = 7
+      report["schema"] = 8
       report["platform"] = "macos"
       report["status"] = "diagnostic_timeout"
       report["lastStage"] = stage
@@ -106,12 +106,14 @@ private final class FrameCounter: NSObject, SCStreamOutput, @unchecked Sendable 
 
 @main
 private struct Probe {
+  @MainActor
   static func main() async {
     let arguments = Array(CommandLine.arguments.dropFirst())
     guard arguments.isEmpty || arguments == ["--probe"] || arguments == ["--capture"]
             || arguments == ["--capture-loginwindow"] || arguments == ["--capture-pointer-loginwindow"]
+            || arguments == ["--capture-owned-input-loginwindow"]
             || arguments == ["--watchdog-self-test"] else {
-      FileHandle.standardError.write(Data("Uso: AbsorUnattendedProbe [--probe|--capture|--capture-loginwindow|--capture-pointer-loginwindow|--watchdog-self-test]\n".utf8))
+      FileHandle.standardError.write(Data("Uso: AbsorUnattendedProbe [--probe|--capture|--capture-loginwindow|--capture-pointer-loginwindow|--capture-owned-input-loginwindow|--watchdog-self-test]\n".utf8))
       exit(64)
     }
     let diagnostics = ProbeDiagnostics.shared
@@ -119,10 +121,11 @@ private struct Probe {
     if arguments == ["--watchdog-self-test"] {
       diagnostics.checkpoint("watchdog_self_test_wait")
       try? await Task.sleep(nanoseconds: 5_000_000_000)
-      diagnostics.finish(["schema": 7, "status": "watchdog_failed", "readyForUnattended": false])
+      diagnostics.finish(["schema": 8, "status": "watchdog_failed", "readyForUnattended": false])
       exit(71)
     }
-    let pointer = arguments == ["--capture-pointer-loginwindow"]
+    let ownedInput = arguments == ["--capture-owned-input-loginwindow"]
+    let pointer = arguments == ["--capture-pointer-loginwindow"] || ownedInput
     let retryLoginWindow = arguments == ["--capture-loginwindow"] || pointer
     let capture = arguments == ["--capture"] || retryLoginWindow
     diagnostics.checkpoint("permissions.screen")
@@ -132,7 +135,7 @@ private struct Probe {
     diagnostics.checkpoint("session.current")
     let session = CGSessionCopyCurrentDictionary() as? [String: Any] ?? [:]
     var report: [String: Any] = [
-      "schema": 7,
+      "schema": 8,
       "platform": "macos",
       "osVersion": ProcessInfo.processInfo.operatingSystemVersionString,
       "processUid": getuid(),
@@ -151,6 +154,11 @@ private struct Probe {
     ]
     report["graphicsContext"] = graphicsContext()
     var result: Int32 = 0
+    if ownedInput && !OwnedInputProbe.isVirtualMachine {
+      report["status"] = "virtual_machine_required"
+      emit(report)
+      exit(4)
+    }
     if pointer && (getuid() != 0 || report["loginComplete"] as? Bool != false) {
       report["status"] = "loginwindow_context_required"
       emit(report)
@@ -193,6 +201,17 @@ private struct Probe {
         report["inputScope"] = "pointer_movement_only"
         let success = input["moveObserved"] as? Bool == true && input["restoreObserved"] as? Bool == true
         report["status"] = success ? "capture_and_pointer_ok_not_certified" : "capture_ok_pointer_failed"
+        result = success ? 0 : 4
+      }
+      if ownedInput && result == 0 {
+        diagnostics.recordProgress(report)
+        diagnostics.checkpoint("owned_input.start")
+        let input = OwnedInputProbe.run()
+        report["ownedInput"] = input
+        report["inputScope"] = "pointer_movement_and_owned_window_only"
+        report["keyboardTested"] = input["keyboardTested"]
+        let success = input["clickObserved"] as? Bool == true && input["escapeObserved"] as? Bool == true
+        report["status"] = success ? "capture_and_owned_input_ok_not_certified" : "capture_ok_owned_input_not_verified"
         result = success ? 0 : 4
       }
     } else {

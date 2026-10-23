@@ -133,3 +133,21 @@ GitHub la devuelve como latest, sin marca draft/prerelease.
 Esta entrega de fluidez está completa (8/8 tareas). No cierra ni certifica el
 cambio separado add-unattended-admin-access. Mac sigue requiriendo actualización
 manual por firma ad-hoc; iOS sigue distribuyéndose como IPA sin firmar.
+
+### Comprobación adicional de captura real en Windows VM
+
+Después de publicar 0.4.1, `stream-quality-check/windows-main.cjs` ejecutó el
+configurador de producción sobre `getDisplayMedia` real, con Electron 39.8.5 x64
+oficial en la VM QEMU Windows 11 ARM. ZIP verificado contra el SHA-256 incluido
+en la dependencia Electron: `d75c0057fd58c08023ff82ed9dd38443f90b4a962c9a9359aa74d9070f4add34`.
+Se ejecutó con el token interactivo ordinario, `RunLevel=Limited`, tarea temporal
+de dos minutos, imagen artificial propia y receptor WebRTC local sin ICE servers.
+No se guardaron imágenes ni se cambiaron UAC o cortafuegos.
+
+Los cuatro pasos `native → balanced → smooth → native` pasaron proporción,
+máximos, ausencia de ampliación y recepción. Captura: 1024×768 → 1024×768 →
+960×720 → 1024×768. Recepción media: 3,73 / 3,85 / 3,84 / 3,73 fps. Es un límite
+observado en esta VM/emulación, sin causa identificada; no permite certificar
+fluidez de Windows físico, 1080p ni el recorrido histórico iPad → Windows.
+Se verificó la retirada de la tarea y cero procesos propios al terminar.
+Métricas sin direcciones ni datos del escritorio: `windows-vm-results.json`.

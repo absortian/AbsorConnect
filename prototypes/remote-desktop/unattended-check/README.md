@@ -307,3 +307,21 @@ contexto; no se usa una imagen de `Default` como evidencia de prelogin.
 
 Las APIs utilizadas son [WTSLogoffSession](https://learn.microsoft.com/en-us/windows/win32/api/wtsapi32/nf-wtsapi32-wtslogoffsession)
 y [WTSQuerySessionInformation](https://learn.microsoft.com/en-us/windows/win32/api/wtsapi32/nf-wtsapi32-wtsquerysessioninformationw).
+
+### Mac 0.8.0: ventana propia para comprobar eventos
+
+El paquete actual prepara `--capture-owned-input-loginwindow`. Conserva los modos
+anteriores y añade un ensayo exclusivo de VirtualMac, root y LoginWindow. Tras
+capturar y mover/restaurar ocho píxeles, muestra una ventana propia; solo publica
+un clic y Escape cuando esa misma ventana y proceso tienen el foco, sin teclas
+previamente pulsadas y con ambos permisos de entrada. Cuenta la entrega en su
+propia vista y restaura el puntero. No introduce texto ni actúa sobre la ventana
+de entrada del sistema. Un foco no verificable cancela el ensayo.
+
+El payload sigue teniendo cuatro archivos y ningún script de instalación. Los
+informes usan `loginwindow-report-v8.json` y `loginwindow-stderr-v8.txt`. El modo
+no acredita credenciales, autorización de macOS ni el Mac físico aunque llegue a
+recibir sus eventos. La compilación, paquete y actualización en VM están
+verificados; la firma nueva perdió ambos permisos. El ensayo no se ha ejecutado,
+el plist automático queda `.disabled-v8c` y `readyForUnattended` sigue falso.
+No renovar permisos mediante TCC ni presumir que sobrevivieron a la actualización.

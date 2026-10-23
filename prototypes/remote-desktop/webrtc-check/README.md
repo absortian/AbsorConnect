@@ -30,7 +30,7 @@ no intercambia candidatos ni publica el SDP. Todavía no establece DTLS ni verif
 comunicación con otro cliente. Los binarios exitosos
 emiten su SHA-256 para identificar el artefacto probado.
 
-**Pendiente:** captura real/entrada posteriores a la autenticación, Android y
+**Pendiente:** captura real/entrada posteriores a la autenticación y
 dispositivos iOS físicos. El simulador iPad ya tiene una prueba de interoperabilidad
 con vídeo artificial, descrita al final. El recorrido TURN del controlador se
 verifica por separado; no equivale a certificar cualquier combinación de NAT.
@@ -96,6 +96,17 @@ Es una prueba del transporte y la autenticación con vídeo artificial. No ejecu
 el flujo completo de `ViewerSession`/Equipos, no prueba la captura de Windows,
 la entrada, el rendimiento del iPad físico ni una sesión real desde otra red.
 La tarea 1.5 permanece abierta.
+
+El mismo ensayo pasó **9/9 casos en Android 16/API 36 arm64**, emulador Google
+APIs, con el mismo binario nativo y plugin real: directo `prflx/host`, TURN UDP
+y TLS `relay/srflx`. Para reproducir, arrancar el emulador existente, ejecutar
+`adb -s <id> reverse tcp:8793 tcp:8793` y usar su ID en `flutter drive`. Mantener
+el servidor en loopback; retirar ese reenvío y apagar el emulador al terminar.
+Los candidatos `host`/`prflx` son directos; no aceptar relé ni valores ausentes
+en ese caso. El primer ensayo falló por exigir únicamente `host/host`; la
+repetición final mantiene todas las aserciones de autenticación y vídeo.
+Resultados sin secretos en `openspec/changes/add-unattended-admin-access/android-native-results.json`.
+No certifica Android físico ni entrada/captura del sistema.
 
 ## Fuentes y distribución
 

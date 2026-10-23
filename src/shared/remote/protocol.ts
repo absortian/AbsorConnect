@@ -6,6 +6,7 @@
 // Controlador → PC: auth, select-display, set-stream-quality, clipboard, bye.
 // Los eventos de entrada van por los canales `input` y `pointer` (input.ts), y los ficheros por el
 // canal `file` (transfer.ts).
+// Extensión administrativa preparada, todavía sin activar: agentProtocol.md / agentProtocol.ts.
 import { ClipboardPiece, parseClipboardPiece } from './transfer'
 
 export const PROTOCOL_VERSION = 1
@@ -57,6 +58,8 @@ export interface FeaturesMessage {
   audio: boolean
   /** Extensión opcional v1; ausente en hosts anteriores. */
   streamQuality?: boolean
+  /** Anuncio solamente: la negociación y los mensajes viven en agentProtocol.ts. */
+  unattendedControl?: boolean
 }
 
 export const STREAM_PROFILES = ['balanced', 'smooth', 'native'] as const
