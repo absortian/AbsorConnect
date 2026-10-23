@@ -986,3 +986,45 @@ del sistema e inicio de sesión reales, además de firma y hardware objetivo.
 
 Referencias: [Apple: modos de RunLoop](https://developer.apple.com/documentation/foundation/runloop/mode)
 y [comprobación de MainActor](https://developer.apple.com/documentation/swift/mainactor/assumeisolated(_:file:line:)).
+
+
+### Mac: ventana visible antes del login, foco identificado — 24/10/2026
+
+Tarea 1.3, avance parcial. 0.10.0/esquema 10 corrige la omisión de
+`NSWindow.canBecomeVisibleWithoutLogin` y registra cada condición de foco.
+Conserva las guardas de entrada y el nivel normal de ventana, sin APIs privadas.
+Apple documenta que esa propiedad es necesaria para dibujar antes del login;
+no garantiza activación ni entrada en la pantalla del sistema.
+
+Compilación Swift arm64 y firma estricta correctas. Argumento inválido: 64;
+watchdog: 70; fuera de VirtualMac: 4 antes de captura/entrada. Payload de cuatro
+archivos sin scripts/enlaces y hashes verificado; instalación en VM 0.9.0 →
+0.10.0 con recibo/hash correctos. Los cuatro avisos de pkgbuild reaparecieron
+con salida 0 y payload verificado; no se atribuye causa definitiva.
+Binario `83a649f215c38c00301ff9f97f19febba4e950ffd750cdce6871fd5389b0ee30`;
+paquete `76e5e0038c5342c5d9c7452c48314b82c35c2049bd27bc972aeca207d0684e52`.
+
+Renovados los dos permisos del mismo bundle en Ajustes de la VM. Preflight
+ambos verdaderos; bajo launchd Aqua, seis fotogramas en 2859 ms. Tras logout y
+arranque limpio, once fotogramas en 2452/2711 ms, puntero movido/restaurado,
+UID 0, consola y login incompleto. `focusConditions` identifica dos condiciones
+falsas: `keyWindow` y `frontmostProcess`. Contexto, inactividad, primer responder
+propio y visibilidad antes del login/ventana son verdaderos. Ambos ensayos
+cancelaron antes de crear/publicar clics o teclas. No es prueba de imposibilidad
+general del sistema; el arnés de ventana propia no acredita todavía esos eventos.
+
+El nuevo arranque se comprobó distinto y el mtime del informe posterior a
+kern.boottime; launchd añadió dos objetos JSON y se conservó el último y el raw.
+Evidencia pública: `mac-prelogin-window-results.json`; se conserva aparte la
+0.9.0 en `mac-owned-input-results.json`. Evidencia privada:
+`mac-v10-vm-loginwindow-{logout,reboot}-20261024.*` y
+`mac-v10-vm-reboot-identification-20261024.json`.
+
+Retirado el plist como `.disabled-v10-after-reboot`, sin proceso activo y
+escritorio de test restaurado. No se cambiaron permisos ni sesión del Mac físico.
+`clickTested`, `keyboardTested`, `preLoginTested` y `readyForUnattended` siguen
+falsos. No se marca completa 1.3 ni se incorpora el agente Mac final. El progreso
+sigue en **8/57**; la publicación estable 0.4.1 no incluye estos diagnósticos.
+
+Referencias: [Apple: agentes antes del login](https://developer.apple.com/library/archive/documentation/MacOSX/Conceptual/BPSystemStartup/Chapters/CustomLogin.html)
+y [NSWindow.canBecomeVisibleWithoutLogin](https://developer.apple.com/documentation/appkit/nswindow/canbecomevisiblewithoutlogin).

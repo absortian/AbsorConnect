@@ -65,6 +65,9 @@ enum OwnedInputProbe {
     window.title = "AbsorConnect — diagnóstico"
     window.contentView = view
     window.isReleasedWhenClosed = false
+    // API pública de AppKit necesaria para mostrar ventanas antes del login.
+    // No modifica permisos ni el nivel de la pantalla de autenticación.
+    window.canBecomeVisibleWithoutLogin = true
     window.center()
     window.makeKeyAndOrderFront(nil)
     window.makeFirstResponder(view)
@@ -81,8 +84,14 @@ enum OwnedInputProbe {
       let modifiers: CGEventFlags = [.maskCommand, .maskControl, .maskAlternate, .maskShift, .maskSecondaryFn]
       let idle = CGEventSource.flagsState(.combinedSessionState).intersection(modifiers).isEmpty &&
         ![CGMouseButton.left, .right, .center].contains { CGEventSource.buttonState(.combinedSessionState, button: $0) }
-      return idle && permittedContext() && window.isKeyWindow && window.firstResponder === view &&
-        NSWorkspace.shared.frontmostApplication?.processIdentifier == getpid()
+      let conditions = ["idle": idle, "permittedContext": permittedContext(),
+        "keyWindow": window.isKeyWindow, "ownedFirstResponder": window.firstResponder === view,
+        "frontmostProcess": NSWorkspace.shared.frontmostApplication?.processIdentifier == getpid(),
+        "visibleBeforeLogin": window.canBecomeVisibleWithoutLogin, "windowVisible": window.isVisible]
+      report["focusConditions"] = conditions
+      return conditions["idle"] == true && conditions["permittedContext"] == true &&
+        conditions["keyWindow"] == true && conditions["ownedFirstResponder"] == true &&
+        conditions["frontmostProcess"] == true
     }
     var completed = false
     var timers: [Timer] = []
