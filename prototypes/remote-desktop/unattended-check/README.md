@@ -4,7 +4,7 @@ Herramientas para las tareas 1.1–1.4 de `add-unattended-admin-access`. Son pru
 de entorno, no el agente ni una certificación del acceso remoto. Los inventarios
 son de solo lectura; las capturas opcionales no guardan ni transmiten imágenes.
 No instalan servicios. El ensayo Win32 opcional descrito abajo envía únicamente
-Escape al aviso UAC de su propio diagnóstico en la VM QEMU. El ensayo Mac 0.6.0
+Escape al aviso UAC de su propio diagnóstico en la VM QEMU. El ensayo Mac 0.7.0
 intenta mover y restaurar el puntero sin clics ni teclas. La preparación UAC
 de laboratorio solo aplica cambios o reinicia con opciones explícitas.
 No guardar sus resultados con nombres, direcciones o credenciales personales.
@@ -80,6 +80,12 @@ por `CGEventCreateMouseEvent`, en lugar de crear una fuente explícita. Conserva
 los checkpoints, permisos, guardas de sesión y alcance de ocho píxeles;
 `pointer.eventSource: default` identifica esta variante en el resultado.
 
+La revisión 0.7.0, esquema 7, aísla el movimiento mediante la API pública
+`CGWarpMouseCursorPosition`, con las mismas guardas, distancia y restauración.
+Registra el resultado de ambas llamadas y `pointerStrategy: public_cursor_warp`.
+[Apple documenta que esta API no genera ni publica eventos](https://developer.apple.com/documentation/coregraphics/cgwarpmousecursorposition(_:)):
+un desplazamiento observado no prueba que una aplicación reciba clics o teclado.
+
 `--watchdog-self-test` no consulta permisos ni captura: espera a que el
 temporizador de un segundo termine el proceso con código 70. Sirve para
 comprobar este límite antes de instalar el paquete en un laboratorio.
@@ -110,8 +116,8 @@ bash prototypes/remote-desktop/unattended-check/mac/loginwindow-package.sh \
 
 El paquete local sin firma de distribución contiene el mismo bundle firmado y un
 LaunchAgent global, limitado exclusivamente al contexto `LoginWindow`. Se ejecuta
-una vez por contexto y termina. El paquete 0.2.0 usa `--capture-loginwindow`; el
-paquetes 0.3.0–0.6.0 usan `--capture-pointer-loginwindow` y añaden el movimiento
+una vez por contexto y termina. El paquete 0.2.0 usa `--capture-loginwindow`; los
+paquetes 0.3.0–0.7.0 usan `--capture-pointer-loginwindow` y añaden el movimiento
 limitado descrito. No tiene KeepAlive, scripts de instalación, red ni cambios de
 la configuración de loginwindow. Un fallo del diagnóstico no es condición para
 permitir iniciar sesión.
@@ -125,8 +131,11 @@ Archivos propios del paquete:
 - `/Library/Logs/AbsorConnectLab/`, privado de root, para dos informes sin píxeles.
 
 La versión 0.2.0 escribe `loginwindow-report-v2.json` y
-`loginwindow-stderr-v2.txt`; las versiones 0.3.0–0.6.0 usan los sufijos `-v3`–`-v6`. Conservan los
-informes anteriores. Actualizar el paquete
+`loginwindow-stderr-v2.txt`; las versiones 0.3.0–0.7.0 usan los sufijos `-v3`–`-v7`. Conservan los
+informes anteriores. launchd puede añadir varias ejecuciones al mismo archivo:
+leer cada objeto JSON y seleccionar la ejecución nueva, comprobando la fecha del
+informe contra `kern.boottime`; no interpretar el primer objeto como el arranque
+recién probado. Actualizar el paquete
 cambia la firma ad-hoc: los permisos deben volver a verificarse, sin presuponer
 que se conservarán. La lectura administrativa de los informes no requiere abrir
 sus permisos a otros usuarios.
@@ -152,7 +161,9 @@ En la VM macOS 27.0.1 arm64, 0.4.0 se bloqueó al construir el evento y 0.5.0 no
 pudo crear su fuente privada. 0.6.0 capturó once fotogramas y publicó los eventos
 sin bloqueo, tanto tras logout como tras reiniciar, pero no observó el
 desplazamiento. La entrada no está validada; la tarea 1.3 permanece abierta y
-requiere revisión antes del agente final. Las evidencias y los límites figuran
+requiere revisión antes del agente final. 0.7.0 observó movimiento y restauración
+tras logout y tras un arranque nuevo, además de once fotogramas, sin clics ni
+teclas. No se certifica entrada de credenciales ni el Mac físico. Las evidencias y los límites figuran
 en `openspec/changes/add-unattended-admin-access/verification.md`.
 
 ## Mint con X11

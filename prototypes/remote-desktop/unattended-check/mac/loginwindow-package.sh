@@ -40,8 +40,8 @@ configuration = {
     'KeepAlive': False,
     'LaunchOnlyOnce': True,
     'ProcessType': 'Background',
-    'StandardOutPath': logs + '/loginwindow-report-v6.json',
-    'StandardErrorPath': logs + '/loginwindow-stderr-v6.txt',
+    'StandardOutPath': logs + '/loginwindow-report-v7.json',
+    'StandardErrorPath': logs + '/loginwindow-stderr-v7.txt',
     'Umask': 0o077,
 }
 with (pathlib.Path(payload) / 'Library/LaunchAgents' / (label + '.plist')).open('wb') as handle:
@@ -49,7 +49,7 @@ with (pathlib.Path(payload) / 'Library/LaunchAgents' / (label + '.plist')).open(
 PY
 chmod 644 "$payload/Library/LaunchAgents/$label.plist"
 pkgbuild --root "$payload" --identifier 'com.absor.unattended.probe.loginwindow' \
-  --version '0.6.0' --install-location / --ownership recommended \
+  --version '0.7.0' --install-location / --ownership recommended \
   "$output_dir/AbsorLoginWindowProbe.pkg"
 pkgutil --payload-files "$output_dir/AbsorLoginWindowProbe.pkg" > "$output_dir/payload-files.txt"
 pkgutil --expand-full "$output_dir/AbsorLoginWindowProbe.pkg" "$output_dir/inspection"
@@ -76,7 +76,7 @@ with (actual / 'Library/LaunchAgents/com.absor.unattended.probe.loginwindow.plis
 assert job['LimitLoadToSessionType'] == 'LoginWindow'
 assert job['KeepAlive'] is False and job['LaunchOnlyOnce'] is True
 assert job['ProgramArguments'][-1] == '--capture-pointer-loginwindow'
-assert job['StandardOutPath'].endswith('/loginwindow-report-v6.json')
+assert job['StandardOutPath'].endswith('/loginwindow-report-v7.json')
 print('Payload verificado: cuatro archivos iguales al staging, sin scripts/enlaces, propiedad root y sin escritura de grupo/otros.')
 PY
 shasum -a 256 "$probe_app/Contents/MacOS/AbsorUnattendedProbe" "$output_dir/AbsorLoginWindowProbe.pkg"
