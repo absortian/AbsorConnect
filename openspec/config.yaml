@@ -28,6 +28,10 @@ context: |
   - Backend Symfony 8.1/PHP 8.5/PostgreSQL en backend/; despliegue Kubernetes por
     Jenkins. Conservar las versiones PHP y opciones de compilación de AGENTS.md.
   - Flutter en mobile/; WebRTC en Chromium y flutter_webrtc, entrada nativa con koffi.
+  - API aditiva de agente en backend/src/HostAgent/ (contrato en backend/AGENT_API.md):
+    alta de un solo uso de cinco minutos, credencial de servicio distinta de la cuenta,
+    traspaso exclusivo del host y revocación ligada a la sesión de origen. Desplegar
+    esa API no instala un agente ni habilita acceso administrativo en clientes actuales.
 
   ## Arquitectura
   - src/main: proceso principal. index.ts registra los handlers ipcMain.handle;
