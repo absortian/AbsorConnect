@@ -27,7 +27,7 @@ private final class ProbeDiagnostics: @unchecked Sendable {
       guard !finished else { lock.unlock(); return }
       finished = true
       var report = progress
-      report["schema"] = 6
+      report["schema"] = 7
       report["platform"] = "macos"
       report["status"] = "diagnostic_timeout"
       report["lastStage"] = stage
@@ -119,7 +119,7 @@ private struct Probe {
     if arguments == ["--watchdog-self-test"] {
       diagnostics.checkpoint("watchdog_self_test_wait")
       try? await Task.sleep(nanoseconds: 5_000_000_000)
-      diagnostics.finish(["schema": 6, "status": "watchdog_failed", "readyForUnattended": false])
+      diagnostics.finish(["schema": 7, "status": "watchdog_failed", "readyForUnattended": false])
       exit(71)
     }
     let pointer = arguments == ["--capture-pointer-loginwindow"]
@@ -132,7 +132,7 @@ private struct Probe {
     diagnostics.checkpoint("session.current")
     let session = CGSessionCopyCurrentDictionary() as? [String: Any] ?? [:]
     var report: [String: Any] = [
-      "schema": 6,
+      "schema": 7,
       "platform": "macos",
       "osVersion": ProcessInfo.processInfo.operatingSystemVersionString,
       "processUid": getuid(),
@@ -205,7 +205,7 @@ private struct Probe {
   private static func checkPointer() async -> [String: Any] {
     var report: [String: Any] = ["pointerTested": false, "moveObserved": false,
                                "restoreObserved": false, "requestedDistancePixels": 8,
-                               "eventSource": "default"]
+                               "pointerStrategy": "public_cursor_warp"]
     ProbeDiagnostics.shared.checkpoint("pointer.session")
     let session = CGSessionCopyCurrentDictionary() as? [String: Any] ?? [:]
     guard getuid() == 0, session[kCGSessionLoginDoneKey as String] as? Bool == false,
@@ -238,38 +238,28 @@ private struct Probe {
       return report
     }
     let target = CGPoint(x: initial.x + (initial.x + 8 < bounds.maxX ? 8 : -8), y: initial.y)
-    // La API pública admite nil como fuente predeterminada; mismo permiso y tap.
-    ProbeDiagnostics.shared.checkpoint("pointer.create_move")
-    guard let move = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved,
-                            mouseCursorPosition: target, mouseButton: .left) else {
-      report["status"] = "pointer_event_unavailable"
-      return report
-    }
-    ProbeDiagnostics.shared.checkpoint("pointer.create_restore")
-    guard let restore = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved,
-                               mouseCursorPosition: initial, mouseButton: .left) else {
-      report["status"] = "pointer_event_unavailable"
-      return report
-    }
+    // Movimiento público del cursor, separado de la publicación de eventos del ensayo v6.
     var restored = false
-    defer { if !restored { restore.post(tap: .cghidEventTap) } }
-    ProbeDiagnostics.shared.checkpoint("pointer.post_move")
-    move.post(tap: .cghidEventTap)
+    defer { if !restored { _ = CGWarpMouseCursorPosition(initial) } }
+    ProbeDiagnostics.shared.checkpoint("pointer.warp_move")
+    let moveStatus = CGWarpMouseCursorPosition(target)
+    report["moveStatus"] = moveStatus.rawValue
     report["pointerTested"] = true
     try? await Task.sleep(nanoseconds: 300_000_000)
     ProbeDiagnostics.shared.checkpoint("pointer.observe_move")
     if let observed = CGEvent(source: nil)?.location {
       report["moveObserved"] = abs(observed.x - target.x) <= 1 && abs(observed.y - target.y) <= 1
     }
-    ProbeDiagnostics.shared.checkpoint("pointer.post_restore")
-    restore.post(tap: .cghidEventTap)
+    ProbeDiagnostics.shared.checkpoint("pointer.warp_restore")
+    let restoreStatus = CGWarpMouseCursorPosition(initial)
+    report["restoreStatus"] = restoreStatus.rawValue
     try? await Task.sleep(nanoseconds: 300_000_000)
     ProbeDiagnostics.shared.checkpoint("pointer.observe_restore")
     if let observed = CGEvent(source: nil)?.location {
       restored = abs(observed.x - initial.x) <= 1 && abs(observed.y - initial.y) <= 1
     }
     report["restoreObserved"] = restored
-    report["status"] = report["moveObserved"] as? Bool == true && restored ? "pointer_ok_not_certified" : "pointer_not_verified"
+    report["status"] = moveStatus == .success && restoreStatus == .success && report["moveObserved"] as? Bool == true && restored ? "pointer_ok_not_certified" : "pointer_not_verified"
     return report
   }
 

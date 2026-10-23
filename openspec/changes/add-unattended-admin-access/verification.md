@@ -822,3 +822,41 @@ son indicios distintos, no una causa confirmada del incidente del propietario.
 Para corregirlo con garantías faltan resolución/códec, ruta/protocolo ICE, pérdida,
 retardo del búfer y coste de captura/codificación/decodificación de una sesión
 real Windows → iPad. No se aumentaron cuotas ni se publicó una supuesta solución.
+
+## macOS VM: movimiento público del cursor — 23/10/2026
+
+Tarea 1.3, avance parcial. Diagnóstico 0.7.0/esquema 7, mismos permisos, sesión,
+guardas y alcance de ocho unidades Quartz que 0.6.0. Sustituye la publicación
+del evento por `CGWarpMouseCursorPosition`, API pública documentada por Apple
+que mueve el cursor sin generar eventos. No presupone que sea entrada de
+aplicación ni interacción con loginwindow. No usa APIs privadas ni modifica TCC.
+
+- Swift/arm64 y firma estricta correctos. Argumento inválido: 64; autoprueba
+  independiente del watchdog: 70, `diagnostic_timeout`, esquema 7.
+- Paquete: cuatro archivos, hashes idénticos al staging, root, sin scripts ni
+  enlaces. Instalación 0.6.0 → 0.7.0 correcta en la VM; recibo y hash comprobados.
+- Renovadas las referencias del mismo helper en pantalla y Accesibilidad mediante
+  Ajustes de la VM. El wrapper SSH conserva Accesibilidad desactivada.
+- Bajo launchd GUI: ambos permisos, seis fotogramas completos en 2491 ms.
+- Después de logout: root, `loginComplete:false`, consola, once fotogramas en
+  2442 ms, `moveStatus:0`, `restoreStatus:0`, movimiento/restauración observados.
+- Después de reiniciar solo la VM, sin interacción en su pantalla durante el
+  diagnóstico: once fotogramas en 3235 ms, movimiento/restauración observados.
+  Se verificó que el informe fuera posterior a kern.boottime. El stdout de launchd
+  había añadido el segundo JSON al primero: se decodificaron ambos y se conservó
+  el último, además del original completo y la identificación temporal privados.
+- Estado `capture_and_pointer_ok_not_certified`; `keyboardTested`,
+  `preLoginTested` y `readyForUnattended` siguen false. Clics, campos de contraseña,
+  diálogos administrativos y hardware real continúan sin verificar. No se marca
+  completa la tarea 1.3 ni se incorpora todavía el agente final de Mac.
+- Plist automático retirado mediante renombrado a `.disabled-v7`; ningún proceso
+  del diagnóstico activo y sesión gráfica de test restaurada.
+
+Binario SHA-256 `2c6c40c116d918b4d463f0852c3c29fc740fb30b4d0c5ff35054143636e842a2`.
+Paquete SHA-256 `2d2c52f0e834a044162f95570f085898974ecd14e3f008ed3bc682cc64522f6b`.
+Informes privados: `mac-v7-vm-loginwindow-{first,reboot}-20261023.json`; el segundo
+tiene además `.raw` y `mac-v7-vm-loginwindow-reboot-identification-20261023.json`.
+Los cuatro avisos write/Permission denied de pkgbuild reaparecieron con exit 0;
+las verificaciones de payload e instalación siguen correctas, sin atribuir causa.
+
+Referencia: [Apple: CGWarpMouseCursorPosition](https://developer.apple.com/documentation/coregraphics/cgwarpmousecursorposition(_:)).
