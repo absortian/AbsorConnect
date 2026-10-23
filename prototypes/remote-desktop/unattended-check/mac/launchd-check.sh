@@ -44,7 +44,8 @@ with (pathlib.Path(output) / 'check.plist').open('wb') as handle:
 PY
 launchctl bootstrap "gui/$probe_uid" "$output_dir/check.plist"
 registered=1
-for ((attempt=0; attempt<150; attempt++)); do
+# Deja terminar el temporizador interno de 30 s antes de retirar el trabajo.
+for ((attempt=0; attempt<350; attempt++)); do
   if [[ -s "$output_dir/report.json" ]]; then
     python3 - "$output_dir/report.json" <<'PY'
 import json, sys
@@ -57,5 +58,5 @@ PY
   fi
   sleep 0.1
 done
-echo 'No se recibió el diagnóstico en 15 segundos; se retira el trabajo temporal.' >&2
+echo 'No se recibió el diagnóstico en 35 segundos; se retira el trabajo temporal.' >&2
 exit 3

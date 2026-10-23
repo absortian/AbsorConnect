@@ -626,10 +626,133 @@ A petición del propietario se prepara un laboratorio que no necesite cerrar su
 sesión principal. UTM creó **AbsorConnect macOS Lab**, Apple Virtualization,
 8 GiB, cuatro núcleos, disco nuevo de 80 GiB y ninguna carpeta compartida.
 Se descargó desde Apple `UniversalMac_27.0.1_26A434_Restore.ipsw`, se instaló y
-arrancó hasta el asistente inicial. Sigue pendiente autorizar la licencia y
-configurar el usuario/permisos del invitado. No está listo como host de pruebas
-desatendidas ni se han repetido los ensayos de `loginwindow`. La VM de Windows
+arrancó hasta el asistente inicial. El propietario autorizó la licencia, creó la
+cuenta y confirmó el escritorio. Tras autorización expresa se activó SSH solo
+para el usuario de laboratorio, con acceso total al disco desactivado y sin
+abrir puertos del router. La conexión SSH se verificó con la clave del servidor
+fijada. Sigue pendiente conceder permisos al diagnóstico y repetir los ensayos
+de `loginwindow`; no está certificado como host desatendido. La VM de Windows
 se conserva y no se modifica el diagnóstico del Mac físico.
+
+Se preparó el diagnóstico 0.4.0, esquema 4, para investigar el informe vacío de
+0.3.0. Añade checkpoints por fase y un temporizador independiente de 30 segundos,
+sin ampliar la captura ni la entrada. La autoprueba del temporizador terminó con
+código 70 tanto en el Mac de compilación como en la VM; en la VM tardó 1,055 s.
+El modo de puntero ejecutado como usuario normal fue rechazado con código 4,
+`loginwindow_context_required`, sin captura ni movimiento. El inventario por SSH
+emitió un JSON válido, UID 501 y ambos permisos falsos. Su contexto SSH sin acceso
+gráfico no es una prueba de viabilidad de la sesión gráfica.
+
+Binario SHA-256 `3a09d938ae421111878986c1d75f0bd0f1f2972a5ea829bc9f199092808146a4`;
+paquete SHA-256 `1ef901aa16bada8bcea547ccb3708b5dd845dab0580b5a14f198cc64721c9d00`.
+Se verificaron firma estricta, cuatro archivos de payload idénticos al staging,
+propiedad root y ausencia de scripts, enlaces o escritura por grupo/otros. El
+paquete se instaló en la VM tras autorización expresa; recibo 0.4.0 y hash del
+binario instalado coinciden. Se concedieron pantalla y control por la interfaz
+del invitado; SSH mantiene su acceso total al disco desactivado. No se modifica
+la instalación 0.3.0 del Mac físico. Los informes
+privados `mac-v4-vm-{ssh-probe,watchdog,pointer-user-guard}-20261023.*` contienen
+solo metadatos. Un timeout deja la finalización sin verificar y puede interrumpir
+la restauración del puntero; un bloqueo anterior al punto de entrada Swift podría
+seguir dejando archivos vacíos. La instrumentación no identifica por sí sola la
+causa de los archivos vacíos anteriores.
+
+El inventario temporal bajo `launchd gui/501` obtuvo acceso gráfico, frente al
+contexto SSH sin él, sin solicitar captura. Tras conceder permisos, el bundle
+instalado recibió seis fotogramas completos en dos segundos bajo ese mismo
+contexto de usuario, con ambos permisos verdaderos, 2856 ms totales. Los dos
+trabajos temporales se retiraron y se comprobó que ya no estaban registrados.
+
+Tras cerrar la sesión exclusivamente de la VM, la primera ejecución de 0.4.0
+en `LoginWindow` terminó con `diagnostic_timeout`, código previsto 70 y última
+fase `pointer.position`. El stderr recorre captura y comprobaciones de sesión
+y permisos del puntero, pero no contiene `pointer.post_move`; no se ha verificado
+movimiento ni restauración. El informe final no conserva recuento de fotogramas
+parciales. Se observó un aviso adicional de acceso directo a pantalla y se
+confirmó por la interfaz antes de preparar otra ejecución del mismo binario.
+Informe privado `mac-v4-vm-loginwindow-first-20261023.json` y checkpoints `.jsonl`.
+Este fallo mantiene abierta 1.3 y la puerta previa al agente Mac final.
+
+Dos repeticiones con el mismo binario reprodujeron `pointer.position`, incluida
+una después de confirmar el aviso adicional. En la tercera se obtuvo una muestra
+de un segundo del proceso propio mediante `sample`: 91 muestras detenidas dentro
+de `CGEventCreateMouseEvent` → `SLEventCreate` → `CGSEventSourceForID` →
+`CGSEventSourceShutdown`, esperando un mutex de SkyLight. La instrucción anterior
+al retorno muestreado, contrastada con el binario de hash fijado mediante `otool`,
+es la llamada pública `CGEventCreateMouseEvent`; la fase agrupa también la lectura
+de posición, pero el bloqueo observado ocurre al construir el evento, antes de
+publicarlo. No se atribuye aún a una causa definitiva ni al hardware físico.
+Muestra privada `mac-v4-vm-pointer-position-sample-20261023.txt`. La primera espera
+de muestreo venció antes del cierre de sesión y el segundo intento llegó cuando
+el proceso ya había terminado; no son ensayos de entrada adicionales. No quedan
+colectores ni procesos del diagnóstico activos.
+
+La revisión 0.5.0 (esquema 5) separó los checkpoints del puntero y conservó la
+captura completada en caso de timeout. El cambio de fuente explícita de eventos
+a `privateState` no amplió permisos ni entrada. Binario SHA-256
+`aed564435c11d7880ef8f427157c9870ad25bdd0e19e719c906cc3b26f2ba2c5`;
+paquete `mac-loginwindow-v5-vm-20261023/AbsorLoginWindowProbe.pkg`, SHA-256
+`4ee1d0374a2b8dcbf31696802526a6ff2c02817b13e9856c57922f0d80ae47fb`.
+Instalación 0.4.0 → 0.5.0 correcta, recibo y hash instalado verificados. La firma
+ad-hoc nueva invalidó ambos permisos: apagar/encender los interruptores no bastó;
+se retiraron las entradas anteriores y se añadió de nuevo el bundle instalado
+en Ajustes. Después, bajo launchd gráfico, ambos permisos verdaderos y seis
+fotogramas completos en 2262 ms; trabajo temporal retirado. El watchdog y el
+rechazo del modo de puntero en sesión de usuario también pasaron en la VM.
+
+Tras el cierre real de la sesión de la VM, 0.5.0 obtuvo diez fotogramas completos
+en 2379 ms con UID 0, `loginComplete: false`, consola y ambos permisos activos.
+Terminó sin timeout con `capture_ok_pointer_failed`: la fuente privada no pudo
+crearse (`pointer_source_unavailable`). No construyó ni publicó eventos, por lo
+que no se verificó entrada ni restauración. Informe privado
+`mac-v5-vm-loginwindow-first-20261023.json` y checkpoints `.jsonl`. FileVault de
+esta VM está desactivado: el resultado no prueba prearranque cifrado. Se pudo
+volver a iniciar sesión y no quedó ningún proceso del diagnóstico activo.
+
+La revisión 0.6.0 (esquema 6) sustituyó la fuente explícita por la fuente
+predeterminada `nil`, admitida en el encabezado público `CGEvent.h` del SDK.
+Conservó permisos, guards, tap HID y movimiento/restauración de ocho píxeles,
+sin clics ni teclas. Binario SHA-256
+`c92db9f39b343c521d38405f804fe411eeb54cb786271d08009ab784c5af500e`;
+paquete `mac-loginwindow-v6-vm-20261023/AbsorLoginWindowProbe.pkg`, SHA-256
+`62f04d03f5d5f1b47665fe62225397bc7981d91ea54f9eb6fc8f106aa84c8347`.
+La actualización 0.5.0 → 0.6.0 requirió retirar y añadir de nuevo las dos entradas
+en Ajustes; recibo, firma estricta y hash instalado correctos. Bajo launchd del
+usuario recibió seis fotogramas en 2260 ms con ambos permisos verdaderos; se
+retiró el trabajo temporal. Watchdog y rechazo del modo de puntero en sesión de
+usuario pasaron también en la VM.
+
+En el primer `LoginWindow` real con 0.6.0 recibió once fotogramas completos en
+2381 ms, UID 0, consola y ambos permisos verdaderos, `loginComplete: false`.
+Construyó y publicó los dos eventos sin bloqueo; observó la posición original
+tras restaurar, pero **no el desplazamiento solicitado** (`moveObserved: false`,
+`restoreObserved: true`, `capture_ok_pointer_failed`). `inputTested: true` solo
+indica que se intentó publicar entrada; no demuestra éxito. `keyboardTested`,
+`preLoginTested` y `readyForUnattended` siguen en falso. El colector acotado de
+pila detectó que el proceso había terminado antes de sus ocho segundos y no
+tomó muestra. Informes privados `mac-v6-vm-loginwindow-first-20261023.*`.
+
+Un reinicio completo de la VM, sin interacción de UI durante la ejecución,
+repitió el resultado: once fotogramas completos en 2691 ms, permisos conservados,
+UID 0 y login incompleto; eventos publicados, desplazamiento no observado y
+posición original observada después de restaurar. Informes privados
+`mac-v6-vm-loginwindow-reboot-20261023.*`. Esto descarta que el fallo observado
+solo aparezca en la transición de cierre de sesión, pero no establece su causa
+ni demuestra imposibilidad de otras arquitecturas. Se verificó que el proceso
+había terminado y se apartó el plist propio de `/Library/LaunchAgents/` a la
+carpeta del laboratorio con sufijo `.disabled-v6`; el bundle, recibo y los
+informes privados permanecen. No hay ejecución automática en próximos logouts.
+**1.3 sigue abierta y el agente Mac definitivo debe volver a revisión antes de
+implementarse**, según la puerta de viabilidad de la propia tarea. Tampoco se
+certifica el acceso desatendido completo ni se publica un agente nativo.
+
+En los builds de paquetes 0.5.0 y 0.6.0, `pkgbuild` imprimió avisos
+`write: Permission denied`, aunque salió con código 0. Se aisló su origen a
+`pkgbuild` mediante una ejecución trazada; `ditto` y ambas verificaciones de
+firma por separado no los emitieron. La expansión de cada paquete conservó los
+cuatro archivos y sus hashes, propiedad root, modos sin escritura ajena y sin
+scripts ni enlaces. La instalación real y la comprobación del binario instalado
+pasaron; no se atribuye una causa definitiva a esos avisos.
 
 Se instalaron los runtimes oficiales de Simulator desde Xcode y se creó
 **AbsorConnect iPad Lab**, iPad Pro 11 pulgadas M4, iOS 27.0 (24A434), arm64.

@@ -4,8 +4,8 @@ Herramientas para las tareas 1.1–1.4 de `add-unattended-admin-access`. Son pru
 de entorno, no el agente ni una certificación del acceso remoto. Los inventarios
 son de solo lectura; las capturas opcionales no guardan ni transmiten imágenes.
 No instalan servicios. El ensayo Win32 opcional descrito abajo envía únicamente
-Escape al aviso UAC de su propio diagnóstico en la VM QEMU. El ensayo Mac 0.3.0,
-todavía pendiente de ejecutar, mueve y restaura el puntero sin clics ni teclas. La preparación UAC
+Escape al aviso UAC de su propio diagnóstico en la VM QEMU. El ensayo Mac 0.6.0
+intenta mover y restaurar el puntero sin clics ni teclas. La preparación UAC
 de laboratorio solo aplica cambios o reinicia con opciones explícitas.
 No guardar sus resultados con nombres, direcciones o credenciales personales.
 
@@ -58,6 +58,32 @@ imágenes, clics ni teclas. `inputScope: pointer_movement_only` y
 rechaza ese modo con código 4 antes de capturar o mover el puntero. Un movimiento
 correcto tampoco certifica interacción con campos de contraseña o diálogos.
 
+La revisión 0.4.0, esquema 4, conserva ese alcance y añade checkpoints JSON en
+stderr antes de consultar permisos, sesión, contexto gráfico, captura y puntero.
+Un temporizador independiente limita la ejecución a 30 segundos: emite
+`diagnostic_timeout`, `lastStage` y `completionUnverified: true`, y termina con
+código 70. Un timeout no demuestra que no hubo captura o movimiento parcial;
+puede interrumpir la restauración del puntero. Tampoco diagnostica un bloqueo
+del cargador anterior a la entrada en Swift. Dos archivos vacíos siguen siendo
+un resultado inconcluyente, no una prueba de entrada ni una causa identificada.
+
+La revisión 0.5.0, esquema 5, separa las fases de lectura de posición, límites de
+pantalla, creación de fuente y construcción de cada evento. Usa una fuente
+`CGEventSource.privateState` con las mismas comprobaciones y el mismo tap; no
+llama a APIs privadas ni cambia TCC. El temporizador conserva el resultado de
+captura ya completado antes de probar entrada, pero mantiene
+`inputTested: false` y `completionUnverified: true` si la ejecución no termina.
+Esto permite distinguir un bloqueo posterior de una captura no ejecutada.
+
+La revisión 0.6.0, esquema 6, prueba la fuente predeterminada (`nil`), admitida
+por `CGEventCreateMouseEvent`, en lugar de crear una fuente explícita. Conserva
+los checkpoints, permisos, guardas de sesión y alcance de ocho píxeles;
+`pointer.eventSource: default` identifica esta variante en el resultado.
+
+`--watchdog-self-test` no consulta permisos ni captura: espera a que el
+temporizador de un segundo termine el proceso con código 70. Sirve para
+comprobar este límite antes de instalar el paquete en un laboratorio.
+
 Ni un resultado `capture_ok_not_certified` demuestra entrada, operación como daemon
 o acceso a `loginwindow`. Esas pruebas requieren un helper autorizado, la identidad
 de distribución y cambios de sesión coordinados para no interrumpir trabajo.
@@ -85,7 +111,7 @@ bash prototypes/remote-desktop/unattended-check/mac/loginwindow-package.sh \
 El paquete local sin firma de distribución contiene el mismo bundle firmado y un
 LaunchAgent global, limitado exclusivamente al contexto `LoginWindow`. Se ejecuta
 una vez por contexto y termina. El paquete 0.2.0 usa `--capture-loginwindow`; el
-paquete 0.3.0 preparado usa `--capture-pointer-loginwindow` y añade el movimiento
+paquetes 0.3.0–0.6.0 usan `--capture-pointer-loginwindow` y añaden el movimiento
 limitado descrito. No tiene KeepAlive, scripts de instalación, red ni cambios de
 la configuración de loginwindow. Un fallo del diagnóstico no es condición para
 permitir iniciar sesión.
@@ -99,7 +125,7 @@ Archivos propios del paquete:
 - `/Library/Logs/AbsorConnectLab/`, privado de root, para dos informes sin píxeles.
 
 La versión 0.2.0 escribe `loginwindow-report-v2.json` y
-`loginwindow-stderr-v2.txt`; la 0.3.0 usa los sufijos `-v3` y ambas conservan los
+`loginwindow-stderr-v2.txt`; las versiones 0.3.0–0.6.0 usan los sufijos `-v3`–`-v6`. Conservan los
 informes anteriores. Actualizar el paquete
 cambia la firma ad-hoc: los permisos deben volver a verificarse, sin presuponer
 que se conservarán. La lectura administrativa de los informes no requiere abrir
@@ -121,6 +147,13 @@ el segundo informe recibió once buffers completos en el primer intento, como
 root, con acceso gráfico y `loginComplete: false`. No se inspeccionaron píxeles ni
 se aplicó entrada. El éxito sin reintentos no identifica la causa del error
 anterior; se mantiene pendiente la validación del contenido y del control remoto.
+
+En la VM macOS 27.0.1 arm64, 0.4.0 se bloqueó al construir el evento y 0.5.0 no
+pudo crear su fuente privada. 0.6.0 capturó once fotogramas y publicó los eventos
+sin bloqueo, tanto tras logout como tras reiniciar, pero no observó el
+desplazamiento. La entrada no está validada; la tarea 1.3 permanece abierta y
+requiere revisión antes del agente final. Las evidencias y los límites figuran
+en `openspec/changes/add-unattended-admin-access/verification.md`.
 
 ## Mint con X11
 
