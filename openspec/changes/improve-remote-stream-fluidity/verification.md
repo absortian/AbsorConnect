@@ -69,7 +69,12 @@ Una repetición de Flutter topó con el límite de autenticación del entorno de
 pruebas; al limpiar solo cache_items de desarrollo, la batería completa volvió
 a pasar (50/50). No se cambiaron límites del servicio de producción.
 
-La compilación final y publicación siguen pendientes de terminar.
+La segunda matriz detectó un supuesto temporal en una prueba previa de
+transferencias: esperaba solo 50 ms para confirmar dos archivos en Windows.
+Se sustituyó esa espera fija por una condición acotada a la confirmación de
+ambos archivos, conservando las aserciones de contenido y resumen. No cambió
+el protocolo de ficheros. La compilación final y publicación siguen pendientes
+de terminar.
 
 ## Límites de esta entrega
 
