@@ -901,10 +901,10 @@ El sondeo bajo launchd gráfico devolvió **ambos permisos falsos** tras cambiar
 la firma. Se retiró el trabajo temporal y se renombró el plist automático como
 `.disabled-v8c`; no quedó proceso del diagnóstico ejecutándose.
 
-El Mac anfitrión está bloqueado y la herramienta de interfaz exige desbloqueo
-manual. No se renovaron permisos ni se ejecutó el ensayo de entrada. La tarea
-1.3 continúa abierta y `readyForUnattended` sigue siendo falso. No se tocó TCC,
-SIP ni la sesión del Mac físico.
+En esa preparación, el Mac anfitrión bloqueado impedía manejar la VM y el ensayo
+quedó pendiente. El propietario confirmó después su desbloqueo; la continuación
+del 24/10/2026 se registra más abajo. La tarea 1.3 continúa abierta y
+`readyForUnattended` sigue siendo falso.
 
 ### Contrato administrativo compartido: tarea 8.2 completa
 
@@ -926,3 +926,63 @@ omitidas preexistentes**; Flutter analyze limpio y **159 pruebas correctas**,
 incluidos API/SSH/S3 de desarrollo; PHP 8.5.12, **162 pruebas/1077 aserciones**.
 OpenSpec confirma **8/57** tareas completas. No hay agentes nativos de producción
 certificados ni activados por estos cambios.
+
+### Mac: corrección del bucle modal y repetición — 24/10/2026
+
+Tras desbloquear el propietario el anfitrión, se renovaron pantalla y
+Accesibilidad del bundle instalado exclusivamente en la VM. El wrapper SSH
+conservó Accesibilidad desactivada. 0.8.0 recibió seis fotogramas bajo launchd GUI
+en 2494 ms. En LoginWindow, tras logout y reinicio, recibió once/diez en
+2648/2772 ms; movimiento y restauración del puntero observados, UID 0, consola,
+ambos permisos y login incompleto. Ambos ensayos terminaron por watchdog a los
+30 segundos, última fase `owned_input.start`.
+
+Una muestra de un segundo del propio proceso, tomada durante el segundo ensayo,
+mostró las 91 muestras del hilo principal dentro de `NSApplication.runModal`.
+No estaba detenido en la construcción de eventos. La prueba anterior de cola
+modal usaba `main()` síncrono y no reproducía el contexto del diagnóstico.
+Una reproducción con `main() async`, sin captura ni entrada, devolvió
+`timerExecuted:true, queueExecuted:false`: el temporizador modal terminó el
+ensayo mientras la operación pendiente de DispatchQueue.main seguía sin ejecutar.
+Evidencia privada: `mac-v8-owned-input-sample-20261024.txt` y
+`ModalQueueAsyncCheck.swift`/`modal-async-result-20261024.txt`. El trabajo temporal
+se retiró. Esto identifica un defecto del arnés, no un fallo acreditado de entrada.
+
+0.9.0/esquema 9 sustituye esas esperas por temporizadores del modo modal nativo,
+los invalida al terminar y añade checkpoints internos. Mantiene las mismas
+guardas, permisos, ventana y eventos fijos; no amplía entrada ni usa APIs privadas.
+Compilación Swift/arm64 y firma estricta correctas; argumento inválido 64,
+watchdog independiente 70 y rechazo fuera de VirtualMac 4 antes de captura/entrada.
+Payload de cuatro archivos sin scripts/enlaces verificado, actualización
+0.8.0 → 0.9.0 instalada y recibo/hash coincidentes. Los cuatro avisos de pkgbuild
+reaparecieron con salida 0 y payload correcto; su causa sigue sin identificarse.
+Hash binario `269ced62205006be21870a0ff3265e21a8f5b99a37d90377900afe49fbbfbc16`;
+paquete `f4f0b1c9640c9d8985cec0a65980217650bb6f3482e6fd7f9cc09cbea35717db`.
+
+La nueva firma requirió retirar y añadir de nuevo el mismo bundle en los dos
+paneles de Ajustes de la VM. Preflight gráfico: ambos verdaderos; captura bajo
+launchd GUI: seis fotogramas, 2481 ms. Tras logout y arranque limpio: once
+fotogramas en 2440/2681 ms, movimiento/restauración observados, UID 0, consola y
+login incompleto. En ambos casos el temporizador ejecutó la comprobación y
+terminó sin timeout: `owned_window_focus_unavailable`, cero clics y teclas
+intentados/observados. La guarda combina inactividad, contexto permitido,
+ventana clave, primer responder y proceso en primer plano; el informe no distingue
+qué condición falló y no demuestra una limitación general del sistema.
+
+El segundo informe se verificó posterior a kern.boottime y se decodificaron los
+dos JSON añadidos por launchd, conservando el último y el original completo.
+Resultados públicos sin IPs, credenciales, imágenes ni teclas:
+`mac-owned-input-results.json`. Evidencia privada `mac-v9-vm-loginwindow-{logout,reboot}-20261024.*`
+y `mac-v9-vm-reboot-identification-20261024.json`. El tiempo informado corresponde
+a la fase de captura, no a la duración total del ensayo.
+
+`inputTested:true` procede del ensayo previo del puntero y no certifica clics ni
+teclado; `clickTested`, `keyboardTested`, `preLoginTested` y `readyForUnattended`
+permanecen falsos. Retirado el plist automático como `.disabled-v9-after-reboot`,
+sin proceso activo y con test de nuevo en el escritorio. No se modificaron TCC,
+SIP ni permisos/sesión del Mac físico. La tarea 1.3 permanece abierta: antes del
+agente Mac final hay que revisar el contexto de foco/entrada y probar diálogos
+del sistema e inicio de sesión reales, además de firma y hardware objetivo.
+
+Referencias: [Apple: modos de RunLoop](https://developer.apple.com/documentation/foundation/runloop/mode)
+y [comprobación de MainActor](https://developer.apple.com/documentation/swift/mainactor/assumeisolated(_:file:line:)).

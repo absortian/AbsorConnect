@@ -27,7 +27,7 @@ private final class ProbeDiagnostics: @unchecked Sendable {
       guard !finished else { lock.unlock(); return }
       finished = true
       var report = progress
-      report["schema"] = 8
+      report["schema"] = 9
       report["platform"] = "macos"
       report["status"] = "diagnostic_timeout"
       report["lastStage"] = stage
@@ -121,7 +121,7 @@ private struct Probe {
     if arguments == ["--watchdog-self-test"] {
       diagnostics.checkpoint("watchdog_self_test_wait")
       try? await Task.sleep(nanoseconds: 5_000_000_000)
-      diagnostics.finish(["schema": 8, "status": "watchdog_failed", "readyForUnattended": false])
+      diagnostics.finish(["schema": 9, "status": "watchdog_failed", "readyForUnattended": false])
       exit(71)
     }
     let ownedInput = arguments == ["--capture-owned-input-loginwindow"]
@@ -135,7 +135,7 @@ private struct Probe {
     diagnostics.checkpoint("session.current")
     let session = CGSessionCopyCurrentDictionary() as? [String: Any] ?? [:]
     var report: [String: Any] = [
-      "schema": 8,
+      "schema": 9,
       "platform": "macos",
       "osVersion": ProcessInfo.processInfo.operatingSystemVersionString,
       "processUid": getuid(),
@@ -206,7 +206,7 @@ private struct Probe {
       if ownedInput && result == 0 {
         diagnostics.recordProgress(report)
         diagnostics.checkpoint("owned_input.start")
-        let input = OwnedInputProbe.run()
+        let input = OwnedInputProbe.run(checkpoint: diagnostics.checkpoint)
         report["ownedInput"] = input
         report["inputScope"] = "pointer_movement_and_owned_window_only"
         report["keyboardTested"] = input["keyboardTested"]
