@@ -34,14 +34,14 @@ import pathlib, plistlib, sys
 payload, install, logs, label = sys.argv[1:]
 configuration = {
     'Label': label,
-    'ProgramArguments': [install + '/AbsorUnattendedProbe.app/Contents/MacOS/AbsorUnattendedProbe', '--capture-loginwindow'],
+    'ProgramArguments': [install + '/AbsorUnattendedProbe.app/Contents/MacOS/AbsorUnattendedProbe', '--capture-pointer-loginwindow'],
     'LimitLoadToSessionType': 'LoginWindow',
     'RunAtLoad': True,
     'KeepAlive': False,
     'LaunchOnlyOnce': True,
     'ProcessType': 'Background',
-    'StandardOutPath': logs + '/loginwindow-report-v2.json',
-    'StandardErrorPath': logs + '/loginwindow-stderr-v2.txt',
+    'StandardOutPath': logs + '/loginwindow-report-v3.json',
+    'StandardErrorPath': logs + '/loginwindow-stderr-v3.txt',
     'Umask': 0o077,
 }
 with (pathlib.Path(payload) / 'Library/LaunchAgents' / (label + '.plist')).open('wb') as handle:
@@ -49,7 +49,7 @@ with (pathlib.Path(payload) / 'Library/LaunchAgents' / (label + '.plist')).open(
 PY
 chmod 644 "$payload/Library/LaunchAgents/$label.plist"
 pkgbuild --root "$payload" --identifier 'com.absor.unattended.probe.loginwindow' \
-  --version '0.2.0' --install-location / --ownership recommended \
+  --version '0.3.0' --install-location / --ownership recommended \
   "$output_dir/AbsorLoginWindowProbe.pkg"
 pkgutil --payload-files "$output_dir/AbsorLoginWindowProbe.pkg" > "$output_dir/payload-files.txt"
 pkgutil --expand-full "$output_dir/AbsorLoginWindowProbe.pkg" "$output_dir/inspection"
@@ -75,8 +75,8 @@ with (actual / 'Library/LaunchAgents/com.absor.unattended.probe.loginwindow.plis
     job = plistlib.load(handle)
 assert job['LimitLoadToSessionType'] == 'LoginWindow'
 assert job['KeepAlive'] is False and job['LaunchOnlyOnce'] is True
-assert job['ProgramArguments'][-1] == '--capture-loginwindow'
-assert job['StandardOutPath'].endswith('/loginwindow-report-v2.json')
+assert job['ProgramArguments'][-1] == '--capture-pointer-loginwindow'
+assert job['StandardOutPath'].endswith('/loginwindow-report-v3.json')
 print('Payload verificado: cuatro archivos iguales al staging, sin scripts/enlaces, propiedad root y sin escritura de grupo/otros.')
 PY
 shasum -a 256 "$probe_app/Contents/MacOS/AbsorUnattendedProbe" "$output_dir/AbsorLoginWindowProbe.pkg"

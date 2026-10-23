@@ -3,8 +3,10 @@
 Herramientas para las tareas 1.1–1.4 de `add-unattended-admin-access`. Son pruebas
 de entorno, no el agente ni una certificación del acceso remoto. Los inventarios
 son de solo lectura; las capturas opcionales no guardan ni transmiten imágenes.
-No inyectan entrada ni instalan servicios. La preparación UAC de laboratorio
-descrita abajo solo aplica cambios o reinicia con opciones explícitas.
+No instalan servicios. El ensayo Win32 opcional descrito abajo envía únicamente
+Escape al aviso UAC de su propio diagnóstico en la VM QEMU. El ensayo Mac 0.3.0,
+todavía pendiente de ejecutar, mueve y restaura el puntero sin clics ni teclas. La preparación UAC
+de laboratorio solo aplica cambios o reinicia con opciones explícitas.
 No guardar sus resultados con nombres, direcciones o credenciales personales.
 
 ## macOS
@@ -45,6 +47,17 @@ solo si enumerar el contenido compartible falla con `CGError.invalidContext`
 en el JSON; una captura correcta sigue contando durante dos segundos. Esto permite
 investigar una transición de sesión sin asumir que repetir resuelve la causa.
 
+La revisión 0.3.0, esquema 3, añade `--capture-pointer-loginwindow`, un ensayo que
+requiere root antes de completar el login y captura correcta. Vuelve a comprobar
+sesión de consola, Accesibilidad y permiso de publicar eventos; si hay un botón
+del ratón pulsado, no actúa. Mueve el puntero ocho unidades de coordenadas Quartz
+en la pantalla principal, observa la posición y la restaura, con esperas de
+300 ms. Registra únicamente si observó movimiento/restauración, sin coordenadas,
+imágenes, clics ni teclas. `inputScope: pointer_movement_only` y
+`keyboardTested: false` limitan expresamente el resultado. En una sesión de usuario
+rechaza ese modo con código 4 antes de capturar o mover el puntero. Un movimiento
+correcto tampoco certifica interacción con campos de contraseña o diálogos.
+
 Ni un resultado `capture_ok_not_certified` demuestra entrada, operación como daemon
 o acceso a `loginwindow`. Esas pruebas requieren un helper autorizado, la identidad
 de distribución y cambios de sesión coordinados para no interrumpir trabajo.
@@ -71,9 +84,11 @@ bash prototypes/remote-desktop/unattended-check/mac/loginwindow-package.sh \
 
 El paquete local sin firma de distribución contiene el mismo bundle firmado y un
 LaunchAgent global, limitado exclusivamente al contexto `LoginWindow`. Se ejecuta
-una vez por contexto, usa `--capture-loginwindow` y termina. No tiene
-KeepAlive, scripts de instalación, entrada, red ni cambios de la configuración de
-loginwindow. Un fallo del diagnóstico no es condición para permitir iniciar sesión.
+una vez por contexto y termina. El paquete 0.2.0 usa `--capture-loginwindow`; el
+paquete 0.3.0 preparado usa `--capture-pointer-loginwindow` y añade el movimiento
+limitado descrito. No tiene KeepAlive, scripts de instalación, red ni cambios de
+la configuración de loginwindow. Un fallo del diagnóstico no es condición para
+permitir iniciar sesión.
 
 Instalar requiere la autorización administrativa del propietario; cerrar la sesión
 para probarlo también se coordina con él. No instalar durante trabajo sin guardar.
@@ -84,14 +99,15 @@ Archivos propios del paquete:
 - `/Library/Logs/AbsorConnectLab/`, privado de root, para dos informes sin píxeles.
 
 La versión 0.2.0 escribe `loginwindow-report-v2.json` y
-`loginwindow-stderr-v2.txt`; conserva los informes de 0.1.0. Actualizar el paquete
+`loginwindow-stderr-v2.txt`; la 0.3.0 usa los sufijos `-v3` y ambas conservan los
+informes anteriores. Actualizar el paquete
 cambia la firma ad-hoc: los permisos deben volver a verificarse, sin presuponer
 que se conservarán. La lectura administrativa de los informes no requiere abrir
 sus permisos a otros usuarios.
 
 Recuperación: iniciar sesión normalmente, retirar primero ese plist con permisos
 administrativos para impedir futuras ejecuciones y retirar solo el bundle y los
-informes propios indicados de ambas versiones. El proceso es de una sola ejecución; no hay un
+informes propios indicados de las versiones instaladas. El proceso es de una sola ejecución; no hay un
 servicio en reinicio continuo que deba pararse. No tocar launch agents de Apple ni
 preferencias del sistema. La lista exacta del payload queda junto al paquete.
 Olvidar el recibo con `pkgutil --forget com.absor.unattended.probe.loginwindow`
@@ -150,6 +166,30 @@ sesión de consola; no recibe órdenes de red, rutas de programa ni RPC.
 El trabajador de captura abre el escritorio de entrada, cuenta capturas GDI durante dos
 segundos a 320 × 180 y termina. No crea ventanas, no cambia el escritorio visible,
 no guarda imágenes, no aplica entrada y no instala un servicio SCM.
+
+`run-probe.ps1 -TestUacInput` añade un ensayo explícito y exclusivo de la VM QEMU,
+con SYSTEM, UAC activo, escritorio seguro y política de consentimiento esperada.
+La carpeta de prueba permite lectura/ejecución al usuario filtrado, con escritura
+solo para SYSTEM/Administradores. Primero captura `Default`; después lanza el
+propio diagnóstico con el token filtrado del usuario, que solicita elevar solo ese
+mismo binario. Al aparecer `Winlogon`, captura ese escritorio y crea otro trabajador
+SYSTEM directamente en `winsta0\winlogon`, con el mismo ejecutable y modo fijo.
+Este comprueba que `consent.exe` está en primer plano y envía exclusivamente
+Escape, pulsación y liberación, mediante `SendInput`. No recibe teclas, rutas ni
+órdenes de una conexión externa. Los modos internos de entrada requieren SYSTEM
+en una sesión interactiva y la política del laboratorio QEMU.
+
+El ensayo espera de forma acotada a que aparezca la ventana de consentimiento y
+exige dos eventos insertados, salida 1223 del solicitante y regreso a `Default`
+antes de informar éxito. Un fallo retira el solicitante propio, espera su salida y
+registra si observó la vuelta a `Default`; no presupone que terminar ese proceso
+cambie el escritorio inmediatamente. No acepta UAC, instala servicios ni cambia
+políticas. Los archivos
+`uac-input-report.json`, `uac-input-capture.json` y `escape-report.json` son informes
+de metadatos creados sin sobrescribir archivos anteriores. Una primera variante
+que cambiaba solo el escritorio de un hilo capturó pero no pudo insertar entrada;
+la variante con proceso creado en el escritorio seguro sí canceló el aviso.
+Esto no acredita ratón, escritura de credenciales, atención segura ni login.
 
 Para reproducir, copiar `CaptureProbe.cs` y `run-probe.ps1` a una carpeta nueva
 de laboratorio con propietario SYSTEM/Administradores, DACL protegida y escritura

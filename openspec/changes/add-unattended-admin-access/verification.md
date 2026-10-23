@@ -37,6 +37,7 @@ con consulta por defecto y cambios/reinicio mediante opciones explícitas.
 | Captura Windows tras reinicio con UAC | Nueve fotogramas no uniformes en `Default`, sesión 1; el sistema informaba usuario interactivo presente | No se certifica arranque sin usuario ni inicio de sesión: Windows ya había entrado en una sesión |
 | Captura durante solicitud UAC del propio diagnóstico | Siete fotogramas no uniformes en escritorio `Winlogon`, trabajador SYSTEM separado del solicitante de usuario filtrado | El primer solicitante venció a los 45 s y se retiró. No se inspeccionaron píxeles ni se certifica la imagen exacta del diálogo, entrada Win32 o UAC con credenciales |
 | Cancelación de otra solicitud UAC | Escape enviado por UTM; solicitante terminó con código 1223 y volvió el escritorio. En esta repetición el capturador se ejecutó después de cancelar y reportó `Default`, por lo que no se cuenta como otra captura UAC | No prueba que el futuro agente aplique entrada; el control fue el de UTM |
+| Entrada Win32 sobre UAC en la VM | Dos ejecuciones de la revisión final: trabajador SYSTEM creado directamente en `winsta0\winlogon`, nueve fotogramas no uniformes, dos eventos Escape insertados por `SendInput`, solicitante propio terminó con 1223 y vuelta observada a `Default`; ningún proceso del diagnóstico quedó activo | Solo Escape y UAC de consentimiento del propio diagnóstico: faltan ratón, credenciales administrativas, bloqueo/login, SCM, DXGI y clientes remotos; no completa 1.2 |
 | Captura X11 en Mint | Diez imágenes XGetImage de una región central 128 × 72; las diez no uniformes, usuario ordinario y sesión Cinnamon activa | No prueba pantalla completa, entrada, polkit, bloqueo ni greeter |
 | Criptografía C++ con BoringSSL de WebRTC | 3 vectores compartidos correctos, incluidos PBKDF2 de 600 000 iteraciones y HMAC; 5 casos negativos rechazados por vector | Interoperabilidad del transporte, persistencia del bloqueo ni autenticación de un agente final |
 | Inicialización libwebrtc | Factoría creada/destruida; conexión/canal de datos y oferta local con huella SHA-256 generados correctamente | No se aplicó la descripción ni se estableció DTLS; faltan otro cliente, vídeo/entrada y TURN |
@@ -126,6 +127,38 @@ binario `008eaba14b7f6e572d4fda33dc5d4bc3e6b5cba900e71b9c7467ff92af991988`.
 Los informes `windows-capture-20261023-{c,e,f,g}.json` y
 `windows-uac-cancel-20261023.json` conservan los resultados, sin píxeles ni credenciales.
 Se comprobó que no quedaban procesos del diagnóstico después de cancelar.
+
+El siguiente ensayo añadió entrada Win32 local optativa mediante
+`run-probe.ps1 -TestUacInput`, con guardas SYSTEM/sesión interactiva/QEMU y política
+UAC esperada. La primera variante creaba el proceso en `Default` y cambiaba el
+escritorio de su hilo: capturaba `Winlogon`, pero `SendInput` insertó cero eventos;
+otra ejecución instrumentada confirmó error 5, estructura INPUT de 40 bytes y
+proceso de 64 bits. No se atribuye ese error a una causa de integridad concreta.
+Se retiraron sus solicitantes propios y se comprobó ausencia de procesos del
+diagnóstico; UAC y escritorio seguro continuaban activos.
+
+Crear un trabajador SYSTEM nuevo directamente en `winsta0\winlogon` permitió una
+primera cancelación nativa. Una repetición no encontró aún ventana en primer plano
+y el siguiente caso rechazó actuar mientras el escritorio seguía en transición.
+Se añadió espera acotada para la ventana de consentimiento y para observar la
+recuperación de `Default`, sin cambiar políticas, UIAccess, ACL de escritorios ni
+usar teclas del control de UTM. La comprobación visual posterior de UTM mostró el
+escritorio normal; no se utilizó su teclado para conseguir el resultado positivo.
+
+Con la revisión final se hicieron dos ensayos nuevos, carpetas privadas `-m` y
+`-n`, ambos correctos: nueve fotogramas no uniformes en `Default`, otros nueve en
+`Winlogon`, `consent.exe` comprobado en primer plano, dos eventos Escape,
+solicitante filtrado propio con código 1223 y regreso a `Default`. Cada captura
+contó durante dos segundos; no persistió píxeles. Fuente SHA-256
+`bd60334536b82c73ae6a9a3bceada3ce6d11958436a20762de66203449670617`;
+binarios `30520c7a5e8879ca4733779d30d0e32bc647229bc347f855a5f9887eb97f5a68`
+y `0294a1e231b6622e63e012b68fda89014b09abf7a129fa98155216da4210cb40`.
+Sus compilaciones producen hashes distintos; no se afirma compilación binaria
+reproducible. Se verificó rechazo de argumento desconocido (64) y de ambos modos
+de entrada desde sesión 0 (3, `interactive_system_context_required`), sin procesos
+remanentes. Los informes locales `windows-uac-native-{input,result}-{m,n}-20261023.log`
+conservan los resultados y las variantes fallidas permanecen documentadas aparte.
+No se instaló SCM ni se modificó UAC; la tarea 1.2 sigue incompleta.
 
 La herramienta de espera UTM usa los protocolos oficiales de su revisión
 `1c5e2150696cf86dc6e451212a8ad4555b2b63b2` y corrige localmente la lectura de
@@ -227,6 +260,28 @@ retardo añadido y sigue sin aislarse la causa del error 1003 de la primera prue
 Metadatos privados en `mac-diagnostic-v2-install-20261023.json`; transcripción
 facilitada por el propietario en `mac-loginwindow-v2-owner-provided-20261023.json`.
 La VM se comprobó apagada antes del cierre. La tarea 1.3 permanece incompleta.
+
+Para la siguiente parte de 1.3 se preparó el diagnóstico Mac 0.3.0, todavía sin
+instalar ni ejecutar en `LoginWindow`. Su modo explícito
+`--capture-pointer-loginwindow` exige root antes de completar el login, captura
+correcta, sesión gráfica de consola, Accesibilidad y permiso de publicar eventos;
+rechaza actuar si encuentra un botón del ratón pulsado. Mueve el puntero ocho
+unidades Quartz, comprueba su posición y la restaura, sin clics, teclas, red ni
+píxeles guardados. El resultado se limita a movimiento del puntero; no demuestra
+teclado, contraseña ni aviso de administración.
+
+Compilación y firma estricta correctas. `--probe` devuelve esquema 3 sin entrada;
+el modo de puntero desde la sesión ordinaria rechaza el contexto con salida 4,
+sin captura ni entrada; argumentos desconocidos salen con 64. La rama de entrada
+real sigue pendiente. Paquete preparado:
+`mac-loginwindow-probe-v3-20261023/AbsorLoginWindowProbe.pkg`, SHA-256
+`067c345e0bc6438e74e1267da883b7455b383182fa275fc3e42c6cdd1b94a0a6`;
+binario SHA-256
+`feb76e52d1b994e8c99b4a0c76ad2a5240f9e956d8a3250cfc0f48943c9e6e47`.
+Se verificó el paquete expandido completo y su firma pese a los cuatro avisos
+`write: Permission denied` de pkgbuild, que terminó con 0. Usa informes `-v3`,
+conservando los resultados anteriores. La actualización, sus permisos y el nuevo
+cierre de sesión deben coordinarse con el propietario antes de ejecutarlos.
 
 Para preparar la siguiente prueba se intentó guardar la suspensión de la VM.
 UTM la rechazó porque la GPU habilitada no admite instantáneas; aunque su CLI

@@ -1,4 +1,5 @@
-// Diagnóstico nativo de viabilidad. No guarda imagen, no inyecta entrada ni concede permisos.
+// Diagnóstico nativo de viabilidad. No guarda imagen ni concede permisos.
+// El modo opcional de puntero mueve ocho píxeles y restaura la posición, sin clics ni teclas.
 import ApplicationServices
 import CoreMedia
 import Foundation
@@ -33,17 +34,18 @@ private struct Probe {
   static func main() async {
     let arguments = Array(CommandLine.arguments.dropFirst())
     guard arguments.isEmpty || arguments == ["--probe"] || arguments == ["--capture"]
-            || arguments == ["--capture-loginwindow"] else {
-      FileHandle.standardError.write(Data("Uso: AbsorUnattendedProbe [--probe|--capture|--capture-loginwindow]\n".utf8))
+            || arguments == ["--capture-loginwindow"] || arguments == ["--capture-pointer-loginwindow"] else {
+      FileHandle.standardError.write(Data("Uso: AbsorUnattendedProbe [--probe|--capture|--capture-loginwindow|--capture-pointer-loginwindow]\n".utf8))
       exit(64)
     }
-    let retryLoginWindow = arguments == ["--capture-loginwindow"]
+    let pointer = arguments == ["--capture-pointer-loginwindow"]
+    let retryLoginWindow = arguments == ["--capture-loginwindow"] || pointer
     let capture = arguments == ["--capture"] || retryLoginWindow
     let screenGranted = CGPreflightScreenCaptureAccess()
     let accessibilityGranted = AXIsProcessTrusted()
     let session = CGSessionCopyCurrentDictionary() as? [String: Any] ?? [:]
     var report: [String: Any] = [
-      "schema": 2,
+      "schema": 3,
       "platform": "macos",
       "osVersion": ProcessInfo.processInfo.operatingSystemVersionString,
       "processUid": getuid(),
@@ -53,12 +55,20 @@ private struct Probe {
       "loginComplete": session[kCGSessionLoginDoneKey as String] as? Bool ?? false,
       "captureRequested": capture,
       "captureTested": false,
+      "pointerRequested": pointer,
+      "pointerTested": false,
+      "keyboardTested": false,
       "inputTested": false,
       "preLoginTested": false,
       "readyForUnattended": false
     ]
     report["graphicsContext"] = graphicsContext()
     var result: Int32 = 0
+    if pointer && (getuid() != 0 || report["loginComplete"] as? Bool != false) {
+      report["status"] = "loginwindow_context_required"
+      emit(report)
+      exit(4)
+    }
     if capture {
       guard screenGranted else {
         report["status"] = "missing_screen_permission"
@@ -87,11 +97,78 @@ private struct Probe {
         for (key, value) in finalAttempt { report[key] = value }
       }
       report["attempts"] = attempts
+      if pointer && result == 0 {
+        let input = await checkPointer()
+        report["pointer"] = input
+        report["pointerTested"] = input["pointerTested"]
+        report["inputTested"] = input["pointerTested"]
+        report["inputScope"] = "pointer_movement_only"
+        let success = input["moveObserved"] as? Bool == true && input["restoreObserved"] as? Bool == true
+        report["status"] = success ? "capture_and_pointer_ok_not_certified" : "capture_ok_pointer_failed"
+        result = success ? 0 : 4
+      }
     } else {
       report["status"] = "probe_only_not_certified"
     }
     emit(report)
     exit(result)
+  }
+
+  private static func checkPointer() async -> [String: Any] {
+    var report: [String: Any] = ["pointerTested": false, "moveObserved": false,
+                               "restoreObserved": false, "requestedDistancePixels": 8]
+    let session = CGSessionCopyCurrentDictionary() as? [String: Any] ?? [:]
+    guard getuid() == 0, session[kCGSessionLoginDoneKey as String] as? Bool == false,
+          session[kCGSessionOnConsoleKey as String] as? Bool == true else {
+      report["status"] = "loginwindow_context_required"
+      return report
+    }
+    let postGranted = CGPreflightPostEventAccess()
+    report["postEventPermission"] = postGranted
+    guard AXIsProcessTrusted(), postGranted else {
+      report["status"] = "missing_input_permission"
+      return report
+    }
+    for button in [CGMouseButton.left, .right, .center] {
+      if CGEventSource.buttonState(.combinedSessionState, button: button) {
+        report["status"] = "pressed_mouse_button_prevents_probe"
+        return report
+      }
+    }
+    guard let initial = CGEvent(source: nil)?.location else {
+      report["status"] = "pointer_position_unavailable"
+      return report
+    }
+    let bounds = CGDisplayBounds(CGMainDisplayID())
+    guard bounds.width > 20, bounds.contains(initial) else {
+      report["status"] = "pointer_outside_main_display"
+      return report
+    }
+    let target = CGPoint(x: initial.x + (initial.x + 8 < bounds.maxX ? 8 : -8), y: initial.y)
+    guard let source = CGEventSource(stateID: .hidSystemState),
+          let move = CGEvent(mouseEventSource: source, mouseType: .mouseMoved,
+                             mouseCursorPosition: target, mouseButton: .left),
+          let restore = CGEvent(mouseEventSource: source, mouseType: .mouseMoved,
+                                mouseCursorPosition: initial, mouseButton: .left) else {
+      report["status"] = "pointer_event_unavailable"
+      return report
+    }
+    var restored = false
+    defer { if !restored { restore.post(tap: .cghidEventTap) } }
+    move.post(tap: .cghidEventTap)
+    report["pointerTested"] = true
+    try? await Task.sleep(nanoseconds: 300_000_000)
+    if let observed = CGEvent(source: nil)?.location {
+      report["moveObserved"] = abs(observed.x - target.x) <= 1 && abs(observed.y - target.y) <= 1
+    }
+    restore.post(tap: .cghidEventTap)
+    try? await Task.sleep(nanoseconds: 300_000_000)
+    if let observed = CGEvent(source: nil)?.location {
+      restored = abs(observed.x - initial.x) <= 1 && abs(observed.y - initial.y) <= 1
+    }
+    report["restoreObserved"] = restored
+    report["status"] = report["moveObserved"] as? Bool == true && restored ? "pointer_ok_not_certified" : "pointer_not_verified"
+    return report
   }
 
   private static func graphicsContext() -> [String: Any] {
