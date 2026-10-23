@@ -547,7 +547,7 @@ propietario en los archivos iOS se conservaron fuera de los commits.
   `absortian/absortian@sha256:39b4341cc9361ed08c361bee0710acee2cb917e85af6867a73bc6e206fcadbc6`.
   En cada una: PHP **8.5.12**, `session.upload_progress.enabled=0` y el hash del
   registro del agente idéntico al código local. Informe privado
-  `backend-agent-production-replicas-20261023.json`.
+  `backend-agent-production-replicas-jenkins-11-20261023.json`.
 - `/api/health` correcto antes y después. **30 comprobaciones HTTPS reales** con
   una cuenta temporal nueva: flujo legado completo de oferta/consulta/respuesta,
   alta y canje únicos, denegación de cuenta al agente, traspaso, capacidades falsas
@@ -557,7 +557,7 @@ propietario en los archivos iOS se conservaron fuera de los commits.
 - La cuenta temporal se eliminó. Consulta administrativa posterior: **cero
   agentes y cero altas pendientes**. El despliegue no convirtió ninguna instalación
   existente en host desatendido. Informe privado
-  `backend-agent-production-smoke-20261023.json` y
+  `backend-agent-production-smoke-jenkins-11-20261023.json` y
   `backend-agent-production-empty-agents-20261023.log`.
 
 Rollback preparado con el digest anterior:
@@ -594,3 +594,28 @@ La repetición posterior del ensayo HTTP se detuvo en el límite local de cinco
 registros por hora (429), antes de crear cuenta; no se cuenta como ensayo pasado
 ni se alteró ese límite para saltarlo. Los cinco ensayos anteriores siguen
 acreditados por su informe, con el código transaccional sin cambios.
+
+
+### Corrección final publicada: Jenkins #12
+
+La [PR #14](https://github.com/absortian/AbsorConnect/pull/14), con el rechazo de
+capacidades nulas explícitas, se fusionó en
+`e5fb2ea08c2dc9d6e48c2a677cc10020c6166ee3`. Jenkins **#12** desplegó exactamente
+ese commit, resultado `SUCCESS`, manteniendo `--pull`, PHP 8.5.12 y las migraciones
+ya aplicadas, sin una migración adicional. Imagen final:
+`absortian/absortian@sha256:86dbc914786ca23a8e81a5d8faf9cc9f621aca5634a3f552e39525b04254f6de`.
+
+Se verificaron de nuevo las tres réplicas, incluidos los hashes de `AgentRegistry`
+y `AgentInfo`, y **32 comprobaciones HTTPS correctas**: las 30 anteriores más
+rechazo de `capabilities: null` y de una capacidad concreta con valor `null`.
+La segunda cuenta temporal fue eliminada; siguen **cero agentes y cero altas
+pendientes**, y `/api/health` correcto. Informes privados
+`backend-agent-production-replicas-jenkins-12-20261023.json`,
+`backend-agent-production-smoke-jenkins-12-20261023.json`,
+`backend-agent-production-empty-agents-jenkins-12-20261023.log` y
+`backend-agent-jenkins-12-20261023.log`.
+
+El digest del despliegue #11 queda disponible como rollback específico de esta
+corrección; el digest anterior a ambos despliegues permanece documentado arriba.
+Ninguno se restauró porque la verificación fue correcta. El alcance pendiente y
+las puertas de viabilidad no cambian: **7/57 tareas completas**.
