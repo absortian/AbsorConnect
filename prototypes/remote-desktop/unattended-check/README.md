@@ -37,6 +37,14 @@ automáticamente. Código 3 indica falta de pantalla, fotogramas o error de capt
 64 indica argumentos incorrectos. `--probe` termina con 0 aunque falten permisos:
 su éxito solo significa que se ha emitido un diagnóstico válido.
 
+La revisión 0.2.0 emite esquema 2: identifica la fase del fallo y consulta, sin
+cambiarla, la disponibilidad gráfica de la sesión de seguridad y de las pantallas.
+`--capture-loginwindow` permite hasta tres intentos, con esperas de 3 y 5 segundos,
+solo si enumerar el contenido compartible falla con `CGError.invalidContext`
+(1003). Otros errores terminan sin repetirse. Los intentos y sus tiempos quedan
+en el JSON; una captura correcta sigue contando durante dos segundos. Esto permite
+investigar una transición de sesión sin asumir que repetir resuelve la causa.
+
 Ni un resultado `capture_ok_not_certified` demuestra entrada, operación como daemon
 o acceso a `loginwindow`. Esas pruebas requieren un helper autorizado, la identidad
 de distribución y cambios de sesión coordinados para no interrumpir trabajo.
@@ -63,7 +71,7 @@ bash prototypes/remote-desktop/unattended-check/mac/loginwindow-package.sh \
 
 El paquete local sin firma de distribución contiene el mismo bundle firmado y un
 LaunchAgent global, limitado exclusivamente al contexto `LoginWindow`. Se ejecuta
-una vez por contexto, cuenta fotogramas durante dos segundos y termina. No tiene
+una vez por contexto, usa `--capture-loginwindow` y termina. No tiene
 KeepAlive, scripts de instalación, entrada, red ni cambios de la configuración de
 loginwindow. Un fallo del diagnóstico no es condición para permitir iniciar sesión.
 
@@ -75,16 +83,25 @@ Archivos propios del paquete:
 - `/Library/LaunchAgents/com.absor.unattended.probe.loginwindow.plist`.
 - `/Library/Logs/AbsorConnectLab/`, privado de root, para dos informes sin píxeles.
 
+La versión 0.2.0 escribe `loginwindow-report-v2.json` y
+`loginwindow-stderr-v2.txt`; conserva los informes de 0.1.0. Actualizar el paquete
+cambia la firma ad-hoc: los permisos deben volver a verificarse, sin presuponer
+que se conservarán. La lectura administrativa de los informes no requiere abrir
+sus permisos a otros usuarios.
+
 Recuperación: iniciar sesión normalmente, retirar primero ese plist con permisos
 administrativos para impedir futuras ejecuciones y retirar solo el bundle y los
-dos informes propios indicados. El proceso es de una sola ejecución; no hay un
+informes propios indicados de ambas versiones. El proceso es de una sola ejecución; no hay un
 servicio en reinicio continuo que deba pararse. No tocar launch agents de Apple ni
 preferencias del sistema. La lista exacta del payload queda junto al paquete.
 Olvidar el recibo con `pkgutil --forget com.absor.unattended.probe.loginwindow`
 solo retira el recibo; no desinstala los archivos.
 
 Esta prueba no presupone que TCC autorice la captura fuera de la sesión del usuario.
-Su resultado pendiente debe decidir si hace falta revisar la arquitectura Mac.
+El primer informe de `LoginWindow`, facilitado por el propietario, indicó root,
+ambos permisos activos y `capture_error`/`CoreGraphicsErrorDomain` 1003, sin
+captura. No identificaba la fase: no demuestra imposibilidad del acceso Mac ni
+viabilidad de esta arquitectura. La prueba instrumentada sigue pendiente.
 
 ## Mint con X11
 

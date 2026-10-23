@@ -24,7 +24,8 @@ con consulta por defecto y cambios/reinicio mediante opciones explícitas.
 | Mismo binario Mac bajo launchd, dominio `gui/UID` | Trabajo temporal ejecutado: `screenPermission: false`, `missing_screen_permission`, salida 2; se retiró el trabajo y se comprobó su ausencia | Falta autorizar el helper por sí mismo; no certifica ni descarta la arquitectura de un daemon |
 | launchd tras autorización explícita del propietario en Ajustes | Captura correcta: 12 fotogramas con permiso de pantalla; después 11 fotogramas con pantalla y Accesibilidad activas. Trabajo temporal retirado al terminar | No se ha inyectado entrada ni probado un daemon, bloqueo, cierre de sesión o `loginwindow` |
 | launchd durante bloqueo coordinado del Mac | Tras bloquear desde la interfaz con autorización expresa, el mismo helper recibió 11 fotogramas completos; el propietario confirmó después el desbloqueo | No se inspeccionaron píxeles ni se obtuvo un indicador independiente del bloqueo: no certifica contenido visible de la pantalla bloqueada, entrada ni `loginwindow` |
-| Paquete de diagnóstico `LoginWindow` | Instalado tras autorización expresa del propietario; recibo 0.1.0, firma y hash del binario correctos, archivos root/wheel y directorio de informes 0700; sin scripts, red, entrada ni KeepAlive | Aún no ejecutado en `LoginWindow`; pendiente prueba coordinada de cierre de sesión |
+| Paquete de diagnóstico `LoginWindow` | Instalado tras autorización expresa del propietario; recibo 0.1.0, firma y hash del binario correctos, archivos root/wheel y directorio de informes 0700; sin scripts, red, entrada ni KeepAlive | La instalación no acredita disponibilidad gráfica ni captura |
+| Cierre de sesión real del Mac | Cierre confirmado en la interfaz tras autorización expresa; el propietario volvió a iniciar sesión y facilitó el JSON administrativo: UID 0, `loginComplete: false`, ambos permisos activos, `capture_error`, dominio CoreGraphics, código 1003 | Captura fallida; sin fase de error, duración ni atributo de acceso gráfico de la sesión. No demuestra entrada ni imposibilidad de toda arquitectura de acceso previo al login |
 | Bundle instalado bajo launchd del usuario | Once fotogramas completos, permisos de pantalla/Accesibilidad activos, mismo hash firmado que el prototipo inicial; trabajo temporal retirado | No prueba permisos de root/`LoginWindow`, actualización entre versiones ni entrada |
 | Inventario Mint | Mint 22.3 x86_64, Cinnamon/X11, LightDM activo, usuario ordinario | Disponibilidad después de reiniciar |
 | Conexión X11 de Mint | XOpenDisplay correcto con autorización del propio usuario; extensión XTEST disponible | Inyección de entrada, captura, polkit ni acceso al greeter |
@@ -146,15 +147,58 @@ binario instalado coincide con SHA-256
 `7b8127716fc13b6dd2ebe26e16676c2fa1f462ba9f34e4ee2b20ec1c6bb0bf95`.
 La ejecución posterior en launchd `gui/501` capturó once fotogramas con ambos
 permisos activos; informe privado `mac-installed-gui-20261023-a/report.json`.
-La instalación está comprobada, pero su ejecución fuera de la sesión sigue
-pendiente. Los informes `LoginWindow` requieren lectura administrativa por su
+La instalación está comprobada y el primer informe fuera de la sesión dio error.
+Los informes `LoginWindow` requieren lectura administrativa por su
 directorio privado; no se ha cambiado su protección para leerlos.
+
+Tras el cierre de sesión autorizado, el propietario pegó la salida de la lectura
+administrativa del informe. No se ha leído directamente el archivo root ni se
+conoce su hora exacta de ejecución. El JSON de esquema 1 indica
+`screenPermission: true`, `accessibilityPermission: true`, `processUid: 0`,
+`loginComplete: false`, `onConsole: false`, `captureRequested: true`,
+`captureTested: false`, `status: capture_error`,
+`errorDomain: CoreGraphicsErrorDomain` y `errorCode: 1003`. El SDK local de
+CoreGraphics asigna 1003 a `kCGErrorInvalidContext`, no a una denegación de TCC.
+`onConsole: false` no basta para clasificar toda la sesión: esa primera versión
+no consultaba `SessionGetInfo` ni identificaba qué llamada había fallado.
+
+Se preparó la revisión diagnóstica 0.2.0, todavía sin instalar: añade fase del
+error, consulta de acceso gráfico de la sesión de seguridad y de pantallas, y
+hasta tres enumeraciones ante `invalidContext` exclusivamente en
+`SCShareableContent`, con esperas de 3 y 5 segundos. Conserva los resultados de
+todos los intentos; no repite denegaciones ni cambia sesión, TCC o SIP. Es una
+prueba para distinguir un fallo durante la transición de un contexto persistente
+sin acceso gráfico, no una solución validada. Los informes nuevos llevan sufijo
+`-v2` para conservar el resultado original. La tarea 1.3 permanece incompleta.
+Si persiste el fallo en un contexto estabilizado, debe revisarse el diseño Mac
+antes de integrar el agente; no se sustituye por un transporte VNC/RDP.
+
+La revisión 0.2.0 compiló y pasó firma estricta y argumentos inválidos (salida 64).
+Desde el proceso de terminal, ambos modos de captura recibieron once fotogramas
+en un único intento, con acceso gráfico y una pantalla disponibles; Accesibilidad
+figuraba desactivada. Bajo el trabajo temporal `gui/501`, el mismo binario informó
+ambos permisos desactivados y rechazó capturar con `missing_screen_permission`.
+Se retiró ese trabajo. Esto confirma que cambiar la firma ad-hoc exige comprobar
+otra vez los permisos del helper; la captura desde terminal no los acredita bajo
+launchd. No se ha probado aún la rama de reintentos en `LoginWindow`.
+
+Paquete 0.2.0 preparado en el laboratorio:
+`mac-loginwindow-probe-v2-20261023/AbsorLoginWindowProbe.pkg`, SHA-256
+`ecac7c4adefdc7641fc6a6a196ceda5474ce90737195f42b9920e7869640730d`;
+binario SHA-256
+`4431ca1f3fbebd111ba6ee8a3599f8f6f76629334a77b1eedb59db995c2a92a2`.
+`pkgbuild` volvió a emitir cuatro avisos `write: Permission denied` con salida 0;
+se expandió y verificó el contenido completo, igualdad con staging, firma, ausencia
+de scripts/enlaces y permisos root sin escritura de grupo/otros. La instalación
+0.2.0 y su ejecución real en `LoginWindow` permanecen pendientes.
 
 Para preparar la siguiente prueba se intentó guardar la suspensión de la VM.
 UTM la rechazó porque la GPU habilitada no admite instantáneas; aunque su CLI
 devolvió 0, el estado real era `paused`. Se reanudó y se solicitó apagado normal
 con `--request`; se comprobó finalmente `stopped`. No quedó una suspensión
-guardada. El cierre de sesión del Mac aún espera coordinación del propietario.
+guardada. Después se confirmó el cierre de sesión del Mac con autorización del
+propietario; el control del ordenador dejó de responder al confirmarlo. El regreso
+del propietario y el informe facilitado permiten continuar la investigación.
 
 No se han exportado claves de firma, contraseñas, tokens ni cookies Xauthority. No
 se han guardado ni transmitido imágenes de pantalla desde los prototipos.
@@ -211,7 +255,7 @@ el inventario no certifica la funcionalidad.
   LightDM/systemd requiere instalación administrativa autorizada cuando el
   prototipo esté listo; las comprobaciones actuales no la han intentado.
 - Aún pendientes: vídeo y TURN con libwebrtc, compatibilidad Flutter, prueba
-  `LoginWindow`, prueba de entrada/captura privilegiada, estrategia de distribución Mac,
+  nueva prueba instrumentada de `LoginWindow`, prueba de entrada/captura privilegiada, estrategia de distribución Mac,
   backend limitado, interfaz, pruebas de red exterior y todos los demás criterios.
 
 El despliegue permanece pendiente de la funcionalidad y verificaciones definidas

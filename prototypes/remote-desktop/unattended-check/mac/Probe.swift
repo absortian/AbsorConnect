@@ -3,6 +3,7 @@ import ApplicationServices
 import CoreMedia
 import Foundation
 import ScreenCaptureKit
+import Security
 
 private final class FrameCounter: NSObject, SCStreamOutput, @unchecked Sendable {
   private let lock = NSLock()
@@ -31,16 +32,18 @@ private final class FrameCounter: NSObject, SCStreamOutput, @unchecked Sendable 
 private struct Probe {
   static func main() async {
     let arguments = Array(CommandLine.arguments.dropFirst())
-    guard arguments.isEmpty || arguments == ["--probe"] || arguments == ["--capture"] else {
-      FileHandle.standardError.write(Data("Uso: AbsorUnattendedProbe [--probe|--capture]\n".utf8))
+    guard arguments.isEmpty || arguments == ["--probe"] || arguments == ["--capture"]
+            || arguments == ["--capture-loginwindow"] else {
+      FileHandle.standardError.write(Data("Uso: AbsorUnattendedProbe [--probe|--capture|--capture-loginwindow]\n".utf8))
       exit(64)
     }
-    let capture = arguments == ["--capture"]
+    let retryLoginWindow = arguments == ["--capture-loginwindow"]
+    let capture = arguments == ["--capture"] || retryLoginWindow
     let screenGranted = CGPreflightScreenCaptureAccess()
     let accessibilityGranted = AXIsProcessTrusted()
     let session = CGSessionCopyCurrentDictionary() as? [String: Any] ?? [:]
     var report: [String: Any] = [
-      "schema": 1,
+      "schema": 2,
       "platform": "macos",
       "osVersion": ProcessInfo.processInfo.operatingSystemVersionString,
       "processUid": getuid(),
@@ -54,6 +57,7 @@ private struct Probe {
       "preLoginTested": false,
       "readyForUnattended": false
     ]
+    report["graphicsContext"] = graphicsContext()
     var result: Int32 = 0
     if capture {
       guard screenGranted else {
@@ -62,13 +66,63 @@ private struct Probe {
         emit(report)
         exit(2)
       }
-      do {
-        let content = try await SCShareableContent.excludingDesktopWindows(
-          false, onScreenWindowsOnly: true)
-        guard let display = content.displays.first else {
-          report["status"] = "no_display"
-          emit(report)
-          exit(3)
+      // Solo se repite invalidContext: no se solicitan permisos ni se cambia de sesión.
+      let started = DispatchTime.now().uptimeNanoseconds
+      var attempts: [[String: Any]] = []
+      for attempt in 0..<(retryLoginWindow ? 3 : 1) {
+        if attempt > 0 {
+          try? await Task.sleep(nanoseconds: attempt == 1 ? 3_000_000_000 : 5_000_000_000)
+        }
+        var outcome = await captureOnce()
+        outcome["attempt"] = attempt + 1
+        outcome["elapsedMilliseconds"] = (DispatchTime.now().uptimeNanoseconds - started) / 1_000_000
+        attempts.append(outcome)
+        result = outcome["status"] as? String == "capture_ok_not_certified" ? 0 : 3
+        guard retryLoginWindow,
+              outcome["errorStage"] as? String == "shareable_content",
+              outcome["errorDomain"] as? String == "CoreGraphicsErrorDomain",
+              outcome["errorCode"] as? Int == Int(CGError.invalidContext.rawValue) else { break }
+      }
+      if let finalAttempt = attempts.last {
+        for (key, value) in finalAttempt { report[key] = value }
+      }
+      report["attempts"] = attempts
+    } else {
+      report["status"] = "probe_only_not_certified"
+    }
+    emit(report)
+    exit(result)
+  }
+
+  private static func graphicsContext() -> [String: Any] {
+    var identifier: SecuritySessionId = 0
+    var attributes = SessionAttributeBits(rawValue: 0)
+    let status = SessionGetInfo(callerSecuritySession, &identifier, &attributes)
+    var displays = [CGDirectDisplayID](repeating: 0, count: 16)
+    var count: UInt32 = 0
+    let displayStatus = CGGetOnlineDisplayList(16, &displays, &count)
+    var result: [String: Any] = [
+      "securitySessionQueryStatus": status,
+      "displayQueryStatus": displayStatus.rawValue
+    ]
+    if status == errSecSuccess {
+      result["hasGraphicAccess"] = attributes.contains(.sessionHasGraphicAccess)
+      result["isRootSecuritySession"] = attributes.contains(.sessionIsRoot)
+    }
+    if displayStatus == .success { result["onlineDisplayCount"] = count }
+    return result
+  }
+
+  private static func captureOnce() async -> [String: Any] {
+    var report: [String: Any] = ["captureTested": false, "graphicsContext": graphicsContext()]
+    var stage = "shareable_content"
+    do {
+      let content = try await SCShareableContent.excludingDesktopWindows(
+        false, onScreenWindowsOnly: true)
+      report["displayCount"] = content.displays.count
+      guard let display = content.displays.first else {
+        report["status"] = "no_display"
+        return report
         }
         let counter = FrameCounter()
         let configuration = SCStreamConfiguration()
@@ -80,28 +134,27 @@ private struct Probe {
         configuration.showsCursor = false
         let filter = SCContentFilter(display: display, excludingWindows: [])
         let stream = SCStream(filter: filter, configuration: configuration, delegate: nil)
+        stage = "add_output"
         try stream.addStreamOutput(counter, type: .screen,
                                    sampleHandlerQueue: DispatchQueue(label: "probe.frames"))
+        stage = "start_capture"
         try await stream.startCapture()
+        stage = "count_frames"
         try await Task.sleep(nanoseconds: 2_000_000_000)
+        stage = "stop_capture"
         try await stream.stopCapture()
         report["captureTested"] = true
         report["completeFrames"] = counter.count
         report["displayCount"] = content.displays.count
         report["status"] = counter.count > 0 ? "capture_ok_not_certified" : "no_frames"
-        result = counter.count > 0 ? 0 : 3
       } catch {
         let failure = error as NSError
         report["status"] = "capture_error"
         report["errorDomain"] = failure.domain
         report["errorCode"] = failure.code
-        result = 3
+        report["errorStage"] = stage
       }
-    } else {
-      report["status"] = "probe_only_not_certified"
-    }
-    emit(report)
-    exit(result)
+    return report
   }
 
   private static func emit(_ report: [String: Any]) {
