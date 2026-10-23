@@ -619,3 +619,83 @@ El digest del despliegue #11 queda disponible como rollback específico de esta
 corrección; el digest anterior a ambos despliegues permanece documentado arriba.
 Ninguno se restauró porque la verificación fue correcta. El alcance pendiente y
 las puertas de viabilidad no cambian: **7/57 tareas completas**.
+
+## Laboratorio aislado y controlador iOS — 23/10/2026
+
+A petición del propietario se prepara un laboratorio que no necesite cerrar su
+sesión principal. UTM creó **AbsorConnect macOS Lab**, Apple Virtualization,
+8 GiB, cuatro núcleos, disco nuevo de 80 GiB y ninguna carpeta compartida.
+Se descargó desde Apple `UniversalMac_27.0.1_26A434_Restore.ipsw`, se instaló y
+arrancó hasta el asistente inicial. Sigue pendiente autorizar la licencia y
+configurar el usuario/permisos del invitado. No está listo como host de pruebas
+desatendidas ni se han repetido los ensayos de `loginwindow`. La VM de Windows
+se conserva y no se modifica el diagnóstico del Mac físico.
+
+Se instalaron los runtimes oficiales de Simulator desde Xcode y se creó
+**AbsorConnect iPad Lab**, iPad Pro 11 pulgadas M4, iOS 27.0 (24A434), arm64.
+El runtime 27.1 instalado solo anuncia compatibilidad con iPhone Duo; no se
+forzó una combinación incompatible. La app se compiló desde una copia externa
+de `mobile/`, conservando sin cambios los dos archivos iOS editados previamente
+por el propietario.
+
+El nuevo ensayo `webrtc-check/mobile-interop-test.dart` usa el WebRTC real del
+plugin y la autenticación Dart/CommonCrypto de producción contra
+`video_channel_check`, con la misma huella de binario ya registrada. El servidor
+local `serve-mobile.py` está acotado a tres casos, a loopback y al binario
+artificial; no necesita cuentas ni puede ejecutar órdenes indicadas por HTTP.
+
+**9/9 casos finales correctos**: contraseña válida, prueba incorrecta y huella
+alterada, cada una en directo y con el controlador obligado a TURN UDP o TLS.
+En directo, `host/host`; por relé, `relay/srflx` con `relayProtocol` correspondiente.
+La contraseña válida produjo dos fotogramas decodificados 320×180 y los casos
+negativos cero. Ambos extremos concuerdan, sin captura real ni entrada del SO.
+Las copias temporales de credenciales TURN se retiraron. Informe privado
+`mobile-native-matrix-final-20261023.json`; logs individuales y SDP siguen en el
+laboratorio externo. El servidor rechaza cinco peticiones HTTP malformadas antes
+de lanzar procesos. Compilación iOS, análisis del nuevo test sin incidencias y
+`npm run typecheck` correctos.
+
+No se certifica rendimiento físico iPad/iPhone, Android, entrada nativa ni el
+flujo completo de la app mediante estas pruebas. **1.5 y 1.3 siguen abiertas;
+el total continúa en 7/57**. Los resultados de una VM Mac tampoco sustituirán la
+validación final del equipo físico y de su cifrado de arranque.
+
+### Investigación de tirones anterior a este cambio
+
+El propietario identifica el recorrido **iPad → Windows**, sin recordar si
+ambos estaban en la misma red. No hay estadísticas históricas de esa sesión.
+Se inspeccionó el host publicado: captura objetivo 30 fps, `contentHint=detail`
+y `degradationPreference=maintain-resolution`. Las ventanas mantienen
+`backgroundThrottling: false`. No se modificó el comportamiento de la app ni la
+configuración de producción a partir de estas hipótesis.
+
+Un arnés privado, separado de los instaladores, midió 16 casos de vídeo artificial
+en dos peers Chromium del mismo Mac. No captura la pantalla ni inyecta entrada.
+Cada caso usa cinco segundos de calentamiento y doce segundos de medida. El
+canal de eco mide ida/vuelta del transporte; no mide la aplicación de entrada en
+Windows. Los resultados no equivalen al rendimiento del iPad físico.
+
+| Ensayo | Resultado observado |
+|---|---|
+| Directo, 720p y 1080p | Aproximadamente 30 fps, sin pérdidas ni congelaciones. |
+| Directo, 4K con detalle | 28,8 fps; búfer medio de vídeo 123 ms pese a eco local inferior a 1 ms. |
+| Codificador limitado a 1 Mbit/s, 4K con detalle | 11–12 fps con las tres preferencias probadas: mantener resolución, equilibrada y mantener fotogramas. Cambiar solo esa preferencia no bastó. |
+| Mismo límite, 1080p con detalle | 30,1 fps. La carga de resolución es una hipótesis que merece adaptación explícita y verificación de legibilidad. |
+| TURN UDP real, 720p/1080p/4K | Aproximadamente 30 fps; mediana de eco 95–103 ms. |
+| TURN TLS real, primer caso 720p | Media 17,6 fps, intervalos de 9–19 fps antes de recuperar 30; una congelación, 25 paquetes contabilizados como perdidos, búfer medio 224 ms y eco p95 296 ms. |
+| TURN TLS, otros tres casos | Aproximadamente 30 fps, con mayor búfer/retardo que en UDP. |
+
+Las medidas por relé comprueban el candidato elegido y su protocolo. La primera
+preparación TLS sin STUN no conectó; se conserva como fallo del arnés. Al añadir
+el STUN del entorno, el host obtuvo candidato reflejado y se completaron las
+medidas con `relay/srflx`, sin cambiar políticas del servidor. Se conserva también
+un error inicial de negociación del canal de datos del arnés, corregido antes de
+las medidas. No se cuentan como fallos de sesiones de usuarios ni como pruebas
+superadas.
+
+Evidencia privada: `performance-20261023/{summary.json,report-*.json}` y fuentes
+del arnés. La caída temporal por TLS y la caída bajo presupuesto de codificación
+son indicios distintos, no una causa confirmada del incidente del propietario.
+Para corregirlo con garantías faltan resolución/códec, ruta/protocolo ICE, pérdida,
+retardo del búfer y coste de captura/codificación/decodificación de una sesión
+real Windows → iPad. No se aumentaron cuotas ni se publicó una supuesta solución.
