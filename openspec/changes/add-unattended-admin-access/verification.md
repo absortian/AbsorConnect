@@ -189,8 +189,17 @@ binario SHA-256
 `4431ca1f3fbebd111ba6ee8a3599f8f6f76629334a77b1eedb59db995c2a92a2`.
 `pkgbuild` volvió a emitir cuatro avisos `write: Permission denied` con salida 0;
 se expandió y verificó el contenido completo, igualdad con staging, firma, ausencia
-de scripts/enlaces y permisos root sin escritura de grupo/otros. La instalación
-0.2.0 y su ejecución real en `LoginWindow` permanecen pendientes.
+de scripts/enlaces y permisos root sin escritura de grupo/otros.
+
+Tras autorización expresa para actualizar, volver a conceder ambos permisos y
+repetir el cierre de sesión, el instalador informó instalación completada.
+Se verificaron recibo 0.2.0, hash y firma del bundle instalado, plist limitado a
+`LoginWindow` con el modo nuevo y rutas de informes `-v2`. La primera ejecución
+del bundle instalado bajo `gui/501` rechazó la captura por falta de permiso;
+su trabajo se retiró. Ajustes conservaba una entrada del prototipo anterior
+activada, lo que no acredita permiso para la firma nueva. Actualización de
+permisos y segunda ejecución real en `LoginWindow` en curso; no se deduce éxito
+de la instalación. Metadatos privados en `mac-diagnostic-v2-install-20261023.json`.
 
 Para preparar la siguiente prueba se intentó guardar la suspensión de la VM.
 UTM la rechazó porque la GPU habilitada no admite instantáneas; aunque su CLI
