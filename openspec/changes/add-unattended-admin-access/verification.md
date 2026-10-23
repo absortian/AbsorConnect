@@ -285,9 +285,13 @@ instalar, renovar permisos y probar el movimiento/restauración del puntero tras
 cerrar sesión. La instalación terminó después de que completara la autenticación
 local: se verificaron recibo 0.3.0, hash, firma estricta, modo de ejecución y rutas
 de informes `-v3`. Antes de renovar permisos, el trabajo temporal `gui/501` rechazó
-capturar con ambos permisos en falso; fue retirado. Autenticación en Ajustes para
-renovar los permisos en curso; el ensayo real de puntero en `LoginWindow` sigue
-pendiente. Metadatos privados en `mac-diagnostic-v3-install-20261023.json`.
+capturar con ambos permisos en falso; fue retirado. Tras autenticación del
+propietario se retiraron las entradas antiguas y se añadió por la interfaz el
+bundle instalado 0.3.0 para pantalla y Accesibilidad. El trabajo temporal posterior
+`gui/501` recibió once fotogramas en 2183 ms con ambos permisos activos; no pidió
+ni aplicó entrada. Se retiró el trabajo. El ensayo real de puntero en `LoginWindow`
+sigue pendiente, con cierre de sesión autorizado. VM apagada y plist verificado
+antes de la prueba. Metadatos privados en `mac-diagnostic-v3-install-20261023.json`.
 
 Para preparar la siguiente prueba se intentó guardar la suspensión de la VM.
 UTM la rechazó porque la GPU habilitada no admite instantáneas; aunque su CLI
