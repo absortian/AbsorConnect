@@ -336,5 +336,12 @@
       "not_signed_in": "Sign in to your account to turn it on.",
       "device_name_invalid": "The name must be between 1 and 100 characters."
     }
+  },
+  "remoteStream": {
+    "quality": "Video quality",
+    "balanced": "Balanced",
+    "smooth": "Smooth",
+    "native": "Original resolution",
+    "buffer": "Video buffer"
   }
 }

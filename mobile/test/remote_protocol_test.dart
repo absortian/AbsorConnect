@@ -116,6 +116,24 @@ void main() {
       expect(parseHostMessage('{"v":1,"type":"hello","salt":"x"}'), isNull);
     });
 
+    test('extensión de calidad compatible con hosts anteriores y perfiles estrictos', () {
+      final old = parseHostMessage('{"v":1,"type":"features","audio":true}') as FeaturesMessage;
+      expect(old.streamQuality, isFalse);
+      final current = parseHostMessage('{"v":1,"type":"features","streamQuality":true}') as FeaturesMessage;
+      expect(current.streamQuality, isTrue);
+      for (final profile in StreamProfile.values) {
+        final message = parseHostMessage(jsonEncode({'v': 1, 'type': 'stream-quality', 'profile': profile.name})) as StreamQualityMessage;
+        expect(message.profile, profile);
+        expect(jsonDecode(setStreamQualityMessage(profile)), {'v': 1, 'type': 'set-stream-quality', 'profile': profile.name});
+      }
+      for (final profile in ['4k', '', null, 1, {}, ['smooth']]) {
+        expect(parseHostMessage(jsonEncode({'v': 1, 'type': 'stream-quality', 'profile': profile})), isNull);
+      }
+      for (final version in [null, 0, 2, '1']) {
+        expect(parseHostMessage(jsonEncode({'v': version, 'type': 'stream-quality', 'profile': 'smooth'})), isNull);
+      }
+    });
+
     test('lo que envía el móvil', () {
       expect(jsonDecode(authMessage('prueba')), {'v': 1, 'type': 'auth', 'proof': 'prueba'});
       expect(jsonDecode(selectDisplayMessage('10')), {'v': 1, 'type': 'select-display', 'id': '10'});

@@ -336,5 +336,12 @@
       "not_signed_in": "Inicia sesión en tu cuenta para activarlo.",
       "device_name_invalid": "El nombre debe tener entre 1 y 100 caracteres."
     }
+  },
+  "remoteStream": {
+    "quality": "Calidad de vídeo",
+    "balanced": "Equilibrado",
+    "smooth": "Fluido",
+    "native": "Resolución original",
+    "buffer": "Búfer de vídeo"
   }
 }

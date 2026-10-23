@@ -1,7 +1,11 @@
+import esLocale from '../src/locales/es.json'
+import enLocale from '../src/locales/en.json'
+
 // Textos de la ventana de visor, en el idioma de la app (es/en). Cada fallo tiene su mensaje
 // (remote-desktop-viewer, "Fallos comprensibles").
 
 export interface ViewerTexts {
+  stream: typeof esLocale.remoteStream
   passwordTitle: (pc: string) => string
   passwordHint: string
   password: string
@@ -52,6 +56,7 @@ function minutes(seconds?: number): string {
 }
 
 const es: ViewerTexts = {
+  stream: esLocale.remoteStream,
   passwordTitle: (pc) => `Conectar con ${pc}`,
   passwordHint: 'Escribe la contraseña de control remoto de ese PC.',
   password: 'Contraseña del PC',
@@ -136,6 +141,7 @@ const es: ViewerTexts = {
 }
 
 const en: ViewerTexts = {
+  stream: enLocale.remoteStream,
   passwordTitle: (pc) => `Connect to ${pc}`,
   passwordHint: "Enter that PC's remote control password.",
   password: 'PC password',

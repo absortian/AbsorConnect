@@ -94,9 +94,13 @@ describe('ViewerTransfers', () => {
     const first = new Uint8Array(randomBytes(200_000))
     const second = new Uint8Array(randomBytes(70_000))
     transfers.upload([new File([first], 'uno.bin'), new File([second], 'dos.bin')])
-    await tick(50)
-    expect(last(1)).toMatchObject({ status: 'done', result: 'guardado-1', bytes: 200_000 })
-    expect(last(2)).toMatchObject({ status: 'done', result: 'guardado-2', bytes: 70_000 })
+    await vi.waitFor(
+      () => {
+        expect(last(1)).toMatchObject({ status: 'done', result: 'guardado-1', bytes: 200_000 })
+        expect(last(2)).toMatchObject({ status: 'done', result: 'guardado-2', bytes: 70_000 })
+      },
+      { timeout: 2000, interval: 10 }
+    )
     expect(Buffer.concat(received.get(1)!).equals(Buffer.from(first))).toBe(true)
     // Nunca un trozo de más de 64 KB
     expect(Math.max(...[...received.values()].flat().map((c) => c.length))).toBeLessThanOrEqual(

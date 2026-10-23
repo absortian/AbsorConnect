@@ -1285,6 +1285,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Error ({code})'**
   String remoteTransferErrOther(String code);
+
+  /// No description provided for @remoteStreamQuality.
+  ///
+  /// In en, this message translates to:
+  /// **'Video quality'**
+  String get remoteStreamQuality;
+
+  /// No description provided for @remoteStreamBalanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Balanced'**
+  String get remoteStreamBalanced;
+
+  /// No description provided for @remoteStreamSmooth.
+  ///
+  /// In en, this message translates to:
+  /// **'Smooth'**
+  String get remoteStreamSmooth;
+
+  /// No description provided for @remoteStreamNative.
+  ///
+  /// In en, this message translates to:
+  /// **'Original resolution'**
+  String get remoteStreamNative;
+
+  /// No description provided for @remoteStreamBuffer.
+  ///
+  /// In en, this message translates to:
+  /// **'Video buffer'**
+  String get remoteStreamBuffer;
 }
 
 class _AppLocalizationsDelegate

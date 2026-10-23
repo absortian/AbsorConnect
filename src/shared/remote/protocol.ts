@@ -2,8 +2,8 @@
 // visor de escritorio y la app móvil. Los mensajes son JSON con `v` y `type`; los tipos desconocidos
 // se ignoran. Antes de autenticar, el PC solo atiende `auth`.
 //
-// PC → controlador: hello, auth-result, features, displays, clipboard, bye.
-// Controlador → PC: auth, select-display, clipboard, bye.
+// PC → controlador: hello, auth-result, features, displays, stream-quality, clipboard, bye.
+// Controlador → PC: auth, select-display, set-stream-quality, clipboard, bye.
 // Los eventos de entrada van por los canales `input` y `pointer` (input.ts), y los ficheros por el
 // canal `file` (transfer.ts).
 import { ClipboardPiece, parseClipboardPiece } from './transfer'
@@ -55,6 +55,19 @@ export interface FeaturesMessage {
   clipboard: boolean
   files: boolean
   audio: boolean
+  /** Extensión opcional v1; ausente en hosts anteriores. */
+  streamQuality?: boolean
+}
+
+export const STREAM_PROFILES = ['balanced', 'smooth', 'native'] as const
+export type StreamProfile = (typeof STREAM_PROFILES)[number]
+export function isStreamProfile(value: unknown): value is StreamProfile {
+  return typeof value === 'string' && STREAM_PROFILES.some((profile) => profile === value)
+}
+export interface StreamQualityMessage {
+  v: 1
+  type: 'stream-quality'
+  profile: StreamProfile
 }
 
 export interface DisplaysMessage {
@@ -79,12 +92,14 @@ export type HostMessage =
   | AuthResultMessage
   | FeaturesMessage
   | DisplaysMessage
+  | StreamQualityMessage
   | ClipboardPiece
   | ByeMessage
 
 export type ControllerMessage =
   | { v: 1; type: 'auth'; proof: string }
   | { v: 1; type: 'select-display'; id: string }
+  | { v: 1; type: 'set-stream-quality'; profile: StreamProfile }
   | ClipboardPiece
   | ByeMessage
 
@@ -111,6 +126,10 @@ export function parseControllerMessage(raw: unknown): ControllerMessage | null {
     case 'select-display':
       return typeof data.id === 'string' && data.id.length <= 64
         ? { v: 1, type: 'select-display', id: data.id }
+        : null
+    case 'set-stream-quality':
+      return data.v === 1 && isStreamProfile(data.profile)
+        ? { v: 1, type: 'set-stream-quality', profile: data.profile }
         : null
     case 'clipboard':
       return parseClipboardPiece(data)

@@ -110,3 +110,19 @@ Para un APK de release firmado en local, `android/app/build.gradle.kts` lee la c
 ANDROID_KEYSTORE_PATH=/ruta/absorconnect-android.jks ANDROID_KEYSTORE_PASSWORD=… ANDROID_KEY_ALIAS=absorconnect ANDROID_KEY_PASSWORD=… \
   flutter build apk --release
 ```
+
+### Calidad y diagnóstico de vídeo
+
+Si el PC anuncia la extensión de calidad del protocolo v1, la barra de control
+ofrece **Equilibrado** (hasta 1920×1080), **Fluido** (hasta 1280×720) y
+**Resolución original**. Se conserva toda la pantalla, su proporción y las
+coordenadas normalizadas de entrada; no se recorta ni amplía la imagen. Los
+perfiles limitan el vídeo a 30 fps. WebRTC adapta la transmisión a la conexión:
+no garantizan 30 fps ni una latencia fija. El selector refleja la confirmación
+del PC y recuerda la preferencia durante las reconexiones de esa sesión.
+
+La barra muestra resolución recibida, fps, RTT del transporte, kbit/s de vídeo
+recibido y tiempo medio del búfer de vídeo durante el último intervalo. El RTT
+y el búfer no miden el tiempo entre una pulsación y su resultado visible.
+Un dato ausente se omite. Son estadísticas locales en memoria, sin telemetría.
+Un host anterior conserva su funcionamiento y no muestra el selector.

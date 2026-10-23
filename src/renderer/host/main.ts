@@ -10,6 +10,8 @@ import {
   PROTOCOL_VERSION
 } from '../../shared/remote/protocol'
 import { HostTransfers } from './transfers'
+import { HostCapture, videoConstraints } from './capture'
+import type { StreamProfile } from '../../shared/remote/protocol'
 
 const host = window.absorHost
 
@@ -26,12 +28,26 @@ let control: RTCDataChannel | null = null
 let features: HostFeatures = { clipboard: false, files: false, audio: false }
 let authenticating = false
 let authenticated = false
-let stream: MediaStream | null = null
 /** Etiqueta de la fuente virtual de sonido en Linux (D8); null si el sonido va por `loopback`. */
 let audioLabel: string | null = null
 let ending = false
 let disconnectedTimer: ReturnType<typeof setTimeout> | null = null
 /** Ficheros (canal `file`) y portapapeles (canal `control`), D9. */
+const capture = new HostCapture({
+  allowed: () => authenticated && !ending && pc !== null,
+  acquire: acquireCapture,
+  prepare: async (stream) => {
+    if (audioLabel && !ending) {
+      const track = await openAudioSource(audioLabel)
+      if (track) {
+        if (ending) track.stop()
+        else stream.addTrack(track)
+      }
+    }
+  },
+  transceivers: () => pc?.getTransceivers() ?? []
+})
+
 const transfers = new HostTransfers({
   host,
   authenticated: () => authenticated,
@@ -45,7 +61,9 @@ host.onStart((init: HostInit) => {
     return
   }
   features = init.features
-  host.onAudioChanged(() => void reopenAudio())
+  host.onAudioChanged(() => {
+    void capture.run(reopenAudio).catch((error) => fail('capture_failed', error))
+  })
   host.onClipboard((content) => void transfers.sendClipboard(content))
   // Latido para el proceso principal: si esta ventana se cuelga, la sesión se cierra igualmente
   setInterval(() => host.alive(), 2000)
@@ -95,7 +113,8 @@ function attach(channel: RTCDataChannel): void {
   switch (channel.label) {
     case CHANNELS.control:
       control = channel
-      channel.onmessage = (event) => void onControl(event.data)
+      channel.onmessage = (event) =>
+        void onControl(event.data).catch((error) => fail('ended', error))
       channel.onclose = () => end('ended')
       if (channel.readyState === 'open') void sendHello()
       else channel.onopen = () => void sendHello()
@@ -104,7 +123,7 @@ function attach(channel: RTCDataChannel): void {
     case CHANNELS.pointer:
       // Antes de autenticar se descarta todo (y el proceso principal lo vuelve a comprobar)
       channel.onmessage = (event) => {
-        if (!authenticated || typeof event.data !== 'string') return
+        if (!authenticated || ending || typeof event.data !== 'string') return
         try {
           host.input(JSON.parse(event.data))
         } catch {
@@ -137,7 +156,7 @@ async function sendHello(): Promise<void> {
 
 async function onControl(data: unknown): Promise<void> {
   const message = parseControllerMessage(data)
-  if (!message) return
+  if (!message || ending) return
   if (message.type === 'bye') {
     end('closed')
     return
@@ -147,6 +166,7 @@ async function onControl(data: unknown): Promise<void> {
     if (message.type !== 'auth' || authenticating) return
     authenticating = true
     const result = await host.auth(message.proof)
+    if (ending) return
     send(result)
     if (!result.ok) {
       setTimeout(() => end(result.reason), 500)
@@ -154,10 +174,14 @@ async function onControl(data: unknown): Promise<void> {
     }
     authenticated = true
     try {
-      await capture()
-      host.captureStarted()
-      send({ v: PROTOCOL_VERSION, type: 'features', ...features })
-      await sendDisplays()
+      await capture.run(async () => {
+        await capture.replace()
+        if (ending) return
+        host.captureStarted()
+        send({ v: PROTOCOL_VERSION, type: 'features', ...features, streamQuality: true })
+        confirmProfile()
+        await sendDisplays()
+      })
     } catch (error) {
       fail('capture_failed', error)
     }
@@ -167,51 +191,37 @@ async function onControl(data: unknown): Promise<void> {
     transfers.onClipboardPiece(message)
     return
   }
-  if (message.type === 'select-display' && (await host.selectDisplay(message.id))) {
+  if (message.type === 'select-display' || message.type === 'set-stream-quality') {
     try {
-      await capture()
-      await sendDisplays()
+      await capture.run(async () => {
+        if (message.type === 'select-display') {
+          if (!(await host.selectDisplay(message.id)) || ending) return
+          await capture.replace()
+          if (!ending) await sendDisplays()
+        } else {
+          await capture.setProfile(message.profile)
+        }
+        if (!ending) confirmProfile()
+      })
     } catch (error) {
       fail('capture_failed', error)
     }
   }
 }
 
-/** Captura la pantalla elegida (la elige el proceso principal) y la pone en los transceptores. */
-async function capture(): Promise<void> {
-  const connection = pc
-  if (!connection) return
-  // En Linux el sonido no va con la pantalla: llega por la fuente virtual que crea el proceso principal
+function confirmProfile(): void {
+  send({ v: PROTOCOL_VERSION, type: 'stream-quality', profile: capture.profile })
+}
+
+/** Captura tras autenticar, con el perfil vigente también al cambiar de monitor. */
+async function acquireCapture(profile: StreamProfile): Promise<MediaStream> {
   if (features.audio && audioLabel === null) audioLabel = await host.audioSource()
+  if (ending) throw new Error('session_closed')
   const next = await navigator.mediaDevices.getDisplayMedia({
-    video: { frameRate: { ideal: 30, max: 30 } },
+    video: videoConstraints(profile),
     audio: features.audio && audioLabel === null
   })
-  if (audioLabel) {
-    const track = await openAudioSource(audioLabel)
-    if (track) next.addTrack(track)
-  }
-  const [video] = next.getVideoTracks()
-  const [audio] = next.getAudioTracks()
-  // Texto nítido: con poco ancho de banda baja la fluidez antes que la resolución (D2)
-  if (video) video.contentHint = 'detail'
-  for (const transceiver of connection.getTransceivers()) {
-    const kind = transceiver.receiver.track.kind
-    const track = kind === 'video' ? video : kind === 'audio' ? audio : undefined
-    if (!track) continue
-    await transceiver.sender.replaceTrack(track)
-    if (kind === 'video') {
-      try {
-        const parameters = transceiver.sender.getParameters()
-        parameters.degradationPreference = 'maintain-resolution'
-        await transceiver.sender.setParameters(parameters)
-      } catch {
-        // No todas las versiones lo admiten: se queda con lo que negocie WebRTC
-      }
-    }
-  }
-  stream?.getTracks().forEach((track) => track.stop())
-  stream = next
+  return next
 }
 
 /**
@@ -247,13 +257,27 @@ async function openAudioSource(label: string): Promise<MediaStreamTrack | null> 
 /** La salida por defecto ha cambiado y la fuente se ha vuelto a crear: se cambia la pista. */
 async function reopenAudio(): Promise<void> {
   const connection = pc
+  const stream = capture.stream
   if (!connection || !stream || !audioLabel) return
   const track = await openAudioSource(audioLabel)
   if (!track) return
+  if (ending || capture.stream !== stream) {
+    track.stop()
+    return
+  }
   const sender = connection
     .getTransceivers()
     .find((transceiver) => transceiver.receiver.track.kind === 'audio')?.sender
-  await sender?.replaceTrack(track)
+  try {
+    await sender?.replaceTrack(track)
+  } catch (error) {
+    track.stop()
+    throw error
+  }
+  if (ending) {
+    track.stop()
+    return
+  }
   for (const old of stream.getAudioTracks()) {
     old.stop()
     stream.removeTrack(old)
@@ -263,7 +287,7 @@ async function reopenAudio(): Promise<void> {
 
 async function sendDisplays(): Promise<void> {
   const { displays, current } = await host.displays()
-  send({ v: PROTOCOL_VERSION, type: 'displays', displays, current })
+  if (!ending) send({ v: PROTOCOL_VERSION, type: 'displays', displays, current })
 }
 
 function fail(reason: string, error: unknown): void {
@@ -275,9 +299,10 @@ function fail(reason: string, error: unknown): void {
 function end(reason: string, fromMain = false): void {
   if (ending) return
   ending = true
+  authenticated = false
   send({ v: PROTOCOL_VERSION, type: 'bye', reason })
   transfers.detach()
-  stream?.getTracks().forEach((track) => track.stop())
+  capture.close()
   setTimeout(() => {
     pc?.close()
     if (!fromMain) host.ended(reason)

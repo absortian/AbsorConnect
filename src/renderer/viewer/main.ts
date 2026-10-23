@@ -2,7 +2,8 @@
 // muestra su pantalla con el teclado, el ratón, las pantallas, el sonido y el estado de la conexión.
 // Una ventana por PC; cerrarla termina la sesión.
 import './viewer.css'
-import type { DisplayInfo } from '../../shared/remote/protocol'
+import { STREAM_PROFILES, type StreamProfile, type DisplayInfo } from '../../shared/remote/protocol'
+import { emptyVideoStats } from './videoStats'
 import { FilesUi, setupFilesUi } from './filesUi'
 import { attachInput, COMBOS, InputSink, sendCombo } from './input'
 import { Phase, Stats, ViewerSession } from './session'
@@ -21,6 +22,7 @@ const password = $<HTMLInputElement>('password')
 const connectButton = $<HTMLButtonElement>('connect')
 const status = $('status')
 const displaysSelect = $<HTMLSelectElement>('displays')
+const qualitySelect = $<HTMLSelectElement>('quality')
 const scaleButton = $<HTMLButtonElement>('scale')
 const fullscreenButton = $<HTMLButtonElement>('fullscreen')
 const combosButton = $<HTMLButtonElement>('combos')
@@ -45,7 +47,18 @@ async function main(): Promise<void> {
   disconnectButton.textContent = t.disconnect
 
   let phase: Phase = 'idle'
-  let stats: Stats = { route: null, rttMs: null, fps: null }
+  let stats: Stats = emptyVideoStats()
+  let confirmedProfile: StreamProfile = 'balanced'
+  qualitySelect.setAttribute('aria-label', t.stream.quality)
+  qualitySelect.title = t.stream.quality
+  qualitySelect.replaceChildren(
+    ...STREAM_PROFILES.map((profile) => {
+      const option = document.createElement('option')
+      option.value = profile
+      option.textContent = t.stream[profile]
+      return option
+    })
+  )
   let files: FilesUi | null = null
   let renderTransfer: (view: TransferView) => void = () => undefined
 
@@ -74,9 +87,14 @@ async function main(): Promise<void> {
       },
       displays: renderDisplays,
       features: (features) => {
+        qualitySelect.hidden = !features.streamQuality
         muteButton.hidden = !features.audio
         noAudio.hidden = features.audio
         files?.setFeatures(features)
+      },
+      quality: (profile) => {
+        confirmedProfile = profile
+        qualitySelect.value = profile
       },
       stats: (next) => {
         stats = next
@@ -119,7 +137,11 @@ async function main(): Promise<void> {
     const parts = [stats.route === 'relay' ? t.relay : stats.route === 'direct' ? t.direct : '']
     if (stats.rttMs !== null) parts.push(`${stats.rttMs} ms`)
     if (stats.fps !== null) parts.push(`${stats.fps} fps`)
+    if (stats.width !== null && stats.height !== null) parts.push(`${stats.width}×${stats.height}`)
+    if (stats.kbps !== null) parts.push(`${stats.kbps} kbit/s`)
+    if (stats.bufferMs !== null) parts.push(`${t.stream.buffer}: ${stats.bufferMs} ms`)
     status.textContent = parts.filter(Boolean).join(' · ')
+    status.title = status.textContent
   }
 
   function renderPhase(
@@ -188,6 +210,12 @@ async function main(): Promise<void> {
     event.preventDefault()
     if (!session.hasKey && password.value.length === 0) return
     void session.connect(session.hasKey ? undefined : password.value)
+  })
+
+  qualitySelect.addEventListener('change', () => {
+    session.selectQuality(qualitySelect.value as StreamProfile)
+    qualitySelect.value = confirmedProfile
+    video.focus()
   })
 
   displaysSelect.addEventListener('change', () => {
