@@ -21,5 +21,5 @@ alcance y sus pruebas pendientes.
 ## 4. Verificación integrada y publicación
 
 - [x] 4.1 Comparar vídeo artificial 4K/original frente a Equilibrado/Fluido, registrar fps/dimensiones y vídeo recibido por Flutter; verificar directo y TURN sin presentar el resultado como reproducción física de la sesión histórica.
-- [ ] 4.2 Ejecutar npm run typecheck, npm test, lint de archivos tocados, flutter analyze y flutter test con su entorno, builds de escritorio/móvil y openspec validate improve-remote-stream-fluidity --strict; documentar resultados y límites en verification.md.
-- [ ] 4.3 Fusionar el cambio revisado y publicar release compatible de Windows/macOS/Linux/Android/iOS; verificar assets, manifiestos de actualización y salud de producción, con notas que mantengan los límites del acceso desatendido y rollback a la versión anterior.
+- [x] 4.2 Ejecutar npm run typecheck, npm test, lint de archivos tocados, flutter analyze y flutter test con su entorno, builds de escritorio/móvil y openspec validate improve-remote-stream-fluidity --strict; documentar resultados y límites en verification.md.
+- [x] 4.3 Fusionar el cambio revisado y publicar release compatible de Windows/macOS/Linux/Android/iOS; verificar assets, manifiestos de actualización y salud de producción, con notas que mantengan los límites del acceso desatendido y rollback a la versión anterior.

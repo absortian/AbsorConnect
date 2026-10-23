@@ -1,0 +1,179 @@
+{
+  "release": "0.4.1",
+  "tagCommit": "35ed4b60a18b7e5a5a5f57d72a5c91e36df56a6f",
+  "releaseRun": 40021035085,
+  "verifiedAt": "2026-10-23T20:57:04.869747+00:00",
+  "assets": [
+    {
+      "name": "absor-connect-0.4.1-arm64.dmg.blockmap",
+      "bytes": 120734,
+      "sha256": "c703c493653f90c38a02ac56c0041f7d8e3e6fa5040fc94b1b7144782fb2f338",
+      "ok": true
+    },
+    {
+      "name": "absor-connect-0.4.1-arm64.zip.blockmap",
+      "bytes": 122005,
+      "sha256": "cba30b097f102416fec806a9909560360280484c6c4779445776da3a01cf8c3c",
+      "ok": true
+    },
+    {
+      "name": "absor-connect-0.4.1-arm64.zip",
+      "bytes": 115822824,
+      "sha256": "a36117844633901c71c57a29f961c9dd086175e80dff9e2d64d3d2bb99c4a650",
+      "ok": true
+    },
+    {
+      "name": "absor-connect-0.4.1-setup.exe",
+      "bytes": 98845113,
+      "sha256": "2d193942c797d276344989e411da9c6341be0da15d1f9abb1fd51c1c8938d18d",
+      "ok": true
+    },
+    {
+      "name": "absor-connect-0.4.1-setup.exe.blockmap",
+      "bytes": 104447,
+      "sha256": "7228632339de5ac75b977547bbef9b4c4d7b95c448c3056688be25b13eef5e90",
+      "ok": true
+    },
+    {
+      "name": "absor-connect-0.4.1-x64.dmg.blockmap",
+      "bytes": 131409,
+      "sha256": "b68b56d41bd14019044a45c789eded5ece578724a2a844d6fe07fa0511fadfcd",
+      "ok": true
+    },
+    {
+      "name": "absor-connect-0.4.1-amd64.deb",
+      "bytes": 94928000,
+      "sha256": "546abd54c6d747e236f9226646c1ce8f33279c79fa597f78753a0b818bbe622c",
+      "ok": true
+    },
+    {
+      "name": "absor-connect-0.4.1-x64.dmg",
+      "bytes": 123893775,
+      "sha256": "85d983608f106f127e9a8b492b5bd741c87f091abe2be82fd441fbb2725ba43f",
+      "ok": true
+    },
+    {
+      "name": "absor-connect-0.4.1-x64.tar.gz",
+      "bytes": 115637161,
+      "sha256": "d669063040295582245e6c47011582d95013fa45ede3fe4b6b1a444c7e5c0abe",
+      "ok": true
+    },
+    {
+      "name": "absor-connect-0.4.1-x64.zip.blockmap",
+      "bytes": 131825,
+      "sha256": "de49c862a94887e2ab94a846cc501241d8b5b4a1e6fa943d97af699212bf9b0d",
+      "ok": true
+    },
+    {
+      "name": "absor-connect-0.4.1-arm64.dmg",
+      "bytes": 115654875,
+      "sha256": "d8c4ec289c39a47729a5cda330115266654ff17c438e9261f1c78b6cc2882ec2",
+      "ok": true
+    },
+    {
+      "name": "absor-connect-0.4.1.ipa",
+      "bytes": 14979641,
+      "sha256": "2bd2a14584b33fd6a137261ff7c4ec3e6fefbfa1bdb4b7a5337cd1faf5546382",
+      "ok": true
+    },
+    {
+      "name": "absor-connect-0.4.1.apk",
+      "bytes": 98366870,
+      "sha256": "5e68b9977e373bb544dc1cb058c91cbd157ffc8decc8e90c4faf1f70a573c33f",
+      "ok": true
+    },
+    {
+      "name": "altstore-source.json",
+      "bytes": 1884,
+      "sha256": "64b5c0671687e65c1e484f4b38f5025b353a54440e17d8f3639bba0b73fe5dc3",
+      "ok": true
+    },
+    {
+      "name": "absor-connect-0.4.1.rpm",
+      "bytes": 83270329,
+      "sha256": "ba00fca86fccbdf46ca2495b8c1dacba3a485df0d6889b7027a5d28f8ccb408f",
+      "ok": true
+    },
+    {
+      "name": "latest-linux.yml",
+      "bytes": 690,
+      "sha256": "e1b71713074cd271ab8f13bab7bf13e7f062ac73e05e3f81b65756fe453ab17b",
+      "ok": true
+    },
+    {
+      "name": "latest-mac.yml",
+      "bytes": 829,
+      "sha256": "307848f44ece0ca1c867208153ff2f48404a254098191d506ab43970d53d0e12",
+      "ok": true
+    },
+    {
+      "name": "latest.yml",
+      "bytes": 354,
+      "sha256": "cc1a100475aadd2238ad2116842a0bfd13ef4a3af62fb4ca3f8cd9c9d9b0fe77",
+      "ok": true
+    },
+    {
+      "name": "absor-connect-0.4.1.AppImage",
+      "bytes": 122442889,
+      "sha256": "4fee0d9f2c26c08101922fa1e84753480099bb148babf28749b9fe8f54ffae64",
+      "ok": true
+    },
+    {
+      "name": "absor-connect-0.4.1-x64.zip",
+      "bytes": 124111989,
+      "sha256": "0894199fd2d59762c13616e99cac1e805f35c0a8776c90001d87495865ef54c8",
+      "ok": true
+    }
+  ],
+  "manifests": [
+    {
+      "manifest": "latest.yml",
+      "files": 1,
+      "allSha512Match": true
+    },
+    {
+      "manifest": "latest-linux.yml",
+      "files": 3,
+      "allSha512Match": true
+    },
+    {
+      "manifest": "latest-mac.yml",
+      "files": 4,
+      "allSha512Match": true
+    },
+    {
+      "ipaVersion": "0.4.1",
+      "build": "22",
+      "altstoreSizeAndPrivacyMatch": true
+    },
+    {
+      "macArchitecture": "arm64",
+      "version": "0.4.1",
+      "koffiUnpacked": [
+        "Absor Connect.app/Contents/Resources/app.asar.unpacked/node_modules/@koromix/koffi-darwin-arm64/darwin_arm64/koffi.node"
+      ]
+    },
+    {
+      "macArchitecture": "x64",
+      "version": "0.4.1",
+      "koffiUnpacked": [
+        "Absor Connect.app/Contents/Resources/app.asar.unpacked/node_modules/@koromix/koffi-darwin-x64/darwin_x64/koffi.node"
+      ]
+    }
+  ],
+  "postPublication": {
+    "androidSignatureSameAs040": true,
+    "certificateSha256": "8bcce4a1ebdbe7ce8e09195badb238dcab256dc470fc426f26df1439e8fe0956",
+    "packageHeaders": {
+      "absor-connect-0.4.1-amd64.deb": true,
+      "absor-connect-0.4.1.rpm": true,
+      "absor-connect-0.4.1-setup.exe": true,
+      "absor-connect-0.4.1.AppImage": true,
+      "mac-arm64-profilesBundled": true,
+      "mac-x64-profilesBundled": true
+    },
+    "mobileProfilesBundled": true,
+    "productionHealth": true,
+    "landingAndLatestAltstore": true
+  }
+}
