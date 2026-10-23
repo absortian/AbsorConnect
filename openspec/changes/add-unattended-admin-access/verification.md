@@ -198,8 +198,18 @@ Se verificaron recibo 0.2.0, hash y firma del bundle instalado, plist limitado a
 del bundle instalado bajo `gui/501` rechazó la captura por falta de permiso;
 su trabajo se retiró. Ajustes conservaba una entrada del prototipo anterior
 activada, lo que no acredita permiso para la firma nueva. Actualización de
-permisos y segunda ejecución real en `LoginWindow` en curso; no se deduce éxito
-de la instalación. Metadatos privados en `mac-diagnostic-v2-install-20261023.json`.
+permisos realizada después de que el propietario completara la autenticación.
+Añadir el bundle sin retirar la entrada antigua no actualizó el permiso efectivo:
+el segundo diagnóstico seguía denegado. Por la interfaz de Ajustes se retiró y
+añadió solo la entrada del prototipo instalado, primero para pantalla y luego
+para Accesibilidad. Tras renovar pantalla se capturaron once fotogramas; después
+de renovar ambos permisos, otro trabajo temporal recibió once fotogramas con
+`screenPermission: true`, `accessibilityPermission: true`, acceso gráfico y una
+pantalla disponibles. No se guardaron píxeles ni se aplicó entrada. Los trabajos
+temporales se retiraron; informes privados `mac-installed-v2-gui-20261023-{a,b,c,d}`.
+La segunda prueba real en `LoginWindow` está preparada con cierre de sesión
+autorizado; aún no se ha obtenido su resultado. Metadatos privados en
+`mac-diagnostic-v2-install-20261023.json`. La VM se comprobó apagada antes del cierre.
 
 Para preparar la siguiente prueba se intentó guardar la suspensión de la VM.
 UTM la rechazó porque la GPU habilitada no admite instantáneas; aunque su CLI
