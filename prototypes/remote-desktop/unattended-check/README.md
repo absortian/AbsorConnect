@@ -127,7 +127,7 @@ equipo. Este inventario no prueba captura de UAC, entrada ni atención segura.
 con el compilador incluido en PowerShell/.NET. El lanzador requiere SYSTEM y
 duplica su propio token para crear un trabajador de este mismo binario en la
 sesión de consola; no recibe órdenes de red, rutas de programa ni RPC.
-El trabajador abre el escritorio de entrada, cuenta capturas GDI durante dos
+El trabajador de captura abre el escritorio de entrada, cuenta capturas GDI durante dos
 segundos a 320 × 180 y termina. No crea ventanas, no cambia el escritorio visible,
 no guarda imágenes, no aplica entrada y no instala un servicio SCM.
 
@@ -154,6 +154,24 @@ sean VM QEMU y políticas inesperadas. Tras coordinarlo con el propietario,
 `-Restart`, junto con `-Apply`, solicita reinicio normal sin forzar aplicaciones.
 Esta preparación corrige una precondición del laboratorio, no un permiso del
 agente. Hay que verificar de nuevo UAC tras arrancar, antes de probar elevación.
+
+Para comprobar la transición al escritorio seguro, `--launch-uac-probe` requiere
+SYSTEM y lanza el mismo binario con el token del usuario de consola. Ese proceso
+rechaza un contexto ya elevado y solicita `runas` exclusivamente para
+`--elevated-self-check` del propio diagnóstico. Si se autorizase manualmente,
+solo comprobaría que tiene contexto de administrador y terminaría sin cambios.
+En las pruebas realizadas se canceló con Escape mediante UTM, sin conceder la
+elevación. La cancelación devuelve 1223. El lanzador limita la espera a 180
+segundos y, si vence, termina únicamente su propio solicitante; no pulsa botones.
+El primer intento con espera de 45 segundos venció y se registró como fallo.
+
+Este modo requiere que los usuarios puedan leer/ejecutar su binario, conservando
+la escritura exclusiva de SYSTEM/Administradores. No copiar secretos a esa
+carpeta. El capturador SYSTEM y la solicitud de elevación se ejecutan por
+procesos independientes: esperar al solicitante antes de capturar devuelve al
+escritorio normal y no prueba UAC. Un informe `Default` no debe contarse como
+captura del escritorio seguro; incluso `Winlogon` más fotogramas no uniformes no
+certifica el contenido exacto del diálogo ni la entrada Win32.
 
 ## Criterio de avance
 

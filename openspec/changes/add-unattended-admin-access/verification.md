@@ -8,9 +8,10 @@ una release o modificado producción.
 
 Se han implementado herramientas de diagnóstico reproducibles en
 `prototypes/remote-desktop/unattended-check/`, separadas de la app instalada. No
-instalan servicios. Los inventarios/capturas no cambian UAC/TCC/LightDM; existe
-ahora un preparador UAC de la VM, todavía sin aplicar, con consulta por defecto
-y cambios/reinicio únicamente mediante opciones explícitas y coordinación.
+instalan un servicio de host remoto. El paquete Mac instala únicamente el
+LaunchAgent de diagnóstico descrito abajo. Los inventarios/capturas no cambian
+UAC/TCC/LightDM; el preparador UAC de la VM se aplicó tras autorización expresa,
+con consulta por defecto y cambios/reinicio mediante opciones explícitas.
 
 ## Resultados observados
 
@@ -23,13 +24,17 @@ y cambios/reinicio únicamente mediante opciones explícitas y coordinación.
 | Mismo binario Mac bajo launchd, dominio `gui/UID` | Trabajo temporal ejecutado: `screenPermission: false`, `missing_screen_permission`, salida 2; se retiró el trabajo y se comprobó su ausencia | Falta autorizar el helper por sí mismo; no certifica ni descarta la arquitectura de un daemon |
 | launchd tras autorización explícita del propietario en Ajustes | Captura correcta: 12 fotogramas con permiso de pantalla; después 11 fotogramas con pantalla y Accesibilidad activas. Trabajo temporal retirado al terminar | No se ha inyectado entrada ni probado un daemon, bloqueo, cierre de sesión o `loginwindow` |
 | launchd durante bloqueo coordinado del Mac | Tras bloquear desde la interfaz con autorización expresa, el mismo helper recibió 11 fotogramas completos; el propietario confirmó después el desbloqueo | No se inspeccionaron píxeles ni se obtuvo un indicador independiente del bloqueo: no certifica contenido visible de la pantalla bloqueada, entrada ni `loginwindow` |
-| Paquete de diagnóstico `LoginWindow` | Preparado e inspeccionado: mismo bundle, cuatro archivos, sin scripts ni enlaces, propiedad root y sin escritura de grupo/otros; ejecución de dos segundos, sin red/entrada ni KeepAlive | No instalado ni ejecutado en `LoginWindow`; siguen pendientes autorización administrativa y prueba coordinada de cierre de sesión |
+| Paquete de diagnóstico `LoginWindow` | Instalado tras autorización expresa del propietario; recibo 0.1.0, firma y hash del binario correctos, archivos root/wheel y directorio de informes 0700; sin scripts, red, entrada ni KeepAlive | Aún no ejecutado en `LoginWindow`; pendiente prueba coordinada de cierre de sesión |
+| Bundle instalado bajo launchd del usuario | Once fotogramas completos, permisos de pantalla/Accesibilidad activos, mismo hash firmado que el prototipo inicial; trabajo temporal retirado | No prueba permisos de root/`LoginWindow`, actualización entre versiones ni entrada |
 | Inventario Mint | Mint 22.3 x86_64, Cinnamon/X11, LightDM activo, usuario ordinario | Disponibilidad después de reiniciar |
 | Conexión X11 de Mint | XOpenDisplay correcto con autorización del propio usuario; extensión XTEST disponible | Inyección de entrada, captura, polkit ni acceso al greeter |
 | Inventario Windows | Windows 11 Pro ARM64, build 26300, .NET 4.0.30319.42000; agente de invitado UTM operativo; inventario desde SYSTEM en sesión 0; protección BitLocker Off | No certifica Windows x64, entrada, arranque ni captura de UAC |
-| Política UAC de la VM | EnableLUA=0 en vistas de registro de 32 y 64 bits; PromptOnSecureDesktop=1, ConsentPromptBehaviorAdmin=5 | No se puede certificar UAC en ese estado; activación y reinicio pendientes de coordinación, sin debilitar la política |
+| Política UAC de la VM | Tras autorización expresa se activó EnableLUA y se reinició normalmente. Inventario posterior: UAC y escritorio seguro activos; antes EnableLUA=0, PromptOnSecureDesktop=1, ConsentPromptBehaviorAdmin=5 | No demuestra por sí solo captura/entrada ni solicitud de credenciales administrativas |
 | VM Windows | Windows 11 Pro instalado con licencia aceptada expresamente; usuario creado por el propietario y escritorio observado tras las actualizaciones iniciales | Estado final de todas las actualizaciones y pruebas administrativas pendientes |
 | Trabajador Win32 en consola | Dos capturas correctas desde trabajador separado creado con token SYSTEM en sesión 2: 6 y 7 fotogramas GDI a 320 × 180; todos no uniformes, escritorio `Default` | Sin servicio SCM, entrada, DXGI, UAC, bloqueo ni inicio de sesión. No se guardan imágenes; no certifica su contenido exacto |
+| Captura Windows tras reinicio con UAC | Nueve fotogramas no uniformes en `Default`, sesión 1; el sistema informaba usuario interactivo presente | No se certifica arranque sin usuario ni inicio de sesión: Windows ya había entrado en una sesión |
+| Captura durante solicitud UAC del propio diagnóstico | Siete fotogramas no uniformes en escritorio `Winlogon`, trabajador SYSTEM separado del solicitante de usuario filtrado | El primer solicitante venció a los 45 s y se retiró. No se inspeccionaron píxeles ni se certifica la imagen exacta del diálogo, entrada Win32 o UAC con credenciales |
+| Cancelación de otra solicitud UAC | Escape enviado por UTM; solicitante terminó con código 1223 y volvió el escritorio. En esta repetición el capturador se ejecutó después de cancelar y reportó `Default`, por lo que no se cuenta como otra captura UAC | No prueba que el futuro agente aplique entrada; el control fue el de UTM |
 | Captura X11 en Mint | Diez imágenes XGetImage de una región central 128 × 72; las diez no uniformes, usuario ordinario y sesión Cinnamon activa | No prueba pantalla completa, entrada, polkit, bloqueo ni greeter |
 | Criptografía C++ con BoringSSL de WebRTC | 3 vectores compartidos correctos, incluidos PBKDF2 de 600 000 iteraciones y HMAC; 5 casos negativos rechazados por vector | Interoperabilidad del transporte, persistencia del bloqueo ni autenticación de un agente final |
 | Inicialización libwebrtc | Factoría creada/destruida; conexión/canal de datos y oferta local con huella SHA-256 generados correctamente | No se aplicó la descripción ni se estableció DTLS; faltan otro cliente, vídeo/entrada y TURN |
@@ -107,6 +112,19 @@ SYSTEM/Administradores; no se ha instalado ni dado de alta ningún servicio.
 Los informes privados son `windows-inventory-20261023.json`,
 `windows-capture-20261023-b.json` y `mint-capture-20261023.json` en el laboratorio.
 
+La versión posterior del diagnóstico añade únicamente la solicitud UAC del propio
+binario mediante un proceso de usuario filtrado; no hay un destino de ejecución
+arbitrario. La última fuente tiene SHA-256
+`9f5de22db4bbc2d921819b861b2831ced25801c3674c7bfe37c2983172d6f2f6`
+y el binario de esa compilación
+`c472b7c9b08a12efcc9772b5287be918cd03d91025f06d5852eb6bd44861b3e9`.
+La captura `Winlogon` se hizo con la revisión anterior de espera de 45 s:
+fuente `6951e0f46fe41b2261dfe99fc0588260c2e5da85653a37253ef5214275e3bab6`,
+binario `008eaba14b7f6e572d4fda33dc5d4bc3e6b5cba900e71b9c7467ff92af991988`.
+Los informes `windows-capture-20261023-{c,e,f,g}.json` y
+`windows-uac-cancel-20261023.json` conservan los resultados, sin píxeles ni credenciales.
+Se comprobó que no quedaban procesos del diagnóstico después de cancelar.
+
 La herramienta de espera UTM usa los protocolos oficiales de su revisión
 `1c5e2150696cf86dc6e451212a8ad4555b2b63b2` y corrige localmente la lectura de
 `exited` documentada en [UTM #7932](https://github.com/utmapp/UTM/issues/7932).
@@ -119,8 +137,24 @@ El paquete preparado es `mac-loginwindow-probe-d/AbsorLoginWindowProbe.pkg`, SHA
 causa no se ha establecido. Se expandió el paquete y se verificaron la firma del
 bundle, igualdad SHA-256 de sus cuatro archivos con el staging, ausencia de
 scripts/enlaces y propietarios/permisos del BOM. Esto verifica el contenido del
-artefacto; todavía no acredita una instalación correcta. No se han retirado
+artefacto; por sí sola no acreditaba una instalación correcta. No se han retirado
 atributos de seguridad para silenciar los avisos.
+
+El 23/10/2026 se instaló ese paquete autorizado, con recibo de las 07:42:30 UTC.
+Se verificaron sus rutas, propietario root/wheel, plist y firma estricta. El
+binario instalado coincide con SHA-256
+`7b8127716fc13b6dd2ebe26e16676c2fa1f462ba9f34e4ee2b20ec1c6bb0bf95`.
+La ejecución posterior en launchd `gui/501` capturó once fotogramas con ambos
+permisos activos; informe privado `mac-installed-gui-20261023-a/report.json`.
+La instalación está comprobada, pero su ejecución fuera de la sesión sigue
+pendiente. Los informes `LoginWindow` requieren lectura administrativa por su
+directorio privado; no se ha cambiado su protección para leerlos.
+
+Para preparar la siguiente prueba se intentó guardar la suspensión de la VM.
+UTM la rechazó porque la GPU habilitada no admite instantáneas; aunque su CLI
+devolvió 0, el estado real era `paused`. Se reanudó y se solicitó apagado normal
+con `--request`; se comprobó finalmente `stopped`. No quedó una suspensión
+guardada. El cierre de sesión del Mac aún espera coordinación del propietario.
 
 No se han exportado claves de firma, contraseñas, tokens ni cookies Xauthority. No
 se han guardado ni transmitido imágenes de pantalla desde los prototipos.
@@ -154,9 +188,10 @@ el inventario no certifica la funcionalidad.
   `dbf606ceb4ce1390f9f21ad1d96331848bc6b701cbab0012785881a1a1c0ec63`.
   Solo se comparte `share/` en lectura; el portapapeles compartido está desactivado.
   Inventario del invitado y capturas GDI comprobados. Pruebas de UAC/entrada aún
-  pendientes; una prueba en ARM no certificará Windows x64. La VM tiene UAC
-  desactivado: se ha preparado y ejecutado solo la consulta del procedimiento
-  para activarlo y reiniciar. No se ha aplicado el cambio ni reiniciado la VM.
+  pendientes; una prueba en ARM no certificará Windows x64. La VM tenía UAC
+  inicialmente desactivado: con autorización del propietario se aplicó el
+  procedimiento de activación y reinicio normal, y se volvió a comprobar UAC
+  activo. La vuelta a un usuario interactivo no certifica acceso previo al login.
   La ISO y el laboratorio quedan fuera del repositorio, en
   `~/Documents/VMs/AbsorConnectLab/`; no se incluye ninguna credencial del host en
   el directorio de intercambio. El propietario confirmó expresamente aceptar la

@@ -38,6 +38,8 @@ public static class CaptureProbe
     [DllImport("advapi32.dll", SetLastError = true)] static extern bool OpenProcessToken(IntPtr process, uint access, out IntPtr token);
     [DllImport("advapi32.dll", SetLastError = true)] static extern bool DuplicateTokenEx(IntPtr token, uint access, IntPtr attributes, int level, int type, out IntPtr duplicate);
     [DllImport("advapi32.dll", SetLastError = true)] static extern bool SetTokenInformation(IntPtr token, int type, ref uint value, uint size);
+    [DllImport("wtsapi32.dll", SetLastError = true)] static extern bool WTSQueryUserToken(uint session, out IntPtr token);
+    [DllImport("kernel32.dll", SetLastError = true)] static extern bool TerminateProcess(IntPtr process, uint code);
     [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)] static extern bool LookupPrivilegeValue(string system, string name, out Luid luid);
     [DllImport("advapi32.dll", SetLastError = true)] static extern bool AdjustTokenPrivileges(IntPtr token, bool disable, ref TokenPrivileges value, uint length, IntPtr previous, IntPtr needed);
     [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
@@ -71,7 +73,7 @@ public static class CaptureProbe
             value.Equals("Winlogon", StringComparison.OrdinalIgnoreCase) ? "Winlogon" : "other";
     }
 
-    static int Launch() {
+    static int Launch(bool requestElevation = false) {
         if (WindowsIdentity.GetCurrent().User.Value != "S-1-5-18") throw new InvalidOperationException("system_context_required");
         uint session = WTSGetActiveConsoleSessionId();
         if (session == UInt32.MaxValue || session == 0) throw new InvalidOperationException("console_session_unavailable");
@@ -82,21 +84,51 @@ public static class CaptureProbe
             var privilege = new TokenPrivileges { count = 1, luid = luid, attributes = 2 };
             Check(AdjustTokenPrivileges(token, false, ref privilege, 0, IntPtr.Zero, IntPtr.Zero));
             if (Marshal.GetLastWin32Error() == 1300) throw new InvalidOperationException("tcb_privilege_unavailable");
-            Check(DuplicateTokenEx(token, 0x02000000, IntPtr.Zero, 2, 1, out primary));
-            Check(SetTokenInformation(primary, 12, ref session, 4));
+            if (requestElevation) {
+                Check(WTSQueryUserToken(session, out primary));
+            } else {
+                Check(DuplicateTokenEx(token, 0x02000000, IntPtr.Zero, 2, 1, out primary));
+                Check(SetTokenInformation(primary, 12, ref session, 4));
+            }
             string binary = Assembly.GetExecutingAssembly().Location;
             var startup = new StartupInfo { cb = Marshal.SizeOf(typeof(StartupInfo)), desktop = @"winsta0\default", flags = 1, show = 0 };
             ProcessInfo process;
-            Check(CreateProcessAsUser(primary, binary, new StringBuilder("\"" + binary + "\" --capture"),
+            string mode = requestElevation ? "--request-elevation" : "--capture";
+            Check(CreateProcessAsUser(primary, binary, new StringBuilder("\"" + binary + "\" " + mode),
                 IntPtr.Zero, IntPtr.Zero, false, 0x08000000, IntPtr.Zero, Path.GetDirectoryName(binary), ref startup, out process));
             try {
-                uint wait = WaitForSingleObject(process.process, 15000);
+                uint wait = WaitForSingleObject(process.process, requestElevation ? 180000u : 15000u);
+                if (wait == 258 && requestElevation) {
+                    // Retira solo su propio solicitante si nadie responde; no pulsa botones de UAC.
+                    Check(TerminateProcess(process.process, 124));
+                    throw new InvalidOperationException("uac_probe_timeout");
+                }
                 if (wait != 0) throw new InvalidOperationException("worker_wait_failed_" + wait);
                 uint code; Check(GetExitCodeProcess(process.process, out code));
                 Console.WriteLine("{\"workerExited\":true,\"workerExitCode\":" + code + ",\"sessionId\":" + session + "}");
                 return checked((int)code);
             } finally { CloseHandle(process.thread); CloseHandle(process.process); }
         } finally { if (primary != IntPtr.Zero) CloseHandle(primary); if (token != IntPtr.Zero) CloseHandle(token); }
+    }
+
+    static int RequestElevation() {
+        if (WindowsIdentity.GetCurrent().User.Value == "S-1-5-18" ||
+            new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator)) {
+            throw new InvalidOperationException("filtered_user_context_required");
+        }
+        try {
+            // El único destino permitido es el propio diagnóstico; no abre instaladores ni herramientas ajenas.
+            using (var process = Process.Start(new ProcessStartInfo {
+                FileName = Assembly.GetExecutingAssembly().Location,
+                Arguments = "--elevated-self-check", UseShellExecute = true, Verb = "runas"
+            })) {
+                if (process == null || !process.WaitForExit(10000)) return 124;
+                return process.ExitCode;
+            }
+        } catch (Win32Exception error) {
+            if (error.NativeErrorCode == 1223) return 1223;
+            throw;
+        }
     }
 
     static string Capture() {
@@ -147,9 +179,16 @@ public static class CaptureProbe
     }
 
     public static int Main(string[] args) {
-        if (args.Length != 1 || (args[0] != "--launch-console-probe" && args[0] != "--capture")) return 64;
+        if (args.Length != 1) return 64;
         try {
             if (args[0] == "--launch-console-probe") return Launch();
+            if (args[0] == "--launch-uac-probe") return Launch(true);
+            if (args[0] == "--request-elevation") return RequestElevation();
+            if (args[0] == "--elevated-self-check") {
+                // Si se autoriza manualmente, solo comprueba el contexto y termina, sin modificar nada.
+                return new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator) ? 0 : 3;
+            }
+            if (args[0] != "--capture") return 64;
             string report = null; Exception failure = null;
             var thread = new Thread(delegate() { try { report = Capture(); } catch (Exception e) { failure = e; } });
             thread.IsBackground = true; thread.Start();
