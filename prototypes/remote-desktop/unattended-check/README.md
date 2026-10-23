@@ -308,9 +308,9 @@ contexto; no se usa una imagen de `Default` como evidencia de prelogin.
 Las APIs utilizadas son [WTSLogoffSession](https://learn.microsoft.com/en-us/windows/win32/api/wtsapi32/nf-wtsapi32-wtslogoffsession)
 y [WTSQuerySessionInformation](https://learn.microsoft.com/en-us/windows/win32/api/wtsapi32/nf-wtsapi32-wtsquerysessioninformationw).
 
-### Mac 0.9.0: ventana propia para comprobar eventos
+### Mac 0.9.0: ventana propia para comprobar eventos (histórico)
 
-El paquete actual prepara `--capture-owned-input-loginwindow`. Conserva los modos
+El paquete 0.9.0 preparaba `--capture-owned-input-loginwindow`. Conserva los modos
 anteriores y añade un ensayo exclusivo de VirtualMac, root y LoginWindow. Tras
 capturar y mover/restaurar ocho píxeles, muestra una ventana propia; solo publica
 un clic y Escape cuando esa misma ventana y proceso tienen el foco, sin teclas
@@ -347,3 +347,33 @@ sigue falso y la tarea 1.3 continúa abierta. Resultados sin datos personales:
 
 Referencia del modo de temporizador:
 [Apple: RunLoop.Mode](https://developer.apple.com/documentation/foundation/runloop/mode).
+
+
+### Mac 0.10.0: visibilidad y condiciones de foco antes del login
+
+El paquete actual usa `loginwindow-report-v10.json` y
+`loginwindow-stderr-v10.txt`, con esquema 10. Configura la propiedad pública
+`NSWindow.canBecomeVisibleWithoutLogin`, requerida por AppKit para dibujar antes
+del login, y añade los booleanos de `focusConditions`. Mantiene el nivel normal
+de ventana y todas las guardas previas a los eventos; no concede permisos ni
+actúa sobre ventanas de autenticación. El modo, instalación y retirada son los
+mismos descritos arriba, usando los nombres v10.
+
+En la VM, ambos permisos se renovaron sobre el bundle instalado. La captura
+Aqua recibió seis fotogramas en 2859 ms; tras logout y arranque limpio recibió
+once en 2452/2711 ms. En ambos casos, UID 0, consola, login incompleto,
+movimiento/restauración del puntero observados. Las condiciones de contexto,
+inactividad, primer responder propio y visibilidad son verdaderas; `keyWindow`
+y `frontmostProcess` son falsas. Cancela sin crear/publicar clics o teclas.
+La propiedad de visibilidad corrige una omisión del arnés, pero no resuelve su
+activación ni demuestra que macOS impida toda entrada remota.
+
+El informe posterior al reinicio se comprobó contra el nuevo arranque. Se
+retiró el plist como `.disabled-v10-after-reboot`, se verificó la ausencia del
+proceso y se restauró el escritorio de test. El Mac físico no se interrumpió.
+Resultados sin datos personales:
+[`mac-prelogin-window-results.json`](../../../openspec/changes/add-unattended-admin-access/mac-prelogin-window-results.json).
+La tarea 1.3 sigue abierta y el agente final requiere revisión de esta evidencia.
+
+Referencias: [Apple: agentes antes del login](https://developer.apple.com/library/archive/documentation/MacOSX/Conceptual/BPSystemStartup/Chapters/CustomLogin.html)
+y [propiedad de visibilidad](https://developer.apple.com/documentation/appkit/nswindow/canbecomevisiblewithoutlogin).

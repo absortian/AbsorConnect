@@ -27,7 +27,7 @@ private final class ProbeDiagnostics: @unchecked Sendable {
       guard !finished else { lock.unlock(); return }
       finished = true
       var report = progress
-      report["schema"] = 9
+      report["schema"] = 10
       report["platform"] = "macos"
       report["status"] = "diagnostic_timeout"
       report["lastStage"] = stage
@@ -121,7 +121,7 @@ private struct Probe {
     if arguments == ["--watchdog-self-test"] {
       diagnostics.checkpoint("watchdog_self_test_wait")
       try? await Task.sleep(nanoseconds: 5_000_000_000)
-      diagnostics.finish(["schema": 9, "status": "watchdog_failed", "readyForUnattended": false])
+      diagnostics.finish(["schema": 10, "status": "watchdog_failed", "readyForUnattended": false])
       exit(71)
     }
     let ownedInput = arguments == ["--capture-owned-input-loginwindow"]
@@ -135,7 +135,7 @@ private struct Probe {
     diagnostics.checkpoint("session.current")
     let session = CGSessionCopyCurrentDictionary() as? [String: Any] ?? [:]
     var report: [String: Any] = [
-      "schema": 9,
+      "schema": 10,
       "platform": "macos",
       "osVersion": ProcessInfo.processInfo.operatingSystemVersionString,
       "processUid": getuid(),
