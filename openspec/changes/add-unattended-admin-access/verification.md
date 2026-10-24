@@ -1093,3 +1093,35 @@ en `mint-transitions-20261024.{log,json}`. No publicar el log bruto de la termin
 que incluye el prompt de sudo. Entrada, bloqueo, polkit y funcionamiento remoto
 siguen pendientes; `preLoginTested` y `readyForUnattended` permanecen falsos.
 La tarea 1.4 es parcial y el total sigue en 8/57.
+
+### Mint: captura durante bloqueo de Cinnamon — 24/10/2026
+
+La primera ejecución de `--capture-lock` agotó cinco minutos sin observar
+`LockedHint:yes`, aunque el propietario confirmó que Mint exigió contraseña.
+El proceso terminó y el escritorio siguió accesible. Este resultado negativo
+queda conservado; no se considera una prueba satisfactoria de bloqueo.
+
+Se añadió el modo explícito `--lock-source cinnamon`, que consulta el método
+de solo lectura `org.cinnamon.ScreenSaver.GetActive` como el usuario de la sesión,
+sin conservar privilegios root en ese subproceso. La repetición verificó diez
+muestras no uniformes en cada fase: salvapantallas inactivo, activo y otra vez
+inactivo, con la misma identidad/sesión X11. El propietario confirmó que se
+requirió contraseña al desbloquear. El recorrido duró 127720 ms e incluye espera
+humana; no mide latencia. Logind mantuvo `LockedHint:no` y así figura en el informe.
+
+`GetActive` no certifica por sí solo un bloqueo seguro. Las imágenes se cuentan
+sin conservarlas ni verificar semánticamente su contenido; no hay prueba de
+teclado, clics, credenciales, polkit, transporte remoto o servicio final. Se
+comprobó cero procesos del diagnóstico y salvapantallas inactivo al terminar.
+No cambió configuración, permisos, LightDM ni sudoers. Evidencia pública:
+`mint-lock-results.json`; originales privados `mint-{lock,cinnamon-lock}-20261024.{log,json}`.
+La tarea 1.4 continúa parcial, `readyForUnattended:false`, total 8/57.
+
+### Windows: recuperación del canal de laboratorio pendiente — 24/10/2026
+
+Servicios de Windows mostró QEMU Guest Agent en ejecución, pero su parada
+terminó con error 1053. El reinicio de la VM y una parada solicitada al invitado
+seguida de nuevo arranque no recuperaron la lectura: el siguiente lector sigue
+fallando con timeout RPC. La VM queda arrancada, sin cambiar UAC ni ampliar acceso.
+Esto es un fallo del canal de diagnóstico, no evidencia de éxito o fallo de
+elevación del producto; el resultado guardado sigue sin recuperar.
