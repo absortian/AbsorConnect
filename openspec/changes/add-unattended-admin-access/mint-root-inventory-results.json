@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-24",
+  "scope": "Inventario administrativo de solo lectura; no prueba captura ni entrada",
+  "sourceSha256": "2d0059a80b18bddc1df6dfefecf642aaa6155ce2d555de70f34d3cc69f0a5059",
+  "report": {
+    "schema": 1,
+    "platform": "linux",
+    "processUid": 0,
+    "session": {
+      "Type": "x11",
+      "Class": "user",
+      "State": "active",
+      "LockedHint": "no"
+    },
+    "displayManager": {
+      "Id": "lightdm.service",
+      "ActiveState": "active",
+      "SubState": "running"
+    },
+    "xorgServers": [
+      {
+        "authorityRootPrivateRegular": true,
+        "rootX11Connected": true
+      }
+    ],
+    "captureTested": false,
+    "inputTested": false,
+    "preLoginTested": false,
+    "readyForUnattended": false,
+    "status": "root_inventory_only_not_certified"
+  }
+}

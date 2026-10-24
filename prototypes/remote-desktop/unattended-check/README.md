@@ -377,3 +377,38 @@ La tarea 1.3 sigue abierta y el agente final requiere revisión de esta evidenci
 
 Referencias: [Apple: agentes antes del login](https://developer.apple.com/library/archive/documentation/MacOSX/Conceptual/BPSystemStartup/Chapters/CustomLogin.html)
 y [propiedad de visibilidad](https://developer.apple.com/documentation/appkit/nswindow/canbecomevisiblewithoutlogin).
+
+### Mint: transición coordinada sin instalar servicio
+
+`linux-session-check.py --capture-transitions` se ejecuta como root, junto a
+`linux-probe.py`, con Python en modo aislado (`python3 -I`). Solo admite una
+sesión X11 activa y comienza con el usuario desbloqueado. Resuelve de nuevo el
+servidor Xorg y su Xauthority en cada fase, exige archivo regular privado de
+root y padres sin escritura ajena, y no copia cookies ni cambia `xhost`.
+
+El propietario debe tener su trabajo guardado y acceso físico para recuperar
+la sesión. Después de `desktop_captured`, cierra sesión de Cinnamon, mantiene
+LightDM visible al menos veinte segundos y vuelve a iniciar sesión con el mismo
+usuario. El programa cuenta durante dos segundos una región central de 128×72
+en cada contexto y comprueba que logind no haya cambiado de sesión durante el
+muestreo. La vuelta debe pertenecer a una sesión nueva. No guarda/transmite
+imágenes, no envía entrada, no instala servicios ni modifica LightDM. La espera
+de transiciones está limitada a cinco minutos y cada capturador a doce segundos.
+
+El resultado es `transition_capture_ok_not_certified` solo cuando observa las
+tres fases. Un error o timeout no impide el inicio de sesión: termina el propio
+proceso y no deja trabajos automáticos. Al ejecutar desde una sesión SSH con
+`sudo`, esa conexión se puede cerrar normalmente al finalizar. Retirar después
+únicamente las copias e informes propios del laboratorio; no hay configuración
+de LightDM, systemd o sudoers que restaurar.
+
+Este ensayo no acredita entrada en credenciales, polkit, bloqueo ni transporte
+remoto y mantiene `readyForUnattended:false`. Un éxito no completa por sí solo
+la tarea 1.4 ni permite anunciar acceso completo.
+
+
+El 24/10/2026 se verificó en Mint 22.3/Cinnamon/X11/LightDM la captura de las
+tres fases: diez imágenes por fase (10/9/4 no uniformes), en un recorrido
+coordinado de 75424 ms. El propietario volvió al escritorio y no quedó ningún
+proceso del diagnóstico. Esto no mide latencia ni reconexión remota.
+Evidencia: [`mint-transition-results.json`](../../../openspec/changes/add-unattended-admin-access/mint-transition-results.json).
