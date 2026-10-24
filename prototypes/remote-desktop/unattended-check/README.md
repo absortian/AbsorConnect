@@ -412,3 +412,33 @@ tres fases: diez imágenes por fase (10/9/4 no uniformes), en un recorrido
 coordinado de 75424 ms. El propietario volvió al escritorio y no quedó ningún
 proceso del diagnóstico. Esto no mide latencia ni reconexión remota.
 Evidencia: [`mint-transition-results.json`](../../../openspec/changes/add-unattended-admin-access/mint-transition-results.json).
+
+### Mint: bloqueo coordinado de la misma sesión
+
+`linux-session-check.py --capture-lock` mantiene las mismas guardas, límites y
+captura sin guardar imágenes. Después de `desktop_captured`, el propietario
+bloquea Cinnamon sin cerrar sesión, espera veinte segundos y lo desbloquea
+localmente. El diagnóstico exige `LockedHint:yes` durante el segundo muestreo y
+`LockedHint:no` al regresar; cancela si cambia el identificador, usuario o clase
+de sesión. Resuelve Xauthority de nuevo en cada fase y no genera entrada.
+
+Solo las tres fases verificadas producen `lock_capture_ok_not_certified`.
+Esto acredita captura durante un bloqueo observado por logind, sin demostrar
+teclado, credenciales, polkit, transporte remoto ni el servicio final. El ensayo
+no bloquea ni desbloquea el equipo por su cuenta y termina sin trabajos
+persistentes. Un fallo no modifica la configuración ni impide desbloquearlo.
+
+Si Cinnamon no actualiza `LockedHint`, el modo explícito
+`--capture-lock --lock-source cinnamon` consulta únicamente
+`org.cinnamon.ScreenSaver.GetActive` en el bus del usuario de la sesión. El
+subproceso de consulta pierde UID, GID y grupos suplementarios de root; tiene
+cinco segundos de límite. No envía métodos de bloqueo ni cambia ajustes. Exige
+estado inactivo al empezar y al volver, y activo antes y después del muestreo
+intermedio. Conserva las guardas de identidad/sesión y Xauthority.
+
+`GetActive` informa de la actividad del salvapantallas, por lo que el propietario
+debe confirmar que la pantalla exigió su contraseña. El informe distingue
+`cinnamonScreensaverActive` de `locked` (el valor de logind), usa la fase
+`cinnamon_screensaver_active` y el resultado
+`cinnamon_screensaver_capture_ok_not_certified`. No convierte actividad del
+salvapantallas en certificación automática de un bloqueo seguro.

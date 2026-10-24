@@ -1,0 +1,128 @@
+{
+  "schema": 1,
+  "date": "2026-10-24",
+  "configuration": {
+    "os": "Linux Mint 22.3",
+    "desktop": "Cinnamon 6.6.9",
+    "sessionType": "x11",
+    "displayManager": "LightDM"
+  },
+  "sourceSha256": "40d222539fa05c21b9f0a95993efe40a386bc82dab4ad031b6d188e827b6e275",
+  "captureWorkerSha256": "5c6dc1a14a6a0c8d4e2fc0eaf8816bfed9be3caae19733aa11ad5002a79b7d5e",
+  "initialLogindOnlyTrial": {
+    "sourceSha256": "16efecb138f456b11514e5c2de66e4cfa911a39c10ce723634d4a47050057e8a",
+    "report": {
+      "schema": 1,
+      "platform": "linux",
+      "status": "transition_not_verified",
+      "reason": "transition_timeout",
+      "stages": [
+        {
+          "stage": "desktop",
+          "report": {
+            "sessionClass": "user",
+            "sessionType": "x11",
+            "locked": false,
+            "authorityRootPrivate": true,
+            "captureApi": "XGetImage",
+            "captureRegion": [
+              128,
+              72
+            ],
+            "frames": 10,
+            "nonUniformFrames": 10,
+            "captureTested": true,
+            "inputTested": false
+          }
+        }
+      ],
+      "inputTested": false,
+      "readyForUnattended": false
+    },
+    "ownerConfirmedPasswordRequired": true,
+    "probeExited": true
+  },
+  "cinnamonTrial": {
+    "report": {
+      "schema": 1,
+      "platform": "linux",
+      "status": "cinnamon_screensaver_capture_ok_not_certified",
+      "lockStateSource": "cinnamon",
+      "elapsedMilliseconds": 127720,
+      "stages": [
+        {
+          "stage": "desktop",
+          "report": {
+            "sessionClass": "user",
+            "sessionType": "x11",
+            "locked": false,
+            "authorityRootPrivate": true,
+            "cinnamonScreensaverActive": false,
+            "captureApi": "XGetImage",
+            "captureRegion": [
+              128,
+              72
+            ],
+            "frames": 10,
+            "nonUniformFrames": 10,
+            "captureTested": true,
+            "inputTested": false
+          }
+        },
+        {
+          "stage": "cinnamon_screensaver_active",
+          "report": {
+            "sessionClass": "user",
+            "sessionType": "x11",
+            "locked": false,
+            "authorityRootPrivate": true,
+            "cinnamonScreensaverActive": true,
+            "captureApi": "XGetImage",
+            "captureRegion": [
+              128,
+              72
+            ],
+            "frames": 10,
+            "nonUniformFrames": 10,
+            "captureTested": true,
+            "inputTested": false
+          }
+        },
+        {
+          "stage": "returned_desktop",
+          "report": {
+            "sessionClass": "user",
+            "sessionType": "x11",
+            "locked": false,
+            "authorityRootPrivate": true,
+            "cinnamonScreensaverActive": false,
+            "captureApi": "XGetImage",
+            "captureRegion": [
+              128,
+              72
+            ],
+            "frames": 10,
+            "nonUniformFrames": 10,
+            "captureTested": true,
+            "inputTested": false
+          }
+        }
+      ],
+      "inputTested": false,
+      "polkitTested": false,
+      "preLoginTested": false,
+      "readyForUnattended": false
+    },
+    "ownerConfirmedPasswordRequired": true,
+    "probeExited": true,
+    "screensaverInactiveAfterTest": true
+  },
+  "limits": [
+    "GetActive informa de actividad del salvapantallas; la contraseña requerida fue confirmada por el propietario, no detectada automáticamente.",
+    "La captura cuenta una región de 128×72 sin conservar imágenes ni verificar semánticamente su contenido.",
+    "Sin entrada, polkit, captura de credenciales, transporte remoto ni servicio final.",
+    "El recorrido incluye espera humana y no mide latencia."
+  ],
+  "systemConfigurationChanged": false,
+  "readyForUnattended": false
+}
