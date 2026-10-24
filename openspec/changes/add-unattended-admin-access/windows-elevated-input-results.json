@@ -1,0 +1,86 @@
+{
+  "schema": 1,
+  "date": "2026-10-25",
+  "configuration": {
+    "os": "Windows 11 Pro",
+    "build": "26300.9711",
+    "architecture": "arm64",
+    "environment": "QEMU laboratory VM"
+  },
+  "sourceSha256": "f8b5f03821dbdc7be1df8bbe40a165afbddcb1e5a90a2ce6c06e5df0664f0b06",
+  "binarySha256": "87b89298ef6c8a7b91e99f844bec1cd2ca4296352c79c2bd614428239098d09b",
+  "rawReportSha256": "a1036b70ce580cba70eb1bb719cd54d3364777edf747d87c9799d651f8ffa0d0",
+  "runtimeVersion": "4.0.30319.42000",
+  "runner": "run-probe.ps1 -TestOwnedInput -TestElevatedInput",
+  "capture": {
+    "schema": 1,
+    "platform": "windows",
+    "captureApi": "gdi",
+    "desktop": "Default",
+    "frames": 8,
+    "nonUniformFrames": 8,
+    "inputTested": false,
+    "readyForUnattended": false
+  },
+  "ownWindowRegression": [
+    {
+      "profile": "user",
+      "workerExitCode": 0
+    },
+    {
+      "profile": "system",
+      "workerExitCode": 0
+    }
+  ],
+  "elevatedInput": {
+    "schema": 1,
+    "senderSystem": true,
+    "separateProcesses": true,
+    "targetFullHighIntegrityUser": true,
+    "receiverExitCode": 0,
+    "cursorRestored": true,
+    "uacConsentTested": false,
+    "credentialsTested": false,
+    "readyForUnattended": false
+  },
+  "receiverObservations": {
+    "mouseDown": 1,
+    "mouseUp": 1,
+    "keyDown": 1,
+    "keyUp": 1,
+    "characters": 1,
+    "highIntegrity": true,
+    "fullElevationToken": true,
+    "system": false
+  },
+  "processIdentityCrossChecked": true,
+  "negativeCases": {
+    "--elevated-input-injector": {
+      "exitCode": 3,
+      "rejected": true,
+      "error": "InvalidOperationException: interactive_system_context_required"
+    },
+    "--elevated-input-target": {
+      "exitCode": 3,
+      "rejected": true,
+      "error": "InvalidOperationException: elevated_target_context_required"
+    }
+  },
+  "cleanup": {
+    "remainingProbeCount": 0,
+    "remainingLabTaskCount": 0,
+    "EnableLUA": 1,
+    "PromptOnSecureDesktop": 1,
+    "ConsentPromptBehaviorAdmin": 5
+  },
+  "credentialsTested": false,
+  "loginTested": false,
+  "readyForUnattended": false,
+  "status": "separate_elevated_lab_receiver_verified_not_certified",
+  "limits": [
+    "El destino es otro proceso del mismo ejecutable de laboratorio, con token completo del usuario administrador e integridad alta; no es una aplicación comercial o un instalador.",
+    "El emisor SYSTEM autorizado crea únicamente el receptor fijo mediante el token vinculado del usuario. Esta ejecución no solicita ni prueba consentimiento UAC; no cambia sus políticas.",
+    "Prueba un clic y un carácter Unicode fijo con foco comprobado; no cubre códigos físicos, combinaciones, texto arbitrario, varios monitores o escalados.",
+    "No prueba UAC con credenciales, bloqueo/inicio de sesión, SAS, DXGI, transporte WebRTC ni el servicio final."
+  ]
+}

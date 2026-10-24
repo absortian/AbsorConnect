@@ -1,6 +1,6 @@
 # Ejecutar solo en la VM de laboratorio, desde una carpeta nueva protegida para SYSTEM/Administradores.
 # Usa el compilador incluido con PowerShell; no instala componentes ni cambia políticas.
-param([string]$WorkingDirectory = $PSScriptRoot, [switch]$TestUacInput, [switch]$TestOwnedInput)
+param([string]$WorkingDirectory = $PSScriptRoot, [switch]$TestUacInput, [switch]$TestOwnedInput, [switch]$TestElevatedInput)
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
@@ -26,11 +26,13 @@ foreach ($rule in $acl.GetAccessRules($true, $true, [Security.Principal.Security
 $source = Join-Path $WorkingDirectory 'CaptureProbe.cs'
 $binary = Join-Path $WorkingDirectory 'CaptureProbe.exe'
 $report = Join-Path $WorkingDirectory 'capture-report.json'
-if ($TestUacInput -or $TestOwnedInput) {
+if ($TestUacInput -or $TestOwnedInput -or $TestElevatedInput) {
     if ((Get-CimInstance Win32_ComputerSystem).Manufacturer -ne 'QEMU') { throw 'qemu_lab_required' }
     if (Get-Process -Name CaptureProbe -ErrorAction SilentlyContinue) { throw 'another_probe_is_running' }
     if (Test-Path -LiteralPath (Join-Path $WorkingDirectory 'uac-input-report.json')) { throw 'input_output_exists' }
 }
+if ($TestElevatedInput -and ((Test-Path -LiteralPath (Join-Path $WorkingDirectory 'elevated-input-report.json')) -or
+    (Test-Path -LiteralPath (Join-Path $WorkingDirectory 'elevated-target-report.json')))) { throw 'elevated_output_exists' }
 if ((Test-Path -LiteralPath $binary) -or (Test-Path -LiteralPath $report)) { throw 'output_exists' }
 if (((Get-Item -LiteralPath $source).Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
     throw 'reparse_source_rejected'
@@ -79,6 +81,25 @@ if ($TestOwnedInput) {
         }
     }
 }
+$elevatedResult = $null
+$elevatedTarget = $null
+if ($TestElevatedInput) {
+    $elevatedLauncher = & $binary --launch-elevated-input-probe
+    $elevatedExitCode = $LASTEXITCODE
+    if ($elevatedExitCode -ne 0) { throw ('elevated_input_probe_failed_' + $elevatedExitCode) }
+    $elevatedResult = Get-Content -LiteralPath (Join-Path $WorkingDirectory 'elevated-input-report.json') -Raw | ConvertFrom-Json
+    $elevatedTarget = Get-Content -LiteralPath (Join-Path $WorkingDirectory 'elevated-target-report.json') -Raw | ConvertFrom-Json
+    if (-not $elevatedResult.separateProcesses -or -not $elevatedResult.senderSystem -or
+        -not $elevatedResult.targetFullHighIntegrityUser -or -not $elevatedResult.cursorRestored -or
+        $elevatedResult.receiverExitCode -ne 0 -or $elevatedResult.senderProcessId -eq $elevatedTarget.processId -or
+        $elevatedResult.receiverProcessId -ne $elevatedTarget.processId -or
+        $elevatedResult.sessionId -ne $elevatedTarget.sessionId -or
+        -not $elevatedTarget.highIntegrity -or -not $elevatedTarget.fullElevationToken -or $elevatedTarget.system -or
+        $elevatedTarget.mouseDown -ne 1 -or $elevatedTarget.mouseUp -ne 1 -or
+        $elevatedTarget.keyDown -ne 1 -or $elevatedTarget.keyUp -ne 1 -or $elevatedTarget.characters -ne 1) {
+        throw 'invalid_elevated_input_result'
+    }
+}
 [ordered]@{
     sourceSha256 = (Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash.ToLowerInvariant()
     binarySha256 = (Get-FileHash -LiteralPath $binary -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -87,8 +108,10 @@ if ($TestOwnedInput) {
     capture = $result
     uacInput = $inputResult
     ownedInput = $ownedResults
+    elevatedInput = $elevatedResult
+    elevatedTarget = $elevatedTarget
     installedService = $false
     uacTested = [bool]$TestUacInput
-    inputTested = [bool]($TestUacInput -or $TestOwnedInput)
+    inputTested = [bool]($TestUacInput -or $TestOwnedInput -or $TestElevatedInput)
     readyForUnattended = $false
 } | ConvertTo-Json -Depth 5

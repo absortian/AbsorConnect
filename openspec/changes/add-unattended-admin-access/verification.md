@@ -1212,3 +1212,32 @@ Verificación de esta iteración: typecheck correcto; Vitest 276 correctos y 5
 omitidos; PHPUnit 162 pruebas y 1077 aserciones; OpenSpec estricto correcto.
 Vitest se ejecutó con Node nativo de macOS porque el `node_modules` compartido
 carece del paquete Rollup ARM64 de Linux requerido por el contenedor.
+
+### Windows: receptor elevado en otro proceso — 25/10/2026
+
+`run-probe.ps1 -TestOwnedInput -TestElevatedInput` compila la fuente identificada
+por hash en Windows ARM64 y ejecuta el emisor SYSTEM en la sesión de consola.
+Este crea únicamente un receptor fijo del diagnóstico en otro proceso, con el
+token vinculado del usuario: ambos validan token completo e integridad alta. El
+receptor solo observa entrada, no la inyecta. El runner contrasta PIDs distintos,
+PID del receptor coincidente y misma sesión en sus informes originales privados.
+
+Resultado: un mouse down/up, un key down/up y el carácter fijo recibidos; salida
+cero y puntero restaurado. La regresión de ventanas propias con usuario filtrado
+y SYSTEM vuelve a pasar, y la captura obtiene ocho fotogramas no uniformes.
+Las ejecuciones directas de los nuevos modos desde SSH/sesión 0 se rechazan antes
+de crear ventana o enviar entrada. Tras retirar la tarea temporal hay cero
+procesos y cero tareas del laboratorio. UAC conserva `EnableLUA:1`,
+`PromptOnSecureDesktop:1` y `ConsentPromptBehaviorAdmin:5`.
+
+Esto acredita entrada entre procesos en un receptor de prueba elevado, no una
+aplicación comercial. SYSTEM ya autorizado crea el receptor sin pedir UAC en
+este ensayo; no se atribuye a esta ejecución consentimiento ni credenciales.
+La creación de contraseña de laboratorio fue completada por el propietario,
+sin recibirla ni registrarla el diagnóstico. Las pruebas de UAC con credenciales,
+bloqueo/login, SAS, DXGI y agente/transporte siguen pendientes; tarea 1.2 parcial,
+`readyForUnattended:false`, total 8/57. Evidencia saneada con hashes en
+`windows-elevated-input-results.json`; los informes originales quedan privados.
+
+Verificación: typecheck correcto, Vitest 276 correctos y 5 omitidos con Node
+nativo de macOS, PHPUnit 162 pruebas/1077 aserciones; OpenSpec estricto correcto.
