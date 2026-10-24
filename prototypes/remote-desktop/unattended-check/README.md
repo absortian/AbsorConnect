@@ -283,6 +283,37 @@ escritorio normal y no prueba UAC. Un informe `Default` no debe contarse como
 captura del escritorio seguro; incluso `Winlogon` más fotogramas no uniformes no
 certifica el contenido exacto del diálogo ni la entrada Win32.
 
+### Windows: recepción de entrada en una ventana propia
+
+`run-probe.ps1 -TestOwnedInput` añade dos ejecuciones acotadas del mismo binario:
+una con el token filtrado del usuario de consola y otra con SYSTEM. Cada trabajador
+crea una ventana Win32 propia en `Default` y solo envía un clic y un carácter
+Unicode fijo cuando esa ventana conserva el primer plano, el foco y la sesión de
+consola, sin botones ni teclas previamente pulsados. Comprueba también que el punto
+de clic pertenece a esa ventana. No acepta destinos ni texto como argumentos.
+
+El código cero exige observar en su procedimiento de ventana la pulsación y
+liberación del ratón, las del teclado y el carácter esperado; no basta con que
+`SendInput` acepte eventos. Restaura el puntero si sigue en la posición de prueba
+y conserva el foco; una intervención local cancela la prueba en vez de competir
+con ella. La ventana se retira al terminar. Fuera del token/sesión esperados se
+rechaza antes de crearla o enviar entrada.
+
+Reproducir desde SYSTEM autorizado en una carpeta nueva protegida como la descrita
+arriba, con lectura/ejecución al usuario filtrado. El script compila, cuenta primero
+capturas de `Default` y recoge ambos resultados. Los indicadores de recepción
+derivan del código cero posterior a las aserciones nativas; no se almacenan teclas,
+imágenes ni trazas de eventos. Este ensayo se ejecutó mediante el acceso SSH de
+laboratorio autorizado y tareas temporales sin disparador automático, retiradas
+al terminar. No depende del RPC de UTM ni instala un servicio del producto.
+
+El destino pertenece al mismo proceso que inyecta la entrada. Esto demuestra
+recepción con ambos tokens, pero **no control entre procesos ni de otra aplicación
+elevada**. Tampoco prueba credenciales, bloqueo/login, códigos físicos de teclado,
+varios monitores, escalados o transporte remoto. La evidencia está en
+`openspec/changes/add-unattended-admin-access/windows-owned-input-results.json`;
+la tarea 1.2 permanece parcial.
+
 ## Criterio de avance
 
 Conservar las tareas sin marcar hasta completar todos sus escenarios reales.

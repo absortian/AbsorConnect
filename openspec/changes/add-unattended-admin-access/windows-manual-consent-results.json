@@ -10,8 +10,8 @@
   "sourceSha256": "bd60334536b82c73ae6a9a3bceada3ce6d11958436a20762de66203449670617",
   "binarySha256VerifiedBeforeLaunch": "0294a1e231b6622e63e012b68fda89014b09abf7a129fa98155216da4210cb40",
   "mode": "--launch-uac-probe",
-  "observationMethod": "cua_visual_read_in_windows_notepad",
-  "rawFileRetrieved": false,
+  "observationMethod": "cua_visual_read_then_authorized_sftp_raw_recovery",
+  "rawFileRetrieved": true,
   "report": {
     "workerExited": true,
     "workerExitCode": 0
@@ -22,12 +22,17 @@
   "uacConfigurationChangedByTrial": false,
   "remoteInputTested": false,
   "credentialsTested": false,
-  "probeProcessCleanupVerified": false,
+  "probeProcessCleanupVerified": true,
   "readyForUnattended": false,
   "limits": [
     "La aceptación fue manual por el propietario, no entrada del host remoto.",
-    "El código de salida se leyó visualmente; no se recuperó el archivo bruto mediante el canal RPC de UTM.",
+    "El informe bruto se recuperó posteriormente por SSH/SFTP autorizado; no se repitió el consentimiento ni se reparó el RPC de UTM.",
     "La comprobación elevada solo consulta pertenencia al contexto de administrador y termina.",
     "No acredita UAC con credenciales, SAS, DXGI ni el agente o servicio final."
-  ]
+  ],
+  "rawFileSha256": "cd8890523caad2fc5e7cdd022562479729cfb99b0ed0be33d8c172d8b85ed02b",
+  "rawFileBytes": 56,
+  "stderrBytes": 0,
+  "binarySha256VerifiedAfterRecovery": "0294a1e231b6622e63e012b68fda89014b09abf7a129fa98155216da4210cb40",
+  "cleanupObservation": "La ausencia de procesos se comprobó después, no al aceptar el aviso."
 }

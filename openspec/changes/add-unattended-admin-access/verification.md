@@ -1149,3 +1149,66 @@ verificada. Evidencia sin usuario ni sesión personal:
 `windows-manual-consent-results.json`. El registro privado identifica el archivo
 y su transcripción visual en `windows-manual-consent-visual-20261024.json`.
 La tarea 1.2 sigue parcial y `readyForUnattended:false`; total 8/57.
+
+### Windows: informe bruto y canal SSH de laboratorio — seguimiento 25/10/2026
+
+Después de la lectura visual anterior se activó OpenSSH oficial en la VM, con
+autorización expresa del propietario, clave exclusiva del Mac, escucha y firewall
+limitados al enlace anfitrión/invitado, sin contraseñas ni reenvíos. Se verificaron
+administración, SFTP por hash, rechazo sin clave, rechazo de túneles y recuperación
+tras reiniciar con la misma huella contrastada en la consola. La VM volvió al
+escritorio automáticamente; ese reinicio no demuestra permanencia en el login.
+Es un acceso del laboratorio, no el agente gráfico de AbsorConnect; no se afirma
+que el RPC de UTM haya quedado reparado.
+
+Por ese canal se recuperó el informe original de consentimiento: 56 bytes,
+SHA-256 `cd8890523caad2fc5e7cdd022562479729cfb99b0ed0be33d8c172d8b85ed02b`,
+`workerExited:true`, `workerExitCode:0`; stderr tiene cero bytes. El binario
+conserva el hash registrado antes de la prueba y se comprobó después la ausencia
+de procesos del diagnóstico. No se repitió UAC ni se atribuye esta comprobación
+posterior de limpieza al momento de aceptar el aviso. Se actualiza
+`windows-manual-consent-results.json` con esa evidencia adicional.
+
+### Windows: recepción nativa en ventana propia — 25/10/2026
+
+`CaptureProbe.cs` añade modos fijos de entrada en una ventana Win32 propia.
+El lanzador SYSTEM crea el trabajador con el token filtrado del usuario o con
+SYSTEM en la sesión de consola y `Default`. El trabajador comprueba su token,
+sesión, escritorio, primer plano, foco, punto de clic y ausencia de entrada
+previamente pulsada. Solo entonces mueve el puntero al cliente de su ventana,
+envía un clic y un carácter Unicode fijo. No acepta texto, coordenadas ni un
+programa de destino de otra parte.
+
+El código cero exige recibir mouse down/up, key down/up y el carácter esperado
+en su procedimiento de ventana, y comprobar la restauración del puntero.
+La ventana se retira aun si falla el ensayo; una intervención local no debe
+provocar una restauración que compita con ella. El informe del lanzador propaga
+el código real del trabajador: los indicadores del runner expresan esas
+aserciones, no una traza de teclas ni solo el retorno de `SendInput`.
+
+- Compilación en Windows ARM64, runtime `4.0.30319.42000`, fuente fijada por SHA-256.
+- Primera ejecución: usuario filtrado y SYSTEM terminan con cero.
+- Runner reproducible `run-probe.ps1 -TestOwnedInput`, en otra carpeta nueva:
+  captura `Default` con 7 fotogramas no uniformes y vuelve a verificar los dos
+  perfiles, incluidos los eventos recibidos y el puntero restaurado. La ejecución
+  final comprueba también el destino bajo el puntero inmediatamente antes del clic.
+- Caso negativo desde SSH en sesión 0 y sin SYSTEM: rechazo
+  `owned_input_token_context_required`, antes de crear ventana o enviar entrada.
+- Tareas temporales sin disparador automático retiradas; cero procesos del
+  diagnóstico y cero tareas de esa ejecución al terminar. No instala SCM ni
+  cambia UAC, autologin o credenciales.
+
+Evidencia pública: `windows-owned-input-results.json`. Informes y lanzadores
+privados en el laboratorio, con hashes del binario de cada compilación y del
+informe bruto. No se afirma compilación binaria determinista.
+
+El destino de entrada está en el mismo proceso que la inyecta. Esto **no demuestra
+control entre procesos o de otra aplicación elevada**, ni escritura de credenciales,
+bloqueo/login, SAS, DXGI, códigos físicos, varios monitores/escalados o WebRTC.
+El tiempo total incluye compilación y captura y no es una medida de latencia.
+La tarea 1.2 sigue parcial: `readyForUnattended:false`, total 8/57.
+
+Verificación de esta iteración: typecheck correcto; Vitest 276 correctos y 5
+omitidos; PHPUnit 162 pruebas y 1077 aserciones; OpenSpec estricto correcto.
+Vitest se ejecutó con Node nativo de macOS porque el `node_modules` compartido
+carece del paquete Rollup ARM64 de Linux requerido por el contenedor.

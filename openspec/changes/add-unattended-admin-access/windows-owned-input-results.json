@@ -1,0 +1,80 @@
+{
+  "schema": 1,
+  "date": "2026-10-25",
+  "configuration": {
+    "os": "Windows 11 Pro",
+    "build": "26300.9711",
+    "architecture": "arm64",
+    "environment": "QEMU laboratory VM"
+  },
+  "sourceSha256": "bc05b4295811b14369aa1cc8bd393d6cb8bf004d87e7d3bbbc74d104c78212c7",
+  "formalBinarySha256": "799279e84bdc6097fdbf0ce91676efc30673180f1a704674379aa8bc679425df",
+  "runtimeVersion": "4.0.30319.42000",
+  "runner": "run-probe.ps1 -TestOwnedInput",
+  "formalReportSha256": "3484166c5c43676906e9bd5c9675699405954accd18ffa6ea7b220b60c30c349",
+  "formalElapsedMilliseconds": 4993,
+  "capture": {
+    "schema": 1,
+    "platform": "windows",
+    "captureApi": "gdi",
+    "desktop": "Default",
+    "frames": 7,
+    "nonUniformFrames": 7,
+    "inputTested": false,
+    "readyForUnattended": false
+  },
+  "cases": [
+    {
+      "profile": "user",
+      "resultSource": "worker_exit_after_fixed_native_assertions",
+      "mouseDownUpReceived": true,
+      "unicodeCharacterReceived": true,
+      "keyDownUpReceived": true,
+      "cursorRestored": true,
+      "target": "own_window_same_process",
+      "separateElevatedApplicationTested": false,
+      "readyForUnattended": false,
+      "workerExited": true,
+      "workerExitCode": 0
+    },
+    {
+      "profile": "system",
+      "resultSource": "worker_exit_after_fixed_native_assertions",
+      "mouseDownUpReceived": true,
+      "unicodeCharacterReceived": true,
+      "keyDownUpReceived": true,
+      "cursorRestored": true,
+      "target": "own_window_same_process",
+      "separateElevatedApplicationTested": false,
+      "readyForUnattended": false,
+      "workerExited": true,
+      "workerExitCode": 0
+    }
+  ],
+  "negativeCase": {
+    "context": "non_SYSTEM_SSH_session_zero",
+    "mode": "--owned-input-system",
+    "exitCode": 3,
+    "error": "owned_input_token_context_required",
+    "rejectedBeforeWindowOrInput": true,
+    "binary": "formalBinarySha256"
+  },
+  "cleanup": {
+    "remainingProbeProcesses": 0,
+    "remainingTemporaryLabTasks": 0
+  },
+  "inputTested": true,
+  "uacRetestedByThisTrial": false,
+  "uacConfigurationChanged": false,
+  "separateElevatedApplicationTested": false,
+  "credentialsTested": false,
+  "loginTested": false,
+  "readyForUnattended": false,
+  "status": "own_window_input_verified_not_certified",
+  "limits": [
+    "El destino es una ventana del mismo proceso, con token filtrado o SYSTEM; no demuestra control entre procesos ni de otra aplicación elevada.",
+    "El trabajador valida recepción de un clic y un carácter Unicode fijo; no prueba distribución física, combinaciones, texto arbitrario, varios monitores o escalados.",
+    "Los indicadores de recepción proceden de aserciones nativas previas al código cero del trabajador; no se guarda una traza de eventos o de teclas.",
+    "No prueba UAC con credenciales, bloqueo/login, SAS, DXGI, red WebRTC ni el servicio final."
+  ]
+}

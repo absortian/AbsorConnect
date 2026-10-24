@@ -1,6 +1,6 @@
 # Ejecutar solo en la VM de laboratorio, desde una carpeta nueva protegida para SYSTEM/Administradores.
 # Usa el compilador incluido con PowerShell; no instala componentes ni cambia políticas.
-param([string]$WorkingDirectory = $PSScriptRoot, [switch]$TestUacInput)
+param([string]$WorkingDirectory = $PSScriptRoot, [switch]$TestUacInput, [switch]$TestOwnedInput)
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
@@ -26,7 +26,7 @@ foreach ($rule in $acl.GetAccessRules($true, $true, [Security.Principal.Security
 $source = Join-Path $WorkingDirectory 'CaptureProbe.cs'
 $binary = Join-Path $WorkingDirectory 'CaptureProbe.exe'
 $report = Join-Path $WorkingDirectory 'capture-report.json'
-if ($TestUacInput) {
+if ($TestUacInput -or $TestOwnedInput) {
     if ((Get-CimInstance Win32_ComputerSystem).Manufacturer -ne 'QEMU') { throw 'qemu_lab_required' }
     if (Get-Process -Name CaptureProbe -ErrorAction SilentlyContinue) { throw 'another_probe_is_running' }
     if (Test-Path -LiteralPath (Join-Path $WorkingDirectory 'uac-input-report.json')) { throw 'input_output_exists' }
@@ -54,6 +54,31 @@ if ($TestUacInput) {
         throw ('uac_input_probe_failed_' + $inputExitCode)
     }
 }
+$ownedResults = @()
+if ($TestOwnedInput) {
+    foreach ($profile in @('user', 'system')) {
+        $ownedLauncher = & $binary ('--launch-' + $profile + '-owned-input-probe')
+        $ownedExitCode = $LASTEXITCODE
+        $ownedDetails = ($ownedLauncher -join "`n") | ConvertFrom-Json
+        if ($ownedExitCode -ne 0 -or -not $ownedDetails.workerExited -or
+            $ownedDetails.workerExitCode -ne 0 -or $ownedDetails.sessionId -eq 0) {
+            throw ('owned_input_probe_failed_' + $profile + '_' + $ownedExitCode)
+        }
+        # El trabajador solo devuelve cero tras observar recepción y restauración, no solo SendInput.
+        $ownedResults += [ordered]@{
+            profile = $profile
+            launcher = $ownedDetails
+            resultSource = 'worker_exit_after_fixed_native_assertions'
+            mouseDownUpReceived = $true
+            unicodeCharacterReceived = $true
+            keyDownUpReceived = $true
+            cursorRestored = $true
+            target = 'own_window_same_process'
+            separateElevatedApplicationTested = $false
+            readyForUnattended = $false
+        }
+    }
+}
 [ordered]@{
     sourceSha256 = (Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash.ToLowerInvariant()
     binarySha256 = (Get-FileHash -LiteralPath $binary -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -61,8 +86,9 @@ if ($TestUacInput) {
     launcher = ($launcher | ConvertFrom-Json)
     capture = $result
     uacInput = $inputResult
+    ownedInput = $ownedResults
     installedService = $false
     uacTested = [bool]$TestUacInput
-    inputTested = [bool]$TestUacInput
+    inputTested = [bool]($TestUacInput -or $TestOwnedInput)
     readyForUnattended = $false
 } | ConvertTo-Json -Depth 5
