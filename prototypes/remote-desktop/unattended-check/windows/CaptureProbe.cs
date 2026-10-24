@@ -90,7 +90,7 @@ public static class CaptureProbe
             value.Equals("Winlogon", StringComparison.OrdinalIgnoreCase) ? "Winlogon" : "other";
     }
 
-    static int Launch(bool requestElevation = false, bool testUacInput = false, bool ownedInput = false, bool userInput = false) {
+    static int Launch(bool requestElevation = false, bool testUacInput = false, bool ownedInput = false, bool userInput = false, bool elevatedInput = false) {
         if (WindowsIdentity.GetCurrent().User.Value != "S-1-5-18") throw new InvalidOperationException("system_context_required");
         uint session = WTSGetActiveConsoleSessionId();
         if (session == UInt32.MaxValue || session == 0) throw new InvalidOperationException("console_session_unavailable");
@@ -110,16 +110,16 @@ public static class CaptureProbe
             string binary = Assembly.GetExecutingAssembly().Location;
             var startup = new StartupInfo { cb = Marshal.SizeOf(typeof(StartupInfo)), desktop = @"winsta0\default", flags = 1, show = (ushort)(ownedInput ? 5 : 0) };
             ProcessInfo process;
-            string mode = ownedInput ? (userInput ? "--owned-input-user" : "--owned-input-system") :
+            string mode = elevatedInput ? "--elevated-input-injector" : ownedInput ? (userInput ? "--owned-input-user" : "--owned-input-system") :
                 requestElevation ? "--request-elevation" : testUacInput ? "--uac-input" : "--capture";
             Check(CreateProcessAsUser(primary, binary, new StringBuilder("\"" + binary + "\" " + mode),
                 IntPtr.Zero, IntPtr.Zero, false, 0x08000000, IntPtr.Zero, Path.GetDirectoryName(binary), ref startup, out process));
             try {
                 uint wait = WaitForSingleObject(process.process, requestElevation ? 180000u : testUacInput ? 50000u : 15000u);
-                if (wait == 258 && (requestElevation || testUacInput || ownedInput)) {
-                    // Retira solo su propio solicitante si nadie responde; no pulsa botones de UAC.
+                if (wait == 258 && (requestElevation || testUacInput || ownedInput || elevatedInput)) {
+                    // Retira solo su trabajador si vence el plazo; no pulsa botones de UAC.
                     Check(TerminateProcess(process.process, 124));
-                    throw new InvalidOperationException("uac_probe_timeout");
+                    throw new InvalidOperationException(ownedInput || elevatedInput ? "input_probe_timeout" : "uac_probe_timeout");
                 }
                 if (wait != 0) throw new InvalidOperationException("worker_wait_failed_" + wait);
                 uint code; Check(GetExitCodeProcess(process.process, out code));
@@ -437,11 +437,17 @@ public static class CaptureProbe
         }
     }
 
-    static int OwnedInput(bool userInput) {
+    static int OwnedInput(bool userInput, bool elevatedTarget = false) {
         RequireInputLab();
         bool system = WindowsIdentity.GetCurrent().User.Value == "S-1-5-18";
         bool admin = new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
-        if (Process.GetCurrentProcess().SessionId == 0 || system == userInput || admin == userInput)
+        if (elevatedTarget) {
+            if (system || !admin || Process.GetCurrentProcess().SessionId == 0)
+                throw new InvalidOperationException("elevated_target_context_required");
+            IntPtr current;
+            Check(OpenProcessToken(GetCurrentProcess(), 8, out current));
+            try { RequireHighToken(current); } finally { CloseHandle(current); }
+        } else if (Process.GetCurrentProcess().SessionId == 0 || system == userInput || admin == userInput)
             throw new InvalidOperationException("owned_input_token_context_required");
         if (InputDesktopName() != "Default" || DesktopName(GetThreadDesktop(GetCurrentThreadId())) != "Default")
             throw new InvalidOperationException("default_desktop_required");
@@ -461,6 +467,20 @@ public static class CaptureProbe
             ShowWindow(ownedWindow, 5); SetForegroundWindow(ownedWindow); SetFocus(ownedWindow);
             PumpOwnedUntil(delegate { return GetForegroundWindow() == ownedWindow && GetFocus() == ownedWindow; }, 4000);
             RequireOwnedForeground();
+            if (elevatedTarget) {
+                // Este proceso solo recibe; la entrada debe llegar de otro proceso del laboratorio.
+                PumpOwnedUntil(delegate { return ownedMouseDown == 1 && ownedMouseUp == 1 &&
+                    ownedKeyDown == 1 && ownedKeyUp == 1 && ownedCharacters == 1; }, 8000);
+                RequireOwnedForeground();
+                WriteReport("elevated-target-report.json", "{\"mouseDown\":" + ownedMouseDown +
+                    ",\"mouseUp\":" + ownedMouseUp + ",\"keyDown\":" + ownedKeyDown +
+                    ",\"keyUp\":" + ownedKeyUp + ",\"characters\":" + ownedCharacters +
+                    ",\"highIntegrity\":true,\"fullElevationToken\":true,\"system\":false,\"processId\":" +
+                    Process.GetCurrentProcess().Id + ",\"sessionId\":" + Process.GetCurrentProcess().SessionId + "}");
+                // Conserva el destino durante la restauración del puntero por el emisor.
+                Thread.Sleep(2000);
+                return 0;
+            }
             Check(GetCursorPos(out original));
             OwnedRect rect; Check(GetClientRect(ownedWindow, out rect));
             target = new OwnedPoint { x = (rect.right - rect.left) / 2, y = (rect.bottom - rect.top) / 2 };
@@ -502,9 +522,159 @@ public static class CaptureProbe
         return 0;
     }
 
+
+    [StructLayout(LayoutKind.Sequential)]
+    struct TargetGuiInfo {
+        public int size; public uint flags;
+        public IntPtr active, focus, capture, menuOwner, moveSize, caret; public OwnedRect caretRect;
+    }
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern IntPtr FindWindow(string name, string title);
+    [DllImport("user32.dll", SetLastError = true)] static extern bool GetGUIThreadInfo(uint thread, ref TargetGuiInfo info);
+    [DllImport("advapi32.dll", SetLastError = true)]
+    static extern bool GetTokenInformation(IntPtr token, int type, IntPtr buffer, int length, out int needed);
+
+    static IntPtr TokenInformation(IntPtr token, int type) {
+        int size; GetTokenInformation(token, type, IntPtr.Zero, 0, out size);
+        if (size < 1 || size > 65536) throw new InvalidOperationException("invalid_token_info_size");
+        IntPtr data = Marshal.AllocHGlobal(size);
+        try { Check(GetTokenInformation(token, type, data, size, out size)); return data; }
+        catch { Marshal.FreeHGlobal(data); throw; }
+    }
+
+    static void RequireHighToken(IntPtr token) {
+        IntPtr elevation = TokenInformation(token, 18), integrity = IntPtr.Zero;
+        try {
+            integrity = TokenInformation(token, 25);
+            string sid = new SecurityIdentifier(Marshal.ReadIntPtr(integrity)).Value;
+            if (Marshal.ReadInt32(elevation) != 2 || sid != "S-1-16-12288")
+                throw new InvalidOperationException("full_high_integrity_token_required");
+        } finally { if (integrity != IntPtr.Zero) Marshal.FreeHGlobal(integrity); Marshal.FreeHGlobal(elevation); }
+    }
+
+    static void RequireElevatedTarget(ProcessInfo child, IntPtr window, int session) {
+        uint pid;
+        uint thread = GetWindowThreadProcessId(window, out pid);
+        var gui = new TargetGuiInfo { size = Marshal.SizeOf(typeof(TargetGuiInfo)) };
+        if (WaitForSingleObject(child.process, 0) != 258 || thread != child.threadId || pid != child.processId ||
+            pid == Process.GetCurrentProcess().Id || !IsWindow(window) || GetForegroundWindow() != window ||
+            !GetGUIThreadInfo(thread, ref gui) || gui.focus != window || gui.active != window ||
+            InputDesktopName() != "Default" || DesktopName(GetThreadDesktop(GetCurrentThreadId())) != "Default" ||
+            WTSGetActiveConsoleSessionId() != session)
+            throw new InvalidOperationException("elevated_target_context_changed");
+        for (int key = 1; key < 255; key++)
+            if (GetAsyncKeyState(key) < 0) throw new InvalidOperationException("pressed_key_prevents_elevated_probe");
+    }
+
+    static void SendElevatedPair(ProcessInfo child, IntPtr window, int session, Input down, Input up) {
+        RequireElevatedTarget(child, window, session);
+        if (down.type == 0) {
+            OwnedPoint point;
+            if (!GetCursorPos(out point) || WindowFromPoint(point) != window)
+                throw new InvalidOperationException("elevated_pointer_target_required");
+        }
+        uint sent = SendInput(2, new Input[] { down, up }, Marshal.SizeOf(typeof(Input)));
+        if (sent != 2) {
+            if (sent == 1) SendInput(1, new Input[] { up }, Marshal.SizeOf(typeof(Input)));
+            throw new InvalidOperationException("elevated_input_pair_incomplete");
+        }
+    }
+
+    static int ElevatedInput() {
+        RequireInputLab();
+        int session = Process.GetCurrentProcess().SessionId;
+        if (WindowsIdentity.GetCurrent().User.Value != "S-1-5-18" || session == 0 || WTSGetActiveConsoleSessionId() != session)
+            throw new InvalidOperationException("interactive_system_context_required");
+        if (InputDesktopName() != "Default" || DesktopName(GetThreadDesktop(GetCurrentThreadId())) != "Default")
+            throw new InvalidOperationException("default_desktop_required");
+        IntPtr user = IntPtr.Zero, linked = IntPtr.Zero, childToken = IntPtr.Zero;
+        ProcessInfo child = new ProcessInfo();
+        IntPtr window = IntPtr.Zero;
+        OwnedPoint original = new OwnedPoint(), target = new OwnedPoint();
+        bool moved = false, restored = false;
+        try {
+            Check(WTSQueryUserToken((uint)session, out user));
+            IntPtr info = TokenInformation(user, 19);
+            try { linked = Marshal.ReadIntPtr(info); } finally { Marshal.FreeHGlobal(info); }
+            RequireHighToken(linked);
+            string binary = Assembly.GetExecutingAssembly().Location;
+            var startup = new StartupInfo { cb = Marshal.SizeOf(typeof(StartupInfo)), desktop = @"winsta0\default", flags = 1, show = 5 };
+            // SYSTEM ya autorizado crea solo el receptor fijo con el token alto del usuario; no prueba consentimiento UAC.
+            Check(CreateProcessAsUser(linked, binary, new StringBuilder("\"" + binary + "\" --elevated-input-target"),
+                IntPtr.Zero, IntPtr.Zero, false, 0x08000000, IntPtr.Zero, Path.GetDirectoryName(binary), ref startup, out child));
+            Check(OpenProcessToken(child.process, 8, out childToken));
+            RequireHighToken(childToken);
+            using (var targetIdentity = new WindowsIdentity(childToken))
+            using (var userIdentity = new WindowsIdentity(user))
+                if (!targetIdentity.User.Equals(userIdentity.User) || targetIdentity.User.Value == "S-1-5-18")
+                    throw new InvalidOperationException("elevated_target_user_mismatch");
+            var wait = Stopwatch.StartNew();
+            while (window == IntPtr.Zero || GetForegroundWindow() != window) {
+                if (wait.ElapsedMilliseconds > 4500 || WaitForSingleObject(child.process, 0) != 258)
+                    throw new InvalidOperationException("elevated_target_unavailable");
+                window = FindWindow("AbsorConnectOwnedInputLab_" + child.processId, null); Thread.Sleep(20);
+            }
+            RequireElevatedTarget(child, window, session);
+            Check(GetCursorPos(out original));
+            OwnedRect rect; Check(GetClientRect(window, out rect));
+            target = new OwnedPoint { x = (rect.right - rect.left) / 2, y = (rect.bottom - rect.top) / 2 };
+            Check(ClientToScreen(window, ref target));
+            if (WindowFromPoint(target) != window) throw new InvalidOperationException("elevated_click_target_required");
+            int left = GetSystemMetrics(76), top = GetSystemMetrics(77), width = GetSystemMetrics(78), height = GetSystemMetrics(79);
+            if (width < 2 || height < 2 || target.x < left || target.x >= left + width || target.y < top || target.y >= top + height)
+                throw new InvalidOperationException("elevated_target_outside_display");
+            RequireElevatedTarget(child, window, session);
+            moved = SendInput(1, new Input[] { new Input { type = 0, data = new InputUnion { mouse = new MouseInput {
+                x = (int)(((long)target.x - left) * 65535 / (width - 1)),
+                y = (int)(((long)target.y - top) * 65535 / (height - 1)), flags = 0xC001 } } } }, Marshal.SizeOf(typeof(Input))) == 1;
+            if (!moved) throw new InvalidOperationException("elevated_mouse_move_failed");
+            var motionWait = Stopwatch.StartNew(); OwnedPoint current;
+            while (!GetCursorPos(out current) || current.x != target.x || current.y != target.y) {
+                if (motionWait.ElapsedMilliseconds > 1000) throw new InvalidOperationException("elevated_mouse_observation_timeout");
+                RequireElevatedTarget(child, window, session); Thread.Sleep(10);
+            }
+            SendElevatedPair(child, window, session,
+                new Input { type = 0, data = new InputUnion { mouse = new MouseInput { flags = 2 } } },
+                new Input { type = 0, data = new InputUnion { mouse = new MouseInput { flags = 4 } } });
+            SendElevatedPair(child, window, session,
+                new Input { type = 1, data = new InputUnion { keyboard = new KeyboardInput { scan = 65, flags = 4 } } },
+                new Input { type = 1, data = new InputUnion { keyboard = new KeyboardInput { scan = 65, flags = 6 } } });
+            RequireElevatedTarget(child, window, session);
+            if (GetCursorPos(out current) && current.x == target.x && current.y == target.y) {
+                Check(SetCursorPos(original.x, original.y));
+                restored = GetCursorPos(out current) && current.x == original.x && current.y == original.y;
+            }
+            if (!restored) throw new InvalidOperationException("elevated_cursor_restore_not_verified");
+            if (WaitForSingleObject(child.process, 7000) != 0) throw new InvalidOperationException("elevated_receiver_timeout");
+            uint code; Check(GetExitCodeProcess(child.process, out code));
+            if (code != 0) throw new InvalidOperationException("elevated_receiver_failed_" + code);
+            WriteReport("elevated-input-report.json", "{\"schema\":1,\"senderSystem\":true,\"separateProcesses\":true,\"senderProcessId\":" +
+                Process.GetCurrentProcess().Id + ",\"receiverProcessId\":" + child.processId + ",\"sessionId\":" + session + "," +
+                "\"targetFullHighIntegrityUser\":true,\"receiverExitCode\":0,\"cursorRestored\":true," +
+                "\"uacConsentTested\":false,\"credentialsTested\":false,\"readyForUnattended\":false}");
+            return 0;
+        } finally {
+            try {
+                OwnedPoint current;
+                if (moved && !restored && window != IntPtr.Zero && GetForegroundWindow() == window && InputDesktopName() == "Default" &&
+                    GetCursorPos(out current) && current.x == target.x && current.y == target.y) SetCursorPos(original.x, original.y);
+            } finally {
+                if (child.process != IntPtr.Zero) {
+                    if (WaitForSingleObject(child.process, 0) == 258) { TerminateProcess(child.process, 124); WaitForSingleObject(child.process, 2000); }
+                    CloseHandle(child.thread); CloseHandle(child.process);
+                }
+                if (childToken != IntPtr.Zero) CloseHandle(childToken);
+                if (linked != IntPtr.Zero) CloseHandle(linked);
+                if (user != IntPtr.Zero) CloseHandle(user);
+            }
+        }
+    }
+
     public static int Main(string[] args) {
         if (args.Length != 1) return 64;
         try {
+            if (args[0] == "--launch-elevated-input-probe") return Launch(false, false, false, false, true);
+            if (args[0] == "--elevated-input-injector") return ElevatedInput();
+            if (args[0] == "--elevated-input-target") return OwnedInput(false, true);
             if (args[0] == "--launch-console-probe") return Launch();
             if (args[0] == "--launch-uac-probe") return Launch(true);
             if (args[0] == "--launch-uac-input-probe") return Launch(false, true);

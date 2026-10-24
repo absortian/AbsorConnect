@@ -314,6 +314,35 @@ varios monitores, escalados o transporte remoto. La evidencia está en
 `openspec/changes/add-unattended-admin-access/windows-owned-input-results.json`;
 la tarea 1.2 permanece parcial.
 
+### Windows: entrada en un receptor elevado de otro proceso
+
+`run-probe.ps1 -TestElevatedInput` añade un emisor SYSTEM interactivo y otro
+proceso receptor del diagnóstico, con el token completo del usuario de consola.
+Solo se admite en la VM QEMU y con las políticas UAC esperadas. SYSTEM ya
+administrativamente autorizado obtiene el token vinculado y crea **solo este
+receptor fijo**. Este ensayo no solicita consentimiento UAC ni acredita ese paso.
+No acepta ruta, texto, PID o coordenadas de un tercero.
+
+Ambos lados comprueban token completo e integridad alta del receptor; el emisor
+contrasta su identidad con la del usuario de consola y conserva el handle real
+del hijo. Antes de mover, pulsar o escribir, comprueba escritorio, PID/hilo,
+primer plano, foco de ese hilo y ausencia de teclas retenidas. El receptor no
+inyecta entrada: cuenta mouse down/up, key down/up y el carácter fijo recibido.
+El runner cruza los PIDs y la sesión de los dos informes y exige los cinco
+contadores a uno, salida cero y restauración del puntero. Se puede combinar con
+`-TestOwnedInput` para volver a comprobar las dos ventanas del mismo proceso.
+
+Reproducir desde SYSTEM en una carpeta nueva y protegida como los otros ensayos.
+El hijo tiene plazo propio y el emisor retira solo su proceso si falla; no quedan
+tareas automáticas ni un servicio instalado. Los JSON contienen metadatos y
+contadores, sin imágenes, contraseñas ni trazas de teclado. Evidencia saneada en
+`openspec/changes/add-unattended-admin-access/windows-elevated-input-results.json`.
+No certifica una herramienta comercial, credenciales, bloqueo/login ni transporte.
+
+Referencias de las APIs usadas: [GetGUIThreadInfo](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getguithreadinfo),
+[TOKEN_LINKED_TOKEN](https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-token_linked_token)
+y [SendInput/UIPI](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-sendinput).
+
 ## Criterio de avance
 
 Conservar las tareas sin marcar hasta completar todos sus escenarios reales.
