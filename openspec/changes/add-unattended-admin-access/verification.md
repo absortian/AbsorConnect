@@ -1028,3 +1028,68 @@ sigue en **8/57**; la publicación estable 0.4.1 no incluye estos diagnósticos.
 
 Referencias: [Apple: agentes antes del login](https://developer.apple.com/library/archive/documentation/MacOSX/Conceptual/BPSystemStartup/Chapters/CustomLogin.html)
 y [NSWindow.canBecomeVisibleWithoutLogin](https://developer.apple.com/documentation/appkit/nswindow/canbecomevisiblewithoutlogin).
+
+### Mint: acceso administrativo gráfico comprobado, transición preparada — 24/10/2026
+
+El propietario ejecutó por SSH el inventario administrativo de una sola ejecución,
+introduciendo sudo localmente. UID 0, Cinnamon/X11 activo y desbloqueado, LightDM
+activo. El archivo de autorización de Xorg es regular, privado de root y permitió
+XOpenDisplay desde root. No hubo captura, entrada, cambios de permisos ni servicio.
+Informe sin UID del usuario ni display: `mint-root-inventory-results.json`.
+Evidencia privada: `mint-root-inventory-20261024.{log,json}` y el script del mismo
+nombre, SHA-256 `2d0059a80b18bddc1df6dfefecf642aaa6155ce2d555de70f34d3cc69f0a5059`.
+Esto verifica acceso administrativo al servidor X en el escritorio actual; no
+acredita todavía el greeter ni completa 1.4.
+
+Preparado `linux-session-check.py` para observar escritorio → greeter → nueva
+sesión del mismo usuario, usando el capturador existente, sin entrada ni servicio.
+Resuelve Xauthority de nuevo por fase, exige propiedad/permisos privados de root
+y padres sin escritura ajena, y descarta una muestra si cambia logind durante la
+captura. Copias en Mint con hashes coincidentes. Validación de sintaxis correcta;
+rechazo sin root con salida 4; comprobaciones aisladas de sesión estable,
+transición durante captura, entrada inesperada, captura fallida y displays inválidos
+correctas. La prueba física coordinada se completó posteriormente; resultado en el apartado siguiente.
+Typecheck y 276 tests Vitest correctos, cinco omitidos
+previos; validación estricta de OpenSpec correcta. Progreso sin cambios: 8/57.
+
+La herramienta de control del ordenador rechazó acceder a Terminal del Mac
+(`com.apple.Terminal`), por lo que los comandos administrativos los ejecuta el
+propietario y se recogen sus informes locales; no se habilitó SSH de root ni sudo
+sin contraseña como alternativa.
+
+### Windows: consentimiento manual sin resultado recuperado — 24/10/2026
+
+Windows 11 ARM Lab arrancado; inventario confirma UAC y escritorio seguro activos,
+volumen sin BitLocker. El mismo CaptureProbe.exe verificado por SHA-256 solicitó
+solo `--elevated-self-check`, que comprueba el contexto administrativo y termina.
+El propietario notificó la aceptación de dos avisos y se observó de nuevo el
+escritorio. El primer lector agotó sus 60 segundos. En el segundo intento se
+redirigió la salida a un archivo propio de la VM, pero UTM/QEMU Guest Agent dejó
+de responder a las consultas y lecturas posteriores (timeout RPC). No se recuperó
+un resultado completo, no se cuenta como elevación correcta ni como entrada remota
+verificada. No se modificó UAC ni se instaló servicio. Archivos privados:
+`utm-cli-check/{manual-uac-elevation,start-manual-uac-durable,read-manual-uac}-20261024.ps1`.
+La recuperación del informe y comprobación de ausencia de procesos siguen pendientes.
+
+
+### Mint: captura durante cierre de sesión y vuelta verificada — 24/10/2026
+
+El propietario ejecutó el diagnóstico preparado, cerró sesión de Cinnamon,
+permaneció en LightDM y volvió a iniciar sesión. Las tres fases fueron observadas
+por logind y capturadas desde root con Xauthority resuelto de nuevo: diez imágenes
+128×72 en cada fase, no uniformes 10/9/4 respectivamente. El muestreo dura dos
+segundos por fase; el recorrido completo duró 75424 ms e incluye la intervención
+local. No es una medida de reconexión ni rendimiento del transporte remoto.
+
+El resultado `transition_capture_ok_not_certified` exige escritorio de usuario
+inicial desbloqueado, greeter X11 activo y nueva sesión del mismo usuario al volver,
+con comprobación de contexto antes/después de cada captura. Tras la prueba se
+confirmó otra sesión activa y cero procesos del diagnóstico. No se instalaron
+servicios ni se modificaron LightDM, Xauthority, xhost, sudoers o permisos del SO.
+
+Informe público sin IPs, usuarios, display, cookies ni contenido de pantalla:
+`mint-transition-results.json`. El original y JSON extraído permanecen privados
+en `mint-transitions-20261024.{log,json}`. No publicar el log bruto de la terminal,
+que incluye el prompt de sudo. Entrada, bloqueo, polkit y funcionamiento remoto
+siguen pendientes; `preLoginTested` y `readyForUnattended` permanecen falsos.
+La tarea 1.4 es parcial y el total sigue en 8/57.

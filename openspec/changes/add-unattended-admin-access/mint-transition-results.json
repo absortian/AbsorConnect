@@ -1,0 +1,74 @@
+{
+  "date": "2026-10-24",
+  "scope": "Captura local de región 128x72 durante transiciones coordinadas; no certifica entrada ni transporte remoto",
+  "scriptSha256": "705585a6eb03357f1a369fff14390e4386a4f85e2ab28cb97d0e4888a5541e43",
+  "captureWorkerSha256": "5c6dc1a14a6a0c8d4e2fc0eaf8816bfed9be3caae19733aa11ad5002a79b7d5e",
+  "remainingDiagnosticProcesses": 0,
+  "systemConfigurationChanged": false,
+  "report": {
+    "schema": 1,
+    "platform": "linux",
+    "status": "transition_capture_ok_not_certified",
+    "elapsedMilliseconds": 75424,
+    "stages": [
+      {
+        "stage": "desktop",
+        "report": {
+          "sessionClass": "user",
+          "sessionType": "x11",
+          "locked": false,
+          "authorityRootPrivate": true,
+          "captureApi": "XGetImage",
+          "captureRegion": [
+            128,
+            72
+          ],
+          "frames": 10,
+          "nonUniformFrames": 10,
+          "captureTested": true,
+          "inputTested": false
+        }
+      },
+      {
+        "stage": "greeter",
+        "report": {
+          "sessionClass": "greeter",
+          "sessionType": "x11",
+          "locked": false,
+          "authorityRootPrivate": true,
+          "captureApi": "XGetImage",
+          "captureRegion": [
+            128,
+            72
+          ],
+          "frames": 10,
+          "nonUniformFrames": 9,
+          "captureTested": true,
+          "inputTested": false
+        }
+      },
+      {
+        "stage": "returned_desktop",
+        "report": {
+          "sessionClass": "user",
+          "sessionType": "x11",
+          "locked": false,
+          "authorityRootPrivate": true,
+          "captureApi": "XGetImage",
+          "captureRegion": [
+            128,
+            72
+          ],
+          "frames": 10,
+          "nonUniformFrames": 4,
+          "captureTested": true,
+          "inputTested": false
+        }
+      }
+    ],
+    "inputTested": false,
+    "polkitTested": false,
+    "preLoginTested": false,
+    "readyForUnattended": false
+  }
+}
