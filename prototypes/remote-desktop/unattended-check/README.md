@@ -343,6 +343,37 @@ Referencias de las APIs usadas: [GetGUIThreadInfo](https://learn.microsoft.com/e
 [TOKEN_LINKED_TOKEN](https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-token_linked_token)
 y [SendInput/UIPI](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-sendinput).
 
+### Windows: credenciales manuales y Escape en bloqueo
+
+La evidencia `windows-credential-uac-results.json` documenta un `runas` del
+propio diagnóstico desde una cuenta local estándar. El propietario introduce
+las credenciales de administrador en UAC; el destino solo comprueba pertenencia
+al contexto de administrador y termina. El informe bruto confirma código cero,
+la captura obtiene ocho fotogramas de `Winlogon` mientras el aviso está visible
+y nueve de `Default` después. **No es entrada de credenciales por AbsorConnect.**
+
+`run-probe.ps1 -TestLockEscape` es un ensayo exclusivo para la VM QEMU bloqueada.
+Debe coordinarse con el propietario, que conserva su contraseña para desbloquear.
+Preparar el formulario de contraseña vacío mediante la consola de la VM y
+lanzar el runner desde SYSTEM en una carpeta nueva protegida. Este compila,
+cuenta capturas de `Winlogon` y crea un trabajador SYSTEM en ese escritorio.
+Solo permite Escape si el primer plano pertenece a `System32/LogonUI.exe`, la
+sesión es la consola activa y no hay teclas previamente pulsadas. No acepta texto,
+coordenadas ni otro ejecutable, y no introduce ni envía credenciales.
+
+El informe distingue **eventos insertados de recepción verificada**:
+`lockEscapeReceptionRequiresVisualObservation` exige observar el efecto desde
+la consola. En el ensayo del 25/10 la captura bloqueada dio nueve fotogramas,
+pero Escape no produjo cambio inmediato verificable, tampoco en una comparación
+por consola. Un fondo de bloqueo observado más tarde no se atribuye al evento.
+Por ello la recepción queda **inconclusa**, aun con código cero y dos eventos.
+Evidencia: `windows-lock-escape-results.json`; no certifica el inicio de sesión.
+
+Los nuevos modos se rechazan desde SSH sin SYSTEM en sesión 0. Una regresión
+con `-TestOwnedInput -TestUacInput` verifica las ventanas propias y la cancelación
+UAC anterior, con retorno 1223. El runner no combina ese ensayo con el de bloqueo.
+Los informes originales son privados y solo contienen metadatos/contadores.
+
 ## Criterio de avance
 
 Conservar las tareas sin marcar hasta completar todos sus escenarios reales.

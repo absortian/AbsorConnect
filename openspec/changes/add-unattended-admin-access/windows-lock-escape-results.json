@@ -1,0 +1,111 @@
+{
+  "schema": 1,
+  "date": "2026-10-25",
+  "configuration": {
+    "os": "Windows 11 Pro",
+    "build": "26300.9711",
+    "architecture": "arm64",
+    "environment": "QEMU laboratory VM"
+  },
+  "sourceSha256": "bac849680e7273441962ea1d3e3ccc49594f09be53e937f7757c4093d1a691d9",
+  "binarySha256": "c45ca845040f1ab1d4e726964185b9bc084b4190697cea3cfb91a95c055662f5",
+  "runner": "run-probe.ps1 -TestLockEscape",
+  "runtimeVersion": "4.0.30319.42000",
+  "capture": {
+    "schema": 1,
+    "platform": "windows",
+    "captureApi": "gdi",
+    "desktop": "Winlogon",
+    "frames": 9,
+    "nonUniformFrames": 9,
+    "inputTested": false,
+    "readyForUnattended": false
+  },
+  "lockEscape": {
+    "desktop": "Winlogon",
+    "foregroundKind": "logon",
+    "eventsInserted": 2,
+    "foregroundWaitMilliseconds": 28,
+    "inputSize": 40
+  },
+  "repeat": {
+    "binarySha256": "c45ca845040f1ab1d4e726964185b9bc084b4190697cea3cfb91a95c055662f5",
+    "launcher": {
+      "workerExited": true,
+      "workerExitCode": 0
+    },
+    "result": {
+      "desktop": "Winlogon",
+      "foregroundKind": "logon",
+      "eventsInserted": 2,
+      "foregroundWaitMilliseconds": 28,
+      "inputSize": 40
+    }
+  },
+  "visualObservations": {
+    "schema": 1,
+    "beforeNativeEscape": "credential_form_empty",
+    "firstDelayedObservation": "lock_wallpaper_seen_later_not_attributed_to_input",
+    "repeatImmediateObservation": "credential_form_unchanged",
+    "consoleEscapeComparison": "credential_form_unchanged_in_immediate_observation",
+    "nativeReceptionCertified": false,
+    "passwordsEnteredByProbe": false,
+    "imagesStored": false
+  },
+  "negativeCases": {
+    "--launch-lock-escape-probe": {
+      "exitCode": 3,
+      "error": "InvalidOperationException: system_context_required",
+      "rejected": true
+    },
+    "--lock-escape-coordinator": {
+      "exitCode": 3,
+      "error": "InvalidOperationException: interactive_system_context_required",
+      "rejected": true
+    },
+    "--escape-logon": {
+      "exitCode": 3,
+      "error": "InvalidOperationException: interactive_system_context_required",
+      "rejected": true
+    }
+  },
+  "cleanup": {
+    "remainingProbeCount": 0,
+    "remainingLabTaskCount": 0
+  },
+  "regression": {
+    "binarySha256": "0d8344e78a97d8a0ed7a21680bea3dd774e0b8043803d81618ff37ec293d5c89",
+    "runner": "run-probe.ps1 -TestOwnedInput -TestUacInput",
+    "ownWindowWorkerExitCodes": [
+      0,
+      0
+    ],
+    "uacCapture": {
+      "schema": 1,
+      "platform": "windows",
+      "captureApi": "gdi",
+      "desktop": "Winlogon",
+      "frames": 8,
+      "nonUniformFrames": 8,
+      "inputTested": false,
+      "readyForUnattended": false
+    },
+    "uacCancellationExitCode": 1223,
+    "uacEscapeEventsInserted": 2
+  },
+  "rawReportHashes": {
+    "lock-results.json": "47b8a4edfd4759397dde364d6d36fe9fc3b1d69e272491691a4b19c24ff02d99",
+    "repeat-lock-escape-report.json": "f8937311639daaacbf4425b102084ec97a29d174a4bcbe742bd9216dff118890",
+    "regression-results.json": "aecc13e85598824d7b5e3cada4d7ad91f482bf42f14a323592636f79728facf1"
+  },
+  "nativeReceptionCertified": false,
+  "ownerUnlockVerified": false,
+  "readyForUnattended": false,
+  "status": "lock_capture_verified_escape_reception_inconclusive",
+  "limits": [
+    "SendInput devuelve dos eventos con LogonUI y Winlogon comprobados, pero la observación inmediata no verifica su recepción o efecto en la interfaz.",
+    "Una observación posterior mostró el fondo de bloqueo; no se atribuye al Escape porque puede intervenir la inactividad. La repetición inmediata y la comparación por consola no mostraron cambio.",
+    "No se escribe texto, no se pulsan Enter ni botones del formulario y no se prueba una contraseña por el canal del diagnóstico.",
+    "El propietario debe desbloquear; la recuperación tras ese desbloqueo se registra por separado. No certifica cierre/inicio de sesión, SAS, DXGI, servicio ni WebRTC."
+  ]
+}
