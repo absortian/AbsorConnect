@@ -1,5 +1,5 @@
 // Diagnóstico local Win32. No instala servicios, no cambia UAC ni abre red.
-// Entrada opcional y acotada: Escape al UAC propio o clic/letra en una ventana propia de la VM QEMU.
+// Entrada opcional y acotada: Escape al UAC propio/LogonUI o clic/letra en una ventana propia de la VM QEMU.
 // El lanzador solo se admite desde SYSTEM y ejecuta este mismo binario, sin RPC.
 using System;
 using System.ComponentModel;
@@ -90,7 +90,7 @@ public static class CaptureProbe
             value.Equals("Winlogon", StringComparison.OrdinalIgnoreCase) ? "Winlogon" : "other";
     }
 
-    static int Launch(bool requestElevation = false, bool testUacInput = false, bool ownedInput = false, bool userInput = false, bool elevatedInput = false) {
+    static int Launch(bool requestElevation = false, bool testUacInput = false, bool ownedInput = false, bool userInput = false, bool elevatedInput = false, bool lockEscape = false) {
         if (WindowsIdentity.GetCurrent().User.Value != "S-1-5-18") throw new InvalidOperationException("system_context_required");
         uint session = WTSGetActiveConsoleSessionId();
         if (session == UInt32.MaxValue || session == 0) throw new InvalidOperationException("console_session_unavailable");
@@ -110,16 +110,16 @@ public static class CaptureProbe
             string binary = Assembly.GetExecutingAssembly().Location;
             var startup = new StartupInfo { cb = Marshal.SizeOf(typeof(StartupInfo)), desktop = @"winsta0\default", flags = 1, show = (ushort)(ownedInput ? 5 : 0) };
             ProcessInfo process;
-            string mode = elevatedInput ? "--elevated-input-injector" : ownedInput ? (userInput ? "--owned-input-user" : "--owned-input-system") :
+            string mode = lockEscape ? "--lock-escape-coordinator" : elevatedInput ? "--elevated-input-injector" : ownedInput ? (userInput ? "--owned-input-user" : "--owned-input-system") :
                 requestElevation ? "--request-elevation" : testUacInput ? "--uac-input" : "--capture";
             Check(CreateProcessAsUser(primary, binary, new StringBuilder("\"" + binary + "\" " + mode),
                 IntPtr.Zero, IntPtr.Zero, false, 0x08000000, IntPtr.Zero, Path.GetDirectoryName(binary), ref startup, out process));
             try {
                 uint wait = WaitForSingleObject(process.process, requestElevation ? 180000u : testUacInput ? 50000u : 15000u);
-                if (wait == 258 && (requestElevation || testUacInput || ownedInput || elevatedInput)) {
+                if (wait == 258 && (requestElevation || testUacInput || ownedInput || elevatedInput || lockEscape)) {
                     // Retira solo su trabajador si vence el plazo; no pulsa botones de UAC.
                     Check(TerminateProcess(process.process, 124));
-                    throw new InvalidOperationException(ownedInput || elevatedInput ? "input_probe_timeout" : "uac_probe_timeout");
+                    throw new InvalidOperationException(ownedInput || elevatedInput || lockEscape ? "input_probe_timeout" : "uac_probe_timeout");
                 }
                 if (wait != 0) throw new InvalidOperationException("worker_wait_failed_" + wait);
                 uint code; Check(GetExitCodeProcess(process.process, out code));
@@ -161,7 +161,10 @@ public static class CaptureProbe
         }
     }
 
-    static string RunSecureEscape() {
+    static string RunSecureEscape(bool logon = false) {
+        if (WindowsIdentity.GetCurrent().User.Value != "S-1-5-18" || Process.GetCurrentProcess().SessionId == 0 ||
+            WTSGetActiveConsoleSessionId() != Process.GetCurrentProcess().SessionId)
+            throw new InvalidOperationException("interactive_system_context_required");
         IntPtr token = IntPtr.Zero, primary = IntPtr.Zero;
         ProcessInfo worker = new ProcessInfo();
         try {
@@ -169,7 +172,7 @@ public static class CaptureProbe
             Check(DuplicateTokenEx(token, 0x02000000, IntPtr.Zero, 2, 1, out primary));
             string binary = Assembly.GetExecutingAssembly().Location;
             var startup = new StartupInfo { cb = Marshal.SizeOf(typeof(StartupInfo)), desktop = @"winsta0\winlogon", flags = 1, show = 0 };
-            Check(CreateProcessAsUser(primary, binary, new StringBuilder("\"" + binary + "\" --escape-uac"),
+            Check(CreateProcessAsUser(primary, binary, new StringBuilder("\"" + binary + "\" " + (logon ? "--escape-logon" : "--escape-uac")),
                 IntPtr.Zero, IntPtr.Zero, false, 0x08000000, IntPtr.Zero, Path.GetDirectoryName(binary), ref startup, out worker));
             uint wait = WaitForSingleObject(worker.process, 10000);
             if (wait != 0) {
@@ -177,7 +180,7 @@ public static class CaptureProbe
                 throw new InvalidOperationException("secure_worker_timeout");
             }
             uint code; Check(GetExitCodeProcess(worker.process, out code));
-            string report = File.ReadAllText(Path.Combine(Path.GetDirectoryName(binary), "escape-report.json"));
+            string report = File.ReadAllText(Path.Combine(Path.GetDirectoryName(binary), logon ? "lock-escape-report.json" : "escape-report.json"));
             if (code != 0) throw new InvalidOperationException("secure_worker_failed_" + code + "_" + report);
             return report;
         } finally {
@@ -187,7 +190,7 @@ public static class CaptureProbe
         }
     }
 
-    static string EscapeUac() {
+    static string EscapeUac(bool logon = false) {
         RequireInputLab();
         if (WindowsIdentity.GetCurrent().User.Value != "S-1-5-18" || Process.GetCurrentProcess().SessionId == 0)
             throw new InvalidOperationException("interactive_system_context_required");
@@ -201,11 +204,19 @@ public static class CaptureProbe
             Thread.Sleep(100);
         }
         using (var foreground = Process.GetProcessById(checked((int)foregroundPid))) {
-            if (!String.Equals(foreground.MainModule.FileName, Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "consent.exe"), StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException("consent_foreground_required");
+            if (!String.Equals(foreground.MainModule.FileName, Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), logon ? "LogonUI.exe" : "consent.exe"), StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException(logon ? "logon_foreground_required" : "consent_foreground_required");
         }
         foreach (int key in new int[] { 0x1B, 0x10, 0x11, 0x12, 0x5B, 0x5C })
             if (GetAsyncKeyState(key) < 0) throw new InvalidOperationException("pressed_key_prevents_probe");
+        if (logon) {
+            for (int key = 1; key < 255; key++)
+                if (GetAsyncKeyState(key) < 0) throw new InvalidOperationException("pressed_key_prevents_logon_probe");
+            uint currentPid;
+            if (InputDesktopName() != "Winlogon" ||
+                GetWindowThreadProcessId(GetForegroundWindow(), out currentPid) == 0 || currentPid != foregroundPid)
+                throw new InvalidOperationException("logon_foreground_changed");
+        }
         var input = new Input[] {
             new Input { type = 1, data = new InputUnion { keyboard = new KeyboardInput { key = 0x1B } } },
             new Input { type = 1, data = new InputUnion { keyboard = new KeyboardInput { key = 0x1B, flags = 2 } } }
@@ -217,7 +228,7 @@ public static class CaptureProbe
             throw new InvalidOperationException("escape_input_incomplete_" + sent + "_error_" + inputError +
                 "_size_" + Marshal.SizeOf(typeof(Input)) + "_process64_" + Environment.Is64BitProcess);
         }
-        return "{\"desktop\":\"Winlogon\",\"eventsInserted\":2,\"foregroundWaitMilliseconds\":" + foregroundWait.ElapsedMilliseconds + ",\"inputSize\":" + Marshal.SizeOf(typeof(Input)) +
+        return "{\"desktop\":\"Winlogon\",\"foregroundKind\":\"" + (logon ? "logon" : "consent") + "\",\"eventsInserted\":2,\"foregroundWaitMilliseconds\":" + foregroundWait.ElapsedMilliseconds + ",\"inputSize\":" + Marshal.SizeOf(typeof(Input)) +
             ",\"sessionId\":" + Process.GetCurrentProcess().SessionId + "}";
     }
 
@@ -672,6 +683,10 @@ public static class CaptureProbe
     public static int Main(string[] args) {
         if (args.Length != 1) return 64;
         try {
+            if (args[0] == "--launch-lock-escape-probe") return Launch(lockEscape: true);
+            if (args[0] == "--lock-escape-coordinator") {
+                RequireInputLab(); Console.WriteLine(RunSecureEscape(true)); return 0;
+            }
             if (args[0] == "--launch-elevated-input-probe") return Launch(false, false, false, false, true);
             if (args[0] == "--elevated-input-injector") return ElevatedInput();
             if (args[0] == "--elevated-input-target") return OwnedInput(false, true);
@@ -689,22 +704,25 @@ public static class CaptureProbe
             }
             bool testUacInput = args[0] == "--uac-input";
             bool escapeUac = args[0] == "--escape-uac";
-            if (args[0] != "--capture" && !testUacInput && !escapeUac) return 64;
+            bool escapeLogon = args[0] == "--escape-logon";
+            if (args[0] != "--capture" && !testUacInput && !escapeUac && !escapeLogon) return 64;
+            string reportName = escapeLogon ? "lock-escape-report.json" : testUacInput ? "uac-input-report.json" :
+                escapeUac ? "escape-report.json" : "capture-report.json";
             string report = null; Exception failure = null;
-            var thread = new Thread(delegate() { try { report = testUacInput ? UacInput() : escapeUac ? EscapeUac() : Capture(); } catch (Exception e) { failure = e; } });
+            var thread = new Thread(delegate() { try { report = testUacInput ? UacInput() : escapeUac || escapeLogon ? EscapeUac(escapeLogon) : Capture(); } catch (Exception e) { failure = e; } });
             thread.IsBackground = true; thread.Start();
             if (!thread.Join(testUacInput ? 45000 : 10000)) throw new InvalidOperationException("probe_timeout");
             if (failure != null) {
-                if (testUacInput || escapeUac) {
+                if (testUacInput || escapeUac || escapeLogon) {
                     string message = failure.Message.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\r", " ").Replace("\n", " ");
-                    WriteReport(testUacInput ? "uac-input-report.json" : "escape-report.json", "{\"status\":\"input_probe_failed\",\"error\":\"" + message +
+                    WriteReport(reportName, "{\"status\":\"input_probe_failed\",\"error\":\"" + message +
                         "\",\"cleanupAttempted\":" + (cleanupAttempted ? "true" : "false") + ",\"cleanupDefaultObserved\":" + (cleanupDefaultObserved ? "true" : "false") +
                         ",\"inputTested\":false,\"readyForUnattended\":false}");
                 }
                 throw failure;
             }
             // Una ejecución no pisa informes anteriores. La carpeta debe estar protegida antes de compilar.
-            WriteReport(testUacInput ? "uac-input-report.json" : escapeUac ? "escape-report.json" : "capture-report.json", report);
+            WriteReport(reportName, report);
             return 0;
         } catch (Exception error) {
             Console.Error.WriteLine(error.GetType().Name + ": " + error.Message); return 3;

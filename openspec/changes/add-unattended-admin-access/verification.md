@@ -1241,3 +1241,49 @@ bloqueo/login, SAS, DXGI y agente/transporte siguen pendientes; tarea 1.2 parcia
 
 Verificación: typecheck correcto, Vitest 276 correctos y 5 omitidos con Node
 nativo de macOS, PHPUnit 162 pruebas/1077 aserciones; OpenSpec estricto correcto.
+
+### Windows: UAC con credenciales introducidas por el propietario — 25/10/2026
+
+Se verificó una cuenta de consola estándar habilitada y ajena a Administradores,
+creada por el propietario sin recibir sus credenciales. Se ejecutó el binario
+identificado en `windows-credential-uac-results.json` y su `--launch-uac-probe`:
+solo permite `runas` de su propio `--elevated-self-check`. El aviso de UAC pide
+credenciales de administrador; el propietario confirmó introducirlas y aceptar.
+
+El informe bruto recuperado por SFTP tiene `workerExited:true`,
+`workerExitCode:0`, launcher cero y stderr vacío. El destino devuelve cero al
+verificar pertenencia al contexto de administrador. La captura mientras se ve
+el aviso obtiene ocho fotogramas no uniformes en `Winlogon`; después obtiene
+nueve en `Default`. No se guardan imágenes ni contraseñas. Se retiraron las
+tareas temporales y se comprobaron cero procesos, conservando UAC y su política
+para usuarios estándar. Es elevación con credenciales **manuales en la consola
+de la VM**, no escritura de contraseñas por AbsorConnect ni por el diagnóstico.
+
+### Windows: captura bloqueada y Escape de recepción inconclusa — 25/10/2026
+
+El nuevo `-TestLockEscape` usa un modo fijo y exclusivo: captura `Winlogon`,
+crea un trabajador SYSTEM allí y verifica primer plano de `LogonUI.exe`, sesión
+de consola y ausencia de teclas retenidas antes de enviar solo Escape down/up.
+La VM se bloqueó por su consola y se mostró el formulario vacío sin introducir
+credenciales. El código no envía Enter, texto ni clics en ese formulario.
+
+La captura registra nueve fotogramas no uniformes y SendInput devuelve dos
+eventos. Sin embargo, la observación inmediata no muestra efecto verificable.
+Se preparó otra vez el formulario y se repitió con el mismo binario, sin recompilar
+ni esperar una captura previa: mismo retorno y resultado visual inconcluso.
+La comparación con Escape desde la consola tampoco cambió la observación
+inmediata. Un fondo visto más tarde no se atribuye al envío, porque puede
+intervenir la inactividad. **No se certifica recepción de teclado en login.**
+El runner identifica expresamente que hace falta observación, no equipara su
+código cero a una prueba completa. Evidencia: `windows-lock-escape-results.json`.
+
+Los tres modos nuevos se rechazan desde SSH en sesión 0, antes de enviar entrada.
+La regresión del código compartido pasa las ventanas propias de usuario/SYSTEM y
+la cancelación del UAC propio: 1223, dos eventos y ocho fotogramas `Winlogon`.
+Se retiraron todas las tareas temporales y se verificó ausencia de procesos.
+El propietario debe desbloquear la VM; la recuperación posterior se registra
+por separado. Tarea 1.2 parcial, `readyForUnattended:false`, total 8/57.
+
+Comprobaciones de esta iteración: typecheck, Vitest 276 correctos/5 omitidos,
+PHPUnit 162 pruebas/1077 aserciones y OpenSpec estricto. No cambia la aplicación
+publicada ni se anuncia soporte desatendido de producción.

@@ -1,8 +1,11 @@
 # Ejecutar solo en la VM de laboratorio, desde una carpeta nueva protegida para SYSTEM/Administradores.
 # Usa el compilador incluido con PowerShell; no instala componentes ni cambia políticas.
-param([string]$WorkingDirectory = $PSScriptRoot, [switch]$TestUacInput, [switch]$TestOwnedInput, [switch]$TestElevatedInput)
+param([string]$WorkingDirectory = $PSScriptRoot, [switch]$TestUacInput, [switch]$TestOwnedInput, [switch]$TestElevatedInput, [switch]$TestLockEscape)
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
+if ($TestLockEscape -and ($TestUacInput -or $TestOwnedInput -or $TestElevatedInput)) {
+    throw 'lock_probe_requires_exclusive_mode'
+}
 [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
 if ([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -ne 'S-1-5-18') {
     throw 'system_context_required'
@@ -26,13 +29,14 @@ foreach ($rule in $acl.GetAccessRules($true, $true, [Security.Principal.Security
 $source = Join-Path $WorkingDirectory 'CaptureProbe.cs'
 $binary = Join-Path $WorkingDirectory 'CaptureProbe.exe'
 $report = Join-Path $WorkingDirectory 'capture-report.json'
-if ($TestUacInput -or $TestOwnedInput -or $TestElevatedInput) {
+if ($TestUacInput -or $TestOwnedInput -or $TestElevatedInput -or $TestLockEscape) {
     if ((Get-CimInstance Win32_ComputerSystem).Manufacturer -ne 'QEMU') { throw 'qemu_lab_required' }
     if (Get-Process -Name CaptureProbe -ErrorAction SilentlyContinue) { throw 'another_probe_is_running' }
     if (Test-Path -LiteralPath (Join-Path $WorkingDirectory 'uac-input-report.json')) { throw 'input_output_exists' }
 }
 if ($TestElevatedInput -and ((Test-Path -LiteralPath (Join-Path $WorkingDirectory 'elevated-input-report.json')) -or
     (Test-Path -LiteralPath (Join-Path $WorkingDirectory 'elevated-target-report.json')))) { throw 'elevated_output_exists' }
+if ($TestLockEscape -and (Test-Path -LiteralPath (Join-Path $WorkingDirectory 'lock-escape-report.json'))) { throw 'lock_output_exists' }
 if ((Test-Path -LiteralPath $binary) -or (Test-Path -LiteralPath $report)) { throw 'output_exists' }
 if (((Get-Item -LiteralPath $source).Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
     throw 'reparse_source_rejected'
@@ -100,6 +104,16 @@ if ($TestElevatedInput) {
         throw 'invalid_elevated_input_result'
     }
 }
+$lockResult = $null
+if ($TestLockEscape) {
+    if ($result.desktop -ne 'Winlogon') { throw 'winlogon_capture_required' }
+    $lockLauncher = & $binary --launch-lock-escape-probe
+    $lockCode = $LASTEXITCODE
+    if ($lockCode -ne 0) { throw ('lock_escape_failed_' + $lockCode) }
+    $lockResult = Get-Content -LiteralPath (Join-Path $WorkingDirectory 'lock-escape-report.json') -Raw | ConvertFrom-Json
+    if ($lockResult.desktop -ne 'Winlogon' -or $lockResult.foregroundKind -ne 'logon' -or
+        $lockResult.eventsInserted -ne 2 -or $lockResult.sessionId -eq 0) { throw 'invalid_lock_escape_result' }
+}
 [ordered]@{
     sourceSha256 = (Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash.ToLowerInvariant()
     binarySha256 = (Get-FileHash -LiteralPath $binary -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -110,8 +124,10 @@ if ($TestElevatedInput) {
     ownedInput = $ownedResults
     elevatedInput = $elevatedResult
     elevatedTarget = $elevatedTarget
+    lockEscape = $lockResult
+    lockEscapeReceptionRequiresVisualObservation = [bool]$TestLockEscape
     installedService = $false
     uacTested = [bool]$TestUacInput
-    inputTested = [bool]($TestUacInput -or $TestOwnedInput -or $TestElevatedInput)
+    inputTested = [bool]($TestUacInput -or $TestOwnedInput -or $TestElevatedInput -or $TestLockEscape)
     readyForUnattended = $false
 } | ConvertTo-Json -Depth 5
