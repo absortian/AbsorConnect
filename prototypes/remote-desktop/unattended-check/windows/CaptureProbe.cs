@@ -1,5 +1,5 @@
 // Diagnóstico local Win32. No instala servicios, no cambia UAC ni abre red.
-// La prueba opcional de entrada solo envía Escape al aviso UAC propio en una VM QEMU.
+// Entrada opcional y acotada: Escape al UAC propio o clic/letra en una ventana propia de la VM QEMU.
 // El lanzador solo se admite desde SYSTEM y ejecuta este mismo binario, sin RPC.
 using System;
 using System.ComponentModel;
@@ -90,7 +90,7 @@ public static class CaptureProbe
             value.Equals("Winlogon", StringComparison.OrdinalIgnoreCase) ? "Winlogon" : "other";
     }
 
-    static int Launch(bool requestElevation = false, bool testUacInput = false) {
+    static int Launch(bool requestElevation = false, bool testUacInput = false, bool ownedInput = false, bool userInput = false) {
         if (WindowsIdentity.GetCurrent().User.Value != "S-1-5-18") throw new InvalidOperationException("system_context_required");
         uint session = WTSGetActiveConsoleSessionId();
         if (session == UInt32.MaxValue || session == 0) throw new InvalidOperationException("console_session_unavailable");
@@ -101,21 +101,22 @@ public static class CaptureProbe
             var privilege = new TokenPrivileges { count = 1, luid = luid, attributes = 2 };
             Check(AdjustTokenPrivileges(token, false, ref privilege, 0, IntPtr.Zero, IntPtr.Zero));
             if (Marshal.GetLastWin32Error() == 1300) throw new InvalidOperationException("tcb_privilege_unavailable");
-            if (requestElevation) {
+            if (requestElevation || userInput) {
                 Check(WTSQueryUserToken(session, out primary));
             } else {
                 Check(DuplicateTokenEx(token, 0x02000000, IntPtr.Zero, 2, 1, out primary));
                 Check(SetTokenInformation(primary, 12, ref session, 4));
             }
             string binary = Assembly.GetExecutingAssembly().Location;
-            var startup = new StartupInfo { cb = Marshal.SizeOf(typeof(StartupInfo)), desktop = @"winsta0\default", flags = 1, show = 0 };
+            var startup = new StartupInfo { cb = Marshal.SizeOf(typeof(StartupInfo)), desktop = @"winsta0\default", flags = 1, show = (ushort)(ownedInput ? 5 : 0) };
             ProcessInfo process;
-            string mode = requestElevation ? "--request-elevation" : testUacInput ? "--uac-input" : "--capture";
+            string mode = ownedInput ? (userInput ? "--owned-input-user" : "--owned-input-system") :
+                requestElevation ? "--request-elevation" : testUacInput ? "--uac-input" : "--capture";
             Check(CreateProcessAsUser(primary, binary, new StringBuilder("\"" + binary + "\" " + mode),
                 IntPtr.Zero, IntPtr.Zero, false, 0x08000000, IntPtr.Zero, Path.GetDirectoryName(binary), ref startup, out process));
             try {
                 uint wait = WaitForSingleObject(process.process, requestElevation ? 180000u : testUacInput ? 50000u : 15000u);
-                if (wait == 258 && (requestElevation || testUacInput)) {
+                if (wait == 258 && (requestElevation || testUacInput || ownedInput)) {
                     // Retira solo su propio solicitante si nadie responde; no pulsa botones de UAC.
                     Check(TerminateProcess(process.process, 124));
                     throw new InvalidOperationException("uac_probe_timeout");
@@ -343,12 +344,174 @@ public static class CaptureProbe
         }
     }
 
+    // Ventana Win32 sin campos de credenciales. No permite elegir texto, coordenadas ni destino.
+    [StructLayout(LayoutKind.Sequential)]
+    struct OwnedPoint { public int x, y; }
+    [StructLayout(LayoutKind.Sequential)]
+    struct OwnedRect { public int left, top, right, bottom; }
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    struct OwnedWindowClass {
+        public uint style; public IntPtr procedure; public int classExtra, windowExtra;
+        public IntPtr instance, icon, cursor, background; public string menu, name;
+    }
+    [StructLayout(LayoutKind.Sequential)]
+    struct OwnedMessage {
+        public IntPtr window; public uint message; public UIntPtr wParam; public IntPtr lParam;
+        public uint time; public OwnedPoint point; public uint privateValue;
+    }
+    [UnmanagedFunctionPointer(CallingConvention.Winapi)]
+    delegate IntPtr OwnedWindowProcedure(IntPtr window, uint message, UIntPtr wParam, IntPtr lParam);
+    static readonly OwnedWindowProcedure ownedProcedure = HandleOwnedMessage;
+    static int ownedMouseDown, ownedMouseUp, ownedKeyDown, ownedKeyUp, ownedCharacters;
+    static IntPtr ownedWindow;
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] static extern IntPtr GetModuleHandle(string name);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)] static extern ushort RegisterClass(ref OwnedWindowClass value);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)] static extern bool UnregisterClass(string name, IntPtr instance);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    static extern IntPtr CreateWindowEx(uint extended, string name, string title, uint style, int x, int y,
+        int width, int height, IntPtr parent, IntPtr menu, IntPtr instance, IntPtr parameter);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern IntPtr DefWindowProc(IntPtr window, uint message, UIntPtr wParam, IntPtr lParam);
+    [DllImport("user32.dll")] static extern bool ShowWindow(IntPtr window, int command);
+    [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr window);
+    [DllImport("user32.dll")] static extern IntPtr SetFocus(IntPtr window);
+    [DllImport("user32.dll")] static extern IntPtr GetFocus();
+    [DllImport("user32.dll")] static extern bool IsWindow(IntPtr window);
+    [DllImport("user32.dll")] static extern bool DestroyWindow(IntPtr window);
+    [DllImport("user32.dll")] static extern bool PeekMessage(out OwnedMessage message, IntPtr window, uint min, uint max, uint flags);
+    [DllImport("user32.dll")] static extern bool TranslateMessage(ref OwnedMessage message);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern IntPtr DispatchMessage(ref OwnedMessage message);
+    [DllImport("user32.dll", SetLastError = true)] static extern bool GetCursorPos(out OwnedPoint point);
+    [DllImport("user32.dll", SetLastError = true)] static extern bool SetCursorPos(int x, int y);
+    [DllImport("user32.dll", SetLastError = true)] static extern bool GetClientRect(IntPtr window, out OwnedRect rect);
+    [DllImport("user32.dll", SetLastError = true)] static extern bool ClientToScreen(IntPtr window, ref OwnedPoint point);
+    [DllImport("user32.dll")] static extern IntPtr WindowFromPoint(OwnedPoint point);
+
+    static IntPtr HandleOwnedMessage(IntPtr window, uint message, UIntPtr wParam, IntPtr lParam) {
+        if (window == ownedWindow) {
+            if (message == 0x0201) ownedMouseDown++;
+            if (message == 0x0202) ownedMouseUp++;
+            if (message == 0x0100 && wParam.ToUInt64() == 0xE7) ownedKeyDown++;
+            if (message == 0x0101 && wParam.ToUInt64() == 0xE7) ownedKeyUp++;
+            if (message == 0x0102 && wParam.ToUInt64() == 65) ownedCharacters++;
+        }
+        return DefWindowProc(window, message, wParam, lParam);
+    }
+
+    static void PumpOwnedUntil(Func<bool> complete, int milliseconds) {
+        var timer = Stopwatch.StartNew();
+        do {
+            OwnedMessage message;
+            while (PeekMessage(out message, IntPtr.Zero, 0, 0, 1)) {
+                TranslateMessage(ref message); DispatchMessage(ref message);
+            }
+            if (!IsWindow(ownedWindow)) throw new InvalidOperationException("owned_window_closed");
+            if (complete()) return;
+            Thread.Sleep(10);
+        } while (timer.ElapsedMilliseconds < milliseconds);
+        throw new InvalidOperationException("owned_input_observation_timeout");
+    }
+
+    static void RequireOwnedForeground() {
+        uint pid;
+        if (InputDesktopName() != "Default" || DesktopName(GetThreadDesktop(GetCurrentThreadId())) != "Default" ||
+            WTSGetActiveConsoleSessionId() != Process.GetCurrentProcess().SessionId ||
+            GetForegroundWindow() != ownedWindow || GetFocus() != ownedWindow ||
+            GetWindowThreadProcessId(ownedWindow, out pid) == 0 || pid != Process.GetCurrentProcess().Id)
+            throw new InvalidOperationException("owned_input_context_required");
+        for (int key = 1; key < 255; key++)
+            if (GetAsyncKeyState(key) < 0) throw new InvalidOperationException("pressed_key_prevents_owned_probe");
+    }
+
+    static void SendOwnedPair(Input down, Input up) {
+        RequireOwnedForeground();
+        if (down.type == 0) {
+            OwnedPoint cursor;
+            if (!GetCursorPos(out cursor) || WindowFromPoint(cursor) != ownedWindow)
+                throw new InvalidOperationException("owned_pointer_target_required");
+        }
+        uint sent = SendInput(2, new Input[] { down, up }, Marshal.SizeOf(typeof(Input)));
+        if (sent != 2) {
+            // Si entró solo la pulsación, libera el mismo botón/tecla para no dejarlo retenido.
+            if (sent == 1) SendInput(1, new Input[] { up }, Marshal.SizeOf(typeof(Input)));
+            throw new InvalidOperationException("owned_input_pair_incomplete");
+        }
+    }
+
+    static int OwnedInput(bool userInput) {
+        RequireInputLab();
+        bool system = WindowsIdentity.GetCurrent().User.Value == "S-1-5-18";
+        bool admin = new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
+        if (Process.GetCurrentProcess().SessionId == 0 || system == userInput || admin == userInput)
+            throw new InvalidOperationException("owned_input_token_context_required");
+        if (InputDesktopName() != "Default" || DesktopName(GetThreadDesktop(GetCurrentThreadId())) != "Default")
+            throw new InvalidOperationException("default_desktop_required");
+        var instance = GetModuleHandle(null);
+        string name = "AbsorConnectOwnedInputLab_" + Process.GetCurrentProcess().Id;
+        var windowClass = new OwnedWindowClass { procedure = Marshal.GetFunctionPointerForDelegate(ownedProcedure),
+            instance = instance, background = new IntPtr(6), name = name };
+        Check(RegisterClass(ref windowClass) != 0);
+        OwnedPoint original = new OwnedPoint(), target = new OwnedPoint();
+        bool moved = false, restored = false;
+        try {
+            ownedMouseDown = ownedMouseUp = ownedKeyDown = ownedKeyUp = ownedCharacters = 0;
+            ownedWindow = CreateWindowEx(0, name, "AbsorConnect: prueba local de entrada", 0x00CF0000,
+                Math.Max(0, (GetSystemMetrics(0) - 360) / 2), Math.Max(0, (GetSystemMetrics(1) - 200) / 2),
+                360, 200, IntPtr.Zero, IntPtr.Zero, instance, IntPtr.Zero);
+            Check(ownedWindow != IntPtr.Zero);
+            ShowWindow(ownedWindow, 5); SetForegroundWindow(ownedWindow); SetFocus(ownedWindow);
+            PumpOwnedUntil(delegate { return GetForegroundWindow() == ownedWindow && GetFocus() == ownedWindow; }, 4000);
+            RequireOwnedForeground();
+            Check(GetCursorPos(out original));
+            OwnedRect rect; Check(GetClientRect(ownedWindow, out rect));
+            target = new OwnedPoint { x = (rect.right - rect.left) / 2, y = (rect.bottom - rect.top) / 2 };
+            Check(ClientToScreen(ownedWindow, ref target));
+            if (WindowFromPoint(target) != ownedWindow) throw new InvalidOperationException("owned_click_target_required");
+            int left = GetSystemMetrics(76), top = GetSystemMetrics(77), width = GetSystemMetrics(78), height = GetSystemMetrics(79);
+            if (width < 2 || height < 2 || target.x < left || target.x >= left + width || target.y < top || target.y >= top + height)
+                throw new InvalidOperationException("owned_target_outside_display");
+            RequireOwnedForeground();
+            var motion = new Input { type = 0, data = new InputUnion { mouse = new MouseInput {
+                x = (int)(((long)target.x - left) * 65535 / (width - 1)),
+                y = (int)(((long)target.y - top) * 65535 / (height - 1)), flags = 0xC001 } } };
+            moved = SendInput(1, new Input[] { motion }, Marshal.SizeOf(typeof(Input))) == 1;
+            if (!moved) throw new InvalidOperationException("owned_mouse_move_failed");
+            PumpOwnedUntil(delegate { OwnedPoint point; return GetCursorPos(out point) && point.x == target.x && point.y == target.y; }, 1000);
+            if (WindowFromPoint(target) != ownedWindow) throw new InvalidOperationException("owned_click_target_changed");
+            SendOwnedPair(new Input { type = 0, data = new InputUnion { mouse = new MouseInput { flags = 2 } } },
+                new Input { type = 0, data = new InputUnion { mouse = new MouseInput { flags = 4 } } });
+            PumpOwnedUntil(delegate { return ownedMouseDown == 1 && ownedMouseUp == 1; }, 1000);
+            SendOwnedPair(new Input { type = 1, data = new InputUnion { keyboard = new KeyboardInput { scan = 65, flags = 4 } } },
+                new Input { type = 1, data = new InputUnion { keyboard = new KeyboardInput { scan = 65, flags = 6 } } });
+            PumpOwnedUntil(delegate { return ownedKeyDown == 1 && ownedKeyUp == 1 && ownedCharacters == 1; }, 1000);
+            RequireOwnedForeground();
+        } finally {
+            // No pelea con una intervención local: restaura solo si conserva foco, escritorio y posición de prueba.
+            try {
+                OwnedPoint current;
+                if (moved && GetForegroundWindow() == ownedWindow && InputDesktopName() == "Default" &&
+                    GetCursorPos(out current) && current.x == target.x && current.y == target.y) {
+                    Check(SetCursorPos(original.x, original.y));
+                    restored = GetCursorPos(out current) && current.x == original.x && current.y == original.y;
+                }
+            } finally {
+                if (ownedWindow != IntPtr.Zero && IsWindow(ownedWindow)) DestroyWindow(ownedWindow);
+                ownedWindow = IntPtr.Zero; UnregisterClass(name, instance);
+            }
+        }
+        if (!restored) throw new InvalidOperationException("owned_cursor_restore_not_verified");
+        return 0;
+    }
+
     public static int Main(string[] args) {
         if (args.Length != 1) return 64;
         try {
             if (args[0] == "--launch-console-probe") return Launch();
             if (args[0] == "--launch-uac-probe") return Launch(true);
             if (args[0] == "--launch-uac-input-probe") return Launch(false, true);
+            if (args[0] == "--launch-user-owned-input-probe") return Launch(false, false, true, true);
+            if (args[0] == "--launch-system-owned-input-probe") return Launch(false, false, true);
+            if (args[0] == "--owned-input-user") return OwnedInput(true);
+            if (args[0] == "--owned-input-system") return OwnedInput(false);
             if (args[0] == "--request-elevation") return RequestElevation();
             if (args[0] == "--elevated-self-check") {
                 // Si se autoriza manualmente, solo comprueba el contexto y termina, sin modificar nada.
