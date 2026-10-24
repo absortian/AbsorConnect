@@ -1069,7 +1069,8 @@ de responder a las consultas y lecturas posteriores (timeout RPC). No se recuper
 un resultado completo, no se cuenta como elevación correcta ni como entrada remota
 verificada. No se modificó UAC ni se instaló servicio. Archivos privados:
 `utm-cli-check/{manual-uac-elevation,start-manual-uac-durable,read-manual-uac}-20261024.ps1`.
-La recuperación del informe y comprobación de ausencia de procesos siguen pendientes.
+La recuperación del informe quedó pendiente en este intento; se documenta más
+abajo su posterior lectura visual. La ausencia de procesos no quedó verificada.
 
 
 ### Mint: captura durante cierre de sesión y vuelta verificada — 24/10/2026
@@ -1124,4 +1125,27 @@ terminó con error 1053. El reinicio de la VM y una parada solicitada al invitad
 seguida de nuevo arranque no recuperaron la lectura: el siguiente lector sigue
 fallando con timeout RPC. La VM queda arrancada, sin cambiar UAC ni ampliar acceso.
 Esto es un fallo del canal de diagnóstico, no evidencia de éxito o fallo de
-elevación del producto; el resultado guardado sigue sin recuperar.
+elevación del producto. La lectura visual posterior se documenta a continuación.
+
+### Windows: resultado de consentimiento manual recuperado — 24/10/2026
+
+La carpeta parecía vacía en el selector de Bloc de notas porque el filtro era
+`Documentos de texto (*.txt)`. Al cambiarlo a `Todos los archivos`, se observó el
+informe `manual-consent-20261024-b.json` y se abrió sin ejecutar otro diagnóstico:
+`workerExited:true`, `workerExitCode:0`. La salida de errores figura con tamaño
+0 KB en el selector. La lectura fue visual mediante CUA, no una recuperación del
+archivo bruto por RPC; no se atribuye un hash nuevo al contenido leído.
+
+El ejecutable se había verificado por SHA-256 antes de la prueba. El modo usado
+crea un solicitante con token filtrado del usuario de consola y ejecuta únicamente
+su propio `--elevated-self-check` mediante `runas`. Ese modo termina con 0 solo
+cuando observa pertenencia al contexto de administrador; el código se propaga
+al informe. El propietario aceptó manualmente el aviso UAC. Por tanto se verifica
+esa elevación acotada, sin cambios de UAC ni instalaciones adicionales.
+
+No prueba aceptación remota, entrada de credenciales, SAS, DXGI ni el servicio
+final. El canal RPC sigue sin recuperarse y la ausencia de procesos no está
+verificada. Evidencia sin usuario ni sesión personal:
+`windows-manual-consent-results.json`. El registro privado identifica el archivo
+y su transcripción visual en `windows-manual-consent-visual-20261024.json`.
+La tarea 1.2 sigue parcial y `readyForUnattended:false`; total 8/57.
