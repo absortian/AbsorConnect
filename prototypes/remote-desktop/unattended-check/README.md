@@ -285,6 +285,31 @@ La retirada de UID/grupos y el paso exclusivo del descriptor siguen
 La lectura de la propiedad PID respeta el formato y almacenamiento documentados
 por [XGetWindowProperty](https://xorg.freedesktop.org/archive/X11R7.5/doc/man/man3/XGetWindowProperty.3.html).
 
+### Mint: cancelación acotada de polkit, preparada
+
+`linux-polkit-cancel-install.sh` se lanza como usuario desde una carpeta privada
+nueva con `linux-polkit-cancel-check.py` y `linux-session-check.py`. Comprueba
+hashes, copia solo esas dos fuentes como root/0600 a un destino nuevo y ejecuta
+Python con `-I`. No sobrescribe informes/instalaciones ni instala servicios.
+Solo sudo solicita la contraseña; el propietario deja el aviso de polkit intacto.
+
+El supervisor root crea un trabajador fijo de usuario sin grupos adicionales;
+este solicita `pkexec --disable-internal-agent /usr/bin/true`. El padre de pkexec
+se mantiene sin privilegios, conforme a su
+[código oficial](https://github.com/polkit-org/polkit/blob/master/src/programs/pkexec.c).
+Con sesión estable, ninguna tecla/botón retenido, pkexec propio pendiente y foco
+X11 atribuido al proceso Cinnamon validado, el supervisor envía solo Escape con
+su liberación. Código 126 acredita la cancelación según el
+[manual de pkexec](https://www.freedesktop.org/software/polkit/docs/latest/pkexec.1.html).
+No autentica, pulsa botones, mueve el puntero ni lee texto/contraseñas. Tiene
+plazo de treinta segundos y retira sus procesos al terminar.
+
+La sintaxis y denegaciones previas están comprobadas, con hashes de transferencia;
+la ejecución positiva está pendiente en `mint-polkit-cancel-preparation.json`.
+Aunque pase, solo probará cancelación de esa solicitud propia en Cinnamon,
+sin otros avisos concurrentes. No certificará escritura de credenciales,
+bloqueo/LightDM ni el agente o transporte remoto.
+
 ## Windows
 
 En el equipo de pruebas, desde PowerShell:

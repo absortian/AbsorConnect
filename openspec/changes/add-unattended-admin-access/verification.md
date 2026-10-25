@@ -1440,3 +1440,37 @@ Las fuentes quedan instaladas para auditoría en el directorio de laboratorio;
 no se creó servicio. Esto acredita entrada root → ventana propia del usuario,
 pero todavía no entrada en LightDM, bloqueo o polkit ni transporte remoto.
 La tarea 1.4 sigue parcial y `readyForUnattended:false`, total **8/57**.
+
+### Mint: cancelación de polkit desde root preparada — 25/10/2026
+
+`linux-polkit-cancel-check.py --test-polkit-cancel` utiliza fuentes root protegidas
+con el auxiliar de sesión fijado por hash. Un trabajador Python fijo, ejecutado
+como usuario sin grupos adicionales ni entorno heredado, solicita exclusivamente
+`pkexec --disable-internal-agent /usr/bin/true`. Se mantiene un padre sin
+privilegios para la solicitud, porque pkexec autoriza a su proceso padre.
+El supervisor root solo podrá enviar Escape y su liberación, sin texto o clics.
+
+Antes de abrir la solicitud exige Cinnamon/X11 desbloqueado, ningún pkexec
+existente y foco inicial ajeno a Cinnamon. Antes de la tecla verifica que sigue
+la sesión original, no hay entrada retenida, el trabajador tiene UID de usuario,
+solo hay un pkexec hijo de ese trabajador, la solicitud sigue pendiente y el foco
+X11 pertenece al PID validado de Cinnamon. El resultado positivo exigirá código
+126 del solicitante a través de su trabajador; no cuenta como autorización.
+La espera total se limita a treinta segundos y retira el trabajador/solicitante.
+No cambia políticas, crea servicios ni lee texto del diálogo o credenciales.
+
+Fuentes transferidas con hashes comprobados. Sintaxis del supervisor y trabajador,
+Bash y argumentos del lanzador comprobados; en Mint se rechazó el supervisor
+sin root. En contenedor se verificaron denegaciones por directorio no protegido,
+hash incorrecto y sesión inexistente; el lanzador rechazó ejecución como root.
+Esos casos no enviaron Escape. El ensayo positivo en Mint está **pendiente**;
+se solicitó al propietario ejecutar el lanzador desde su Terminal y dejar el
+aviso sin tocar. Evidencia: `mint-polkit-cancel-preparation.json`. El foco en
+Cinnamon y el código de cancelación correlacionan la solicitud propia; no se
+trata de un canal de entrada remoto ni certifica otros avisos concurrentes.
+La tarea 1.4 sigue parcial, **8/57**, `readyForUnattended:false`.
+
+Comprobaciones del proyecto tras preparar este ensayo: typecheck correcto,
+Vitest 276 correctos/5 omitidos, PHPUnit 162 pruebas/1077 aserciones con PHP
+8.5.12, OpenSpec estricto y diff válidos. No se modificó código de la aplicación
+ni producción y no se dedujo recepción de entrada de esos controles automáticos.
