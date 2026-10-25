@@ -1,0 +1,80 @@
+{
+  "schema": 1,
+  "date": "2026-10-25",
+  "status": "v1_verifier_and_lab_restart_verified_not_integrated_with_dtls",
+  "completedTasks": 8,
+  "totalTasks": 57,
+  "roundedCompletedTaskPercent": 14,
+  "configurations": [
+    {
+      "platform": "macos-arm64",
+      "rust": "1.99.1",
+      "defaultTestsPassed": 34,
+      "allFeaturesTestsPassed": 35,
+      "newAuthenticationTestsPassed": 11,
+      "sharedVectors": 3,
+      "negativeHmacCasesPerVector": 5,
+      "formatPassed": true,
+      "clippyWarnings": 0,
+      "releaseBuilt": true,
+      "restartSmokeSeparateProcesses": 16,
+      "lockSurvivesRestart": true,
+      "successClearsFailures": true
+    },
+    {
+      "platform": "ubuntu-arm64-vm",
+      "rust": "1.75.0",
+      "defaultTestsPassed": 34,
+      "allFeaturesTestsPassed": 35,
+      "newAuthenticationTestsPassed": 11,
+      "sharedVectors": 3,
+      "negativeHmacCasesPerVector": 5,
+      "formatPassed": true,
+      "clippyWarnings": 0,
+      "releaseBuilt": true,
+      "restartSmokeSeparateProcesses": 16,
+      "lockSurvivesRestart": true,
+      "successClearsFailures": true
+    }
+  ],
+  "sources": {
+    ".github/workflows/agent-core.yml": "d91c5b3511b2e8c35361520f8cbbcde9c25eb5f18646cb32f8fb5ab311d88b07",
+    "agent/Cargo.toml": "4415b6b8d54ef180ec16da2b374820bd5b6ab457f3513387f1e7ed4f96302431",
+    "agent/Cargo.lock": "3911499c2f4e40765166ba235f99acb2be06cf52461945d48e90c687005f471c",
+    "agent/README.md": "6446ccfaaa893a5f31eded5c761b67d13d8965c0ccbd0b2bd687a3957a2df91a",
+    "src/shared/remote/auth-vectors.json": "13ca3e2b12ca65a097a9cf72e9c53250fe70edb419283941c5187bae3f03ec11",
+    "agent/crates/agent-auth/examples/restart-smoke.rs": "d805edbf57df61ad561d9b07933160ccfb8b2a5d716bb477e0cc873b320ab4bf",
+    "agent/crates/agent-auth/src/lib.rs": "ec0d8185148f23176286b8ef98e4573f49ba31fca7f1f5f05b89e66aebf092ea",
+    "agent/crates/agent-auth/src/vectors.rs": "5031ea3ccf20baee66cf378674a75b905d67f0566dace1838d9dffe32d802019",
+    "agent/crates/agent-auth/tests/authentication.rs": "e41505887ad3cfd289a0fa2fb596a09b4c1c5ca0e64c044f2497054d271ae295",
+    "agent/crates/agent-auth/Cargo.toml": "edb4793eb51f4c436fc753b73fb72dfdd242ed9aaf926493f1ac23b9a5bfc60a"
+  },
+  "nativeArtifactSha256": {
+    "macReleaseAuthLibrary": "b88516e72c559e8939a07542e80bcbab3d127c9f44b76eaee86f539fb7830e3c",
+    "macRestartSmoke": "92c9d52e5c28a4a9e919106b8592685014516fac33a6a56dbe5d83d99c73f104"
+  },
+  "privateEvidenceSha256": {
+    "mac-final-checks.json": "417c476fbf92509d329a8b0e5836a0759f951c5fc438d3071b36ddf61613b9f0",
+    "linux-final-checks.log": "f9ad0bc322910d2f16363e8aba66fc76901cc9813c79cdb6848243f265642358"
+  },
+  "regression": {
+    "typecheckPassed": true,
+    "vitestPassed": 276,
+    "vitestSkipped": 5,
+    "phpunitPassed": 162,
+    "phpunitAssertions": 1077,
+    "php": "8.5.12"
+  },
+  "limitations": [
+    "Solo se verifica la biblioteca y el diario efímero de laboratorio, sin instalar servicios ni leer secretos del propietario.",
+    "No hay enlace al adaptador C++ ni prueba DTLS/WebRTC con este verificador; las huellas de laboratorio son fijas.",
+    "El resultado no serializable no sustituye identidad de PeerConnection, autenticación del IPC ni autorización de la API.",
+    "El contrato de AttemptStore exige un propietario exclusivo y escrituras durables; faltan adaptadores protegidos por SO y migración real.",
+    "La prueba PBKDF2 usa el vector precompuesto compartido; la normalización NFC y derivación del alta futura siguen pendientes.",
+    "Se usa hora UTC local para intentos, con denegación si retrocede; no sustituye BootClock de la autorización.",
+    "No se garantiza borrado criptográfico de K de la memoria.",
+    "Faltan pruebas integradas que demuestren cero captura/entrada antes de autenticar y en todas las transiciones.",
+    "CI de tres plataformas pendiente de revisión en la PR; este informe registra ejecuciones locales Mac/Linux.",
+    "No se ha publicado una versión; tarea 3.2 parcial, aceptación física al final."
+  ]
+}

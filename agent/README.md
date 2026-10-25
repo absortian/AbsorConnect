@@ -135,6 +135,56 @@ en `finally`. No imprime datos de cuenta, tokens ni SDP. El ejemplo simula la
 frontera de autenticación v1, sin captura/entrada/transporte P2P: comprueba la
 integración API → reloj/permiso → cierre de un proceso, no un host remoto final.
 
+## Verificador nativo v1
+
+`absor-agent-auth` verifica el mismo HMAC-SHA256 que Electron/Flutter, mediante
+ring 0.17.14, ya presente en el lockfile por TLS. Añade base64 0.22.1 como
+dependencia directa, sin cambiar las versiones transitivas. No implementa
+criptografía propia. Los tres vectores compartidos comprueban también PBKDF2;
+la derivación solo se ejecuta en la prueba. Durante una conexión se recibe K
+del alta/almacén protegido, nunca una contraseña. El alta futura debe conservar
+la normalización NFC de la app. Solo admite parámetros actuales: salt de 16
+bytes y 600 000 iteraciones; rechaza configuraciones distintas.
+
+Cada desafío usa 32 bytes aleatorios del sistema y admite una sola prueba,
+incluido un mensaje malformado. `hello` conserva exactamente los seis campos
+v1. La prueba es JSON de hasta 512 bytes con versión/tipo/campos cerrados,
+sin duplicados y HMAC de 32 bytes en base64 canónico. El HMAC incluye nonce,
+huella de oferta y huella de respuesta como texto exacto; no normalizar las
+huellas después de aplicarlas. Se admiten huellas SHA-256 bien formadas.
+
+`DtlsBinding` debe proceder de las descripciones realmente aplicadas por el
+trabajador que termina DTLS; no basta analizar una oferta de señalización.
+`VerifiedConnection` no es clonable ni serializable y se consume al activar
+esa misma conexión. No autoriza otra PeerConnection ni sustituye permisos del
+backend, consentimiento local o verificación del IPC. La biblioteca todavía
+no está enlazada al adaptador C++: falta la frontera real entre procesos y su
+prueba con transporte, captura y entrada. No cambiar de ubicación los secretos
+ni aceptar un booleano de autenticación procedente de un proceso ajeno.
+
+Un único `Verifier`/actor administra todos los intentos del host. `AttemptStore`
+exige carga y reemplazo atómico/durable en el almacén protegido del servicio;
+no existe un adaptador por omisión. Estado ausente, corrupto o incoherente
+falla: nunca reiniciar contadores por un error. Se reserva un fallo antes del
+HMAC y se borra solo tras una prueba correcta y una segunda escritura correcta.
+Así una caída durante la prueba puede consumir un intento, pero no regalarlo.
+Cinco fallos en quince minutos bloquean quince minutos. El estado conserva un
+suelo de hora local: si el reloj retrocede, se detiene el verificador; no se
+usa ese reloj para la autorización de API, que conserva `BootClock`. El reloj
+UTC y la exclusión mutua del almacén son responsabilidades confiables del SO.
+No se garantiza borrado criptográfico de K de la memoria del proceso.
+
+```bash
+cargo run --manifest-path agent/Cargo.toml --offline --locked --example restart-smoke
+```
+
+El ejemplo usa K pública fija y un diario temporal propio, ejecuta dieciséis
+procesos separados y comprueba que el bloqueo sobrevive y que un acceso correcto
+borra fallos. Retira su directorio al terminar. No lee datos de la app, no crea
+cuentas/servicios, no captura ni envía entrada. La implementación de archivo es
+solo de laboratorio: no certifica ACL, cifrado, concurrencia ni recuperación del
+almacén de producción por plataforma. Su éxito no cierra la tarea 3.2.
+
 ## Orden de aceptación acordado
 
 El 25/10/2026 el propietario pidió dejar las máquinas físicas para el final.

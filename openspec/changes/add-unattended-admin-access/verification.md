@@ -1984,3 +1984,44 @@ TypeScript correcto, Vitest 276 correctas/5 omitidas y PHPUnit 162 pruebas/
 las puertas offline en las tres plataformas. Faltan alta/almacén real, API
 completa de señalización, autenticador, trabajador WebRTC y supervisor/watchdog.
 Tarea 3.4 parcial y **8/57**, sin nuevo servicio ni publicación del agente.
+
+
+### Verificador v1 e intentos entre procesos
+
+`agent-auth` implementa HMAC-SHA256 con ring, nonce aleatorio del sistema,
+parámetros actuales de contraseña y una prueba por desafío. Se prueban los tres
+vectores compartidos, PBKDF2 de la cadena completa y quince alteraciones de
+contexto/clave. El verificador exige huellas SHA-256 bien formadas y prueba
+base64 canónica; JSON de versión/tipo/campos cerrados, sin duplicados, acotado
+a 512 bytes. Hello conserva los seis campos del protocolo actual. No añade
+versiones ni paquetes externos al grafo anterior: ring/base64 ya estaban fijados.
+
+El registro de intentos exige carga válida y reemplazo atómico/durable desde
+un propietario exclusivo. Reserva un fallo antes del HMAC y lo borra solo
+tras prueba y escritura correctas. Las pruebas cubren repetición, otra conexión,
+cinco fallos y borde de quince minutos, reinicio del verificador, escritura que
+falla incluso después de guardar, estado corrupto/ausente/incoherente, reloj
+retrocedido y parada explícita. Un error nunca concede un resultado autenticado.
+La reserva puede consumir un intento si el proceso cae durante la verificación.
+
+Además de los dobles de prueba, restart-smoke usa un diario temporal y dieciséis
+procesos reales separados: cinco fallos conservan el bloqueo al arrancar otro
+proceso y los accesos correctos limpian los fallos. K y huellas son públicas
+fijas de laboratorio. El directorio se retira al terminar; no se leen datos de
+la app, crean cuentas/servicios, capturan imágenes o envía entrada. Este archivo
+no certifica ACL/cifrado/concurrencia de los almacenes de producción.
+
+Mac ARM con Rust 1.99.1 y VM Ubuntu ARM con Rust 1.75.0 pasaron 34 pruebas por
+omisión y 35 con todas las características, once nuevas de autenticación,
+formato, Clippy sin advertencias, ejemplo entre procesos y release. TypeScript
+correcto, Vitest 276 correctas/5 omitidas y PHPUnit 162 pruebas/1077 aserciones
+en PHP 8.5.12. Fuentes, artefactos y logs privados reconciliados por hash en
+`agent-v1-auth-results.json`. CI incorpora el ensayo en las tres plataformas y
+se dispara también si cambia el fichero de vectores compartidos.
+
+El módulo no está enlazado al adaptador C++/DTLS: el resultado solo es una
+frontera interna confiable y no una autorización de IPC. Faltan almacenes por
+SO, migración y la prueba integrada que impida captura/entrada antes de
+autenticar. No hay servicios instalados, alta en producción ni nueva release.
+La tarea 3.2 sigue parcial; **8/57 tareas cerradas (14 %)**. Este porcentaje
+cuenta tareas aceptadas, no estima el tiempo que falta. Pruebas físicas al final.

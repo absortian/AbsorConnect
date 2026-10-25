@@ -11,6 +11,12 @@ coordinador de renovación ya tienen verificación con API local y proceso hijo;
 siguen pendientes API completa, autenticador, trabajador P2P y watchdog del
 servicio. La tarea 3.4 no se cierra solo con el proceso de prueba.
 
+Avance cerrado: **8/57 tareas (14 %)**. Es proporción de tareas aceptadas, no
+porcentaje del tiempo restante. La tarea 3.2 incorpora `agent-auth`: verificación
+v1, contrato de registro de intentos y prueba de reinicio con diario temporal.
+Siguen pendientes el enlace al trabajador DTLS, almacenes protegidos por SO,
+migración real e integración que impida toda captura/entrada antes de autenticar.
+
 ## 1. Viabilidad y configuraciones objetivo
 
 - [ ] 1.1 Registrar versiones, arquitecturas, cifrado de arranque y opciones de conectividad de los Windows/Mac del propietario y confirmar Mint Cinnamon/X11/LightDM; verificar un inventario privado sin secretos y una matriz pública de configuraciones objetivo sin IPs personales.

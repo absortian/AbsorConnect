@@ -4,11 +4,13 @@ on:
   pull_request:
     paths:
       - 'agent/**'
+      - 'src/shared/remote/auth-vectors.json'
       - '.github/workflows/agent-core.yml'
   push:
     branches: [main]
     paths:
       - 'agent/**'
+      - 'src/shared/remote/auth-vectors.json'
       - '.github/workflows/agent-core.yml'
 
 permissions:
@@ -37,4 +39,5 @@ jobs:
           cargo +1.85.0 test --manifest-path agent/Cargo.toml --offline --locked
           cargo +1.85.0 test --manifest-path agent/Cargo.toml --offline --locked --all-features
           cargo +1.85.0 run --manifest-path agent/Cargo.toml --offline --locked --example lease-smoke
+          cargo +1.85.0 run --manifest-path agent/Cargo.toml --offline --locked --example restart-smoke
           cargo +1.85.0 build --manifest-path agent/Cargo.toml --offline --locked --release
