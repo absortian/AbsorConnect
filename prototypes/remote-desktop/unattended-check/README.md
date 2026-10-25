@@ -251,7 +251,7 @@ Los significados
 de los códigos y la desactivación del agente de texto siguen el
 [manual oficial de pkexec](https://www.freedesktop.org/software/polkit/docs/latest/pkexec.1.html).
 
-### Mint: emisor root hacia un receptor de usuario, pendiente de ensayo
+### Mint: emisor root hacia un receptor de usuario
 
 `linux-root-input-check.py --test-root-owned-input` exige fuentes protegidas de
 root y el auxiliar `linux-session-check.py` con su hash fijado. Resuelve la
@@ -271,10 +271,15 @@ vuelve a verificar sus hashes antes del ensayo. No sobrescribe una instalación
 o informe anterior, crea servicios ni cambia políticas. Python usa `-I` dentro
 del lanzador para evitar la confusión entre las letras al escribir el comando.
 
-Solo están comprobadas sintaxis y denegaciones sin root, con fuentes no protegidas,
-sin herramientas de sesión y con argumentos ajenos al lanzador. La ejecución
-real root → usuario está **pendiente**. Aun si pasa, será una ventana propia de
-laboratorio: no certificará entrada en greeter, bloqueo o polkit ni el agente.
+Se comprobaron sintaxis y denegaciones sin root, con fuentes no protegidas,
+sin herramientas de sesión y con argumentos ajenos al lanzador. El ensayo real
+root → usuario del 25/10 pasó: un clic y una tecla con sus liberaciones recibidas,
+cero eventos inesperados, puntero restaurado y retorno observado al foco previo.
+Después quedaron cero procesos propios y las fuentes instaladas root/0600.
+El informe y los hashes se recogen en `mint-root-input-results.json`; la evidencia
+de preparación mantiene su estado histórico anterior. Las fuentes protegidas
+permanecen para auditoría, sin servicio. El ensayo usa una ventana propia de
+laboratorio: no certifica entrada en greeter, bloqueo o polkit ni el agente.
 La retirada de UID/grupos y el paso exclusivo del descriptor siguen
 [Popen de Python](https://docs.python.org/3.12/library/subprocess.html#subprocess.Popen).
 La lectura de la propiedad PID respeta el formato y almacenamiento documentados

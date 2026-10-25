@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "date": "2026-10-25",
+  "configuration": {
+    "os": "Linux Mint 22.3",
+    "architecture": "x86_64",
+    "desktop": "Cinnamon 6.6.9",
+    "sessionType": "x11",
+    "displayManager": "LightDM"
+  },
+  "rawReport": {
+    "schema": 1,
+    "platform": "linux",
+    "status": "root_to_user_input_verified_not_certified",
+    "sourceSha256": "b17f816e0fd75daa9b25efe226e005aabbd84e53d6fa2ed09a6f907d503c61fa",
+    "sessionHelperSha256": "40d222539fa05c21b9f0a95993efe40a386bc82dab4ad031b6d188e827b6e275",
+    "senderRoot": true,
+    "receiverUnprivileged": true,
+    "separateProcesses": true,
+    "receiverPidVerified": true,
+    "rootPrivateAuthority": true,
+    "counts": {
+      "mouseDown": 1,
+      "mouseUp": 1,
+      "keyDown": 1,
+      "keyUp": 1,
+      "unexpectedEvents": 0
+    },
+    "pointerRestored": true,
+    "receiverExited": true,
+    "previousFocusRestoredObserved": true,
+    "inputTested": true,
+    "polkitInputTested": false,
+    "preLoginTested": false,
+    "readyForUnattended": false
+  },
+  "cleanup": {
+    "remainingRootProbeCount": 0,
+    "remainingReceiverCount": 0,
+    "screensaverInactive": true,
+    "installedSourcesMetadata": [
+      {
+        "file": "linux-root-input-check.py",
+        "uid": 0,
+        "mode": "0o600",
+        "regular": true
+      },
+      {
+        "file": "linux-session-check.py",
+        "uid": 0,
+        "mode": "0o600",
+        "regular": true
+      }
+    ]
+  },
+  "rawReportHashes": {
+    "root-input-results.json": "6d1787ff70e0832756422a7ad5c3fb02a9abff8240080184cba759fdf63dcae2",
+    "positive-cleanup.json": "bcdafc40bb568676eaf3e7ca484dc0cbeaa3a092f837edd4f22aeaee1d5cbeb6"
+  },
+  "launcherExitCodeObserved": false,
+  "readyForUnattended": false,
+  "limits": [
+    "Ensayo local con un clic y una tecla fija sobre una ventana GTK propia de otro proceso y UID. No transmite entrada por WebRTC.",
+    "No acredita entrada en polkit, bloqueo o LightDM ni el inicio de sesión.",
+    "No instala servicios ni implementa el agente final. Las fuentes protegidas de laboratorio quedan instaladas para auditoría; no hay procesos del ensayo activos.",
+    "El informe anterior de preparación conserva su estado histórico previo a esta ejecución. No se observó el código de salida del lanzador en la Terminal del propietario."
+  ]
+}
