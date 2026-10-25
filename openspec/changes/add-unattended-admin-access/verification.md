@@ -1939,3 +1939,48 @@ El paquete Mac ARM sin publicación también se construyó con electron-builder
 ni backend/mobile/prototypes. Evidencia de fuentes, artefactos y comprobaciones
 locales en `agent-authorization-core-results.json`; hashes de logs privados
 reconciliados. No se instaló este paquete ni se cambió la app del propietario.
+
+
+### API de renovación integrada con el núcleo y un proceso propio
+
+`agent-api` implementa la consulta autenticada del agente con HTTPS verificado,
+sin redirecciones, proxies de entorno, cookies o compresión. El cuerpo y el
+contrato JSON están acotados; la credencial de agente tiene formato estricto,
+Debug censurado y no se pasan tokens por argv/env. El coordinador separa HTTP
+al actor con un solo hilo/consulta/respuesta pendientes y mantiene los ticks de
+caducidad durante la red. 401/403 corta e inhabilita; error de red/formato/TLS o
+respuesta tardía no extiende permiso; 429 respeta la espera. Las dependencias
+se fijaron con su grafo compatible con Rust 1.75; no se añade un runtime async.
+
+Pasaron 24 casos con lab-http (23 sin esa característica) en Mac ARM/Rust 1.99.1
+y VM Ubuntu ARM/Rust 1.75.0: contrato, duplicados, límites, credencial distinta
+de cuenta, origen, loopback exclusivo de laboratorio, HTTP real local,
+redirección con destino trampa no contactado, rechazo de TLS inválido,
+consulta bloqueada con caducidad, revocación, Retry-After y respuestas tardías,
+más los 14 casos anteriores del núcleo. Formato, Clippy sin advertencias y
+release correctos. El ensayo de TLS inválido no certifica todos los posibles
+fallos de certificados ni el empaquetado final de raíces.
+
+También se probó con la API real de desarrollo y un proxy de fallo loopback,
+sin detenerla: cuentas, dispositivos y altas exclusivos efímeros. Un caso
+revoca por la API; el otro corta solo las peticiones de su cliente. En ambos,
+el binario Rust terminó su propio hijo, recogió su salida y rechazó operaciones
+posteriores. Las cuentas se retiraron. El primer lanzador abortó durante una
+consulta de limpieza de procesos bloqueada por el sandbox; no se contó como
+éxito. Se eliminaron exclusivamente sus dos cuentas con patrón reservado en
+la base local y se movió la retirada por API a un finally independiente del
+cierre del proxy. La repetición completa y la final pasaron, con cero cuentas
+residuales. No se usa ps para el funcionamiento de la prueba actual.
+
+La medida final fue 3105 ms desde la revocación y 29899 ms desde el corte de
+red. El proceso no es un host: se simula la frontera del autenticador v1 y no
+tiene captura, entrada o P2P. La API de laboratorio usa HTTP exclusivamente en
+loopback por una característica optativa; el constructor normal conserva
+HTTPS aunque se compile esa característica. No se hizo un alta en producción.
+
+TypeScript correcto, Vitest 276 correctas/5 omitidas y PHPUnit 162 pruebas/
+1077 aserciones en PHP 8.5.12. Evidencia y hashes reconciliados en
+`agent-api-renewal-results.json`. El CI descarga primero el lockfile y repite
+las puertas offline en las tres plataformas. Faltan alta/almacén real, API
+completa de señalización, autenticador, trabajador WebRTC y supervisor/watchdog.
+Tarea 3.4 parcial y **8/57**, sin nuevo servicio ni publicación del agente.

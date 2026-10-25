@@ -1,0 +1,105 @@
+{
+  "schema": 1,
+  "date": "2026-10-25",
+  "status": "api_renewal_and_own_worker_verified_locally_not_a_remote_host",
+  "configurations": [
+    {
+      "platform": "macos-arm64",
+      "rust": "1.99.1",
+      "defaultTestsPassed": 23,
+      "allFeaturesTestsPassed": 24,
+      "formatPassed": true,
+      "clippyWarnings": 0,
+      "releaseBuilt": true
+    },
+    {
+      "platform": "ubuntu-arm64-vm",
+      "rust": "1.75.0",
+      "allFeaturesTestsPassed": 24,
+      "formatPassed": true,
+      "clippyWarnings": 0,
+      "releaseBuilt": true
+    }
+  ],
+  "sources": {
+    ".github/workflows/agent-core.yml": "89ddcc8205fb329660960bf2bc9b70f557625eb2417b15cdb3e56da30a16dbb5",
+    "agent/Cargo.toml": "2f8c745e79b75ac6a47d14649fba4f63caec22cca2ec592967e1e6ec752dcda0",
+    "agent/Cargo.lock": "1d0b6f4be3c50526a6fd45db52a00f007fab7f8d0a0e022c05fb460190d0b1df",
+    "agent/README.md": "04a074a9130592d20aa98e3692ac3f4bdb24f0881225cc458a2870e4c3782ce2",
+    "agent/crates/agent-core/src/clock.rs": "4eabd3738bb16ddfc495e44ddba61e4b2f3eb54a24d47ad7c65acda57226da00",
+    "prototypes/backend-agent-check/native-renewal.py": "e9b06e74b6f90b29d25dce651c389c209a195970a2e013a53f567b7fa7d7a44f",
+    "agent/crates/agent-api/examples/api-smoke.rs": "27f22b7a75f50ac10d7a149c00ee508f841ade4d07f15f096f0753647c4cb63c",
+    "agent/crates/agent-api/src/http.rs": "0656a8b1d287afc2b84789355856e10623c25309d11abfc3174ebcf0c5fef619",
+    "agent/crates/agent-api/src/lib.rs": "53dea4d3ebea18de52579c57ea478dd803125d1c024bce7dcec7f35d2b79a988",
+    "agent/crates/agent-api/tests/renewal.rs": "3e4525d6fea42a24fc1161ff294fd2b74de8eee153a4a682a9e47161c14136c6",
+    "agent/crates/agent-api/Cargo.toml": "d54a196c0720b2f9c50420525bf9abc2bd2e3b8a0a5365693d081c03e98b0d68"
+  },
+  "nativeArtifactSha256": {
+    "macLabExample": "1c88f11533eacfacc25881426ea5799dc8b8da1879e7eb033702fae12dd13980",
+    "macReleaseLibrary": "ff7d76d21d08df25653c33a69012e5dd4b0e3270dc1f3a632b972da6b7e7768c"
+  },
+  "privateEvidenceSha256": {
+    "mac-final-checks.json": "2044b40b36b8afd6b0ca565e962ae1b8942ceaf14e26e92ccf7497d83868222b",
+    "linux-final-checks.log": "9b734380ffd4a4562257cf7d312ac4d8b314097c51fbb38d9cc2adf357e41510",
+    "backend-results.json": "372137e8758511946851018e4c9658268e14bd1b986b5444c5400a4653c2474d",
+    "backend-attempt-b.json": "ba23a5dfc91be7d9a094b639c97210364ccd578742eb3f1e684aa91986b0ab0e"
+  },
+  "realDevelopmentApi": {
+    "schema": 1,
+    "cases": [
+      {
+        "case": "revocation",
+        "productionTested": false,
+        "phase": "complete",
+        "ownWorkerTerminated": true,
+        "operationAfterCutDenied": true,
+        "realAuthenticationTested": false,
+        "captureTested": false,
+        "inputTested": false,
+        "elapsedMillisecondsAfterFault": 3105,
+        "temporaryAccountRemoved": true
+      },
+      {
+        "case": "network-cut",
+        "productionTested": false,
+        "phase": "complete",
+        "ownWorkerTerminated": true,
+        "operationAfterCutDenied": true,
+        "realAuthenticationTested": false,
+        "captureTested": false,
+        "inputTested": false,
+        "elapsedMillisecondsAfterFault": 29899,
+        "temporaryAccountRemoved": true
+      }
+    ],
+    "credentialArgumentsUsed": false,
+    "osCaptureOrInputTested": false,
+    "productionTested": false
+  },
+  "cleanup": {
+    "initialAttemptCountedAsSuccess": false,
+    "initialReservedAccountsRemovedFromLocalDatabase": 2,
+    "subsequentRunsUseApiCleanup": true,
+    "reservedAccountsRemaining": 0
+  },
+  "regression": {
+    "typecheckPassed": true,
+    "vitestPassed": 276,
+    "vitestSkipped": 5,
+    "phpunitPassed": 162,
+    "phpunitAssertions": 1077,
+    "php": "8.5.12"
+  },
+  "limitations": [
+    "La biblioteca no es un servicio instalable ni un host remoto.",
+    "La prueba de proceso propio simula la frontera v1 y no prueba captura, entrada o WebRTC.",
+    "HTTP solo se permite en loopback mediante lab-http optativo; el constructor normal exige HTTPS incluso con esa característica.",
+    "El ensayo de TLS inválido rechaza datos que no son TLS; no certifica todos los fallos de certificados ni el paquete final de raíces.",
+    "El actor debe recibir ticks puntuales; faltan supervisor y watchdog independientes con trabajadores reales.",
+    "Faltan alta y almacén protegido, API completa de señalización, autenticador v1 y conexión al trabajador WebRTC.",
+    "No se ha probado suspensión física ni hardware en esta fase; quedan para aceptación final.",
+    "La revisión de arquitectura y firma de macOS sigue pendiente para el agente final.",
+    "El CI de tres plataformas debe revisarse en la PR; este informe registra ejecuciones locales.",
+    "Sin alta en producción, instalación de servicio o publicación. Tarea 3.4 parcial, 8/57 completas."
+  ]
+}

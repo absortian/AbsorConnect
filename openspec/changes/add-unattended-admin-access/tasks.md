@@ -6,7 +6,10 @@ El 25/10/2026 el propietario acordó continuar las partes comunes y la integraci
 en VM antes del piloto físico. Las tareas 3.1/3.2/3.4 incorporan un núcleo de
 autorización parcial en `agent/`; no se marcan completas sin trabajadores,
 autenticador, API y watchdog integrados. Se mantienen los criterios físicos y
-la revisión de macOS antes de su agente final.
+la revisión de macOS antes de su agente final. El cliente de consulta y el
+coordinador de renovación ya tienen verificación con API local y proceso hijo;
+siguen pendientes API completa, autenticador, trabajador P2P y watchdog del
+servicio. La tarea 3.4 no se cierra solo con el proceso de prueba.
 
 ## 1. Viabilidad y configuraciones objetivo
 
