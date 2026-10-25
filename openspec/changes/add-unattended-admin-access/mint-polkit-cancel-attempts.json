@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "date": "2026-10-25",
-  "status": "first_attempt_rejected_held_input_revision2_prepared",
+  "status": "two_attempts_rejected_without_input_accessible_focus_revision_prepared",
   "attempts": [
     {
       "attempt": "a",
@@ -28,7 +28,7 @@
     },
     {
       "attempt": "b",
-      "status": "prepared_not_executed",
+      "status": "rejected_without_input",
       "preparation": {
         "sourceSha256": "e2f7a5072349217df49d3fe1eef17839afb87062969d8b178170b554b77ada5b",
         "launcherSha256": "16577cc01864ebfd4fa0f04117dbf881c2726295ec69fbd1b7f4686d8b28c077",
@@ -97,6 +97,151 @@
         },
         "sourceSha256": "e2f7a5072349217df49d3fe1eef17839afb87062969d8b178170b554b77ada5b"
       },
+      "nativeCancellationVerified": false,
+      "rawReport": {
+        "schema": 1,
+        "platform": "linux",
+        "status": "polkit_escape_cancellation_not_verified",
+        "reason": "pending_cinnamon_prompt_focus_required",
+        "inputTested": false,
+        "readyForUnattended": false,
+        "escapePressSent": false,
+        "escapeReleaseSent": false,
+        "idleChecks": {
+          "beforeRequest": {
+            "samples": 2,
+            "maxHeldKeys": 0,
+            "maxHeldButtons": 0,
+            "neutralSamples": 2,
+            "initialHeldKeys": 0,
+            "initialHeldButtons": 0,
+            "finalHeldKeys": 0,
+            "finalHeldButtons": 0
+          },
+          "pendingRequest": {
+            "samples": 2,
+            "maxHeldKeys": 0,
+            "maxHeldButtons": 0,
+            "neutralSamples": 2,
+            "initialHeldKeys": 0,
+            "initialHeldButtons": 0,
+            "finalHeldKeys": 0,
+            "finalHeldButtons": 0
+          }
+        },
+        "userWorkerExited": true
+      },
+      "cleanup": {
+        "remainingPkexecCount": 0,
+        "remainingProbeWorkersCount": 0,
+        "screensaverInactive": true
+      },
+      "ownerConfirmedNoInteraction": true,
+      "reconciliation": "Entrada neutra en ambas fases; se abortó sin Escape porque el foco X11 no se atribuyó a Cinnamon. No acredita cancelación nativa."
+    },
+    {
+      "attempt": "c",
+      "status": "prepared_not_executed",
+      "preparation": {
+        "sourceSha256": "02eeb816f96da7cba7a8c5f65eac1886456211c75f029bbf57d468bbeba1a45f",
+        "launcherSha256": "b731ffaeb0fb268a0938fa7bd4a61995330ed0868edcdf27f11aac4902533ccf",
+        "focusHelperSha256": "5e698b3110a4bb433b1cc05fca4a186c1fd31c127ae4b5da9fb7f1d23d843e86",
+        "parentAndWorkerSyntaxCompiled": true,
+        "bashSyntaxExitCode": 0,
+        "unknownArgumentsExitCode": 2,
+        "transferredHashesVerified": true,
+        "mintUnprivilegedCase": {
+          "exitCode": 3,
+          "report": {
+            "schema": 1,
+            "platform": "linux",
+            "status": "polkit_escape_cancellation_not_verified",
+            "reason": "root_context_required",
+            "inputTested": false,
+            "readyForUnattended": false,
+            "escapePressSent": false,
+            "escapeReleaseSent": false
+          }
+        },
+        "positiveInputTestExecuted": false
+      },
+      "containerNegativeCases": {
+        "unprotected": {
+          "exitCode": 3,
+          "report": {
+            "schema": 1,
+            "platform": "linux",
+            "status": "polkit_escape_cancellation_not_verified",
+            "reason": "root_protected_source_directory_required",
+            "inputTested": false,
+            "readyForUnattended": false,
+            "escapePressSent": false,
+            "escapeReleaseSent": false
+          }
+        },
+        "badSessionHash": {
+          "exitCode": 3,
+          "report": {
+            "schema": 1,
+            "platform": "linux",
+            "status": "polkit_escape_cancellation_not_verified",
+            "reason": "session_helper_hash_mismatch",
+            "inputTested": false,
+            "readyForUnattended": false,
+            "escapePressSent": false,
+            "escapeReleaseSent": false
+          }
+        },
+        "badFocusHash": {
+          "exitCode": 3,
+          "report": {
+            "schema": 1,
+            "platform": "linux",
+            "status": "polkit_escape_cancellation_not_verified",
+            "reason": "focus_helper_hash_mismatch",
+            "inputTested": false,
+            "readyForUnattended": false,
+            "escapePressSent": false,
+            "escapeReleaseSent": false
+          }
+        },
+        "noSession": {
+          "exitCode": 3,
+          "report": {
+            "schema": 1,
+            "platform": "linux",
+            "status": "polkit_escape_cancellation_not_verified",
+            "reason": "session_query_failed",
+            "inputTested": false,
+            "readyForUnattended": false,
+            "escapePressSent": false,
+            "escapeReleaseSent": false
+          }
+        },
+        "rootInstaller": {
+          "exitCode": 3,
+          "rootInstallerRejected": true
+        },
+        "sourceSha256": "02eeb816f96da7cba7a8c5f65eac1886456211c75f029bbf57d468bbeba1a45f"
+      },
+      "workerSshProtocolCheck": {
+        "events": [
+          {
+            "event": "baseline",
+            "snapshot": {
+              "showingDialogCount": 0,
+              "focusedDescendantsWithinDialogs": 0,
+              "focusedPasswordFieldsWithinDialogs": 0
+            }
+          },
+          {
+            "event": "error",
+            "reason": "request_ended_before_observation"
+          }
+        ],
+        "workerExited": true,
+        "inputSent": false
+      },
       "nativeCancellationVerified": false
     }
   ],
@@ -105,12 +250,19 @@
     "attempt-a-cleanup.json": "c51a318ce13cea9c2a8cc9919331277f44feeed668a63d16521f79555b29030b",
     "attempt-a-owner-confirmation.json": "476f5745c2cae54c57cdcaa0d90c067ab95e9bf0adb3c3cd8ed5be9ab8f4b0fe",
     "revision2-preparation.json": "9f779702dff5f9929fb62f3c29e126f910cb105bf4d88f9362e603869ed727f9",
-    "revision2-container-negatives.json": "15eaa4a75b45815eacfcfabb04e52f582113576decfa9bb06aa8f525eddb367d"
+    "revision2-container-negatives.json": "15eaa4a75b45815eacfcfabb04e52f582113576decfa9bb06aa8f525eddb367d",
+    "attempt-b-results.json": "0989a275467aa0287e3592410cd4c4949b171f2d3736793ef4f09627142b2310",
+    "attempt-b-cleanup.json": "c51a318ce13cea9c2a8cc9919331277f44feeed668a63d16521f79555b29030b",
+    "attempt-b-owner-confirmation.json": "0443de12ab6f599c5667e7516363ea40b716955b12faca925722ef9e86a5a067",
+    "revision3-preparation.json": "328d3257dff7b3d98e1f56b758459c1554089f40e355c5e68c60d9223ee43081",
+    "revision3-container-negatives.json": "14bc26fabbb895523b02c5dc62a081175fb18301295668659cd914701359c853",
+    "revision3-worker-ssh-check.json": "46a2598a18746d90df39c7b1324ce2e49b9d7165d81e96959378821355d7ec6c"
   },
   "readyForUnattended": false,
   "limits": [
     "La primera revisión no registraba si había teclas o botones retenidos ni su cantidad; no se atribuye una causa concreta.",
     "La revisión 2 solo registra contadores agregados, sin códigos, mapas de teclas, texto, coordenadas ni credenciales. No fuerza liberaciones de entrada ajena.",
-    "No se ha verificado cancelación nativa de polkit ni entrada en bloqueo o LightDM."
+    "No se ha verificado cancelación nativa de polkit ni entrada en bloqueo o LightDM.",
+    "La revisión 3 usa metadatos de un diálogo Cinnamon observado como usuario. Es atribución del destino de laboratorio, no un verificador de seguridad de producción contra procesos locales hostiles."
   ]
 }

@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import pwd
 import signal
+import socket
 import stat
 import subprocess
 import sys
@@ -16,26 +17,56 @@ import time
 import types
 
 
+FOCUS_SHA256 = "5e698b3110a4bb433b1cc05fca4a186c1fd31c127ae4b5da9fb7f1d23d843e86"
 SESSION_SHA256 = "40d222539fa05c21b9f0a95993efe40a386bc82dab4ad031b6d188e827b6e275"
 
 # pkexec autoriza al proceso padre. El solicitante debe tener padre de usuario,
 # no el supervisor root que solo envía Escape. No admite órdenes externas.
 REQUESTER_WORKER = r'''
-import os, signal, subprocess, sys
+import json, os, signal, socket, subprocess, sys, time
 if os.getuid() == 0:
     sys.exit(3)
+channel = socket.socket(fileno=int(sys.argv[1]))
+channel.settimeout(10)
+stream = channel.makefile("rb")
 requester = None
-result = 3
 def stop(_signal, _frame):
-    raise InterruptedError()
-for number in (signal.SIGTERM, signal.SIGINT):
+    raise RuntimeError("user_worker_interrupted")
+def send(value):
+    channel.sendall((json.dumps(value)+"\n").encode())
+def expect(command):
+    if stream.readline(65) != command:
+        raise RuntimeError("unexpected_fixed_worker_command")
+for number in (signal.SIGTERM, signal.SIGINT, signal.SIGALRM):
     signal.signal(number, stop)
+signal.alarm(25)
 try:
+    observer = focus_module.FocusObserver()
+    if observer.application.get_process_id() != int(sys.argv[2]):
+        raise RuntimeError("cinnamon_accessible_pid_mismatch")
+    baseline = observer.snapshot()
+    if baseline["showingDialogCount"] != 0:
+        raise RuntimeError("existing_cinnamon_dialog_prevents_probe")
+    send({"event":"baseline", "snapshot":baseline})
     requester = subprocess.Popen(["/usr/bin/pkexec", "--disable-internal-agent", "/usr/bin/true"],
                                  stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    result = requester.wait(timeout=20)
-except (InterruptedError, subprocess.TimeoutExpired):
-    pass
+    time.sleep(2)
+    if requester.poll() is not None:
+        raise RuntimeError("request_ended_before_observation")
+    send({"event":"pending", "snapshot":observer.snapshot()})
+    expect(b"focus\n")
+    if requester.poll() is not None:
+        raise RuntimeError("request_ended_before_fresh_focus")
+    send({"event":"focus", "snapshot":observer.snapshot()})
+    expect(b"finish\n")
+    code = requester.wait(timeout=5)
+    time.sleep(0.3)
+    send({"event":"result", "requesterExitCode":code, "afterRequest":observer.snapshot(), "requesterExited":True})
+except Exception as error:
+    try:
+        send({"event":"error", "reason":str(error) if isinstance(error, RuntimeError) else type(error).__name__})
+    except OSError:
+        pass
 finally:
     if requester is not None and requester.poll() is None:
         requester.terminate()
@@ -44,7 +75,9 @@ finally:
         except subprocess.TimeoutExpired:
             requester.kill()
             requester.wait(timeout=2)
-sys.exit(result)
+    signal.alarm(0)
+    stream.close()
+    channel.close()
 '''
 
 
@@ -67,11 +100,18 @@ def session_helper():
     module = types.ModuleType("absor_polkit_cancel_session")
     module.__file__ = str(helper)
     exec(compile(data, str(helper), "exec"), module.__dict__)
-    return module
+    focus_source = source.with_name("linux-polkit-focus-check.py")
+    info = focus_source.lstat()
+    if not stat.S_ISREG(info.st_mode) or info.st_uid != 0 or info.st_mode & 0o022:
+        raise RuntimeError("root_owned_focus_source_required")
+    focus_data = focus_source.read_bytes()
+    if hashlib.sha256(focus_data).hexdigest() != FOCUS_SHA256:
+        raise RuntimeError("focus_helper_hash_mismatch")
+    return module, focus_data
 
 
 def run(observation):
-    helper = session_helper()
+    helper, focus_data = session_helper()
     initial = helper.context()
     session = initial[1]
     uid = int(session["User"])
@@ -116,11 +156,6 @@ def run(observation):
     bind(x11, "XCloseDisplay", integer, ptr)
     bind(x11, "XDefaultRootWindow", win, ptr)
     bind(x11, "XGetInputFocus", integer, ptr, pw, pi)
-    bind(x11, "XQueryTree", integer, ptr, win, pw, pw, c.POINTER(pw), c.POINTER(unsigned))
-    bind(x11, "XInternAtom", win, ptr, c.c_char_p, integer)
-    bind(x11, "XGetWindowProperty", integer, ptr, win, win, c.c_long, c.c_long, integer, win,
-         pw, pi, pw, pw, c.POINTER(ptr))
-    bind(x11, "XFree", integer, ptr)
     bind(x11, "XQueryKeymap", integer, ptr, c.c_char_p)
     bind(x11, "XQueryPointer", integer, ptr, win, pw, pw, pi, pi, pi, pi, c.POINTER(unsigned))
     bind(x11, "XKeysymToKeycode", c.c_ubyte, ptr, win)
@@ -130,42 +165,14 @@ def run(observation):
     display = x11.XOpenDisplay(b":0")
     if not display:
         raise RuntimeError("root_x11_connection_failed")
-    requester = None
+    requester, channel, peer, stream = None, None, None, None
     try:
         root = x11.XDefaultRootWindow(display)
-        atom = x11.XInternAtom(display, b"_NET_WM_PID", True)
-        if not atom:
-            raise RuntimeError("window_pid_atom_required")
 
         def focus():
             value, revert = win(), integer()
             x11.XGetInputFocus(display, c.byref(value), c.byref(revert))
             return value.value
-
-        def focus_pid():
-            window = focus()
-            for _ in range(16):
-                if window in (0, 1, root):
-                    return None
-                actual, format_, items, remaining, data = win(), integer(), win(), win(), ptr()
-                try:
-                    status = x11.XGetWindowProperty(display, window, atom, 0, 1, False, 6,
-                                                   c.byref(actual), c.byref(format_), c.byref(items),
-                                                   c.byref(remaining), c.byref(data))
-                    if status != 0:
-                        raise RuntimeError("focus_property_failed")
-                    if actual.value == 6 and format_.value == 32 and items.value == 1 and remaining.value == 0 and data:
-                        return c.cast(data, pw)[0] & 0xFFFFFFFF
-                finally:
-                    if data:
-                        x11.XFree(data)
-                rr, parent, children, size = win(), win(), pw(), unsigned()
-                if not x11.XQueryTree(display, window, c.byref(rr), c.byref(parent), c.byref(children), c.byref(size)):
-                    raise RuntimeError("focus_tree_failed")
-                if children:
-                    x11.XFree(children)
-                window = parent.value
-            raise RuntimeError("focus_tree_limit")
 
         def input_counts():
             keys = c.create_string_buffer(32)
@@ -213,20 +220,47 @@ def run(observation):
         if not escape:
             raise RuntimeError("escape_key_unavailable")
         previous_focus = focus()
-        if focus_pid() == cinnamon_pid:
-            raise RuntimeError("baseline_cinnamon_focus_prevents_probe")
         idle("beforeRequest", 2)
         environment = {"PATH": "/usr/bin:/bin", "LANG": "C.UTF-8", "HOME": account.pw_dir,
                        "DISPLAY": ":0", "XAUTHORITY": str(user_authority),
                        "DBUS_SESSION_BUS_ADDRESS": f"unix:path=/run/user/{uid}/bus"}
         # Conserva la sesión de Terminal de sudo y descarta UID, GID y grupos en el trabajador.
-        requester = subprocess.Popen(["/usr/bin/python3", "-I", "-c", REQUESTER_WORKER],
-                                     user=uid, group=account.pw_gid, extra_groups=[], env=environment,
+        channel, peer = socket.socketpair()
+        channel.settimeout(8)
+        worker_code = ("import types\nfocus_module=types.ModuleType('absor_pinned_focus')\n"
+                       + "exec(compile(" + repr(focus_data) + ",'<pinned-focus>','exec'),focus_module.__dict__)\n"
+                       + REQUESTER_WORKER)
+        requester = subprocess.Popen(["/usr/bin/python3", "-I", "-c", worker_code, str(peer.fileno()), str(cinnamon_pid)],
+                                     pass_fds=(peer.fileno(),),user=uid, group=account.pw_gid, extra_groups=[], env=environment,
                                      stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        time.sleep(2)
-        if requester.poll() is not None:
-            observation["userWorkerExitCode"] = requester.returncode
-            raise RuntimeError("request_ended_before_input")
+        peer.close()
+        peer = None
+        stream = channel.makefile("rb")
+
+        def receive(expected):
+            line = stream.readline(1025)
+            if len(line) > 1024:
+                raise RuntimeError("worker_message_limit")
+            value = json.loads(line)
+            if not isinstance(value, dict):
+                raise RuntimeError("worker_object_required")
+            if value.get("event") == "error":
+                raise RuntimeError("user_worker_" + value.get("reason", "failed"))
+            if value.get("event") != expected:
+                raise RuntimeError("unexpected_worker_event")
+            return value
+
+        def focused_dialog(snapshot):
+            return (isinstance(snapshot, dict) and snapshot.get("showingDialogCount") == 1
+                    and snapshot.get("focusedDescendantsWithinDialogs") == 1
+                    and snapshot.get("focusedPasswordFieldsWithinDialogs") == 1)
+
+        observation["baselineFocus"] = receive("baseline")["snapshot"]
+        if observation["baselineFocus"].get("showingDialogCount") != 0:
+            raise RuntimeError("existing_cinnamon_dialog_prevents_probe")
+        observation["pendingFocus"] = receive("pending")["snapshot"]
+        if not focused_dialog(observation["pendingFocus"]):
+            raise RuntimeError("pending_cinnamon_accessible_focus_required")
         context_guard()
         idle("pendingRequest", 4)
         if (Path("/proc") / str(requester.pid)).stat().st_uid != uid:
@@ -243,10 +277,15 @@ def run(observation):
                 pass
         if pending != [True]:
             raise RuntimeError("exclusive_own_pkexec_required")
-        if focus_pid() != cinnamon_pid:
-            raise RuntimeError("pending_cinnamon_prompt_focus_required")
+        channel.sendall(b"focus\n")
+        observation["freshFocus"] = receive("focus")["snapshot"]
+        if not focused_dialog(observation["freshFocus"]):
+            raise RuntimeError("fresh_cinnamon_accessible_focus_required")
         if requester.poll() is not None:
             raise RuntimeError("request_ended_before_input")
+        if any(input_counts()):
+            raise RuntimeError("held_input_prevents_probe")
+        observation["finalInputNeutral"] = True
         # No imprime, lee ni envía texto. Solo Escape con liberación incluso al interrumpir.
         previous_mask = signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGALRM, signal.SIGTERM, signal.SIGINT})
         try:
@@ -262,19 +301,21 @@ def run(observation):
                 x11.XSync(display, False)
         finally:
             signal.pthread_sigmask(signal.SIG_SETMASK, previous_mask)
-        try:
-            exit_code = requester.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            raise RuntimeError("native_polkit_cancellation_not_observed") from None
-        observation["userWorkerExitCode"] = exit_code
+        channel.sendall(b"finish\n")
+        result = receive("result")
+        worker_code = requester.wait(timeout=3)
+        observation["userWorkerExitCode"] = worker_code
+        observation["afterRequestFocus"] = result["afterRequest"]
         context_guard()
-        if exit_code != 126:
-            raise RuntimeError("request_not_dismissed_with_expected_code")
+        if worker_code != 0 or result.get("requesterExitCode") != 126 or not result.get("requesterExited"):
+            raise RuntimeError("native_polkit_cancellation_not_observed")
+        if observation["afterRequestFocus"].get("showingDialogCount") != 0:
+            raise RuntimeError("cinnamon_dialog_removal_not_observed")
         return {"schema": 1, "platform": "linux", "status": "polkit_escape_cancellation_verified_not_certified",
                 "sourceSha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-                "sessionHelperSha256": SESSION_SHA256, "senderRoot": True, "requesterParentUnprivileged": True,
-                "fixedRequest": "pkexec --disable-internal-agent /usr/bin/true", "requesterExitCode": exit_code,
-                "cinnamonFocusVerifiedBeforeInput": True, "escapePressSent": True, "escapeReleaseSent": True,
+                "sessionHelperSha256": SESSION_SHA256, "focusHelperSha256": FOCUS_SHA256, "senderRoot": True, "requesterParentUnprivileged": True,
+                "fixedRequest": "pkexec --disable-internal-agent /usr/bin/true", "requesterExitCode": result["requesterExitCode"],
+                "cinnamonAccessibleDialogFocusVerified": True, "x11FocusUsedAsTargetProof": False, "escapePressSent": True, "escapeReleaseSent": True,
                 "requesterExited": True, "noOpCompleted": False, "inputTested": True,
                 "polkitCancellationTested": True, "polkitAuthenticationTested": False,
                 "previousFocusRestoredObserved": focus() == previous_focus,
@@ -291,6 +332,12 @@ def run(observation):
         finally:
             if requester is not None:
                 observation["userWorkerExited"] = requester.poll() is not None
+            if stream is not None:
+                stream.close()
+            if channel is not None:
+                channel.close()
+            if peer is not None:
+                peer.close()
             x11.XCloseDisplay(display)
 
 

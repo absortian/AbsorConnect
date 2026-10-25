@@ -1441,7 +1441,7 @@ no se creó servicio. Esto acredita entrada root → ventana propia del usuario,
 pero todavía no entrada en LightDM, bloqueo o polkit ni transporte remoto.
 La tarea 1.4 sigue parcial y `readyForUnattended:false`, total **8/57**.
 
-### Mint: cancelación de polkit desde root preparada — 25/10/2026
+### Mint: preparación inicial de cancelación de polkit desde root — 25/10/2026
 
 `linux-polkit-cancel-check.py --test-polkit-cancel` utiliza fuentes root protegidas
 con el auxiliar de sesión fijado por hash. Un trabajador Python fijo, ejecutado
@@ -1499,3 +1499,57 @@ con la nueva fuente. Hashes transferidos comprobados. El intento b está pendien
 de ejecución local; evidencia reconciliada en `mint-polkit-cancel-attempts.json`.
 La preparación inicial se conserva como registro histórico. No cambia el estado
 de tarea 1.4 ni certifica recepción nativa a partir de este aborto.
+
+#### Segunda ejecución, observación nativa del foco y revisión 3
+
+El intento b volvió a abortar sin Escape: `pending_cinnamon_prompt_focus_required`.
+Las dos fases registraron dos muestras neutras, cero teclas y cero botones
+retenidos; el propietario confirmó no tocar el aviso. El trabajador terminó y
+la limpieza posterior comprobó cero pkexec/trabajadores propios y Cinnamon sin
+salvapantallas activo. Este resultado no prueba recepción de entrada y no explica
+retroactivamente la clase de entrada retenida del intento a.
+
+Se inspeccionó el código instalado de ModalDialog en Cinnamon: utiliza el modal
+del compositor y el foco de actores, por lo que exigir el PID de Cinnamon bajo
+XGetInputFocus no identifica necesariamente al receptor. Antes de volver a enviar
+entrada se preparó `linux-polkit-focus-check.py`: consulta únicamente PID de
+aplicación, roles/estados de diálogos y foco vía AT-SPI como usuario, con límites
+de resultados/espera. No llama a texto, valores o acciones accesibles ni genera
+entrada. Su lanzador no usa sudo y guarda un informe privado sin sobrescribirlo.
+
+Por SSH la solicitud terminó con 127 antes de observar aviso; no se atribuye una
+causa más precisa. Ejecutado desde Terminal de la sesión gráfica, se observó
+cero diálogos antes, uno con un único campo de contraseña enfocado mientras el
+solicitante seguía pendiente y cero tras retirarlo. El propietario no tocó el
+aviso. La retirada produjo código -15: es limpieza, no una cancelación por tecla.
+Evidencia: `mint-polkit-focus-results.json`, con originales/hashes privados.
+
+La revisión 3 utiliza esa observación para validar el destino. El auxiliar de
+foco se fija por hash y se instala como tercera fuente root/0600. Sus bytes
+comprobados se entregan al trabajador de usuario, sin grupos adicionales, como
+código fijo; root no se conecta al bus de accesibilidad como administrador.
+Un socketpair anónimo heredado solo intercambia fases, metadatos y dos órdenes
+fijas (`focus`/`finish`), sin red, archivos de socket ni órdenes arbitrarias.
+
+Se exige ausencia inicial de diálogos de Cinnamon, un diálogo nuevo con un único
+campo de contraseña enfocado y una segunda consulta fresca antes de Escape.
+Se conservan sesión/UID/PID comprobados, un único pkexec hijo del trabajador,
+autoridad Xorg privada, entrada neutra y liberación de Escape. XGetInputFocus
+solo registra el retorno observado del foco, no acredita el destino del envío.
+El éxito requerirá código nativo 126, solicitante terminado, trabajador a cero
+y desaparición del diálogo; no cuenta la retirada durante un aborto.
+
+Supervisor, auxiliar y trabajador completo compilados; sintaxis Bash y argumentos
+comprobados. En Mint se rechazó ejecución sin root; en contenedor se rechazaron
+padres no protegidos, hashes de sesión/foco alterados, sesión inexistente y
+lanzador root. El trabajador real por SSH intercambió fase inicial y error al
+terminar la solicitud antes de observarla, sin entrada. Fuentes transferidas con hashes
+comprobados a carpeta nueva para el intento c; el ensayo con entrada está
+**pendiente**. No se certifica cancelación, credenciales, bloqueo, LightDM o
+transporte remoto. La atribución por accesibilidad es del laboratorio, no una
+frontera de seguridad del agente final. Tarea 1.4 parcial, **8/57**.
+
+Tras integrar la revisión 3 se repitieron typecheck (correcto), Vitest (276
+correctos/5 omitidos) y PHPUnit (162 pruebas/1077 aserciones, PHP 8.5.12).
+OpenSpec estricto, JSON/hashes y diff también correctos. Estos controles no
+sustituyen el intento c pendiente y no cambian el soporte publicado.

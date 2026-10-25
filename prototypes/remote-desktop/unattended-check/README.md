@@ -288,8 +288,9 @@ por [XGetWindowProperty](https://xorg.freedesktop.org/archive/X11R7.5/doc/man/ma
 ### Mint: cancelación acotada de polkit, preparada
 
 `linux-polkit-cancel-install.sh` se lanza como usuario desde una carpeta privada
-nueva con `linux-polkit-cancel-check.py` y `linux-session-check.py`. Comprueba
-hashes, copia solo esas dos fuentes como root/0600 a un destino nuevo y ejecuta
+nueva con `linux-polkit-cancel-check.py`, `linux-session-check.py` y
+`linux-polkit-focus-check.py`. Comprueba hashes, copia solo esas tres fuentes
+como root/0600 a un destino nuevo y ejecuta
 Python con `-I`. No sobrescribe informes/instalaciones ni instala servicios.
 Solo sudo solicita la contraseña; el propietario deja el aviso de polkit intacto.
 
@@ -297,8 +298,9 @@ El supervisor root crea un trabajador fijo de usuario sin grupos adicionales;
 este solicita `pkexec --disable-internal-agent /usr/bin/true`. El padre de pkexec
 se mantiene sin privilegios, conforme a su
 [código oficial](https://github.com/polkit-org/polkit/blob/master/src/programs/pkexec.c).
-Con sesión estable, ninguna tecla/botón retenido, pkexec propio pendiente y foco
-X11 atribuido al proceso Cinnamon validado, el supervisor envía solo Escape con
+Con sesión estable, ninguna tecla/botón retenido, pkexec propio pendiente y
+un diálogo de Cinnamon con un único campo de contraseña enfocado, el supervisor
+envía solo Escape con
 su liberación. Código 126 acredita la cancelación según el
 [manual de pkexec](https://www.freedesktop.org/software/polkit/docs/latest/pkexec.1.html).
 No autentica, pulsa botones, mueve el puntero ni lee texto/contraseñas. Tiene
@@ -313,11 +315,27 @@ La revisión 2 mantiene la protección y espera dos muestras neutras consecutiva
 hasta dos segundos antes de solicitar y cuatro con la solicitud pendiente.
 Registra solo cantidades de teclas/botones y fase; no lee texto, guarda mapas o
 identifica teclas. No fuerza liberaciones. Su instalador usa un destino nuevo.
-Su ensayo positivo está pendiente en `mint-polkit-cancel-attempts.json`; la
-preparación inicial mantiene su estado histórico. Aunque pase, solo probará
-cancelación de esa solicitud propia en Cinnamon, sin otros avisos concurrentes.
+El segundo ensayo tuvo entrada neutra pero tampoco envió Escape: el foco X11
+no se atribuyó a Cinnamon. Antes de otro envío se observó desde Terminal, sin
+sudo ni entrada, un diálogo accesible nuevo con el campo de contraseña enfocado,
+que desapareció al retirar la solicitud. `linux-polkit-focus-check.py` y su
+lanzador `linux-polkit-focus-run.sh` consultan solo PID/roles/estados, sin texto,
+valores, acciones ni lectura de contraseñas; evidencia en `mint-polkit-focus-results.json`.
+
+La revisión 3 incorpora esa comprobación dentro del trabajador de usuario, con
+el auxiliar fijado por hash. El canal heredado solo lleva metadatos y órdenes
+fijas de fase, sin red. Consulta el foco otra vez inmediatamente antes de Escape;
+XGetInputFocus queda únicamente como observación de retorno. Su ensayo con
+entrada está pendiente en `mint-polkit-cancel-attempts.json`; la preparación
+inicial conserva su estado histórico. Aunque pase, solo probará cancelación de
+esa solicitud propia en Cinnamon, sin otros avisos concurrentes. La atribución
+del destino de laboratorio no es un verificador de seguridad de producción.
 No certificará escritura de credenciales, bloqueo/LightDM ni el agente o transporte
-remoto. El estado consultado sigue el
+remoto. La consulta de metadatos sigue la interfaz
+[Collection de AT-SPI](https://github.com/GNOME/at-spi2-core/blob/main/atspi/atspi-collection.h)
+y el modal sigue el flujo de
+[Cinnamon ModalDialog](https://github.com/linuxmint/cinnamon/blob/master/js/ui/modalDialog.js).
+El estado de entrada consultado sigue el
 [mapa lógico de XQueryKeymap](https://xorg.freedesktop.org/archive/X11R7.5/doc/man/man3/XQueryKeymap.3.html).
 
 ## Windows
