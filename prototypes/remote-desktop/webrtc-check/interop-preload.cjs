@@ -1,5 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron')
 contextBridge.exposeInMainWorld('lab', {
+  supervised: process.argv.includes('--lab-supervised'),
   agentBridge: process.argv.includes('--lab-agent-bridge'),
   credentialProbe: () => ipcRenderer.invoke('lab-credential-probe'),
   fault: (name) => ipcRenderer.invoke('lab-fault', name),

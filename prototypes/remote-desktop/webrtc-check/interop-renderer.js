@@ -4,6 +4,7 @@ import { CHANNELS, PROTOCOL_VERSION } from '../../../src/shared/remote/protocol'
 import vectors from '../../../src/shared/remote/auth-vectors.json'
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+const failureNames = ['worker-stall', 'worker-crash', 'supervisor-stall', 'supervisor-crash']
 const testVector = vectors.vectors.find((vector) => vector.password)
 
 async function deriveKey(hello) {
@@ -131,6 +132,18 @@ async function runCase(name) {
     const connected = pc.connectionState === 'connected'
     let cutAfterFaultMilliseconds
     let channelClosedAfterFault = false
+    let framesStoppedAfterFault
+    if (window.lab.supervised && failureNames.includes(name)) {
+      await window.lab.fault(name)
+      // UDP no envía un cierre DTLS al morir abruptamente. Comprobar proceso y
+      // ausencia de nuevos fotogramas, sin confundirlo con cierre del canal remoto.
+      await delay(500)
+      const frames = async () => [...(await pc.getStats()).values()].find((item) => item.type === 'inbound-rtp' && item.kind === 'video')?.framesDecoded ?? 0
+      const before = await frames()
+      await delay(1200)
+      framesStoppedAfterFault = before === await frames()
+      if (!framesStoppedAfterFault) throw new Error('El vídeo siguió llegando tras morir el extremo')
+    } else
     if (window.lab.agentBridge && ['api-revoked', 'api-cut'].includes(name)) {
       const closed = new Promise((resolve) => channel.addEventListener('close', resolve, { once: true }))
       const started = performance.now()
@@ -145,7 +158,7 @@ async function runCase(name) {
       authenticated: result.ok, connected, helloCount,
       candidateTypes: [local.candidateType, remote.candidateType],
       relayProtocol: local.relayProtocol ?? null,
-      ...(window.lab.agentBridge ? { channelClosedAfterFault, cutAfterFaultMilliseconds } : {}),
+      ...(window.lab.agentBridge ? { channelClosedAfterFault, cutAfterFaultMilliseconds, framesStoppedAfterFault } : {}),
       ...(syntheticVideo ? { decodedFrames, syntheticColorVerified } : {})
     })
   } finally { video.pause(); video.srcObject = null; channel.close(); pc.close() }
@@ -162,7 +175,7 @@ try {
     rendererCredentialsDenied = true
   }
   const results = []
-  for (const name of (window.lab.agentBridge ? ['correct', 'wrong-proof', 'fingerprint-mismatch', 'api-revoked', 'api-cut'] : ['correct', 'wrong-proof', 'fingerprint-mismatch'])) results.push(await runCase(name))
+  for (const name of (window.lab.agentBridge ? ['correct', 'wrong-proof', 'fingerprint-mismatch', 'api-revoked', 'api-cut', ...(window.lab.supervised ? failureNames : [])] : ['correct', 'wrong-proof', 'fingerprint-mismatch'])) results.push(await runCase(name))
   await window.lab.done({ ok: true, cases: results, ...(window.lab.agentBridge ? { rendererCredentialsDenied } : {}) })
 } catch (error) {
   await window.lab.done({ ok: false, error: String(error) })

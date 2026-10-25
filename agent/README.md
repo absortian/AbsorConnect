@@ -234,7 +234,45 @@ se comprueba que no puede leer un archivo marcador ni la ruta de credenciales.
 El token de cuenta no se entrega al trabajador y la credencial del agente no
 se entrega al renderer. La señalización sigue pasando por archivos privados de
 prueba: faltan señalización completa, almacén protegido por SO, captura/entrada
-reales, supervisor e instaladores. Esta variante aún no prueba TURN ni Flutter.
+reales, supervisor de servicio e instaladores. Esta variante aún no prueba TURN ni Flutter.
+
+## Supervisor independiente (laboratorio)
+
+`absor-agent-supervisor` aporta `PeerWatch`: pulsos numerados y fechados con
+`BootClock`, plazo de vida de dos segundos, estado terminal y rechazo de
+repeticiones, saltos, fechas futuras/retrasadas y retroceso/error del reloj.
+La fecha del emisor limita el plazo; recibir datos acumulados en un pipe no
+renueva desde la hora de recepción. Cola de ocho mensajes y líneas acotadas;
+un lector atascado no detiene el temporizador de vigilancia.
+
+La feature optativa `synthetic-lab` compila `absor-lab-supervisor` y un hijo de
+prueba. El lanzador solo ejecuta el extremo artificial de nombre fijado,
+mediante `Command` sin shell, con pipes heredados y como el mismo usuario.
+No instalarlo ni exponer sus argumentos o comandos a un cliente remoto. No
+implementa identidad/ACL de IPC ni aislamiento de privilegios de producción.
+
+El actor de autorización del trabajador emite vida **después** de completar
+su consulta local de estado. Si se bloquea, el proceso supervisor termina y
+recoge ese hijo propio. El supervisor también emite vida: si se bloquea o
+muere, un hilo independiente del trabajador lo termina sin destructores C++
+ni `atexit` (`_exit`/`TerminateProcess` sobre sí mismo). La terminación forzada
+corta todos los hilos de vídeo y sockets; liberar teclas/botones físicos al
+morir un trabajador queda pendiente del adaptador del SO. No se reinicia ni
+se rehabilita una PeerConnection anterior después de ningún fallo.
+
+```bash
+cargo test --manifest-path agent/Cargo.toml --locked --all-features
+# Compila supervisor y dylib con el mismo Rust fijado del checkout:
+python3 prototypes/remote-desktop/webrtc-check/build.py /ruta/laboratorio --rust-bridge
+# Cinco casos originales + bloqueo/caída de trabajador y supervisor:
+python3 prototypes/backend-agent-check/isolated-webrtc-renewal.py /ruta/laboratorio --node /ruta/node
+```
+
+El runner verifica hashes de extremo, dylib y supervisor. Los cuatro fallos
+solo pueden provocarse contra procesos propios del laboratorio, por comandos
+enumerados de su lanzador local. En una muerte abrupta UDP, que el host haya
+terminado no implica que el controlador reciba inmediatamente un cierre DTLS:
+se comprueban por separado terminación/EOF y ausencia de nuevos fotogramas.
 
 ## Orden de aceptación acordado
 

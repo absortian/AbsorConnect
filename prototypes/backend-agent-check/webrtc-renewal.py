@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import re
 import secrets
+import signal
 import subprocess
 import threading
 import urllib.error
@@ -101,6 +102,8 @@ def main():
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
         origin = 'http://127.0.0.1:'+str(server.server_address[1])
+        for name in ['worker-stall', 'worker-crash', 'supervisor-stall', 'supervisor-crash']:
+            owned[name] = owned['correct']
         manifest = {name: {'origin': origin, 'credential': item['credential'], 'faultUrl': origin+'/fault/'+name}
                     for name, item in owned.items()}
         manifest_path = lab/('rust-agent-manifest-'+uuid.uuid4().hex+'.json')
@@ -108,9 +111,17 @@ def main():
         with os.fdopen(descriptor, 'w') as file:
             json.dump(manifest, file)
         try:
-            run = subprocess.run([args.node, str(ROOT/'prototypes/remote-desktop/webrtc-check/run-interop.cjs'),
-                                  str(lab), '--agent-config', str(manifest_path)], cwd=ROOT,
-                                 capture_output=True, text=True, timeout=100)
+            child = subprocess.Popen([args.node, str(ROOT/'prototypes/remote-desktop/webrtc-check/run-interop.cjs'),
+                                      str(lab), '--agent-config', str(manifest_path), '--supervised'], cwd=ROOT,
+                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
+            try:
+                stdout, stderr = child.communicate(timeout=170)
+            except subprocess.TimeoutExpired:
+                # Grupo creado exclusivamente para este ensayo: retirar también
+                # Electron y trabajadores si el lanzador deja de responder.
+                os.killpg(child.pid, signal.SIGKILL)
+                stdout, stderr = child.communicate(timeout=10)
+            run = subprocess.CompletedProcess(child.args, child.returncode, stdout, stderr)
             log_path.write_text(run.stdout+run.stderr)
             os.chmod(log_path, 0o600)
             paths = re.findall(r'^Informe local: (.+)$', run.stdout, re.M)
@@ -121,7 +132,7 @@ def main():
             assert run.returncode == 0, 'interop_failed_inspect_private_log'
             result = json.loads(report_path.read_text())
             assert result['ok'] and result['rustAuthenticationTested'] and result['apiRenewalTested'] and result['rendererCredentialsDenied']
-            assert len(result['cases']) == 5
+            assert len(result['cases']) == 9 and result['supervisorTested']
             # Rechazo ANTES de crear PeerConnection: token revocado y API inaccesible.
             binary = lab/'webrtc-native/src/out/AbsorProbe/rust_video_channel_check'
             for name in ['api-revoked', 'api-cut']:
@@ -136,7 +147,9 @@ def main():
             manifest_path.unlink(missing_ok=True)
     finally:
         errors = 0
-        for item in owned.values():
+        for name, item in owned.items():
+            if name not in NAMES:
+                continue
             try:
                 assert request('DELETE', '/api/me', {'password': item['password']}, item['owner'])[0] == 204
             except Exception:
@@ -148,14 +161,14 @@ def main():
         # Retirar las copias de credenciales incluso si falla una comprobación posterior.
         if work is not None:
             (work/'agent-manifest.json').unlink(missing_ok=True)
-            for name in NAMES:
+            for name in owned:
                 (work/name/'agent-config.json').unlink(missing_ok=True)
         assert errors == 0, 'temporary_account_cleanup_failed'
     result['temporaryAccountsRemoved'] = True
     destination = lab/'rust-webrtc-renewal-results.json'
     destination.write_text(json.dumps(result, indent=2)+'\n')
     os.chmod(destination, 0o600)
-    print(json.dumps({'ok': True, 'cases': len(result['cases']), 'accountsRemoved': len(owned),
+    print(json.dumps({'ok': True, 'cases': len(result['cases']), 'accountsRemoved': len(NAMES),
                       'apiRejectedBeforePeerCreation': True, 'productionTested': False, 'report': str(destination)}))
 
 

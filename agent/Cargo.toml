@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/agent-core", "crates/agent-api", "crates/agent-auth", "crates/agent-webrtc-lab"]
+members = ["crates/agent-core", "crates/agent-api", "crates/agent-auth", "crates/agent-webrtc-lab", "crates/agent-supervisor"]
 resolver = "2"
 
 [workspace.package]

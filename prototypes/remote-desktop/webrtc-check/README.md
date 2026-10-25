@@ -250,7 +250,33 @@ y lectura de archivos. Las cuentas y copias de credenciales se retiran al acabar
 No incorporar manifiestos, SDP, stderr, logs de la API o diarios privados al repo.
 
 Los resultados nuevos no heredan automáticamente las pruebas TURN/móviles de
-la variante C++ anterior. Tampoco demuestran watchdog independiente, aislamiento
+la variante C++ anterior. El supervisor optativo siguiente añade vigilancia entre procesos; siguen pendientes aislamiento
 de privilegios, almacenes del SO, captura real o un servicio instalable. El CI
 verifica Rust/ABI en los tres SO; el recorrido P2P de este target es evidencia
 local Mac/Electron, pendiente del resto de la matriz antes de publicar soporte.
+
+
+## Fallos de procesos con supervisor
+
+`run-interop.cjs --agent-config <manifiesto> --supervised` usa el supervisor
+compilado junto al extremo nativo. El lanzador de API aislada ya selecciona
+esta variante: conserva los cinco casos originales y añade cuatro casos
+secuenciales con credencial de laboratorio válida, diarios separados y vídeo
+artificial: actor bloqueado, trabajador terminado, supervisor bloqueado cinco
+segundos y supervisor terminado. Solo crea cinco cuentas efímeras propias;
+los casos de procesos reutilizan la cuenta positiva, sin alterar sus permisos.
+
+Cada fallo se solicita desde main por un comando fijo a su proceso hijo;
+no acepta ejecutables, PIDs ni comandos del renderer. El watchdog tiene un
+plazo de dos segundos y sondeo de veinte milisegundos. El informe registra
+la recogida del hijo, el cierre de los pipes y la ausencia de nuevos frames;
+no interpreta una desconexión UDP como un cierre DTLS inmediato del visor.
+El observador del pipe mide también la salida del trabajador mientras el
+actor del supervisor está bloqueado. `processCutMilliseconds` incluye los
+cinco segundos de ese bloqueo provocado; el tiempo del pipe refleja la
+terminación efectiva y se exige inferior a 3,5 segundos en este ensayo.
+
+Las pruebas Cargo de procesos usan exactamente el mismo supervisor y guardia
+del hijo, con un ejecutable artificial sin WebRTC. La matriz CI de tres SO
+verifica este ciclo de vida; el ensayo WebRTC sigue siendo Mac/Electron.
+Nada se instala como servicio y no cambia los permisos TCC, UAC o LightDM.

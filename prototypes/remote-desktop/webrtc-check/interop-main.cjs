@@ -8,7 +8,9 @@ const work = process.argv.find((arg) => arg.startsWith('--lab-work='))?.slice(11
 const binary = process.argv.find((arg) => arg.startsWith('--lab-binary='))?.slice(13)
 const agentBridge = process.argv.includes('--lab-agent-bridge')
 const agentManifest = agentBridge ? JSON.parse(fs.readFileSync(path.join(work, 'agent-manifest.json'), 'utf8')) : null
-const caseNames = agentBridge ? ['correct', 'wrong-proof', 'fingerprint-mismatch', 'api-revoked', 'api-cut'] : ['correct', 'wrong-proof', 'fingerprint-mismatch']
+const supervisor = process.argv.find((arg) => arg.startsWith('--lab-supervisor='))?.slice(17)
+const failureCommands = { 'worker-stall': 'S', 'worker-crash': 'K', 'supervisor-stall': 'B', 'supervisor-crash': 'X' }
+const caseNames = agentBridge ? ['correct', 'wrong-proof', 'fingerprint-mismatch', 'api-revoked', 'api-cut', ...(supervisor ? Object.keys(failureCommands) : [])] : ['correct', 'wrong-proof', 'fingerprint-mismatch']
 if (agentBridge) protocol.registerSchemesAsPrivileged([{ scheme: 'absor-agent-lab', privileges: { standard: true, secure: true, supportFetchAPI: true } }])
 const syntheticVideo = process.argv.includes('--lab-synthetic-video')
 if (!work || !binary) process.exit(64)
@@ -43,6 +45,16 @@ ipcMain.handle('lab-ice', (event) => {
 
 ipcMain.handle('lab-fault', async (event, name) => {
   validate(event, name)
+  if (supervisor && Object.hasOwn(failureCommands, name)) {
+    const state = cases.get(name)
+    if (!state || state.exited || state.faultSent) throw new Error('Proceso o fallo inválido')
+    state.faultSent = true
+    const started = performance.now()
+    state.child.stdin.write(failureCommands[name] + '\n')
+    await Promise.race([state.done, delay(8000).then(() => { throw new Error('El proceso sobrevivió al watchdog') })])
+    state.processCutMilliseconds = Math.round(performance.now() - started)
+    return
+  }
   const entry = agentManifest?.[name]
   if (!entry || !['api-revoked', 'api-cut'].includes(name)) throw new Error('Fallo no permitido')
   const url = new URL(entry.faultUrl)
@@ -73,12 +85,14 @@ ipcMain.handle('lab-offer', async (event, name, offer) => {
     agentPath = path.join(directory, 'agent-config.json')
     fs.writeFileSync(agentPath, JSON.stringify({ origin: entry.origin, credential: entry.credential, stateDirectory }), { mode: 0o600, flag: 'wx' })
   }
-  const child = spawn(binary, [offerPath, answerPath, ...(relayOnly ? [nativeIcePath] : []), ...(agentPath ? [agentPath] : [])], { stdio: ['ignore', 'pipe', 'pipe'] })
+  const reportPath = path.join(directory, 'supervisor-events.jsonl')
+  const child = spawn(supervisor ?? binary, [...(supervisor ? [reportPath, binary] : []), offerPath, answerPath, ...(relayOnly ? [nativeIcePath] : []), ...(agentPath ? [agentPath] : [])], { stdio: [supervisor ? 'pipe' : 'ignore', 'pipe', 'pipe'] })
+  child.stdin?.on('error', () => {})
   let stdout = ''
   let stderr = ''
   child.stdout.on('data', (data) => { stdout = (stdout + data).slice(-16384) })
   child.stderr.on('data', (data) => { stderr = (stderr + data).slice(-16384) })
-  const state = { child, exited: false, code: null, summary: null }
+  const state = { child, exited: false, code: null, summary: null, reportPath }
   state.done = new Promise((resolve) => {
     child.on('error', () => { state.exited = true; state.code = -1; resolve() })
     child.on('close', (code) => {
@@ -106,6 +120,14 @@ ipcMain.handle('lab-result', async (event, name, controller) => {
   const state = cases.get(name)
   if (!state) throw new Error('Caso inexistente')
   await state.done
+  const supervision = supervisor ? fs.readFileSync(state.reportPath, 'utf8').trim().split('\n').map((line) => JSON.parse(line)) : null
+  if (supervisor && Object.hasOwn(failureCommands, name)) {
+    const ended = supervision.some((item) => item.event === 'cut' && item.workerReaped)
+    const lostParent = name === 'supervisor-crash' && state.code === 73
+    if (!state.faultSent || (!ended && !lostParent && name !== 'worker-crash') || state.code === 0 || !controller.authenticated || !controller.connected || controller.decodedFrames < 2 || !controller.syntheticColorVerified || !controller.framesStoppedAfterFault || state.processCutMilliseconds > (name === 'supervisor-stall' ? 6500 : 3500)) throw new Error('El watchdog no confirmó el corte')
+    if (name === 'supervisor-stall' && !supervision.some((item) => item.workerCode === 72 && Number.isFinite(item.workerPipeClosedAfterFaultMilliseconds) && item.workerPipeClosedAfterFaultMilliseconds < 3500)) throw new Error('El trabajador sobrevivió al supervisor bloqueado')
+    return { name, supervisor: { events: supervision.map(({ workerPid, supervisorPid, ...value }) => value), exitCode: state.code, processCutMilliseconds: state.processCutMilliseconds, processOutputClosed: true }, controller }
+  }
   if (state.code !== 0 || !state.summary?.dtlsConnected || !controller.connected ||
       state.summary.authenticated !== controller.authenticated ||
       state.summary.authenticated !== !['wrong-proof', 'fingerprint-mismatch'].includes(name) ||
@@ -118,13 +140,14 @@ ipcMain.handle('lab-result', async (event, name, controller) => {
     : state.summary.syntheticVideoFrames !== 0 || controller.decodedFrames !== 0)) {
     throw new Error('El vídeo artificial no respeta el resultado de autenticación')
   }
-  return { name, native: state.summary, controller }
+  if (supervisor && !supervision.some((item) => item.event === 'exited' && item.workerCode === 0)) throw new Error('El supervisor no recogió al trabajador')
+  return { name, native: state.summary, controller, ...(supervisor ? { supervised: true } : {}) }
 })
 
 ipcMain.handle('lab-done', (event, result) => {
   if (event.sender !== window?.webContents) throw new Error('Emisor inválido')
   const report = { ...result, electron: process.versions.electron, chromium: process.versions.chrome,
-    videoTested: false, rustAuthenticationTested: agentBridge, apiRenewalTested: agentBridge && result.ok, syntheticVideoTested: syntheticVideo, turnTested: relayOnly && result.ok, relayPolicy: relayOnly ? (relayController ? 'controller' : 'both') : 'none', mobileTested: false, readyForUnattended: false }
+    videoTested: false, rustAuthenticationTested: agentBridge, apiRenewalTested: agentBridge && result.ok, supervisorTested: Boolean(supervisor) && result.ok, syntheticVideoTested: syntheticVideo, turnTested: relayOnly && result.ok, relayPolicy: relayOnly ? (relayController ? 'controller' : 'both') : 'none', mobileTested: false, readyForUnattended: false }
   fs.writeFileSync(path.join(work, 'interop-results.json'), JSON.stringify(report, null, 2) + '\n', { mode: 0o600 })
   console.log(JSON.stringify(report))
   setImmediate(() => { cleanup(); app.exit(result.ok ? 0 : 1) })
@@ -148,7 +171,7 @@ app.whenReady().then(async () => {
     preload: path.join(__dirname, 'interop-preload.cjs'), contextIsolation: true,
     nodeIntegration: false, sandbox: true, backgroundThrottling: false,
     autoplayPolicy: 'no-user-gesture-required',
-    additionalArguments: [...(agentBridge ? ['--lab-agent-bridge'] : []), ...(syntheticVideo ? ['--lab-synthetic-video'] : []), ...(relayOnly ? ['--lab-relay-only'] : []), ...(relayController ? ['--lab-relay-controller'] : [])]
+    additionalArguments: [...(supervisor ? ['--lab-supervised'] : []), ...(agentBridge ? ['--lab-agent-bridge'] : []), ...(syntheticVideo ? ['--lab-synthetic-video'] : []), ...(relayOnly ? ['--lab-relay-only'] : []), ...(relayController ? ['--lab-relay-controller'] : [])]
   } })
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
   if (agentBridge) {
@@ -156,4 +179,4 @@ app.whenReady().then(async () => {
     await window.loadURL('absor-agent-lab://probe/index.html')
   } else await window.loadFile(path.join(work, 'index.html'))
 })
-setTimeout(() => { cleanup(); app.exit(2) }, 90000).unref()
+setTimeout(() => { cleanup(); app.exit(2) }, 150000).unref()
