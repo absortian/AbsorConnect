@@ -285,7 +285,7 @@ La retirada de UID/grupos y el paso exclusivo del descriptor siguen
 La lectura de la propiedad PID respeta el formato y almacenamiento documentados
 por [XGetWindowProperty](https://xorg.freedesktop.org/archive/X11R7.5/doc/man/man3/XGetWindowProperty.3.html).
 
-### Mint: cancelación acotada de polkit, preparada
+### Mint: cancelación acotada de polkit verificada
 
 `linux-polkit-cancel-install.sh` se lanza como usuario desde una carpeta privada
 nueva con `linux-polkit-cancel-check.py`, `linux-session-check.py` y
@@ -325,13 +325,15 @@ valores, acciones ni lectura de contraseñas; evidencia en `mint-polkit-focus-re
 La revisión 3 incorpora esa comprobación dentro del trabajador de usuario, con
 el auxiliar fijado por hash. El canal heredado solo lleva metadatos y órdenes
 fijas de fase, sin red. Consulta el foco otra vez inmediatamente antes de Escape;
-XGetInputFocus queda únicamente como observación de retorno. Su ensayo con
-entrada está pendiente en `mint-polkit-cancel-attempts.json`; la preparación
-inicial conserva su estado histórico. Aunque pase, solo probará cancelación de
-esa solicitud propia en Cinnamon, sin otros avisos concurrentes. La atribución
-del destino de laboratorio no es un verificador de seguridad de producción.
-No certificará escritura de credenciales, bloqueo/LightDM ni el agente o transporte
-remoto. La consulta de metadatos sigue la interfaz
+XGetInputFocus queda únicamente como observación de retorno. El intento c pasó:
+Escape enviado con liberación, solicitante terminado con 126, trabajador a cero,
+diálogo desaparecido, foco previo observado y limpieza sin procesos propios.
+El propietario confirmó no tocar el aviso. Evidencia y hashes en
+`mint-polkit-cancel-attempts.json`; la preparación inicial conserva su estado
+histórico. Solo acredita cancelación de esa solicitud propia en Cinnamon, sin
+otros avisos concurrentes. La atribución del destino de laboratorio no es un
+verificador de seguridad de producción. No certifica escritura de credenciales,
+bloqueo/LightDM ni el agente o transporte remoto. La consulta de metadatos sigue la interfaz
 [Collection de AT-SPI](https://github.com/GNOME/at-spi2-core/blob/main/atspi/atspi-collection.h)
 y el modal sigue el flujo de
 [Cinnamon ModalDialog](https://github.com/linuxmint/cinnamon/blob/master/js/ui/modalDialog.js).

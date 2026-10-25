@@ -1553,3 +1553,25 @@ Tras integrar la revisión 3 se repitieron typecheck (correcto), Vitest (276
 correctos/5 omitidos) y PHPUnit (162 pruebas/1077 aserciones, PHP 8.5.12).
 OpenSpec estricto, JSON/hashes y diff también correctos. Estos controles no
 sustituyen el intento c pendiente y no cambian el soporte publicado.
+
+#### Intento c: cancelación nativa de polkit verificada
+
+El propietario ejecutó la revisión 3 y confirmó no tocar el aviso. El informe
+recuperado coincide con la fuente fijada por hash: root envió Escape con su
+liberación y el solicitante devolvió **126**. El trabajador terminó a cero;
+se observaron cero diálogos al inicio, uno con un único campo de contraseña
+enfocado en las consultas pendiente/fresca y cero después. Entrada neutra antes
+de solicitar y antes de enviar, retorno observado al foco X11 previo y
+`requesterExited:true`. No se ejecutó la operación fija ni se autenticó al usuario.
+
+La limpieza independiente comprobó cero pkexec/trabajadores propios, Cinnamon
+sin salvapantallas activo y las tres fuentes instaladas root/0600. Se conservan
+los originales privados y hashes en `mint-polkit-cancel-attempts.json`; la
+preparación de cada revisión mantiene su estado histórico previo al ensayo.
+No se repite una autenticación ni se sobrescribe un resultado fallido.
+
+Este escenario acredita recepción nativa de Escape para cancelar la solicitud
+propia de polkit desde el emisor root. No prueba escritura de credenciales,
+autenticación por entrada sintética, bloqueo/LightDM o transporte WebRTC.
+`polkitAuthenticationTested:false`, `readyForUnattended:false`; tarea 1.4 parcial,
+**8/57**. Solo cambian laboratorio y evidencias, sin nueva publicación.

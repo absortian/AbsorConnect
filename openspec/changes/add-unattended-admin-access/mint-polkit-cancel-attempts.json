@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "date": "2026-10-25",
-  "status": "two_attempts_rejected_without_input_accessible_focus_revision_prepared",
+  "status": "polkit_escape_cancellation_verified_not_certified",
   "attempts": [
     {
       "attempt": "a",
@@ -141,7 +141,7 @@
     },
     {
       "attempt": "c",
-      "status": "prepared_not_executed",
+      "status": "polkit_escape_cancellation_verified_not_certified",
       "preparation": {
         "sourceSha256": "02eeb816f96da7cba7a8c5f65eac1886456211c75f029bbf57d468bbeba1a45f",
         "launcherSha256": "b731ffaeb0fb268a0938fa7bd4a61995330ed0868edcdf27f11aac4902533ccf",
@@ -242,7 +242,102 @@
         "workerExited": true,
         "inputSent": false
       },
-      "nativeCancellationVerified": false
+      "nativeCancellationVerified": true,
+      "rawReport": {
+        "schema": 1,
+        "platform": "linux",
+        "status": "polkit_escape_cancellation_verified_not_certified",
+        "sourceSha256": "02eeb816f96da7cba7a8c5f65eac1886456211c75f029bbf57d468bbeba1a45f",
+        "sessionHelperSha256": "40d222539fa05c21b9f0a95993efe40a386bc82dab4ad031b6d188e827b6e275",
+        "focusHelperSha256": "5e698b3110a4bb433b1cc05fca4a186c1fd31c127ae4b5da9fb7f1d23d843e86",
+        "senderRoot": true,
+        "requesterParentUnprivileged": true,
+        "fixedRequest": "pkexec --disable-internal-agent /usr/bin/true",
+        "requesterExitCode": 126,
+        "cinnamonAccessibleDialogFocusVerified": true,
+        "x11FocusUsedAsTargetProof": false,
+        "escapePressSent": true,
+        "escapeReleaseSent": true,
+        "requesterExited": true,
+        "noOpCompleted": false,
+        "inputTested": true,
+        "polkitCancellationTested": true,
+        "polkitAuthenticationTested": false,
+        "previousFocusRestoredObserved": true,
+        "preLoginTested": false,
+        "readyForUnattended": false,
+        "idleChecks": {
+          "beforeRequest": {
+            "samples": 2,
+            "maxHeldKeys": 0,
+            "maxHeldButtons": 0,
+            "neutralSamples": 2,
+            "initialHeldKeys": 0,
+            "initialHeldButtons": 0,
+            "finalHeldKeys": 0,
+            "finalHeldButtons": 0
+          },
+          "pendingRequest": {
+            "samples": 2,
+            "maxHeldKeys": 0,
+            "maxHeldButtons": 0,
+            "neutralSamples": 2,
+            "initialHeldKeys": 0,
+            "initialHeldButtons": 0,
+            "finalHeldKeys": 0,
+            "finalHeldButtons": 0
+          }
+        },
+        "baselineFocus": {
+          "showingDialogCount": 0,
+          "focusedDescendantsWithinDialogs": 0,
+          "focusedPasswordFieldsWithinDialogs": 0
+        },
+        "pendingFocus": {
+          "showingDialogCount": 1,
+          "focusedDescendantsWithinDialogs": 1,
+          "focusedPasswordFieldsWithinDialogs": 1
+        },
+        "freshFocus": {
+          "showingDialogCount": 1,
+          "focusedDescendantsWithinDialogs": 1,
+          "focusedPasswordFieldsWithinDialogs": 1
+        },
+        "finalInputNeutral": true,
+        "userWorkerExitCode": 0,
+        "afterRequestFocus": {
+          "showingDialogCount": 0,
+          "focusedDescendantsWithinDialogs": 0,
+          "focusedPasswordFieldsWithinDialogs": 0
+        },
+        "userWorkerExited": true
+      },
+      "cleanup": {
+        "remainingPkexecCount": 0,
+        "remainingProbeWorkersCount": 0,
+        "screensaverInactive": true,
+        "installedSourcesMetadata": [
+          {
+            "file": "linux-polkit-cancel-check.py",
+            "uid": 0,
+            "mode": "0o600",
+            "regular": true
+          },
+          {
+            "file": "linux-session-check.py",
+            "uid": 0,
+            "mode": "0o600",
+            "regular": true
+          },
+          {
+            "file": "linux-polkit-focus-check.py",
+            "uid": 0,
+            "mode": "0o600",
+            "regular": true
+          }
+        ]
+      },
+      "ownerConfirmedNoInteraction": true
     }
   ],
   "rawReportHashes": {
@@ -256,13 +351,17 @@
     "attempt-b-owner-confirmation.json": "0443de12ab6f599c5667e7516363ea40b716955b12faca925722ef9e86a5a067",
     "revision3-preparation.json": "328d3257dff7b3d98e1f56b758459c1554089f40e355c5e68c60d9223ee43081",
     "revision3-container-negatives.json": "14bc26fabbb895523b02c5dc62a081175fb18301295668659cd914701359c853",
-    "revision3-worker-ssh-check.json": "46a2598a18746d90df39c7b1324ce2e49b9d7165d81e96959378821355d7ec6c"
+    "revision3-worker-ssh-check.json": "46a2598a18746d90df39c7b1324ce2e49b9d7165d81e96959378821355d7ec6c",
+    "attempt-c-results.json": "8c9f4b8ac3769cf876cdbcbae7fe401cdeac15bf9a8b49a66af60e21e163d2af",
+    "attempt-c-cleanup.json": "08acbf52e8b43ba95b9b682be56210c711da3732213e0254b8ab7888fb1b8990",
+    "attempt-c-owner-confirmation.json": "805f23c576a3e0c3052d3c23ff1851b9b0ca91181480e829e441d943c50c2276"
   },
   "readyForUnattended": false,
   "limits": [
     "La primera revisión no registraba si había teclas o botones retenidos ni su cantidad; no se atribuye una causa concreta.",
     "La revisión 2 solo registra contadores agregados, sin códigos, mapas de teclas, texto, coordenadas ni credenciales. No fuerza liberaciones de entrada ajena.",
-    "No se ha verificado cancelación nativa de polkit ni entrada en bloqueo o LightDM.",
-    "La revisión 3 usa metadatos de un diálogo Cinnamon observado como usuario. Es atribución del destino de laboratorio, no un verificador de seguridad de producción contra procesos locales hostiles."
+    "Se verifica únicamente Escape sobre la solicitud propia de polkit; no escritura/autenticación mediante entrada sintética ni entrada en bloqueo o LightDM.",
+    "La revisión 3 usa metadatos de un diálogo Cinnamon observado como usuario. Es atribución del destino de laboratorio, no un verificador de seguridad de producción contra procesos locales hostiles.",
+    "Los apartados de preparación preservan el estado histórico anterior a cada ejecución, sin sobrescribir sus resultados."
   ]
 }
