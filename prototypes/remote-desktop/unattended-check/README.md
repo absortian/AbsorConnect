@@ -442,6 +442,53 @@ pasó el ciclo completo con la vía D-Bus en esta VM: propietario PID/UID
 verificado, campo observado como lightdm sin grupos y vuelta a una nueva sesión.
 El bus ajeno y el UID incorrecto se rechazaron sin entrada. Evidencia:
 `linux-greeter-session-bus-results.json`. Falta la validación en el Mint físico.
+
+### LightDM: navegación nativa acotada en la VM
+
+`linux-greeter-input-install.sh` añade un ensayo de Tab y Mayús+Tab en Slick
+Greeter. Se ejecuta como usuario ordinario **por SSH**, en una carpeta privada
+0700 nueva con las cuatro fuentes de esta sección. Verifica los hashes e
+instala tres fuentes root/0600 en `/var/lib/AbsorConnectLab/greeter-input-v2`.
+El destino y `greeter-input-results.json` deben ser nuevos; rechaza repetir
+una instalación o sobrescribir el informe. No crea servicios ni cambia LightDM.
+
+Tras `READY_TO_LOGOUT_MINT`, cerrar sesión solo en el equipo Linux de prueba y
+dejar libres teclado y ratón. El supervisor confirma la sesión greeter, el PID
+y UID de Slick Greeter y su bus existente; el trabajador pierde privilegios y
+grupos y no recibe Xauthority. Comprueba además que el registro AT-SPI ya existe
+y pertenece a lightdm. Solo consulta roles, estados y referencias internas:
+nunca nombres, texto ni valores de campos. Dos muestras deben identificar el
+mismo campo inicial. Antes de cada secuencia se vuelven a comprobar contexto,
+proceso, foco e inexistencia de teclas o botones retenidos.
+
+El supervisor usa XTest con la autoridad privada de ese servidor X. Envía
+exclusivamente Tab y Mayús+Tab, libera sus teclas en `finally` y exige observar
+un cambio real de foco y el regreso al mismo objeto accesible inicial. Envía
+`GREETER_INPUT_COMPLETE_WAIT_FOR_LOGIN` solo después de terminar el trabajador y
+cerrar la conexión X11. Entonces se puede volver a iniciar sesión normalmente;
+el supervisor espera una sesión nueva del usuario original. Límite global de
+180 segundos; el trabajador tiene límite propio y canal heredado acotado.
+
+El 25/10/2026 pasó el ciclo automático en Ubuntu ARM/Cinnamon/LightDM de
+laboratorio: roles 40 → 43 → 40, Tab 2/2 y Mayús 1/1, trabajador finalizado y
+vuelta al escritorio. Un fallo dirigido al trabajador canceló sin enviar
+entrada y permitió entrar después. También se rechazaron fuentes modificadas,
+contexto inicial no apto, UID incorrecto y ejecución desde una ruta del usuario
+como root. La comprobación independiente encontró cero procesos propios y cero
+teclas retenidas. Evidencia y límites:
+[`linux-greeter-navigation-results.json`](../../../openspec/changes/add-unattended-admin-access/linux-greeter-navigation-results.json).
+
+La contraseña exclusiva de la VM la introduce el controlador privado QMP
+**después** del ensayo; eso no acredita entrada de credenciales del prototipo.
+No se han probado con este ensayo el Mint físico, captura simultánea, texto,
+cambio de usuario ni el agente/transporte finales. `readyForUnattended` sigue
+siendo falso. Tras finalizar los procesos, se pueden retirar solo las tres
+fuentes y el directorio propios de `greeter-input-v2`, conservando antes el
+informe; no hay configuración de LightDM que restaurar. En la VM también se
+puede volver al punto conocido mediante el controlador privado de restauración.
+
+### Operación del laboratorio virtual
+
 Versiones, operación y límites en
 [linux-virtual-lab.md](linux-virtual-lab.md). La VM no sustituye la certificación
 del Mint x86 ni del agente/transporte remoto.

@@ -1848,3 +1848,43 @@ transporte remoto y no sustituye la aceptación física. Los dos fallos físicos
 anteriores y la preparación se conservan. `inputTested:false`,
 `captureTested:false`, `preLoginTested:false`, `readyForUnattended:false`;
 tarea 1.4 parcial y **8/57**. Sin nueva publicación por estos diagnósticos.
+
+### Navegación nativa en LightDM y recuperación de fallo, VM Linux
+
+El 25/10/2026 se verificó `linux-greeter-input-check.py` y su instalador de
+hashes fijos en la VM Ubuntu 24.04.5 ARM, Cinnamon 6.0.4, LightDM 1.30.0 y
+Slick Greeter 2.0.1. El supervisor root abre solo el display autorizado y deja
+la observación AT-SPI a un hijo lightdm, sin grupos ni Xauthority. Se validan
+PID/UID del nombre del greeter, registro AT-SPI ya existente y propietario,
+foco estable y estado de entrada neutral antes de cada secuencia fija.
+
+Pasó escritorio → greeter → Tab → Mayús+Tab → nueva sesión del mismo usuario.
+El observador vio roles 40 → 43 → 40 y comprobó por identidad del objeto que
+volvió al campo inicial. Los envíos nativos fueron Tab 2/2 y Mayús 1/1. Hijo y
+supervisor terminaron con código 0; observación y conexión X11 cerradas antes
+de autenticar con el controlador QMP independiente del laboratorio. No se
+leyeron nombres, valores ni contenido de campos ni se guardaron imágenes.
+
+El primer intento se rechazó con `initial_unlocked_user_required`, sin teclas;
+se conservó su informe y se preparó una nueva sesión y destino de instalación.
+En un ensayo posterior se terminó únicamente el hijo lightdm del diagnóstico
+antes de la entrada: el supervisor rechazó la prueba (salida 3, EOF del canal
+registrado como `JSONDecodeError`), no envió teclas y se pudo entrar normalmente
+con el controlador independiente. No se alteró ni señalizó ningún proceso de
+LightDM. También pasaron rechazos por identidad incorrecta, falta de root,
+fuentes en ruta modificable, hash cambiado, ausencia de SSH, argumentos y
+reutilización de informe. Se verificó que el informe anterior no cambió.
+
+Limpieza independiente: cero procesos propios, cero teclas retenidas,
+escritorio desbloqueado y tres fuentes root/0600 con hashes exactos. El
+prototipo no instala servicios ni modifica LightDM; retirar sus archivos
+propios restaura el estado previo, conservando antes la evidencia. La VM
+dispone además del punto de restauración ya verificado. Sintaxis Python del
+supervisor y trabajador, Bash, hashes, JSON y OpenSpec estricto comprobados.
+
+Evidencia reconciliada en `linux-greeter-navigation-results.json`. El login por
+QMP no cuenta como entrada de credenciales del prototipo. Faltan Mint físico,
+texto, captura/entrada integrada, cambio de usuario y servicio/transporte
+finales. El paso nativo tiene `inputTested:true`, pero `preLoginTested:false`
+y `readyForUnattended:false`; tarea 1.4 parcial y **8/57**. Sin nueva release ni
+certificación de acceso desatendido completo por este ensayo.
