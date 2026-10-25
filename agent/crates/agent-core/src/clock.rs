@@ -9,7 +9,7 @@ pub trait Clock {
     fn now(&self) -> Result<Duration, ClockError>;
 }
 
-#[derive(Default)]
+#[derive(Clone, Copy, Default)]
 pub struct BootClock;
 
 impl Clock for BootClock {

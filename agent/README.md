@@ -29,16 +29,16 @@ El reloj cuenta la suspensión, sin depender del calendario:
 - macOS: `mach_continuous_time` y conversión comprobada con `mach_timebase_info`.
 - Windows 10+: `QueryInterruptTimePrecise`, con unidades de 100 ns.
 
-FFI está limitada a `clock.rs`; el resto del núcleo prohíbe `unsafe`. No hay
-dependencias de terceros. Rust mínimo 1.75; lockfile versionado y compilación
+FFI está limitada a `clock.rs`; el resto del núcleo prohíbe `unsafe`. El crate
+`agent-core` no tiene dependencias de terceros. Rust mínimo 1.75; lockfile versionado y compilación
 offline. El CI usa toolchain fijo 1.85.0 en Linux, Mac y Windows. No confundir
 compilar el reloj con certificar suspensión/reanudación real de cada equipo.
 
 ## Fronteras que faltan por conectar
 
-`accept_validation` solo puede llamarse desde el futuro cliente de API tras
+`accept_validation` solo puede llamarse desde el cliente confiable de API tras
 validar TLS, equipo, estado y contrato; **no desde WebRTC, el renderer o IPC
-sin autenticar**. No implementa HTTP ni considera confiable un JSON por analizarlo.
+sin autenticar**. El núcleo no implementa HTTP ni considera confiable un JSON por analizarlo.
 La respuesta de la API está descrita en [`backend/AGENT_API.md`](../backend/AGENT_API.md).
 
 `attach_authenticated` exige que el trabajador haya verificado previamente la
@@ -60,8 +60,9 @@ instaladores y controladores finales. No se ha marcado completa la tarea 3.4.
 Desde la raíz del repositorio:
 
 ```bash
-cargo fmt --manifest-path agent/Cargo.toml --check
-cargo clippy --manifest-path agent/Cargo.toml --offline --locked --all-targets -- -D warnings
+cargo fetch --manifest-path agent/Cargo.toml --locked
+cargo fmt --manifest-path agent/Cargo.toml --all --check
+cargo clippy --manifest-path agent/Cargo.toml --offline --locked --all-targets --all-features -- -D warnings
 cargo test --manifest-path agent/Cargo.toml --offline --locked
 cargo run --manifest-path agent/Cargo.toml --offline --locked --example lease-smoke
 cargo build --manifest-path agent/Cargo.toml --offline --locked --release
@@ -76,6 +77,63 @@ tiene además un límite propio de diez segundos. No instala servicios.
 El CI repite las pruebas y el ejemplo en los tres SO. El árbol `agent/` y sus
 artefactos se excluyen de `app.asar`. La distribución real de binarios del agente
 se añadirá explícitamente cuando sus componentes estén verificados.
+
+## Cliente de API y renovación
+
+`absor-agent-api` añade el cliente de consulta de solicitudes y el coordinador
+`RenewingAgent`. El HTTP ocurre en un único hilo con una consulta pendiente y
+canales acotados. El actor llama `tick()` puntualmente incluso sin tráfico de
+sesión; no queda bloqueado por lectura HTTP o DNS. No se crean hilos sustitutos
+si el actual se demora. DNS depende del sistema y puede exceder el timeout del
+cliente: el permiso caduca igualmente; falta el supervisor que recupere un
+proceso de red irrecuperable. Cerrar/parar impide procesar respuestas nuevas.
+
+Producción exige un origen HTTPS de configuración protegida, sin credenciales,
+ruta, consulta o fragmento. El cliente solo consulta
+`/api/host-agent/remote-requests` con una credencial `acg_` válida en memoria.
+No implementa login, alta, cambios de cuenta, respuestas SDP ni ICE todavía.
+Rechaza redirecciones, proxies de entorno, cookies y compresión. Conserva
+verificación TLS/raíces de rustls, límites de conexión (2 s), petición (4 s) y
+cuerpo (8 MiB + 64 KiB), y esquemas cerrados: duración 1–30 s, campos tipados,
+sin duplicados, hasta 64 solicitudes y ofertas de hasta 64 KiB. La fecha UTC
+es solo metadato; la vigencia se mide siempre con el reloj local del núcleo.
+La validación final de SDP, identidad DTLS y HMAC pertenece al autenticador.
+
+401/403 cierra e inhabilita la instancia. 429 respeta Retry-After numérico
+(hasta un día; omisión tres segundos), sin renovar autorización. Errores de
+red, 5xx, formato, TLS o respuesta tardía conservan únicamente el plazo válido
+anterior; al vencer se corta el trabajador. Una validación posterior requiere
+una sesión autenticada nueva, sin reutilizar la que ya se cerró. Los tipos con
+credenciales, nombres y SDP no se imprimen en diagnósticos.
+
+Dependencias directas fijadas en `Cargo.toml`/`Cargo.lock`: ureq 2.12.1 con TLS
+y sin características por omisión, serde 1.0.229, serde_json 1.0.154 y url 2.5.8.
+Se eligió HTTP síncrono aislado para mantener Rust 1.75 sin añadir un runtime
+asíncrono. Alternativas: reqwest/Tokio añade ejecución asíncrona innecesaria a
+este único carril; libcurl por proceso introduce una herramienta externa y
+gestión de credenciales entre procesos. Las transitivas quedan fijadas por
+lockfile compatible con 1.75; CI descarga primero y verifica después offline.
+La revisión de avisos/licencias del paquete final sigue pendiente.
+
+### Ensayo con backend real de desarrollo
+
+```bash
+cargo build --manifest-path agent/Cargo.toml --locked -p absor-agent-api --example api-smoke --features lab-http
+python3 -B prototypes/backend-agent-check/native-renewal.py
+```
+
+`lab-http` es una característica **exclusiva del laboratorio**, desactivada por
+omisión y nunca habilitada en el paquete del servicio. Añade una construcción
+explícita que acepta solo HTTP en la IP literal `127.0.0.1` con puerto, sin
+credenciales, ruta, consulta ni fragmento; `AgentApi::new` sigue exigiendo HTTPS
+incluso al compilarla. Permite la API local y su proxy de fallos, sin apagarla.
+
+El lanzador solo usa `127.0.0.1:8020`, crea dos cuentas/dispositivos temporales,
+canjea sus altas y entrega la credencial al binario por stdin, nunca argv/env.
+Prueba revocación y corte de red con procesos hijos propios y retira las cuentas
+en `finally`. No imprime datos de cuenta, tokens ni SDP. El ejemplo simula la
+frontera de autenticación v1, sin captura/entrada/transporte P2P: comprueba la
+integración API → reloj/permiso → cierre de un proceso, no un host remoto final.
 
 ## Orden de aceptación acordado
 

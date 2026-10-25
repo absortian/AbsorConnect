@@ -65,6 +65,29 @@ El agente consulta cada 3 segundos y cada respuesta válida mantiene una autoriz
 
 Esta política se aplica igual en Windows, macOS y Mint: un corte de la API superior a 30 segundos corta incluso una conexión P2P que aún tiene red. Es un coste explícito de la revocación acotada, a revisar con el propietario. No se guarda contenido remoto ni credenciales de sistema en la API.
 
+Implementación parcial de D3: `agent-api` usa un único carril HTTP aislado del
+actor de autorización, con una consulta y respuesta acotadas. Se eligió ureq
+2.12.1 (TLS sin características por omisión), serde/serde_json y url fijados
+para conservar Rust 1.75 sin añadir un runtime asíncrono; reqwest/Tokio y un
+proceso externo libcurl se descartaron por coste de integración o gestión de
+credenciales entre procesos. Cargo.lock fija también las transitivas compatibles.
+No cambia aún la elección candidata de libwebrtc.
+
+El origen HTTPS pertenece a configuración protegida. No se siguen
+redirecciones ni proxies de entorno; se mantienen verificación TLS y raíces
+de rustls. Respuesta limitada a 8 MiB + 64 KiB, esquemas cerrados y solicitudes
+acotadas. La fecha del servidor no extiende el plazo monotónico. 401/403 corta e
+inhabilita; 429 respeta la espera y los demás fallos no renuevan. DNS puede
+superar el timeout de la biblioteca; solo queda ese hilo pendiente mientras el
+actor caduca/corta. La recuperación del proceso bloqueado exige el supervisor
+que sigue pendiente. No marcarlo como disponibilidad o revocación P2P finales.
+
+El ejemplo optativo `lab-http` usa únicamente loopback literal y credenciales
+efímeras por stdin para probar el contrato real local, sin cambiar la API de
+producción ni las cuentas existentes. No habilitar esa característica en los
+paquetes del servicio. El ejemplo aún simula la frontera de autenticación y
+su hijo carece de captura/entrada. Sus pruebas no certifican plataformas.
+
 ### D4. Secretos, IPC y traspaso transaccional
 
 El alta, ejecutada con autorización inicial del sistema, entrega al almacén protegido identidad del host, credencial limitada, K y parámetros de contraseña, opciones y bloqueo vigente. No entrega el token de cuenta, conexiones S3/SSH ni contraseñas del sistema. La interfaz solo recibe estado y resultados; el trabajador recibe únicamente los secretos que necesita.
