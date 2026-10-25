@@ -1,0 +1,116 @@
+{
+  "schema": 1,
+  "date": "2026-10-25",
+  "status": "first_attempt_rejected_held_input_revision2_prepared",
+  "attempts": [
+    {
+      "attempt": "a",
+      "sourceSha256": "7cd3a1e1d8ed2dff8dd6f9e5299aebb42172132bbb86dc484206af36179441ba",
+      "rawReport": {
+        "schema": 1,
+        "platform": "linux",
+        "status": "polkit_escape_cancellation_not_verified",
+        "reason": "held_input_prevents_probe",
+        "inputTested": false,
+        "readyForUnattended": false,
+        "escapePressSent": false,
+        "escapeReleaseSent": false,
+        "userWorkerExited": true
+      },
+      "ownerObservedDialogClosedWithoutTouch": true,
+      "nativeCancellationVerified": false,
+      "cleanup": {
+        "remainingPkexecCount": 0,
+        "remainingProbeWorkersCount": 0,
+        "screensaverInactive": true
+      },
+      "reconciliation": "No se envió Escape. El supervisor retiró su solicitud al abortar; el cierre observado no acredita recepción de teclado."
+    },
+    {
+      "attempt": "b",
+      "status": "prepared_not_executed",
+      "preparation": {
+        "sourceSha256": "e2f7a5072349217df49d3fe1eef17839afb87062969d8b178170b554b77ada5b",
+        "launcherSha256": "16577cc01864ebfd4fa0f04117dbf881c2726295ec69fbd1b7f4686d8b28c077",
+        "parentAndWorkerSyntaxCompiled": true,
+        "bashSyntaxExitCode": 0,
+        "unknownArgumentsExitCode": 2,
+        "transferredHashesVerified": true,
+        "mintUnprivilegedCase": {
+          "exitCode": 3,
+          "report": {
+            "schema": 1,
+            "platform": "linux",
+            "status": "polkit_escape_cancellation_not_verified",
+            "reason": "root_context_required",
+            "inputTested": false,
+            "readyForUnattended": false,
+            "escapePressSent": false,
+            "escapeReleaseSent": false
+          }
+        },
+        "positiveTestExecuted": false
+      },
+      "containerNegativeCases": {
+        "unprotected": {
+          "exitCode": 3,
+          "report": {
+            "schema": 1,
+            "platform": "linux",
+            "status": "polkit_escape_cancellation_not_verified",
+            "reason": "root_protected_source_directory_required",
+            "inputTested": false,
+            "readyForUnattended": false,
+            "escapePressSent": false,
+            "escapeReleaseSent": false
+          }
+        },
+        "badHash": {
+          "exitCode": 3,
+          "report": {
+            "schema": 1,
+            "platform": "linux",
+            "status": "polkit_escape_cancellation_not_verified",
+            "reason": "session_helper_hash_mismatch",
+            "inputTested": false,
+            "readyForUnattended": false,
+            "escapePressSent": false,
+            "escapeReleaseSent": false
+          }
+        },
+        "noSession": {
+          "exitCode": 3,
+          "report": {
+            "schema": 1,
+            "platform": "linux",
+            "status": "polkit_escape_cancellation_not_verified",
+            "reason": "session_query_failed",
+            "inputTested": false,
+            "readyForUnattended": false,
+            "escapePressSent": false,
+            "escapeReleaseSent": false
+          }
+        },
+        "rootInstaller": {
+          "exitCode": 3,
+          "rootInstallerRejected": true
+        },
+        "sourceSha256": "e2f7a5072349217df49d3fe1eef17839afb87062969d8b178170b554b77ada5b"
+      },
+      "nativeCancellationVerified": false
+    }
+  ],
+  "rawReportHashes": {
+    "attempt-a-results.json": "389d514d6c29354f22db3ed9bf35b1f5d31b04019e3286cd08cc78e608e1ebac",
+    "attempt-a-cleanup.json": "c51a318ce13cea9c2a8cc9919331277f44feeed668a63d16521f79555b29030b",
+    "attempt-a-owner-confirmation.json": "476f5745c2cae54c57cdcaa0d90c067ab95e9bf0adb3c3cd8ed5be9ab8f4b0fe",
+    "revision2-preparation.json": "9f779702dff5f9929fb62f3c29e126f910cb105bf4d88f9362e603869ed727f9",
+    "revision2-container-negatives.json": "15eaa4a75b45815eacfcfabb04e52f582113576decfa9bb06aa8f525eddb367d"
+  },
+  "readyForUnattended": false,
+  "limits": [
+    "La primera revisión no registraba si había teclas o botones retenidos ni su cantidad; no se atribuye una causa concreta.",
+    "La revisión 2 solo registra contadores agregados, sin códigos, mapas de teclas, texto, coordenadas ni credenciales. No fuerza liberaciones de entrada ajena.",
+    "No se ha verificado cancelación nativa de polkit ni entrada en bloqueo o LightDM."
+  ]
+}

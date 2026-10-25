@@ -167,15 +167,37 @@ def run(observation):
                 window = parent.value
             raise RuntimeError("focus_tree_limit")
 
-        def idle():
+        def input_counts():
             keys = c.create_string_buffer(32)
-            x11.XQueryKeymap(display, keys)
+            if not x11.XQueryKeymap(display, keys):
+                raise RuntimeError("keyboard_state_unavailable")
             rr, child, x, y, wx, wy, mask = win(), win(), integer(), integer(), integer(), integer(), unsigned()
             if not x11.XQueryPointer(display, root, c.byref(rr), c.byref(child), c.byref(x), c.byref(y),
                                      c.byref(wx), c.byref(wy), c.byref(mask)):
                 raise RuntimeError("pointer_unavailable")
-            if any(keys.raw) or mask.value & 0x1F00:
-                raise RuntimeError("held_input_prevents_probe")
+            return sum(value.bit_count() for value in keys.raw), (mask.value & 0x1F00).bit_count()
+
+        def idle(stage, wait_seconds):
+            # Solo contadores agregados: nunca códigos, mapas de teclas ni texto.
+            deadline = time.monotonic() + wait_seconds
+            state = {"samples": 0, "maxHeldKeys": 0, "maxHeldButtons": 0, "neutralSamples": 0}
+            observation.setdefault("idleChecks", {})[stage] = state
+            while True:
+                held_keys, held_buttons = input_counts()
+                state["samples"] += 1
+                if state["samples"] == 1:
+                    state.update(initialHeldKeys=held_keys, initialHeldButtons=held_buttons)
+                state.update(finalHeldKeys=held_keys, finalHeldButtons=held_buttons)
+                state["maxHeldKeys"] = max(state["maxHeldKeys"], held_keys)
+                state["maxHeldButtons"] = max(state["maxHeldButtons"], held_buttons)
+                state["neutralSamples"] = state["neutralSamples"] + 1 if not (held_keys or held_buttons) else 0
+                if state["neutralSamples"] >= 2:
+                    return
+                if time.monotonic() >= deadline:
+                    raise RuntimeError("held_input_prevents_probe")
+                if requester is not None and requester.poll() is not None:
+                    raise RuntimeError("request_ended_while_waiting_for_idle")
+                time.sleep(0.1)
 
         def context_guard():
             if helper.context() != initial or helper.cinnamon_active(session):
@@ -193,7 +215,7 @@ def run(observation):
         previous_focus = focus()
         if focus_pid() == cinnamon_pid:
             raise RuntimeError("baseline_cinnamon_focus_prevents_probe")
-        idle()
+        idle("beforeRequest", 2)
         environment = {"PATH": "/usr/bin:/bin", "LANG": "C.UTF-8", "HOME": account.pw_dir,
                        "DISPLAY": ":0", "XAUTHORITY": str(user_authority),
                        "DBUS_SESSION_BUS_ADDRESS": f"unix:path=/run/user/{uid}/bus"}
@@ -206,7 +228,7 @@ def run(observation):
             observation["userWorkerExitCode"] = requester.returncode
             raise RuntimeError("request_ended_before_input")
         context_guard()
-        idle()
+        idle("pendingRequest", 4)
         if (Path("/proc") / str(requester.pid)).stat().st_uid != uid:
             raise RuntimeError("user_requester_worker_required")
         pending = []

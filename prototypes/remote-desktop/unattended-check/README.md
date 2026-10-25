@@ -304,11 +304,21 @@ su liberación. Código 126 acredita la cancelación según el
 No autentica, pulsa botones, mueve el puntero ni lee texto/contraseñas. Tiene
 plazo de treinta segundos y retira sus procesos al terminar.
 
-La sintaxis y denegaciones previas están comprobadas, con hashes de transferencia;
-la ejecución positiva está pendiente en `mint-polkit-cancel-preparation.json`.
-Aunque pase, solo probará cancelación de esa solicitud propia en Cinnamon,
-sin otros avisos concurrentes. No certificará escritura de credenciales,
-bloqueo/LightDM ni el agente o transporte remoto.
+La sintaxis y denegaciones previas están comprobadas, con hashes de transferencia.
+La primera ejecución abortó por entrada retenida, sin enviar Escape; el cierre
+observado por el propietario se produjo al retirar su propia solicitud y no se
+cuenta como recepción. La limpieza confirmó cero procesos propios.
+
+La revisión 2 mantiene la protección y espera dos muestras neutras consecutivas,
+hasta dos segundos antes de solicitar y cuatro con la solicitud pendiente.
+Registra solo cantidades de teclas/botones y fase; no lee texto, guarda mapas o
+identifica teclas. No fuerza liberaciones. Su instalador usa un destino nuevo.
+Su ensayo positivo está pendiente en `mint-polkit-cancel-attempts.json`; la
+preparación inicial mantiene su estado histórico. Aunque pase, solo probará
+cancelación de esa solicitud propia en Cinnamon, sin otros avisos concurrentes.
+No certificará escritura de credenciales, bloqueo/LightDM ni el agente o transporte
+remoto. El estado consultado sigue el
+[mapa lógico de XQueryKeymap](https://xorg.freedesktop.org/archive/X11R7.5/doc/man/man3/XQueryKeymap.3.html).
 
 ## Windows
 

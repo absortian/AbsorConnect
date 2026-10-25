@@ -1474,3 +1474,28 @@ Comprobaciones del proyecto tras preparar este ensayo: typecheck correcto,
 Vitest 276 correctos/5 omitidos, PHPUnit 162 pruebas/1077 aserciones con PHP
 8.5.12, OpenSpec estricto y diff válidos. No se modificó código de la aplicación
 ni producción y no se dedujo recepción de entrada de esos controles automáticos.
+
+#### Primera ejecución y revisión de diagnóstico
+
+El propietario observó el cierre automático del aviso, sin tocarlo. Sin embargo,
+el informe del intento a registra `held_input_prevents_probe`,
+`escapePressSent:false`, `escapeReleaseSent:false` y trabajador terminado.
+La solicitud propia se retiró durante la limpieza; el cierre del aviso no se
+cuenta como prueba de entrada. Se verificaron cero pkexec/trabajadores propios
+y Cinnamon sin salvapantallas activo. La primera revisión no registraba qué
+clase de entrada estaba retenida: no se atribuye una causa concreta.
+
+La revisión 2 espera hasta dos segundos antes de la solicitud y cuatro con ella
+pendiente, exigiendo dos muestras neutras consecutivas. Mantiene la denegación
+si persiste entrada retenida y las demás comprobaciones de foco/sesión/solicitante.
+Solo registra cantidades iniciales, máximas y finales de teclas/botones, número
+de muestras y fase; nunca códigos, mapas, texto o coordenadas. No fuerza la
+liberación de teclas ajenas. Conserva plazo global y limpieza. Usa un directorio
+root nuevo y una carpeta de usuario nueva, sin sobrescribir la revisión anterior.
+
+Sintaxis del supervisor/trabajador y Bash, argumentos ajenos, denegación sin root
+en Mint y denegaciones de fuentes/hash/sesión/lanzador root en contenedor pasaron
+con la nueva fuente. Hashes transferidos comprobados. El intento b está pendiente
+de ejecución local; evidencia reconciliada en `mint-polkit-cancel-attempts.json`.
+La preparación inicial se conserva como registro histórico. No cambia el estado
+de tarea 1.4 ni certifica recepción nativa a partir de este aborto.

@@ -15,17 +15,17 @@ if [ "$(/usr/bin/stat -c '%u:%a' "$source_directory")" != "$(/usr/bin/id -u):700
   printf 'Se necesita una carpeta privada 0700 del usuario actual.\n' >&2
   exit 3
 fi
-root_directory='/var/lib/AbsorConnectLab/polkit-cancel-v1'
+root_directory='/var/lib/AbsorConnectLab/polkit-cancel-v2'
 report_path="$source_directory/polkit-cancel-results.json"
 if [ -e "$report_path" ]; then
   printf 'Ya existe el informe; no repitas esta instalación.\n' >&2
   exit 3
 fi
 printf '%s  %s\n' \
-  '7cd3a1e1d8ed2dff8dd6f9e5299aebb42172132bbb86dc484206af36179441ba' "$source_directory/linux-polkit-cancel-check.py" \
+  'e2f7a5072349217df49d3fe1eef17839afb87062969d8b178170b554b77ada5b' "$source_directory/linux-polkit-cancel-check.py" \
   '40d222539fa05c21b9f0a95993efe40a386bc82dab4ad031b6d188e827b6e275' "$source_directory/linux-session-check.py" \
   | /usr/bin/sha256sum --check --status
-printf 'Se instalarán dos fuentes protegidas; se solicitará true y root cancelará el aviso de polkit mediante Escape.\n'
+printf 'Se instalarán dos fuentes protegidas; se solicitará true y root intentará cancelar el aviso de polkit mediante Escape.\n'
 printf 'Introduce la contraseña solo en sudo. Después deja el ratón y teclado libres durante la prueba.\n'
 # mkdir sin -p en el destino final impide sobrescribir una prueba anterior.
 /usr/bin/sudo /usr/bin/mkdir -p /var/lib/AbsorConnectLab
@@ -33,7 +33,7 @@ printf 'Introduce la contraseña solo en sudo. Después deja el ratón y teclado
 /usr/bin/sudo /usr/bin/install -o root -g root -m 0600 \
   "$source_directory/linux-polkit-cancel-check.py" "$source_directory/linux-session-check.py" "$root_directory/"
 printf '%s  %s\n' \
-  '7cd3a1e1d8ed2dff8dd6f9e5299aebb42172132bbb86dc484206af36179441ba' "$root_directory/linux-polkit-cancel-check.py" \
+  'e2f7a5072349217df49d3fe1eef17839afb87062969d8b178170b554b77ada5b' "$root_directory/linux-polkit-cancel-check.py" \
   '40d222539fa05c21b9f0a95993efe40a386bc82dab4ad031b6d188e827b6e275' "$root_directory/linux-session-check.py" \
   | /usr/bin/sudo /usr/bin/sha256sum --check --status
 set -o noclobber
