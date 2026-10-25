@@ -1281,9 +1281,52 @@ Los tres modos nuevos se rechazan desde SSH en sesión 0, antes de enviar entrad
 La regresión del código compartido pasa las ventanas propias de usuario/SYSTEM y
 la cancelación del UAC propio: 1223, dos eventos y ocho fotogramas `Winlogon`.
 Se retiraron todas las tareas temporales y se verificó ausencia de procesos.
-El propietario debe desbloquear la VM; la recuperación posterior se registra
-por separado. Tarea 1.2 parcial, `readyForUnattended:false`, total 8/57.
+El propietario desbloqueó la VM y la continuación verificó ocho fotogramas no
+uniformes en `Default`, con trabajador terminado a cero y ninguna tarea o proceso
+restante. Esa recuperación se añadió a `windows-lock-escape-results.json`;
+no cambia el resultado inconcluso de Escape. Tarea 1.2 parcial,
+`readyForUnattended:false`, total 8/57.
 
 Comprobaciones de esta iteración: typecheck, Vitest 276 correctos/5 omitidos,
 PHPUnit 162 pruebas/1077 aserciones y OpenSpec estricto. No cambia la aplicación
 publicada ni se anuncia soporte desatendido de producción.
+
+### Windows: navegación de foco recibida en LogonUI — 25/10/2026
+
+Se añade una prueba fija Tab/Mayús+Tab que observa recepción por UI Automation,
+sin atribuirla solo al retorno de SendInput. Primero se validó en una ventana
+propia del usuario estándar: control de contraseña vacío y de solo lectura,
+botón sin acción y recorrido de ida y vuelta. La interfaz vive en un hilo STA y
+el cliente UIA en otro MTA; cero exige todas las aserciones nativas. El usuario
+filtrado no puede escribir en la carpeta protegida y el runner deriva el resultado
+de ese código, como en las pruebas de ventana propia anteriores.
+
+Después se bloqueó **solo la VM Windows** y se mostró su formulario vacío por
+UTM. El runner exclusivo `-TestLogonFocus` verificó nueve fotogramas no uniformes
+de `Winlogon` y lanzó el trabajador SYSTEM allí. Antes de cada envío comprueba
+QEMU/UAC, sesión activa, escritorio del hilo y de entrada, ejecutable en primer
+plano `System32/LogonUI.exe`, foco esperado y ninguna tecla retenida. Tab cambia
+de un control Edit con `IsPassword:true` a un botón; Mayús+Tab devuelve el foco
+a la identidad original. Se insertaron seis eventos y se observaron las dos
+transiciones, sin pulsar Enter ni botones.
+
+UIA solo lee PID, tipo, `IsPassword` e identidad opaca para comparación en
+memoria; no consulta nombres, valores ni texto, y no guarda runtime IDs,
+contraseñas o imágenes. Los cinco modos nuevos se rechazan desde SSH en sesión
+0; el runner rechaza combinar el ensayo de LogonUI con el de ventana propia.
+Regresión del mismo código: ventanas propias usuario/SYSTEM correctas, prueba
+de foco propia correcta y UAC cancelado con 1223, dos eventos Escape y nueve
+fotogramas de `Winlogon`. Compilación con las bibliotecas UIA ya presentes en
+.NET; no se instalaron componentes ni se cambiaron políticas.
+
+Evidencia saneada y hashes de binarios e informes brutos en
+`windows-logon-focus-results.json`. Tareas temporales retiradas y cero procesos
+restantes. La recuperación tras el nuevo desbloqueo manual queda pendiente de
+confirmación del propietario. Se confirma navegación de foco en bloqueo; no
+autenticación por el diagnóstico, SAS, ratón en LogonUI, DXGI, SCM ni WebRTC.
+La tarea 1.2 continúa parcial, `readyForUnattended:false`, total **8/57**.
+
+Verificación del proyecto: typecheck correcto, Vitest 276 correctos/5 omitidos
+con Node nativo de macOS, PHPUnit 162 pruebas/1077 aserciones con PHP 8.5.12 y
+OpenSpec estricto correcto. Los cambios siguen limitados al laboratorio y sus
+evidencias; no se publica una nueva versión de la aplicación.

@@ -1,9 +1,9 @@
 # Ejecutar solo en la VM de laboratorio, desde una carpeta nueva protegida para SYSTEM/Administradores.
 # Usa el compilador incluido con PowerShell; no instala componentes ni cambia políticas.
-param([string]$WorkingDirectory = $PSScriptRoot, [switch]$TestUacInput, [switch]$TestOwnedInput, [switch]$TestElevatedInput, [switch]$TestLockEscape)
+param([string]$WorkingDirectory = $PSScriptRoot, [switch]$TestUacInput, [switch]$TestOwnedInput, [switch]$TestElevatedInput, [switch]$TestLockEscape, [switch]$TestFocusSelf, [switch]$TestLogonFocus)
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
-if ($TestLockEscape -and ($TestUacInput -or $TestOwnedInput -or $TestElevatedInput)) {
+if (($TestLockEscape -or $TestLogonFocus) -and ($TestUacInput -or $TestOwnedInput -or $TestElevatedInput -or $TestFocusSelf -or ($TestLockEscape -and $TestLogonFocus))) {
     throw 'lock_probe_requires_exclusive_mode'
 }
 [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
@@ -29,7 +29,7 @@ foreach ($rule in $acl.GetAccessRules($true, $true, [Security.Principal.Security
 $source = Join-Path $WorkingDirectory 'CaptureProbe.cs'
 $binary = Join-Path $WorkingDirectory 'CaptureProbe.exe'
 $report = Join-Path $WorkingDirectory 'capture-report.json'
-if ($TestUacInput -or $TestOwnedInput -or $TestElevatedInput -or $TestLockEscape) {
+if ($TestUacInput -or $TestOwnedInput -or $TestElevatedInput -or $TestLockEscape -or $TestFocusSelf -or $TestLogonFocus) {
     if ((Get-CimInstance Win32_ComputerSystem).Manufacturer -ne 'QEMU') { throw 'qemu_lab_required' }
     if (Get-Process -Name CaptureProbe -ErrorAction SilentlyContinue) { throw 'another_probe_is_running' }
     if (Test-Path -LiteralPath (Join-Path $WorkingDirectory 'uac-input-report.json')) { throw 'input_output_exists' }
@@ -37,11 +37,14 @@ if ($TestUacInput -or $TestOwnedInput -or $TestElevatedInput -or $TestLockEscape
 if ($TestElevatedInput -and ((Test-Path -LiteralPath (Join-Path $WorkingDirectory 'elevated-input-report.json')) -or
     (Test-Path -LiteralPath (Join-Path $WorkingDirectory 'elevated-target-report.json')))) { throw 'elevated_output_exists' }
 if ($TestLockEscape -and (Test-Path -LiteralPath (Join-Path $WorkingDirectory 'lock-escape-report.json'))) { throw 'lock_output_exists' }
+if ($TestLogonFocus -and (Test-Path -LiteralPath (Join-Path $WorkingDirectory 'logon-focus-report.json'))) { throw 'focus_output_exists' }
 if ((Test-Path -LiteralPath $binary) -or (Test-Path -LiteralPath $report)) { throw 'output_exists' }
 if (((Get-Item -LiteralPath $source).Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
     throw 'reparse_source_rejected'
 }
-Add-Type -TypeDefinition (Get-Content -LiteralPath $source -Raw) -OutputAssembly $binary -OutputType ConsoleApplication
+$runtime = [Runtime.InteropServices.RuntimeEnvironment]::GetRuntimeDirectory()
+$references = @('System.dll', 'System.Core.dll') + @('UIAutomationClient.dll', 'UIAutomationTypes.dll', 'WindowsBase.dll' | ForEach-Object { Join-Path $runtime ('WPF\' + $_) })
+Add-Type -ReferencedAssemblies $references -TypeDefinition (Get-Content -LiteralPath $source -Raw) -OutputAssembly $binary -OutputType ConsoleApplication
 $launcher = & $binary --launch-console-probe
 if ($LASTEXITCODE -ne 0) { throw ('worker_failed_' + $LASTEXITCODE) }
 $result = Get-Content -LiteralPath $report -Raw | ConvertFrom-Json
@@ -114,6 +117,28 @@ if ($TestLockEscape) {
     if ($lockResult.desktop -ne 'Winlogon' -or $lockResult.foregroundKind -ne 'logon' -or
         $lockResult.eventsInserted -ne 2 -or $lockResult.sessionId -eq 0) { throw 'invalid_lock_escape_result' }
 }
+$focusSelf = $null
+$logonFocusResult = $null
+foreach ($focusCase in @(@{enabled=$TestFocusSelf;mode='--launch-focus-self-probe';file='focus-self-report.json'},
+    @{enabled=$TestLogonFocus;mode='--launch-logon-focus-probe';file='logon-focus-report.json'})) {
+    if (-not $focusCase.enabled) { continue }
+    if ($TestLogonFocus -and $result.desktop -ne 'Winlogon') { throw 'winlogon_capture_required' }
+    $focusLauncher = & $binary $focusCase.mode
+    $focusCode = $LASTEXITCODE
+    if ($focusCode -ne 0) { throw ('focus_probe_failed_' + $focusCode) }
+    if ($TestLogonFocus) {
+        $value = Get-Content -LiteralPath (Join-Path $WorkingDirectory $focusCase.file) -Raw | ConvertFrom-Json
+    } else {
+        $details = ($focusLauncher -join "`n") | ConvertFrom-Json
+        if (-not $details.workerExited -or $details.workerExitCode -ne 0 -or $details.sessionId -eq 0) { throw 'invalid_focus_self_launcher' }
+        # El usuario filtrado no escribe en la carpeta protegida; cero exige todas las aserciones nativas.
+        $value = [ordered]@{focusChanged=$true;focusRestored=$true;eventsInserted=6;credentialsRead=$false;
+            credentialsWritten=$false;readyForUnattended=$false;resultSource='worker_exit_after_fixed_native_assertions'}
+    }
+    if (-not $value.focusChanged -or -not $value.focusRestored -or $value.eventsInserted -ne 6 -or
+        $value.credentialsRead -or $value.credentialsWritten -or $value.readyForUnattended) { throw 'invalid_focus_probe_result' }
+    if ($TestLogonFocus) { $logonFocusResult = $value } else { $focusSelf = $value }
+}
 [ordered]@{
     sourceSha256 = (Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash.ToLowerInvariant()
     binarySha256 = (Get-FileHash -LiteralPath $binary -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -125,9 +150,11 @@ if ($TestLockEscape) {
     elevatedInput = $elevatedResult
     elevatedTarget = $elevatedTarget
     lockEscape = $lockResult
+    focusSelf = $focusSelf
+    logonFocus = $logonFocusResult
     lockEscapeReceptionRequiresVisualObservation = [bool]$TestLockEscape
     installedService = $false
     uacTested = [bool]$TestUacInput
-    inputTested = [bool]($TestUacInput -or $TestOwnedInput -or $TestElevatedInput -or $TestLockEscape)
+    inputTested = [bool]($TestUacInput -or $TestOwnedInput -or $TestElevatedInput -or $TestLockEscape -or $TestFocusSelf -or $TestLogonFocus)
     readyForUnattended = $false
 } | ConvertTo-Json -Depth 5

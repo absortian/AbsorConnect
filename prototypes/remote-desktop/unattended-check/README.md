@@ -374,6 +374,38 @@ con `-TestOwnedInput -TestUacInput` verifica las ventanas propias y la cancelaci
 UAC anterior, con retorno 1223. El runner no combina ese ensayo con el de bloqueo.
 Los informes originales son privados y solo contienen metadatos/contadores.
 
+### Windows: recepción de navegación de foco en LogonUI
+
+El desbloqueo manual posterior al ensayo Escape recuperó ocho fotogramas no
+uniformes en `Default`. Eso completa su comprobación de recuperación; la recepción
+de Escape sigue inconclusa.
+
+`-TestFocusSelf` comprueba primero Tab y Mayús+Tab en una ventana propia del
+usuario estándar. Contiene un campo vacío, de contraseña y solo lectura, y un
+botón sin acción. La ventana usa su propio hilo STA; el cliente de UI Automation
+se ejecuta en otro hilo MTA. El trabajador solo devuelve cero si observa que el
+foco cambia y vuelve a la identidad del control original.
+
+`-TestLogonFocus` es exclusivo y requiere la VM bloqueada, con el formulario de
+contraseña vacío preparado por su consola. Captura `Winlogon` y ejecuta el mismo
+recorrido desde SYSTEM en ese escritorio. Antes de cada envío comprueba sesión
+de consola, escritorio, primer plano de `System32/LogonUI.exe`, foco esperado y
+ausencia de teclas retenidas. Solo envía Tab y Mayús+Tab: seis eventos en total.
+UI Automation consulta PID, tipo de control, `IsPassword` e identidad opaca para
+compararla en memoria. No lee `Name`, `Value` ni texto, y no registra identidades
+de controles. No envía Enter, clics ni credenciales.
+
+En Windows ARM64 se verificó cambio de foco de campo de contraseña a botón y
+vuelta al campo original, con nueve capturas no uniformes de `Winlogon`. La
+regresión también pasa las ventanas propias y la cancelación UAC con 1223.
+Evidencia: `windows-logon-focus-results.json`. Esta prueba confirma esas teclas
+de navegación en bloqueo; no certifica autenticación remota, SAS ni el agente.
+
+El compilador usa las bibliotecas UI Automation de .NET ya presentes en Windows,
+sin instalar paquetes. Se sigue la documentación de Microsoft para separar el
+[cliente UIA de su propia interfaz](https://learn.microsoft.com/en-us/dotnet/api/system.windows.automation.automationelement.focusedelement)
+y tratar los [runtime IDs como valores opacos de comparación](https://learn.microsoft.com/en-us/dotnet/api/system.windows.automation.automationelement.getruntimeid).
+
 ## Criterio de avance
 
 Conservar las tareas sin marcar hasta completar todos sus escenarios reales.
