@@ -1,0 +1,133 @@
+{
+  "schema": 1,
+  "date": "2026-10-25",
+  "status": "locked_navigation_prepared_not_executed",
+  "preparation": {
+    "sourceSha256": "843b094bd06494bf2a22cf60570967c405c1f5e41defffc2d9d5e2c730db5e54",
+    "launcherSha256": "8c04e50fccd00cf70142bbee6aa6b51acdf2a880d0671df654ac1651ce996b6f",
+    "parentAndFullWorkerCompiled": true,
+    "bashSyntaxExitCode": 0,
+    "launcherUnknownArgumentsExitCode": 2,
+    "nativeUnprivilegedSender": {
+      "exitCode": 3,
+      "report": {
+        "schema": 1,
+        "platform": "linux",
+        "status": "locked_tab_navigation_not_verified",
+        "reason": "root_context_required",
+        "inputTested": false,
+        "readyForUnattended": false,
+        "sentCounts": {
+          "tabDown": 0,
+          "tabUp": 0,
+          "shiftDown": 0,
+          "shiftUp": 0
+        }
+      }
+    },
+    "transferredHashesVerified": true,
+    "positiveInputTestExecuted": false
+  },
+  "nativeWorkerInventory": {
+    "event": {
+      "event": "baseline",
+      "snapshot": {
+        "busOwnerVerified": true,
+        "accessibleApplicationCount": 1,
+        "showingPasswordFields": 0,
+        "focusedControlCount": 0,
+        "focusedRole": null
+      }
+    },
+    "workerExitCode": 0,
+    "inputSent": false
+  },
+  "containerNegativeCases": {
+    "unprotected": {
+      "exitCode": 3,
+      "report": {
+        "schema": 1,
+        "platform": "linux",
+        "status": "locked_tab_navigation_not_verified",
+        "reason": "root_protected_source_directory_required",
+        "inputTested": false,
+        "readyForUnattended": false,
+        "sentCounts": {
+          "tabDown": 0,
+          "tabUp": 0,
+          "shiftDown": 0,
+          "shiftUp": 0
+        }
+      }
+    },
+    "badSessionHash": {
+      "exitCode": 3,
+      "report": {
+        "schema": 1,
+        "platform": "linux",
+        "status": "locked_tab_navigation_not_verified",
+        "reason": "session_helper_hash_mismatch",
+        "inputTested": false,
+        "readyForUnattended": false,
+        "sentCounts": {
+          "tabDown": 0,
+          "tabUp": 0,
+          "shiftDown": 0,
+          "shiftUp": 0
+        }
+      }
+    },
+    "badFocusHash": {
+      "exitCode": 3,
+      "report": {
+        "schema": 1,
+        "platform": "linux",
+        "status": "locked_tab_navigation_not_verified",
+        "reason": "focus_helper_hash_mismatch",
+        "inputTested": false,
+        "readyForUnattended": false,
+        "sentCounts": {
+          "tabDown": 0,
+          "tabUp": 0,
+          "shiftDown": 0,
+          "shiftUp": 0
+        }
+      }
+    },
+    "noSession": {
+      "exitCode": 3,
+      "report": {
+        "schema": 1,
+        "platform": "linux",
+        "status": "locked_tab_navigation_not_verified",
+        "reason": "session_query_failed",
+        "inputTested": false,
+        "readyForUnattended": false,
+        "sentCounts": {
+          "tabDown": 0,
+          "tabUp": 0,
+          "shiftDown": 0,
+          "shiftUp": 0
+        }
+      }
+    },
+    "rootInstaller": {
+      "exitCode": 3,
+      "rootInstallerRejected": true
+    },
+    "sourceSha256": "843b094bd06494bf2a22cf60570967c405c1f5e41defffc2d9d5e2c730db5e54"
+  },
+  "rawReportHashes": {
+    "preparation.json": "5d6fb1574e0570c0d48f453b7c299d20a2f9ebd3ba53808d626b41b866d3f81b",
+    "native-worker-inventory.json": "b4ae65c719b050bcab8b2a0aaa5c6079603713bb8c5ecc8ac577fd5d4ac7b090",
+    "container-negatives.json": "2a1d02f1ed641cbbffa6013f168f71d00557b0c0ffeea849d3dc165450d7f94a"
+  },
+  "inputTested": false,
+  "readyForUnattended": false,
+  "limits": [
+    "Solo sintaxis, inventario nativo sin entrada y denegaciones; no acredita navegación nativa en bloqueo.",
+    "El inventario del trabajador por SSH se ejecutó como el usuario actual; el descarte de UID/GID/grupos por el supervisor root sigue pendiente de la ejecución completa.",
+    "La futura prueba enviará solo Tab y Mayús+Tab, con foco estable comprobado, sin texto, clics, autenticación o invocación de bloqueo/desbloqueo.",
+    "Los proxies accesibles solo atribuyen el destino de laboratorio; no son una frontera de seguridad del agente final."
+  ]
+}

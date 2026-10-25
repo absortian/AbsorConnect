@@ -1632,3 +1632,39 @@ de contexto/foco con confirmación humana, no recepción de entrada sintética:
 `inputTested:false`, `captureTested:false`, `readyForUnattended:false`. Quedan
 entrada en bloqueo y LightDM y la integración del agente. Tarea 1.4 parcial,
 **8/57**, sin cambios de producción.
+
+### Mint: navegación nativa en bloqueo preparada — 25/10/2026
+
+`linux-lock-input-check.py --test-locked-navigation` reutiliza las fuentes
+protegidas de sesión/foco fijadas por hash y el acceso privado a Xauthority del
+servidor Xorg. El supervisor root crea un trabajador de usuario sin grupos
+adicionales, conectado solo por socketpair anónimo heredado. El trabajador
+consulta exclusivamente metadatos AT-SPI del servicio ScreenSaver cuyo UID/PID
+verifica; no usa interfaces de texto, valores o acciones ni escucha teclas.
+
+Se inicia en escritorio desbloqueado y emite `READY_TO_LOCK_MINT` antes de esperar
+al propietario. Este bloquea y muestra el campo. El trabajador exige un único
+campo de contraseña enfocado y comprueba que dos consultas conservan la misma
+identidad de objeto antes de permitir entrada. El supervisor comprueba sesión,
+PID del compositor, estado de ScreenSaver, UID del trabajador y entrada neutra.
+La sesión se compara sin LockedHint: la señal de Cinnamon, ya comprobada, es la
+fuente de bloqueo y se exige antes de cada secuencia.
+
+Solo envía Tab con liberación; el trabajador debe observar otro control enfocado.
+Con otra consulta fresca, Mayús+Tab debe devolver el foco al objeto inicial.
+Se liberan las teclas propias en finally, con señales bloqueadas durante cada
+secuencia. Después solo se consulta GetActive hasta el desbloqueo manual, sin
+seguir consultando foco mientras el propietario escribe su contraseña. No llama
+a Lock/SetActive, autentica, pulsa botones ni mueve el puntero. Plazo global de
+tres minutos; un fallo retira solo su trabajador, sin tocar el servicio de bloqueo.
+
+El lanzador verifica hashes, copia tres fuentes root/0600 a un destino nuevo y
+captura un informe privado exclusivo. El temporizador empieza al ejecutarlo el
+propietario. Sintaxis del supervisor/trabajador completo y Bash comprobadas;
+inventario nativo del trabajador por SSH a cero, sin campos mostrados ni entrada.
+Rechazos sin root en Mint, fuentes no protegidas, hashes de sesión/foco alterados,
+sesión inexistente, lanzador root y argumentos ajenos verificados, con contadores
+de envío a cero. Hashes transferidos comprobados. Evidencia:
+`mint-locked-navigation-preparation.json`. El ensayo con entrada está **pendiente**;
+no se certifican bloqueo, LightDM o transporte a partir del inventario.
+La tarea 1.4 sigue parcial, **8/57**, `readyForUnattended:false`.
