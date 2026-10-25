@@ -1440,3 +1440,138 @@ Las fuentes quedan instaladas para auditoría en el directorio de laboratorio;
 no se creó servicio. Esto acredita entrada root → ventana propia del usuario,
 pero todavía no entrada en LightDM, bloqueo o polkit ni transporte remoto.
 La tarea 1.4 sigue parcial y `readyForUnattended:false`, total **8/57**.
+
+### Mint: preparación inicial de cancelación de polkit desde root — 25/10/2026
+
+`linux-polkit-cancel-check.py --test-polkit-cancel` utiliza fuentes root protegidas
+con el auxiliar de sesión fijado por hash. Un trabajador Python fijo, ejecutado
+como usuario sin grupos adicionales ni entorno heredado, solicita exclusivamente
+`pkexec --disable-internal-agent /usr/bin/true`. Se mantiene un padre sin
+privilegios para la solicitud, porque pkexec autoriza a su proceso padre.
+El supervisor root solo podrá enviar Escape y su liberación, sin texto o clics.
+
+Antes de abrir la solicitud exige Cinnamon/X11 desbloqueado, ningún pkexec
+existente y foco inicial ajeno a Cinnamon. Antes de la tecla verifica que sigue
+la sesión original, no hay entrada retenida, el trabajador tiene UID de usuario,
+solo hay un pkexec hijo de ese trabajador, la solicitud sigue pendiente y el foco
+X11 pertenece al PID validado de Cinnamon. El resultado positivo exigirá código
+126 del solicitante a través de su trabajador; no cuenta como autorización.
+La espera total se limita a treinta segundos y retira el trabajador/solicitante.
+No cambia políticas, crea servicios ni lee texto del diálogo o credenciales.
+
+Fuentes transferidas con hashes comprobados. Sintaxis del supervisor y trabajador,
+Bash y argumentos del lanzador comprobados; en Mint se rechazó el supervisor
+sin root. En contenedor se verificaron denegaciones por directorio no protegido,
+hash incorrecto y sesión inexistente; el lanzador rechazó ejecución como root.
+Esos casos no enviaron Escape. El ensayo positivo en Mint está **pendiente**;
+se solicitó al propietario ejecutar el lanzador desde su Terminal y dejar el
+aviso sin tocar. Evidencia: `mint-polkit-cancel-preparation.json`. El foco en
+Cinnamon y el código de cancelación correlacionan la solicitud propia; no se
+trata de un canal de entrada remoto ni certifica otros avisos concurrentes.
+La tarea 1.4 sigue parcial, **8/57**, `readyForUnattended:false`.
+
+Comprobaciones del proyecto tras preparar este ensayo: typecheck correcto,
+Vitest 276 correctos/5 omitidos, PHPUnit 162 pruebas/1077 aserciones con PHP
+8.5.12, OpenSpec estricto y diff válidos. No se modificó código de la aplicación
+ni producción y no se dedujo recepción de entrada de esos controles automáticos.
+
+#### Primera ejecución y revisión de diagnóstico
+
+El propietario observó el cierre automático del aviso, sin tocarlo. Sin embargo,
+el informe del intento a registra `held_input_prevents_probe`,
+`escapePressSent:false`, `escapeReleaseSent:false` y trabajador terminado.
+La solicitud propia se retiró durante la limpieza; el cierre del aviso no se
+cuenta como prueba de entrada. Se verificaron cero pkexec/trabajadores propios
+y Cinnamon sin salvapantallas activo. La primera revisión no registraba qué
+clase de entrada estaba retenida: no se atribuye una causa concreta.
+
+La revisión 2 espera hasta dos segundos antes de la solicitud y cuatro con ella
+pendiente, exigiendo dos muestras neutras consecutivas. Mantiene la denegación
+si persiste entrada retenida y las demás comprobaciones de foco/sesión/solicitante.
+Solo registra cantidades iniciales, máximas y finales de teclas/botones, número
+de muestras y fase; nunca códigos, mapas, texto o coordenadas. No fuerza la
+liberación de teclas ajenas. Conserva plazo global y limpieza. Usa un directorio
+root nuevo y una carpeta de usuario nueva, sin sobrescribir la revisión anterior.
+
+Sintaxis del supervisor/trabajador y Bash, argumentos ajenos, denegación sin root
+en Mint y denegaciones de fuentes/hash/sesión/lanzador root en contenedor pasaron
+con la nueva fuente. Hashes transferidos comprobados. El intento b está pendiente
+de ejecución local; evidencia reconciliada en `mint-polkit-cancel-attempts.json`.
+La preparación inicial se conserva como registro histórico. No cambia el estado
+de tarea 1.4 ni certifica recepción nativa a partir de este aborto.
+
+#### Segunda ejecución, observación nativa del foco y revisión 3
+
+El intento b volvió a abortar sin Escape: `pending_cinnamon_prompt_focus_required`.
+Las dos fases registraron dos muestras neutras, cero teclas y cero botones
+retenidos; el propietario confirmó no tocar el aviso. El trabajador terminó y
+la limpieza posterior comprobó cero pkexec/trabajadores propios y Cinnamon sin
+salvapantallas activo. Este resultado no prueba recepción de entrada y no explica
+retroactivamente la clase de entrada retenida del intento a.
+
+Se inspeccionó el código instalado de ModalDialog en Cinnamon: utiliza el modal
+del compositor y el foco de actores, por lo que exigir el PID de Cinnamon bajo
+XGetInputFocus no identifica necesariamente al receptor. Antes de volver a enviar
+entrada se preparó `linux-polkit-focus-check.py`: consulta únicamente PID de
+aplicación, roles/estados de diálogos y foco vía AT-SPI como usuario, con límites
+de resultados/espera. No llama a texto, valores o acciones accesibles ni genera
+entrada. Su lanzador no usa sudo y guarda un informe privado sin sobrescribirlo.
+
+Por SSH la solicitud terminó con 127 antes de observar aviso; no se atribuye una
+causa más precisa. Ejecutado desde Terminal de la sesión gráfica, se observó
+cero diálogos antes, uno con un único campo de contraseña enfocado mientras el
+solicitante seguía pendiente y cero tras retirarlo. El propietario no tocó el
+aviso. La retirada produjo código -15: es limpieza, no una cancelación por tecla.
+Evidencia: `mint-polkit-focus-results.json`, con originales/hashes privados.
+
+La revisión 3 utiliza esa observación para validar el destino. El auxiliar de
+foco se fija por hash y se instala como tercera fuente root/0600. Sus bytes
+comprobados se entregan al trabajador de usuario, sin grupos adicionales, como
+código fijo; root no se conecta al bus de accesibilidad como administrador.
+Un socketpair anónimo heredado solo intercambia fases, metadatos y dos órdenes
+fijas (`focus`/`finish`), sin red, archivos de socket ni órdenes arbitrarias.
+
+Se exige ausencia inicial de diálogos de Cinnamon, un diálogo nuevo con un único
+campo de contraseña enfocado y una segunda consulta fresca antes de Escape.
+Se conservan sesión/UID/PID comprobados, un único pkexec hijo del trabajador,
+autoridad Xorg privada, entrada neutra y liberación de Escape. XGetInputFocus
+solo registra el retorno observado del foco, no acredita el destino del envío.
+El éxito requerirá código nativo 126, solicitante terminado, trabajador a cero
+y desaparición del diálogo; no cuenta la retirada durante un aborto.
+
+Supervisor, auxiliar y trabajador completo compilados; sintaxis Bash y argumentos
+comprobados. En Mint se rechazó ejecución sin root; en contenedor se rechazaron
+padres no protegidos, hashes de sesión/foco alterados, sesión inexistente y
+lanzador root. El trabajador real por SSH intercambió fase inicial y error al
+terminar la solicitud antes de observarla, sin entrada. Fuentes transferidas con hashes
+comprobados a carpeta nueva para el intento c; el ensayo con entrada está
+**pendiente**. No se certifica cancelación, credenciales, bloqueo, LightDM o
+transporte remoto. La atribución por accesibilidad es del laboratorio, no una
+frontera de seguridad del agente final. Tarea 1.4 parcial, **8/57**.
+
+Tras integrar la revisión 3 se repitieron typecheck (correcto), Vitest (276
+correctos/5 omitidos) y PHPUnit (162 pruebas/1077 aserciones, PHP 8.5.12).
+OpenSpec estricto, JSON/hashes y diff también correctos. Estos controles no
+sustituyen el intento c pendiente y no cambian el soporte publicado.
+
+#### Intento c: cancelación nativa de polkit verificada
+
+El propietario ejecutó la revisión 3 y confirmó no tocar el aviso. El informe
+recuperado coincide con la fuente fijada por hash: root envió Escape con su
+liberación y el solicitante devolvió **126**. El trabajador terminó a cero;
+se observaron cero diálogos al inicio, uno con un único campo de contraseña
+enfocado en las consultas pendiente/fresca y cero después. Entrada neutra antes
+de solicitar y antes de enviar, retorno observado al foco X11 previo y
+`requesterExited:true`. No se ejecutó la operación fija ni se autenticó al usuario.
+
+La limpieza independiente comprobó cero pkexec/trabajadores propios, Cinnamon
+sin salvapantallas activo y las tres fuentes instaladas root/0600. Se conservan
+los originales privados y hashes en `mint-polkit-cancel-attempts.json`; la
+preparación de cada revisión mantiene su estado histórico previo al ensayo.
+No se repite una autenticación ni se sobrescribe un resultado fallido.
+
+Este escenario acredita recepción nativa de Escape para cancelar la solicitud
+propia de polkit desde el emisor root. No prueba escritura de credenciales,
+autenticación por entrada sintética, bloqueo/LightDM o transporte WebRTC.
+`polkitAuthenticationTested:false`, `readyForUnattended:false`; tarea 1.4 parcial,
+**8/57**. Solo cambian laboratorio y evidencias, sin nueva publicación.

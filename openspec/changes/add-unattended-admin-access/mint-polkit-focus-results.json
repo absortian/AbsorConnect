@@ -1,0 +1,72 @@
+{
+  "schema": 1,
+  "date": "2026-10-25",
+  "sourceSha256": "5e698b3110a4bb433b1cc05fca4a186c1fd31c127ae4b5da9fb7f1d23d843e86",
+  "configuration": {
+    "os": "Linux Mint 22.3",
+    "desktop": "Cinnamon 6.6.9",
+    "sessionType": "x11"
+  },
+  "sshObservation": {
+    "schema": 1,
+    "platform": "linux",
+    "status": "polkit_focus_not_observed",
+    "sourceSha256": "5e698b3110a4bb433b1cc05fca4a186c1fd31c127ae4b5da9fb7f1d23d843e86",
+    "inputTested": false,
+    "readyForUnattended": false,
+    "beforeRequest": {
+      "showingDialogCount": 0,
+      "focusedDescendantsWithinDialogs": 0,
+      "focusedPasswordFieldsWithinDialogs": 0
+    },
+    "requestPendingBeforeCleanup": false,
+    "requesterExitCodeBeforeCleanup": 127,
+    "requesterExited": true,
+    "requesterExitCodeAfterCleanup": 127,
+    "reason": "request_ended_before_observation"
+  },
+  "localObservation": {
+    "schema": 1,
+    "platform": "linux",
+    "status": "polkit_focus_metadata_observed_not_certified",
+    "sourceSha256": "5e698b3110a4bb433b1cc05fca4a186c1fd31c127ae4b5da9fb7f1d23d843e86",
+    "inputTested": false,
+    "readyForUnattended": false,
+    "beforeRequest": {
+      "showingDialogCount": 0,
+      "focusedDescendantsWithinDialogs": 0,
+      "focusedPasswordFieldsWithinDialogs": 0
+    },
+    "requestPendingBeforeCleanup": true,
+    "pendingRequest": {
+      "showingDialogCount": 1,
+      "focusedDescendantsWithinDialogs": 1,
+      "focusedPasswordFieldsWithinDialogs": 1
+    },
+    "requesterTerminatedByProbe": true,
+    "requesterExited": true,
+    "requesterExitCodeAfterCleanup": -15,
+    "afterCleanup": {
+      "showingDialogCount": 0,
+      "focusedDescendantsWithinDialogs": 0,
+      "focusedPasswordFieldsWithinDialogs": 0
+    }
+  },
+  "ownerConfirmedNoInteraction": true,
+  "syntaxAndRootRejectionVerified": true,
+  "missingOptionRejected": true,
+  "transferredHashesVerified": true,
+  "rawReportHashes": {
+    "focus-observation-ssh.json": "748d30d02e1b42179fc4673b75c713cd64022165f72e7d5ae12c5c1dbbcc302f",
+    "focus-observation-local.json": "d3d92464ff8b3e1a8557fcb6777f58e9039498c7f68ba39b020f971361b8995b",
+    "focus-observation-owner.json": "2599ef864a6504080d7fe948ef053cdc76b3da0b69ccfd3fc0027a767ddc7ad1"
+  },
+  "inputTested": false,
+  "readyForUnattended": false,
+  "limits": [
+    "Se consultan PID de aplicación y roles/estados de accesibilidad. No se invocan interfaces de texto, valores o acciones ni se envían teclas/clics.",
+    "El código 127 por SSH ocurrió antes de observar un aviso; no acredita una causa más precisa.",
+    "El solicitante local fue terminado por el diagnóstico, con código -15; no es una cancelación nativa mediante Escape ni autenticación.",
+    "La secuencia local 0→1→0 de diálogos con un campo de contraseña enfocado permite preparar una comprobación del destino de laboratorio. No certifica el agente final."
+  ]
+}
