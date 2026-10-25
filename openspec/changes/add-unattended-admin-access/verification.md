@@ -1632,3 +1632,64 @@ de contexto/foco con confirmación humana, no recepción de entrada sintética:
 `inputTested:false`, `captureTested:false`, `readyForUnattended:false`. Quedan
 entrada en bloqueo y LightDM y la integración del agente. Tarea 1.4 parcial,
 **8/57**, sin cambios de producción.
+
+### Mint: navegación nativa en bloqueo preparada — 25/10/2026
+
+`linux-lock-input-check.py --test-locked-navigation` reutiliza las fuentes
+protegidas de sesión/foco fijadas por hash y el acceso privado a Xauthority del
+servidor Xorg. El supervisor root crea un trabajador de usuario sin grupos
+adicionales, conectado solo por socketpair anónimo heredado. El trabajador
+consulta exclusivamente metadatos AT-SPI del servicio ScreenSaver cuyo UID/PID
+verifica; no usa interfaces de texto, valores o acciones ni escucha teclas.
+
+Se inicia en escritorio desbloqueado y emite `READY_TO_LOCK_MINT` antes de esperar
+al propietario. Este bloquea y muestra el campo. El trabajador exige un único
+campo de contraseña enfocado y comprueba que dos consultas conservan la misma
+identidad de objeto antes de permitir entrada. El supervisor comprueba sesión,
+PID del compositor, estado de ScreenSaver, UID del trabajador y entrada neutra.
+La sesión se compara sin LockedHint: la señal de Cinnamon, ya comprobada, es la
+fuente de bloqueo y se exige antes de cada secuencia.
+
+Solo envía Tab con liberación; el trabajador debe observar otro control enfocado.
+Con otra consulta fresca, Mayús+Tab debe devolver el foco al objeto inicial.
+Se liberan las teclas propias en finally, con señales bloqueadas durante cada
+secuencia. Después solo se consulta GetActive hasta el desbloqueo manual, sin
+seguir consultando foco mientras el propietario escribe su contraseña. No llama
+a Lock/SetActive, autentica, pulsa botones ni mueve el puntero. Plazo global de
+tres minutos; un fallo retira solo su trabajador, sin tocar el servicio de bloqueo.
+
+El lanzador verifica hashes, copia tres fuentes root/0600 a un destino nuevo y
+captura un informe privado exclusivo. El temporizador empieza al ejecutarlo el
+propietario. Sintaxis del supervisor/trabajador completo y Bash comprobadas;
+inventario nativo del trabajador por SSH a cero, sin campos mostrados ni entrada.
+Rechazos sin root en Mint, fuentes no protegidas, hashes de sesión/foco alterados,
+sesión inexistente, lanzador root y argumentos ajenos verificados, con contadores
+de envío a cero. Hashes transferidos comprobados. Evidencia:
+`mint-locked-navigation-preparation.json`. El ensayo con entrada está **pendiente**;
+no se certifican bloqueo, LightDM o transporte a partir del inventario.
+La tarea 1.4 sigue parcial, **8/57**, `readyForUnattended:false`.
+
+#### Ejecución: Tab y Mayús+Tab recibidos en el bloqueo
+
+El propietario ejecutó el lanzador y confirmó que volvió al escritorio tras
+introducir la contraseña. El informe identificado por los mismos hashes de
+preparación devolvió `locked_tab_navigation_verified_not_certified`: supervisor
+root y trabajador sin privilegios, identidad estable del campo, contexto
+bloqueado conservado y recepción nativa de ambas secuencias. El foco pasó del
+rol AT-SPI 40 al 43 y volvió al **mismo objeto** inicial; no se publican las
+referencias de esos objetos. Contadores Tab 2 pulsaciones/2 liberaciones y
+Mayús 1/1, con entrada neutra antes y después de la navegación.
+
+El trabajador dejó de consultar el foco antes del desbloqueo, observó la vuelta
+a escritorio y terminó con código 0. La comprobación independiente encontró
+cero procesos del ensayo, ScreenSaver inactivo y tres fuentes regulares
+root/0600. El foco X11 anterior también se observó restaurado, sin forzarlo.
+Evidencia y hashes privados reconciliados en
+`mint-locked-navigation-results.json`; la preparación anterior se conserva.
+
+Esto acredita navegación sin texto en el bloqueo de esta configuración de
+Cinnamon. No prueba contraseñas, autenticación sintética, entrada en LightDM,
+cambio de usuario, reinicio ni transporte remoto. `inputTested:true`,
+`captureTested:false`, `preLoginTested:false`, `readyForUnattended:false`. La
+tarea 1.4 sigue parcial y el progreso permanece en **8/57**. No hay nueva
+versión de producción por estos cambios de laboratorio.
