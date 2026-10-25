@@ -1575,3 +1575,29 @@ propia de polkit desde el emisor root. No prueba escritura de credenciales,
 autenticación por entrada sintética, bloqueo/LightDM o transporte WebRTC.
 `polkitAuthenticationTested:false`, `readyForUnattended:false`; tarea 1.4 parcial,
 **8/57**. Solo cambian laboratorio y evidencias, sin nueva publicación.
+
+### Mint: observación del foco en bloqueo preparada — 25/10/2026
+
+Tras verificar cancelación de polkit se prepara `linux-lock-focus-check.py`,
+únicamente como observador de usuario. Usa los auxiliares de contexto/foco
+fijados por hash desde una carpeta privada, sin pycache. Solo consulta la sesión
+propia X11, GetActive, propietario UID/PID del servicio ScreenSaver y roles/estados
+AT-SPI de esa aplicación. No captura imágenes, escucha teclas, lee texto/valores,
+envía entrada o llama a Lock/SetActive/SimulateUserActivity. No crea servicios ni
+modifica políticas, archivos del sistema o configuración del inicio de sesión.
+
+El inventario inicial real por SSH pasó: sesión propia activa y desbloqueada,
+propietario del bus verificado, una aplicación accesible y cero campos de
+contraseña mostrados/enfocados. Sintaxis, opción obligatoria, rechazo como root
+y hashes de transferencia comprobados. `--inventory-only` no espera transiciones
+ni guarda archivos en Mint. Evidencia: `mint-lock-focus-preparation.json`.
+
+Se inició después el observador completo, con archivos exclusivos 0600 y un
+plazo de tres minutos, y emitió `waiting_for_owner_lock`. El propietario recibió
+la coordinación para bloquear solo Mint, mostrar el campo durante quince segundos
+y desbloquearlo localmente. El observador dejará de consultar foco al encontrar
+un campo de contraseña enfocado y consultará solo GetActive hasta desbloquear.
+La transición y los metadatos en bloqueo siguen **pendientes**. El uso real de
+contraseña requiere confirmación humana independiente; GetActive por sí solo no
+certifica bloqueo. No prueba entrada nativa en bloqueo/LightDM ni transporte.
+La tarea 1.4 sigue parcial, **8/57**, `readyForUnattended:false`.
