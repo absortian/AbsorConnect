@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "date": "2026-10-25",
+  "status": "prepared_waiting_for_owner_lock",
+  "sourceSha256": "cacdd22685e36011e49eb68a5986e156887f954a557b2772ca665a8e5d0e7cc7",
+  "dependencyHashes": {
+    "linux-owned-input-check.py": "948e62402572c0a517ab1a16b5d2a1f7af9ddc76dd81ac57ada3d4e4379a16ce",
+    "linux-polkit-focus-check.py": "5e698b3110a4bb433b1cc05fca4a186c1fd31c127ae4b5da9fb7f1d23d843e86"
+  },
+  "pythonSyntaxCompiled": true,
+  "missingOptionExitCode": 2,
+  "rootObserverRejected": true,
+  "transferredHashesVerified": true,
+  "nativeInventory": {
+    "schema": 1,
+    "platform": "linux",
+    "status": "lock_focus_inventory_only",
+    "sourceSha256": "cacdd22685e36011e49eb68a5986e156887f954a557b2772ca665a8e5d0e7cc7",
+    "inputTested": false,
+    "captureTested": false,
+    "readyForUnattended": false,
+    "beforeLock": {
+      "busOwnerVerified": true,
+      "accessibleApplicationCount": 1,
+      "showingPasswordFields": 0,
+      "focusedPasswordFields": 0,
+      "focusedRoleCounts": {}
+    }
+  },
+  "nativeInventoryExitCode": 0,
+  "rawReportHashes": {
+    "inventory.json": "a4d19a13acea3d619b5c8e9f66ab8e83c55041e86d23189090be9696598c3a5a"
+  },
+  "lockTransitionVerified": false,
+  "inputTested": false,
+  "readyForUnattended": false,
+  "limits": [
+    "Preparación e inventario inicial sin bloqueo. No acredita transición ni recepción de entrada.",
+    "Se observa desde el usuario y se verifica el propietario del servicio de bus; es atribución de laboratorio, no frontera de seguridad del agente final.",
+    "GetActive distingue estado de salvapantallas. La confirmación humana de contraseña al desbloquear se registra por separado."
+  ]
+}

@@ -340,6 +340,30 @@ y el modal sigue el flujo de
 El estado de entrada consultado sigue el
 [mapa lógico de XQueryKeymap](https://xorg.freedesktop.org/archive/X11R7.5/doc/man/man3/XQueryKeymap.3.html).
 
+### Mint: observación de foco en bloqueo
+
+`linux-lock-focus-check.py --observe-lock` espera hasta tres minutos la secuencia
+inactivo → activo → inactivo de Cinnamon ScreenSaver. El propietario bloquea y
+desbloquea Mint; el programa no solicita ni realiza esas acciones. Verifica sesión
+propia X11 y propietario del servicio de bus, limita las consultas AT-SPI a su
+aplicación y recoge solo cantidades/roles/estados. No consulta texto, valores,
+acciones o eventos de teclas ni captura imágenes. Tras observar un campo de
+contraseña enfocado deja de consultar el foco hasta desbloquear.
+
+Necesita una carpeta privada con los auxiliares de contexto y foco fijados por
+hash; sus fuentes se ejecutan desde bytes comprobados sin pycache. Los informes
+y eventos se crean como 0600, sin sobrescribirlos. `--observe-lock --inventory-only`
+valida el contexto inicial y sale sin esperar ni guardar archivos. El inventario
+real está comprobado; la primera espera terminó por tiempo sin observar bloqueo.
+La segunda observación pasó: bloqueo, un campo de contraseña enfocado y retorno
+al escritorio sin ese campo. El propietario confirmó que necesitó contraseña y
+se verificaron cero procesos propios. Evidencia en `mint-lock-focus-results.json`;
+la preparación anterior se conserva en `mint-lock-focus-preparation.json`.
+Antes de arrancar otra espera se coordina la presencia del propietario. GetActive
+por sí solo no demuestra un bloqueo real: la confirmación de contraseña se
+registra por separado. Esta observación no acredita entrada nativa ni el agente
+o transporte remoto.
+
 ## Windows
 
 En el equipo de pruebas, desde PowerShell:

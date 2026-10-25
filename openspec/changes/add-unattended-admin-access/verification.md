@@ -1575,3 +1575,60 @@ propia de polkit desde el emisor root. No prueba escritura de credenciales,
 autenticación por entrada sintética, bloqueo/LightDM o transporte WebRTC.
 `polkitAuthenticationTested:false`, `readyForUnattended:false`; tarea 1.4 parcial,
 **8/57**. Solo cambian laboratorio y evidencias, sin nueva publicación.
+
+### Mint: observación del foco en bloqueo preparada — 25/10/2026
+
+Tras verificar cancelación de polkit se prepara `linux-lock-focus-check.py`,
+únicamente como observador de usuario. Usa los auxiliares de contexto/foco
+fijados por hash desde una carpeta privada, sin pycache. Solo consulta la sesión
+propia X11, GetActive, propietario UID/PID del servicio ScreenSaver y roles/estados
+AT-SPI de esa aplicación. No captura imágenes, escucha teclas, lee texto/valores,
+envía entrada o llama a Lock/SetActive/SimulateUserActivity. No crea servicios ni
+modifica políticas, archivos del sistema o configuración del inicio de sesión.
+
+El inventario inicial real por SSH pasó: sesión propia activa y desbloqueada,
+propietario del bus verificado, una aplicación accesible y cero campos de
+contraseña mostrados/enfocados. Sintaxis, opción obligatoria, rechazo como root
+y hashes de transferencia comprobados. `--inventory-only` no espera transiciones
+ni guarda archivos en Mint. Evidencia: `mint-lock-focus-preparation.json`.
+
+Se inició después el observador completo, con archivos exclusivos 0600 y un
+plazo de tres minutos, y emitió `waiting_for_owner_lock`. El propietario recibió
+la coordinación para bloquear solo Mint, mostrar el campo durante quince segundos
+y desbloquearlo localmente. El observador dejará de consultar foco al encontrar
+un campo de contraseña enfocado y consultará solo GetActive hasta desbloquear.
+La transición y los metadatos en bloqueo siguen **pendientes**. El uso real de
+contraseña requiere confirmación humana independiente; GetActive por sí solo no
+certifica bloqueo. No prueba entrada nativa en bloqueo/LightDM ni transporte.
+La tarea 1.4 sigue parcial, **8/57**, `readyForUnattended:false`.
+
+#### Primera espera sin transición
+
+El observador terminó con `owner_lock_transition_timeout` tras tres minutos,
+sin observar GetActive:true ni enviar entrada. Solo registró el contexto inicial
+válido y `waiting_for_owner_lock`. Se recuperaron el informe y el registro privado;
+se verificaron cero procesos de esa ejecución. Esto no indica una avería de
+bloqueo: no hay una transición observada que permita evaluar el foco.
+Se avisó de que ya no se debe bloquear para esa ejecución y se pidió confirmar
+presencia delante de Mint antes de iniciar otra. Los archivos de una carpeta
+nueva están preparados con hashes verificados, sin arrancar otro observador.
+Evidencia: `mint-lock-focus-results.json`. Preparación previa conservada como
+histórica; tarea 1.4 parcial, **8/57**, sin nueva publicación.
+
+#### Segunda observación: bloqueo y foco verificados
+
+Con el propietario preparado se inició un observador nuevo y se coordinó el
+bloqueo/desbloqueo solo de Mint. El informe coincide con la fuente fijada:
+`lockedStateObserved:true`, un campo de contraseña mostrado/enfocado en la
+aplicación del propietario del bus verificado, `unlockedStateObserved:true` y
+cero campos después. El propietario confirmó que volvió al escritorio y que el
+desbloqueo pidió contraseña. Tras encontrar ese foco se dejaron de consultar sus
+metadatos hasta desbloquear, sin leer contenido ni escuchar teclas.
+
+Los tres eventos registran espera, activación y foco de contraseña observado.
+El trabajador terminó y se comprobaron cero procesos propios. Evidencia saneada
+y hashes en `mint-lock-focus-results.json`; originales privados. Es observación
+de contexto/foco con confirmación humana, no recepción de entrada sintética:
+`inputTested:false`, `captureTested:false`, `readyForUnattended:false`. Quedan
+entrada en bloqueo y LightDM y la integración del agente. Tarea 1.4 parcial,
+**8/57**, sin cambios de producción.
