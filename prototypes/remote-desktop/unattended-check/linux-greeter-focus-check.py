@@ -23,18 +23,15 @@ GREETER = Path("/usr/sbin/slick-greeter")
 # Recibe solo PID/UID y una dirección local de accesibilidad. No recibe cookies
 # X11 ni consulta entornos de procesos. Nunca usa interfaces de texto o acciones.
 OBSERVER = r'''
-import json, os, signal, sys, time
+import json, os, re, signal, sys, time
 from pathlib import Path
 import gi
-gi.require_version("Atspi", "2.0")
-from gi.repository import Atspi
 pid,uid=int(sys.argv[1]),int(sys.argv[2])
 if uid<=0 or os.getuid()!=uid or os.getgid()!=int(sys.argv[3]) or os.getgroups():
     sys.exit(3)
 def interrupted(_signal,_frame):raise RuntimeError("observer_timeout")
 signal.signal(signal.SIGALRM,interrupted)
 signal.alarm(12)
-Atspi.set_timeout(500,1500)
 def identity():
     p=Path("/proc")/str(pid)
     if p.stat().st_uid!=uid or (p/"exe").resolve()!=Path("/usr/sbin/slick-greeter"):
@@ -50,7 +47,36 @@ def matches(app,states,roles):
     return values
 report={"greeterProcessVerified":False,"observerUnprivileged":True,
         "supplementaryGroupsEmpty":True,"inputSent":False}
+session_bus=None
 try:
+    identity()
+    if "DBUS_SESSION_BUS_ADDRESS" in os.environ:
+        from gi.repository import Gio,GLib
+        flags=Gio.DBusConnectionFlags.AUTHENTICATION_CLIENT|Gio.DBusConnectionFlags.MESSAGE_BUS_CONNECTION
+        session_bus=Gio.DBusConnection.new_for_address_sync(os.environ["DBUS_SESSION_BUS_ADDRESS"],flags,None,None)
+        def call(destination,path,interface,method,arguments,result):
+            return session_bus.call_sync(destination,path,interface,method,arguments,
+                                         GLib.VariantType.new(result),Gio.DBusCallFlags.NO_AUTO_START,1500,None).unpack()[0]
+        def owner(method,name,result):
+            return call("org.freedesktop.DBus","/org/freedesktop/DBus","org.freedesktop.DBus",
+                        method,GLib.Variant("(s)",(name,)),result)
+        if (owner("GetConnectionUnixProcessID","x.dm.SlickGreeter","(u)")!=pid
+                or owner("GetConnectionUnixUser","x.dm.SlickGreeter","(u)")!=uid):
+            raise RuntimeError("greeter_bus_owner_mismatch")
+        report["greeterBusOwnerVerified"]=True
+        report["a11yBusAlreadyOwned"]=owner("NameHasOwner","org.a11y.Bus","(b)")
+        if not report["a11yBusAlreadyOwned"]:
+            raise RuntimeError("existing_accessibility_bus_required")
+        address=call("org.a11y.Bus","/org/a11y/bus","org.a11y.Bus","GetAddress",None,"(s)")
+        if len(address)>512 or not re.fullmatch(r"unix:(?:path|abstract)=[/A-Za-z0-9_.%-]+(?:,guid=[0-9a-f]{32})?",address):
+            raise RuntimeError("single_local_accessibility_address_required")
+        os.environ["AT_SPI_BUS_ADDRESS"]=address
+        report["accessibilityDiscovery"]="existing_greeter_session_bus"
+    else:
+        report["accessibilityDiscovery"]="x11_property"
+    gi.require_version("Atspi", "2.0")
+    from gi.repository import Atspi
+    Atspi.set_timeout(500,1500)
     deadline=time.monotonic()+8
     while time.monotonic()<deadline:
         identity()
@@ -82,7 +108,9 @@ try:
     else:raise RuntimeError("focused_greeter_password_not_observed")
 except Exception as error:
     report["reason"]=str(error) if isinstance(error,RuntimeError) else type(error).__name__
-finally:signal.alarm(0)
+finally:
+    signal.alarm(0)
+    if session_bus is not None:session_bus.close_sync(None)
 print(json.dumps(report),flush=True)
 sys.exit(0 if report.get("focusedPasswordObserved") else 3)
 '''
@@ -127,6 +155,29 @@ def greeter_process(uid):
     if len(candidates) != 1:
         raise RuntimeError("unique_greeter_process_required")
     return candidates[0]
+
+
+def greeter_session_bus(pid, uid):
+    # Solo el campo de dirección del greeter validado; el entorno y la dirección
+    # no se registran. Nunca consulta procesos de la sesión personal del usuario.
+    process = Path("/proc") / str(pid)
+    def identity():
+        if process.stat().st_uid != uid or (process / "exe").resolve() != GREETER:
+            raise RuntimeError("greeter_process_changed")
+    identity()
+    with (process / "environ").open("rb") as stream:
+        data = stream.read(65537)
+    if len(data) > 65536:
+        raise RuntimeError("greeter_environment_limit")
+    values = [item.split(b"=", 1)[1] for item in data.split(b"\0")
+              if item.startswith(b"DBUS_SESSION_BUS_ADDRESS=")]
+    if len(values) != 1:
+        raise RuntimeError("unique_greeter_session_address_required")
+    address = values[0].decode("ascii")
+    if len(address) > 512 or not re.fullmatch(r"unix:(?:path|abstract)=[/A-Za-z0-9_.%-]+(?:,guid=[0-9a-f]{32})?", address):
+        raise RuntimeError("single_local_session_address_required")
+    identity()
+    return address
 
 
 def read_accessibility_property(x11, display, window, observation):
@@ -221,6 +272,7 @@ def observe(report):
         raise RuntimeError("expected_lightdm_x11_greeter_required")
     # logind puede anunciar el greeter antes de que publique su bus accesible.
     startup_deadline = min(deadline, time.monotonic() + 10)
+    address_variable = "AT_SPI_BUS_ADDRESS"
     while True:
         try:
             pid = greeter_process(uid)
@@ -230,14 +282,20 @@ def observe(report):
             if str(error) not in ("unique_greeter_process_required", "unique_private_root_authority_required",
                                   "root_x11_connection_failed", "greeter_accessibility_property_absent"):
                 raise
-            if time.monotonic() >= startup_deadline or session_api.context() != current:
+            if session_api.context() != current:
                 raise
+            if time.monotonic() >= startup_deadline:
+                if str(error) != "greeter_accessibility_property_absent":
+                    raise
+                address = greeter_session_bus(pid, uid)
+                address_variable = "DBUS_SESSION_BUS_ADDRESS"
+                break
             time.sleep(0.25)
     if session_api.context() != current or greeter_process(uid) != pid:
         raise RuntimeError("greeter_changed_before_observation")
     # El trabajador no recibe DISPLAY ni XAUTHORITY: solo usa AT-SPI como lightdm.
     environment = {"PATH": "/usr/bin:/bin", "LANG": "C.UTF-8", "HOME": account.pw_dir,
-                   "AT_SPI_BUS_ADDRESS": address}
+                   address_variable: address}
     child = subprocess.run(["/usr/bin/python3", "-I", "-c", OBSERVER, str(pid), str(uid), str(account.pw_gid)],
                            user=uid, group=account.pw_gid, extra_groups=[], env=environment,
                            stdin=subprocess.DEVNULL, capture_output=True, timeout=15, check=False)
