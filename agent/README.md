@@ -27,7 +27,8 @@ El reloj cuenta la suspensión, sin depender del calendario:
 
 - Linux **de 64 bits**: `clock_gettime(CLOCK_BOOTTIME)`, con validación del resultado.
 - macOS: `mach_continuous_time` y conversión comprobada con `mach_timebase_info`.
-- Windows 10+: `QueryInterruptTimePrecise`, con unidades de 100 ns.
+- Windows 10+: `QueryInterruptTimePrecise`, con unidades de 100 ns y la import library
+  `Mincore.lib` del SDK ([contrato de Microsoft](https://learn.microsoft.com/en-us/windows/win32/api/realtimeapiset/nf-realtimeapiset-queryinterrupttimeprecise)).
 
 FFI está limitada a `clock.rs`; el resto del núcleo prohíbe `unsafe`. El crate
 `agent-core` no tiene dependencias de terceros. Rust mínimo 1.75; lockfile versionado y compilación
@@ -157,9 +158,9 @@ huellas después de aplicarlas. Se admiten huellas SHA-256 bien formadas.
 trabajador que termina DTLS; no basta analizar una oferta de señalización.
 `VerifiedConnection` no es clonable ni serializable y se consume al activar
 esa misma conexión. No autoriza otra PeerConnection ni sustituye permisos del
-backend, consentimiento local o verificación del IPC. La biblioteca todavía
-no está enlazada al adaptador C++: falta la frontera real entre procesos y su
-prueba con transporte, captura y entrada. No cambiar de ubicación los secretos
+backend, consentimiento local o verificación del IPC. La biblioteca tiene un enlace de laboratorio descrito en el apartado siguiente:
+faltan el adaptador del servicio, la frontera real entre procesos y su prueba
+con captura y entrada. No cambiar de ubicación los secretos
 ni aceptar un booleano de autenticación procedente de un proceso ajeno.
 
 Un único `Verifier`/actor administra todos los intentos del host. `AttemptStore`
@@ -184,6 +185,56 @@ borra fallos. Retira su directorio al terminar. No lee datos de la app, no crea
 cuentas/servicios, no captura ni envía entrada. La implementación de archivo es
 solo de laboratorio: no certifica ACL, cifrado, concurrencia ni recuperación del
 almacén de producción por plataforma. Su éxito no cierra la tarea 3.2.
+
+## Enlace de laboratorio con libwebrtc y API
+
+`absor-agent-webrtc-lab` enlaza los tres componentes anteriores con el trabajador
+C++ existente de vídeo artificial. **No es el servicio**, no acepta K del
+propietario y no debe incluirse en sus instaladores. Usa exclusivamente K y
+salt públicos del vector compartido. La ABI C está ausente por omisión; exige
+`lab-http` y solo acepta la API HTTP loopback con credencial de agente efímera.
+
+Cada instancia pertenece a una PeerConnection. El trabajador aplica sus
+descripciones, termina DTLS y entrega sus huellas al verificador Rust. Exige
+autorización de API antes de crear la conexión, comprueba HMAC/registro y solo
+entonces añade la pista artificial. Tick y consulta del handle activo mantienen
+la caducidad; una respuesta tardía no rehabilita una sesión ya cerrada. Al cortar,
+el adaptador detiene la fuente y cierra canal y PeerConnection. El bucle consulta
+cada 50 ms; falta un supervisor/watchdog independiente si el hilo se bloquea.
+Esta prueba no certifica el comportamiento temporal del servicio final.
+
+Los identificadores de ABI son números no reutilizados, no punteros. El registro
+acotado y serializado rechaza identificadores ajenos/cerrados. `unsafe` se limita
+a copiar buffers C de tamaño acotado y escribir la respuesta; el llamador
+compilado debe proporcionar memoria válida. Esta ABI interna no es un protocolo
+de IPC autenticado y nunca debe exponerse directamente a red o renderers.
+
+```bash
+# Mac: usa el checkout/compilador fijado del laboratorio de WebRTC.
+python3 prototypes/remote-desktop/webrtc-check/build.py /ruta/laboratorio --rust-bridge
+python3 prototypes/backend-agent-check/isolated-webrtc-renewal.py /ruta/laboratorio --node /ruta/node
+```
+
+El enlace nativo se ha preparado y probado en Mac ARM. Compila una dylib con el
+Rust del checkout de WebRTC y la resuelve por rpath privado del diagnóstico,
+separada de su runtime Rust interno. Los otros diagnósticos conservan su build
+sin Cargo por omisión. El crate y la ABI se verifican aparte con Rust estable
+en CI de tres SO; eso no compila ni certifica libwebrtc en Windows/Linux.
+
+El lanzador aislado usa la imagen PHP de desarrollo y una BD propia efímera en
+el Postgres local. Publica la API solo en un puerto loopback libre, mantiene los
+límites configurados y retira sus cuentas, contenedor, BD y archivo de entorno.
+No resetea los límites ni datos de la API de desarrollo. Sus caches van a tmpfs;
+los logs privados quedan en el laboratorio. Se prueban vídeo válido, HMAC/huella
+erróneos, revocación y corte de API, más rechazo previo a crear PeerConnection.
+
+El visor aislado recibe solo dos recursos públicos por un protocolo propio,
+con CSP, sandbox y contexto separado. Se bloquean peticiones file/http/https y
+se comprueba que no puede leer un archivo marcador ni la ruta de credenciales.
+El token de cuenta no se entrega al trabajador y la credencial del agente no
+se entrega al renderer. La señalización sigue pasando por archivos privados de
+prueba: faltan señalización completa, almacén protegido por SO, captura/entrada
+reales, supervisor e instaladores. Esta variante aún no prueba TURN ni Flutter.
 
 ## Orden de aceptación acordado
 

@@ -31,6 +31,10 @@
 #include "rtc_base/ssl_adapter.h"
 #include "rtc_base/thread.h"
 #include "vectors.h"
+#ifdef ABSOR_RUST_BRIDGE
+#include "absor_bridge.h"  // nogncheck: solo rust_video_channel_check.
+#include "api/units/time_delta.h"  // nogncheck: dependencia directa del target Rust.
+#endif
 #ifdef ABSOR_SYNTHETIC_VIDEO
 // GN también analiza la variante sin medios; este include solo existe en video_channel_check.
 #include "synthetic_video.h"  // nogncheck
@@ -38,7 +42,11 @@
 
 namespace {
 using BoolResult = std::shared_ptr<std::promise<bool>>;
+#ifdef ABSOR_RUST_BRIDGE
+constexpr auto kTimeout = std::chrono::seconds(45);
+#else
 constexpr auto kTimeout = std::chrono::seconds(20);
+#endif
 
 std::string Encode(const uint8_t* bytes, size_t size) {
   std::vector<uint8_t> output(4 * ((size + 2) / 3) + 1);
@@ -97,7 +105,15 @@ class Answer : public webrtc::CreateSessionDescriptionObserver {
 
 class Observer final : public webrtc::PeerConnectionObserver, public webrtc::DataChannelObserver {
  public:
-  explicit Observer(webrtc::Thread* signaling, bool server_candidates) : signaling_(signaling), server_candidates_(server_candidates) {
+  explicit Observer(webrtc::Thread* signaling, bool server_candidates
+#ifdef ABSOR_RUST_BRIDGE
+      , uint64_t bridge
+#endif
+      ) :
+#ifdef ABSOR_RUST_BRIDGE
+      bridge_(bridge),
+#endif
+      signaling_(signaling), server_candidates_(server_candidates) {
     std::array<uint8_t, 32> bytes{};
     if (RAND_bytes(bytes.data(), bytes.size())) nonce = Encode(bytes.data(), bytes.size());
   }
@@ -111,6 +127,21 @@ class Observer final : public webrtc::PeerConnectionObserver, public webrtc::Dat
   bool attempted = false;
   bool connected = false;
   std::function<void()> on_authenticated;
+#ifdef ABSOR_RUST_BRIDGE
+  std::function<void()> on_cut;
+  int bridge_cut = 0;
+  void Poll() {
+    if (detached_) return;
+    const int state = absor_bridge_poll(bridge_);
+    if (state < 0) {
+      bridge_cut = state;
+      if (on_cut) on_cut();
+      if (!acknowledged_) { acknowledged_ = true; acknowledged.set_value(true); }
+      return;
+    }
+    signaling_->PostDelayedTask([this] { Poll(); }, webrtc::TimeDelta::Millis(50));
+  }
+#endif
   webrtc::scoped_refptr<webrtc::DataChannelInterface> channel;
 
   void OnSignalingChange(webrtc::PeerConnectionInterface::SignalingState) override {}
@@ -142,14 +173,26 @@ class Observer final : public webrtc::PeerConnectionObserver, public webrtc::Dat
     signaling_->PostTask([this] {
       if (!channel || channel->state() != webrtc::DataChannelInterface::kOpen || hello_sent_) return;
       hello_sent_ = true;
-      const auto& vector = kVectors.back();
       Json::Value hello;
+#ifdef ABSOR_RUST_BRIDGE
+      std::array<uint8_t, 4096> output{};
+      const int length = absor_bridge_hello(bridge_,
+          reinterpret_cast<const uint8_t*>(offer_fingerprint.data()), offer_fingerprint.size(),
+          reinterpret_cast<const uint8_t*>(answer_fingerprint.data()), answer_fingerprint.size(), output.data(), output.size());
+      if (length <= 0 || static_cast<size_t>(length) > output.size()) { Detach(); return; }
+      std::istringstream encoded(std::string(reinterpret_cast<const char*>(output.data()), length));
+      Json::CharReaderBuilder parser;
+      std::string errors;
+      if (!Json::parseFromStream(parser, encoded, &hello, &errors)) { Detach(); return; }
+#else
+      const auto& vector = kVectors.back();
       hello["v"] = 1;
       hello["type"] = "hello";
       hello["hostName"] = "Host nativo de laboratorio";
       hello["salt"] = vector.salt;
       hello["iterations"] = vector.iterations;
       hello["nonce"] = nonce;
+#endif
       Send(hello);
     });
   }
@@ -174,7 +217,11 @@ class Observer final : public webrtc::PeerConnectionObserver, public webrtc::Dat
       if (message["type"] != "auth" || attempted || !hello_sent_ ||
           !message["proof"].isString() || message["proof"].asString().size() > 256) return;
       attempted = true;
+#ifdef ABSOR_RUST_BRIDGE
+      authenticated = absor_bridge_auth(bridge_, reinterpret_cast<const uint8_t*>(text.data()), text.size()) == 1;
+#else
       authenticated = Verify(message["proof"].asString());
+#endif
       Json::Value result;
       result["v"] = 1;
       result["type"] = "auth-result";
@@ -186,6 +233,9 @@ class Observer final : public webrtc::PeerConnectionObserver, public webrtc::Dat
   }
 
   void Detach() {
+#ifdef ABSOR_RUST_BRIDGE
+    detached_ = true;
+#endif
     if (channel) {
       channel->UnregisterObserver();
       channel->Close();
@@ -199,6 +249,7 @@ class Observer final : public webrtc::PeerConnectionObserver, public webrtc::Dat
     builder["indentation"] = "";
     channel->Send(webrtc::DataBuffer(Json::writeString(builder, value)));
   }
+#ifndef ABSOR_RUST_BRIDGE
   bool Verify(const std::string& proof) {
     if (nonce.empty() || offer_fingerprint.empty() || answer_fingerprint.empty()) return false;
     const auto& encoded_key = kVectors.back().key;
@@ -218,6 +269,11 @@ class Observer final : public webrtc::PeerConnectionObserver, public webrtc::Dat
     return proof.size() == expected.size() &&
            CRYPTO_memcmp(proof.data(), expected.data(), proof.size()) == 0;
   }
+#endif
+#ifdef ABSOR_RUST_BRIDGE
+  uint64_t bridge_;
+  bool detached_ = false;
+#endif
   webrtc::Thread* signaling_;
   bool server_candidates_;
   std::atomic<bool> gathered_{false};
@@ -263,6 +319,13 @@ bool Exchange(webrtc::scoped_refptr<webrtc::PeerConnectionInterface> connection,
   std::string final_sdp;
   signaling->BlockingCall([&] { connection->local_description()->ToString(&final_sdp); });
   if (final_sdp.size() > 262144) return false;
+#ifdef ABSOR_RUST_BRIDGE
+  // Vincular a las descripciones aplicadas: libwebrtc comprueba el certificado DTLS.
+  std::string applied_remote;
+  signaling->BlockingCall([&] { connection->remote_description()->ToString(&applied_remote); });
+  observer.offer_fingerprint = Fingerprint(applied_remote);
+  observer.answer_fingerprint = Fingerprint(final_sdp);
+#endif
   // El controlador crea la carpeta privada y espera este archivo antes de leerlo.
   const auto temporary = std::string(answer_path) + ".part";
   { std::ofstream file(temporary, std::ios::binary); file << final_sdp; if (!file) return false; }
@@ -274,7 +337,11 @@ bool Exchange(webrtc::scoped_refptr<webrtc::PeerConnectionInterface> connection,
 }
 
 int Run(const std::string& offer, const char* answer_path,
-        const webrtc::PeerConnectionInterface::RTCConfiguration& configuration) {
+        const webrtc::PeerConnectionInterface::RTCConfiguration& configuration
+#ifdef ABSOR_RUST_BRIDGE
+        , uint64_t bridge
+#endif
+        ) {
   auto network = webrtc::Thread::CreateWithSocketServer();
   auto signaling = webrtc::Thread::Create();
   if (!network->Start() || !signaling->Start()) return 2;
@@ -287,7 +354,11 @@ int Run(const std::string& offer, const char* answer_path,
 #endif
   auto factory = webrtc::CreateModularPeerConnectionFactory(std::move(dependencies));
   if (!factory) return 3;
-  Observer observer(signaling.get(), !configuration.servers.empty());
+  Observer observer(signaling.get(), !configuration.servers.empty()
+#ifdef ABSOR_RUST_BRIDGE
+      , bridge
+#endif
+      );
   auto connection_result = factory->CreatePeerConnectionOrError(
       configuration, webrtc::PeerConnectionDependencies(&observer));
   if (!connection_result.ok()) return 4;
@@ -297,6 +368,16 @@ int Run(const std::string& offer, const char* answer_path,
   observer.on_authenticated = [&] { video.Start(factory.get(), connection.get()); };
   int synthetic_frames = 0;
 #endif
+#ifdef ABSOR_RUST_BRIDGE
+  observer.on_cut = [&] {
+#ifdef ABSOR_SYNTHETIC_VIDEO
+    synthetic_frames += video.Stop();
+#endif
+    observer.Detach();
+    connection->Close();
+  };
+  signaling->BlockingCall([&] { observer.Poll(); });
+#endif
   const bool exchanged = Exchange(connection, observer, signaling.get(), offer, answer_path);
   bool connected = false;
   bool authenticated = false;
@@ -304,7 +385,7 @@ int Run(const std::string& offer, const char* answer_path,
     connected = observer.connected;
     authenticated = observer.authenticated;
 #ifdef ABSOR_SYNTHETIC_VIDEO
-    synthetic_frames = video.Stop();
+    synthetic_frames += video.Stop();
 #endif
     observer.Detach();
     connection->Close();
@@ -321,13 +402,22 @@ int Run(const std::string& offer, const char* answer_path,
 #ifdef ABSOR_SYNTHETIC_VIDEO
             << ",\"syntheticVideoFrames\":" << synthetic_frames
 #endif
+#ifdef ABSOR_RUST_BRIDGE
+            << ",\"rustAuthentication\":true,\"apiCutCode\":" << observer.bridge_cut
+#endif
             << "}\n";
   return 0;
 }
 }  // namespace
 
 int main(int argc, char** argv) {
+#ifdef ABSOR_RUST_BRIDGE
+  if (argc != 4 && argc != 5) return 64;
+  const bool has_turn = argc == 5;
+#else
   if (argc != 3 && argc != 4) { std::cerr << "Uso: channel_check <oferta.sdp> <respuesta.sdp> [turn-privado.json]\n"; return 64; }
+  const bool has_turn = argc == 4;
+#endif
   // Límite de la ABI de C: argc validado garantiza los elementos accesibles en argv.
 #pragma clang unsafe_buffer_usage begin
   const std::span<char*> arguments(argv, static_cast<size_t>(argc));
@@ -337,7 +427,7 @@ int main(int argc, char** argv) {
   file.seekg(0);
   std::string offer((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
   webrtc::PeerConnectionInterface::RTCConfiguration configuration;
-  if (argc == 4) {
+  if (has_turn) {
     std::ifstream config_file(arguments[3], std::ios::binary | std::ios::ate);
     if (!config_file || config_file.tellg() < 0 || config_file.tellg() > 16384) return 65;
     config_file.seekg(0);
@@ -368,8 +458,28 @@ int main(int argc, char** argv) {
     configuration.type = config["iceTransportPolicy"] == "all"
         ? webrtc::PeerConnectionInterface::kAll : webrtc::PeerConnectionInterface::kRelay;
   }
+#ifdef ABSOR_RUST_BRIDGE
+  // Ruta privada creada por el lanzador, sin secretos en argumentos o renderer.
+  std::ifstream bridge_file(arguments[argc - 1], std::ios::binary | std::ios::ate);
+  if (!bridge_file || bridge_file.tellg() < 0 || bridge_file.tellg() > 4096) return 65;
+  bridge_file.seekg(0);
+  const std::string bridge_config((std::istreambuf_iterator<char>(bridge_file)), std::istreambuf_iterator<char>());
+  const auto bridge = absor_bridge_create(reinterpret_cast<const uint8_t*>(bridge_config.data()), bridge_config.size());
+  if (!bridge) return 66;
+  struct BridgeOwner { uint64_t id; ~BridgeOwner() { absor_bridge_close(id); } } owner{bridge};
+  const auto api_deadline = std::chrono::steady_clock::now() + std::chrono::seconds(8);
+  int state = 0;
+  while ((state = absor_bridge_poll(bridge)) == 0 && std::chrono::steady_clock::now() < api_deadline) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
+  if (state != 1) return 67;
+#endif
   if (!webrtc::InitializeSSL()) return 1;
-  const int result = Run(offer, arguments[2], configuration);
+  const int result = Run(offer, arguments[2], configuration
+#ifdef ABSOR_RUST_BRIDGE
+      , bridge
+#endif
+      );
   webrtc::CleanupSSL();
   return result;
 }

@@ -2025,3 +2025,71 @@ SO, migración y la prueba integrada que impida captura/entrada antes de
 autenticar. No hay servicios instalados, alta en producción ni nueva release.
 La tarea 3.2 sigue parcial; **8/57 tareas cerradas (14 %)**. Este porcentaje
 cuenta tareas aceptadas, no estima el tiempo que falta. Pruebas físicas al final.
+
+### Rust, API y DTLS/vídeo artificial integrados
+
+`agent-webrtc-lab` enlaza el verificador y el coordinador de renovación con el
+trabajador C++ de libwebrtc. Usa K/salt públicos fijos y una ABI optativa ausente
+por omisión: solo loopback, credencial efímera y un diario de laboratorio por
+PeerConnection. Los identificadores internos no son direcciones; la ABI valida
+tamaños y rechaza identificadores ajenos/cerrados. Las pruebas Rust comprueban
+nulos, tamaños, carga corrupta, cierre idempotente y no reutilización en el
+proceso. `unsafe` se limita a los buffers C válidos del llamador compilado.
+
+El target nuevo se compila en Mac ARM con el Rust del checkout fijado de WebRTC
+como dylib, separado de su runtime Rust interno. Comprueba autorización API
+antes de crear la PeerConnection y verifica v1 sobre las huellas de sus
+descripciones aplicadas, con la comprobación de certificado DTLS de libwebrtc.
+Solo después añade la pista artificial. El adaptador consulta cada 50 ms y
+cierra fuente/canal/conexión al revocar o caducar. Se comprueba también el handle
+activo y el cierre después de tick, evitando reactivar un transporte cerrado
+cuando llega otra concesión. No existe aún un watchdog independiente.
+
+La matriz final con Electron 39.8.5/Chromium 142.0.7444.265 pasó cinco casos:
+vídeo rojo válido, HMAC erróneo, huella alterada, revocación y corte de API.
+Los dos negativos generaron y decodificaron **cero fotogramas**. Los cortes
+observados en el controlador fueron **2267 ms** por revocación y **29167 ms**
+sin API. Se confirmó cierre del canal y motivo nativo; dos arranques adicionales
+con token revocado/API inaccesible terminaron antes de crear PeerConnection.
+El recorrido fue directo host/host, con imágenes artificiales, sin captura o
+entrada del sistema. No hereda las pruebas TURN/móviles del prototipo anterior.
+
+El visor utiliza un protocolo limitado a dos recursos públicos, CSP, sandbox y
+contexto separado. La prueba confirmó rechazo de la ruta de credenciales y de
+lectura de un archivo marcador por file://. La credencial de agente no se envía
+al renderer; el token de cuenta solo lo usa el lanzador temporal, nunca C++.
+No se serializan resultados de autenticación como autorizaciones de IPC.
+
+La API de desarrollo alcanzó su límite normal de registros, así que no se
+cambiaron ni resetearon sus contadores. El lanzador final prepara una API en
+puerto loopback libre, caches tmpfs y una BD exclusiva en el Postgres local,
+con PHP 8.5.12 y los límites originales. Retiró las cinco cuentas, el contenedor,
+la BD y el archivo de entorno. Comprobación posterior: cero contenedores
+etiquetados del ensayo y cero BD con su prefijo. Las ejecuciones que no pudieron
+arrancar Electron dentro del sandbox no se contaron como éxito; la matriz final
+se ejecutó en contexto GUI autorizado con perfil propio, sin permisos nuevos.
+
+Mac/Rust 1.99.1 y VM Ubuntu ARM/Rust 1.75 pasaron 34 casos por omisión y 37 con
+características completas, formato, Clippy sin advertencias y release en ambos
+modos. Se comprobó por símbolos que la ABI está ausente por omisión y presente
+en la dylib del ensayo. Los tres casos del diagnóstico anterior también pasaron.
+TypeScript correcto; Vitest 276 correctas/5 omitidas; PHPUnit 162 pruebas y
+1077 aserciones. Sintaxis de los lanzadores correcta y OpenSpec estricto válido.
+Fuentes, artefactos y logs privados reconciliados en
+`agent-webrtc-bridge-results.json`. CI amplía las puertas Rust a los tres SO;
+no construye libwebrtc en Windows/Linux ni ejecuta allí esta matriz P2P.
+
+Faltan almacenes/IPC protegidos, señalización completa por API, trabajadores
+con captura/entrada real, supervisor/watchdog e instaladores. No se ha hecho
+alta en producción ni nueva release. 3.1/3.2/3.4 siguen parciales; **8/57 tareas
+cerradas (14 %)**. La revisión de firma/arquitectura Mac y la aceptación física
+final se mantienen.
+
+
+El primer CI de esta PR detectó que el reloj Windows se había declarado con
+la import library incorrecta. El SDK requiere Mincore.lib para
+QueryInterruptTimePrecise, aunque el DLL sea Kernel32. Se corrigió el enlace
+sin cambiar la base temporal. También se fija Bash con salida inmediata ante
+error en todos los runners: PowerShell había continuado tras fallos de comandos
+nativos, así que el éxito global anterior no acreditaba cada puerta de Windows.
+La repetición debe confirmar pruebas, ejemplos y ambos builds antes de integrar.

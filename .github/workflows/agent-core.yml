@@ -5,16 +5,26 @@ on:
     paths:
       - 'agent/**'
       - 'src/shared/remote/auth-vectors.json'
+      - 'prototypes/remote-desktop/webrtc-check/**'
+      - 'prototypes/backend-agent-check/**'
       - '.github/workflows/agent-core.yml'
   push:
     branches: [main]
     paths:
       - 'agent/**'
       - 'src/shared/remote/auth-vectors.json'
+      - 'prototypes/remote-desktop/webrtc-check/**'
+      - 'prototypes/backend-agent-check/**'
       - '.github/workflows/agent-core.yml'
 
 permissions:
   contents: read
+
+# Bash con -e/pipefail también en Windows: ningún fallo nativo queda oculto
+# por el éxito de un comando posterior en un paso con varias líneas.
+defaults:
+  run:
+    shell: bash
 
 jobs:
   authorization:
@@ -41,3 +51,4 @@ jobs:
           cargo +1.85.0 run --manifest-path agent/Cargo.toml --offline --locked --example lease-smoke
           cargo +1.85.0 run --manifest-path agent/Cargo.toml --offline --locked --example restart-smoke
           cargo +1.85.0 build --manifest-path agent/Cargo.toml --offline --locked --release
+          cargo +1.85.0 build --manifest-path agent/Cargo.toml --offline --locked --release --all-features

@@ -92,7 +92,7 @@ async function runCase(name) {
       auth,
       new Promise((_, reject) => { timeout = setTimeout(() => reject(new Error('Sin resultado de autenticación')), 20000) })
     ]).finally(() => clearTimeout(timeout))
-    const expected = name === 'correct'
+    const expected = !['wrong-proof', 'fingerprint-mismatch'].includes(name)
     if (result.ok !== expected || (!expected && result.reason !== 'wrong_password')) {
       throw new Error('Resultado de autenticación inesperado')
     }
@@ -129,20 +129,41 @@ async function runCase(name) {
       throw new Error('No se ha comprobado el par de candidatos exigido')
     }
     const connected = pc.connectionState === 'connected'
-    channel.send(JSON.stringify({ v: 1, type: 'bye', reason: 'closed' }))
+    let cutAfterFaultMilliseconds
+    let channelClosedAfterFault = false
+    if (window.lab.agentBridge && ['api-revoked', 'api-cut'].includes(name)) {
+      const closed = new Promise((resolve) => channel.addEventListener('close', resolve, { once: true }))
+      const started = performance.now()
+      await window.lab.fault(name)
+      let timeout
+      await Promise.race([closed, new Promise((_, reject) => { timeout = setTimeout(() => reject(new Error('El canal no se cerró tras el fallo')), 31000) })]).finally(() => clearTimeout(timeout))
+      cutAfterFaultMilliseconds = Math.round(performance.now() - started)
+      channelClosedAfterFault = true
+      if (cutAfterFaultMilliseconds > (name === 'api-revoked' ? 8000 : 30000)) throw new Error('El corte excede el plazo de laboratorio')
+    } else channel.send(JSON.stringify({ v: 1, type: 'bye', reason: 'closed' }))
     return await window.lab.result(name, {
       authenticated: result.ok, connected, helloCount,
       candidateTypes: [local.candidateType, remote.candidateType],
       relayProtocol: local.relayProtocol ?? null,
+      ...(window.lab.agentBridge ? { channelClosedAfterFault, cutAfterFaultMilliseconds } : {}),
       ...(syntheticVideo ? { decodedFrames, syntheticColorVerified } : {})
     })
   } finally { video.pause(); video.srcObject = null; channel.close(); pc.close() }
 }
 
 try {
+  let rendererCredentialsDenied
+  if (window.lab.agentBridge) {
+    if ((await fetch('absor-agent-lab://probe/agent-manifest.json')).status !== 404) throw new Error('Ruta privada expuesta al visor')
+    const probe = await window.lab.credentialProbe()
+    let fileDenied = false
+    try { await fetch(probe) } catch { fileDenied = true }
+    if (!fileDenied) throw new Error('El visor puede leer archivos locales')
+    rendererCredentialsDenied = true
+  }
   const results = []
-  for (const name of ['correct', 'wrong-proof', 'fingerprint-mismatch']) results.push(await runCase(name))
-  await window.lab.done({ ok: true, cases: results })
+  for (const name of (window.lab.agentBridge ? ['correct', 'wrong-proof', 'fingerprint-mismatch', 'api-revoked', 'api-cut'] : ['correct', 'wrong-proof', 'fingerprint-mismatch'])) results.push(await runCase(name))
+  await window.lab.done({ ok: true, cases: results, ...(window.lab.agentBridge ? { rendererCredentialsDenied } : {}) })
 } catch (error) {
   await window.lab.done({ ok: false, error: String(error) })
 }

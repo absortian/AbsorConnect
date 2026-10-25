@@ -1,5 +1,8 @@
 const { contextBridge, ipcRenderer } = require('electron')
 contextBridge.exposeInMainWorld('lab', {
+  agentBridge: process.argv.includes('--lab-agent-bridge'),
+  credentialProbe: () => ipcRenderer.invoke('lab-credential-probe'),
+  fault: (name) => ipcRenderer.invoke('lab-fault', name),
   ice: () => ipcRenderer.invoke('lab-ice'),
   relayController: process.argv.includes('--lab-relay-controller'),
   relayOnly: process.argv.includes('--lab-relay-only'),

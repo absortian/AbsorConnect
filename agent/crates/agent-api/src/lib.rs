@@ -112,6 +112,10 @@ impl<C: Clock + Clone, S: Session> RenewingAgent<C, S> {
         Ok(progress)
     }
 
+    pub fn check_authorization(&mut self) -> Result<(), Denied> {
+        self.gate.check_authorization()
+    }
+
     // No sustituye la autenticación v1 del trabajador; frontera confiable del broker.
     pub fn attach_authenticated(&mut self, session: S) -> Result<SessionHandle, Denied> {
         self.gate.attach_authenticated(session)

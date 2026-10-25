@@ -16,8 +16,11 @@ REPOSITORY = SOURCE.parents[2]
 
 def main():
     started = time.monotonic()
-    if len(sys.argv) != 2:
-        raise RuntimeError("Uso: python3 build.py <laboratorio-externo-sincronizado>")
+    if len(sys.argv) not in (2, 3) or len(sys.argv) == 3 and sys.argv[2] != "--rust-bridge":
+        raise RuntimeError("Uso: python3 build.py <laboratorio-externo-sincronizado> [--rust-bridge]")
+    rust_bridge = len(sys.argv) == 3
+    if rust_bridge and platform.system() != "Darwin":
+        raise RuntimeError("El enlace libwebrtc/Rust de laboratorio solo se ha preparado para macOS.")
     workspace = Path(sys.argv[1]).expanduser().resolve()
     if workspace == REPOSITORY or REPOSITORY in workspace.parents:
         raise RuntimeError("El laboratorio debe quedar fuera del repositorio.")
@@ -43,6 +46,20 @@ def main():
         if destination.is_symlink():
             raise RuntimeError("El destino no puede ser un enlace simbólico.")
         shutil.copyfile(SOURCE / filename, destination)
+    if rust_bridge:
+        # ABI optativa: nunca habilitarla en el servicio ni aceptar K del propietario.
+        rust_environment = dict(os.environ)
+        if platform.system() == "Darwin":
+            rust_environment["MACOSX_DEPLOYMENT_TARGET"] = "13.0"
+        rust_environment["RUSTC"] = str(checkout / "third_party/rust-toolchain/bin/rustc")
+        subprocess.run(["cargo", "build", "--manifest-path", str(REPOSITORY / "agent/Cargo.toml"),
+                        "--offline", "--locked", "--release", "-p", "absor-agent-webrtc-lab", "--features", "lab-http"], env=rust_environment, check=True)
+        for source, name in ((REPOSITORY / "agent/target/release/libabsor_agent_webrtc_lab.dylib", "libabsor_agent_webrtc_lab.dylib"),
+                             (REPOSITORY / "agent/crates/agent-webrtc-lab/absor_bridge.h", "absor_bridge.h")):
+            destination = target / name
+            if destination.is_symlink():
+                raise RuntimeError("El destino de la ABI no puede ser un enlace.")
+            shutil.copyfile(source, destination)
     vectors_path = REPOSITORY / "src/shared/remote/auth-vectors.json"
     vectors = json.loads(vectors_path.read_text())["vectors"]
     header = "#pragma once\n#include <string>\n#include <vector>\n"
@@ -65,6 +82,8 @@ def main():
     arguments = ('is_debug=false symbol_level=0 rtc_include_tests=false rtc_build_examples=false '
                  'is_component_build=false use_remoteexec=false use_siso=false '
                  'rtc_use_h264=false proprietary_codecs=false')
+    if rust_bridge:
+        arguments += ' absor_rust_bridge=true'
     subprocess.run([str(workspace / "depot_tools/gn"), "gen", "out/AbsorProbe",
                     "--root-target=//absor_connect_probe:all", "--args=" + arguments],
                    cwd=checkout, env=environment, check=True)
@@ -73,7 +92,7 @@ def main():
                    cwd=checkout, env=environment, check=True)
     subprocess.run(["ninja", "-C", "out/AbsorProbe", "-j", "2",
                     "absor_connect_probe:auth_check", "absor_connect_probe:factory_check",
-                    "absor_connect_probe:offer_check", "absor_connect_probe:channel_check", "absor_connect_probe:video_channel_check"],
+                    "absor_connect_probe:offer_check", "absor_connect_probe:channel_check", "absor_connect_probe:video_channel_check"] + (["absor_connect_probe:rust_video_channel_check"] if rust_bridge else []),
                    cwd=checkout, env=environment, check=True)
     results = []
     for filename in ("auth_check", "factory_check", "offer_check"):
@@ -100,6 +119,12 @@ def main():
         "binary": "video_channel_check", "sha256": hashlib.sha256(video_endpoint.read_bytes()).hexdigest(),
         "compiled": True, "executedByThisCommand": False,
     }
+    if rust_bridge:
+        rust_endpoint = checkout / "out/AbsorProbe/rust_video_channel_check"
+        report["rustEndpoint"] = {"binary": "rust_video_channel_check", "sha256": hashlib.sha256(rust_endpoint.read_bytes()).hexdigest(),
+                                  "compiled": True, "executedByThisCommand": False}
+        report["rustCompiler"] = subprocess.check_output([rust_environment["RUSTC"], "--version"], text=True).strip()
+        report["rustLibrarySha256"] = hashlib.sha256((target / "libabsor_agent_webrtc_lab.dylib").read_bytes()).hexdigest()
     report_path = workspace / "webrtc-probe-results.json"
     if report_path.is_symlink():
         raise RuntimeError("El informe no puede ser un enlace simbólico.")

@@ -1,0 +1,279 @@
+{
+  "schema": 1,
+  "date": "2026-10-25",
+  "status": "rust_api_dtls_synthetic_video_integrated_in_lab_not_service",
+  "completedTasks": 8,
+  "totalTasks": 57,
+  "roundedCompletedTaskPercent": 14,
+  "configurations": [
+    {
+      "platform": "macos-arm64",
+      "testRust": "1.99.1",
+      "defaultTestsPassed": 34,
+      "allFeaturesTestsPassed": 37,
+      "formatPassed": true,
+      "clippyWarnings": 0,
+      "defaultAndAllFeaturesReleaseBuilt": true,
+      "nativeP2PTested": true
+    },
+    {
+      "platform": "ubuntu-arm64-vm",
+      "testRust": "1.75.0",
+      "defaultTestsPassed": 34,
+      "allFeaturesTestsPassed": 37,
+      "formatPassed": true,
+      "clippyWarnings": 0,
+      "defaultAndAllFeaturesReleaseBuilt": true,
+      "nativeP2PTested": false
+    }
+  ],
+  "nativeWorker": {
+    "webrtcRevision": "5d27ce25e244b90d09de3429dd3e702fd70f400b",
+    "rustCompiler": "rustc 1.100.0-nightly (1edd55dcf 2026-09-09) (1edd55dcfcd573872c727fa3e086369a71661ee0-1125-llvmorg-24-init-7747-g62397f8b chromium)",
+    "rustCompilerSha256": "087ec2e5e963fff726cb3c3718784b0b721abcc87e0e4b2c0d061be0503a2415",
+    "binarySha256": "a9936e1b2052c5d5bba062ba151e634bc7a1b0621fa1b89c155db9537009edc5",
+    "librarySha256": "4c394fb9577475bc0546057dcb68e33a6ab15d16f3ba3428f9ecdbc316229075"
+  },
+  "abi": {
+    "defaultAbiAbsent": true,
+    "defaultLibrarySha256": "3a0b4c7b0edbe94cf096ed8699ac2433e70cc4bdb00e552c605028a224a7c4f8",
+    "labAbiExports": [
+      "absor_bridge_create",
+      "absor_bridge_poll",
+      "absor_bridge_hello",
+      "absor_bridge_auth",
+      "absor_bridge_close"
+    ],
+    "labLibrarySha256": "4c394fb9577475bc0546057dcb68e33a6ab15d16f3ba3428f9ecdbc316229075"
+  },
+  "integration": {
+    "ok": true,
+    "cases": [
+      {
+        "name": "correct",
+        "native": {
+          "dtlsConnected": true,
+          "authenticated": true,
+          "captureStarted": false,
+          "inputEnabled": false,
+          "relayOnly": false,
+          "syntheticVideoFrames": 2,
+          "rustAuthentication": true,
+          "apiCutCode": 0
+        },
+        "controller": {
+          "authenticated": true,
+          "connected": true,
+          "helloCount": 1,
+          "candidateTypes": [
+            "host",
+            "host"
+          ],
+          "relayProtocol": null,
+          "channelClosedAfterFault": false,
+          "decodedFrames": 2,
+          "syntheticColorVerified": true
+        }
+      },
+      {
+        "name": "wrong-proof",
+        "native": {
+          "dtlsConnected": true,
+          "authenticated": false,
+          "captureStarted": false,
+          "inputEnabled": false,
+          "relayOnly": false,
+          "syntheticVideoFrames": 0,
+          "rustAuthentication": true,
+          "apiCutCode": 0
+        },
+        "controller": {
+          "authenticated": false,
+          "connected": true,
+          "helloCount": 1,
+          "candidateTypes": [
+            "host",
+            "host"
+          ],
+          "relayProtocol": null,
+          "channelClosedAfterFault": false,
+          "decodedFrames": 0,
+          "syntheticColorVerified": false
+        }
+      },
+      {
+        "name": "fingerprint-mismatch",
+        "native": {
+          "dtlsConnected": true,
+          "authenticated": false,
+          "captureStarted": false,
+          "inputEnabled": false,
+          "relayOnly": false,
+          "syntheticVideoFrames": 0,
+          "rustAuthentication": true,
+          "apiCutCode": 0
+        },
+        "controller": {
+          "authenticated": false,
+          "connected": true,
+          "helloCount": 1,
+          "candidateTypes": [
+            "host",
+            "host"
+          ],
+          "relayProtocol": null,
+          "channelClosedAfterFault": false,
+          "decodedFrames": 0,
+          "syntheticColorVerified": false
+        }
+      },
+      {
+        "name": "api-revoked",
+        "native": {
+          "dtlsConnected": true,
+          "authenticated": true,
+          "captureStarted": false,
+          "inputEnabled": false,
+          "relayOnly": false,
+          "syntheticVideoFrames": 24,
+          "rustAuthentication": true,
+          "apiCutCode": -2
+        },
+        "controller": {
+          "authenticated": true,
+          "connected": true,
+          "helloCount": 1,
+          "candidateTypes": [
+            "host",
+            "host"
+          ],
+          "relayProtocol": null,
+          "channelClosedAfterFault": true,
+          "cutAfterFaultMilliseconds": 2267,
+          "decodedFrames": 2,
+          "syntheticColorVerified": true
+        }
+      },
+      {
+        "name": "api-cut",
+        "native": {
+          "dtlsConnected": true,
+          "authenticated": true,
+          "captureStarted": false,
+          "inputEnabled": false,
+          "relayOnly": false,
+          "syntheticVideoFrames": 285,
+          "rustAuthentication": true,
+          "apiCutCode": -1
+        },
+        "controller": {
+          "authenticated": true,
+          "connected": true,
+          "helloCount": 1,
+          "candidateTypes": [
+            "host",
+            "host"
+          ],
+          "relayProtocol": null,
+          "channelClosedAfterFault": true,
+          "cutAfterFaultMilliseconds": 29167,
+          "decodedFrames": 2,
+          "syntheticColorVerified": true
+        }
+      }
+    ],
+    "rendererCredentialsDenied": true,
+    "electron": "39.8.5",
+    "chromium": "142.0.7444.265",
+    "videoTested": false,
+    "rustAuthenticationTested": true,
+    "apiRenewalTested": true,
+    "syntheticVideoTested": true,
+    "turnTested": false,
+    "relayPolicy": "none",
+    "mobileTested": false,
+    "readyForUnattended": false,
+    "apiRejectedBeforePeerCreation": true,
+    "productionTested": false,
+    "osCaptureOrInputTested": false,
+    "temporaryAccountsRemoved": true
+  },
+  "legacyRegression": {
+    "casesPassed": 3,
+    "syntheticVideoTested": true,
+    "osCaptureOrInputTested": false
+  },
+  "isolatedApi": {
+    "isolatedApiRemoved": true,
+    "isolatedDatabaseRemoved": true,
+    "developmentRateLimitsNotReset": true,
+    "rateLimitConfigurationChanged": false,
+    "productionTested": false,
+    "phpRuntime": "8.5.12"
+  },
+  "regression": {
+    "typecheckPassed": true,
+    "vitestPassed": 276,
+    "vitestSkipped": 5,
+    "phpunitPassed": 162,
+    "phpunitAssertions": 1077,
+    "php": "8.5.12"
+  },
+  "sources": {
+    ".github/workflows/agent-core.yml": "629ba3ee261f1ebac6231447ccd38cbec7062bba5bb0d2f1a59a53a908ad602d",
+    "agent/Cargo.toml": "2b61aba0f9d01178ca7b881f4b2d6e812114db388e99cdd4859b2fbee6e16176",
+    "agent/Cargo.lock": "d2a1f277f12e2673813acb384da1021156567c0ae185a1ede323af9c59878ed6",
+    "agent/README.md": "e2e945df7f80e73cd5bb3b8735ee5f8c1ae7a56baeeef8babf7be505346fe7bf",
+    "agent/crates/agent-core/src/lib.rs": "3061bc1fa8de8371e082a2ccf2019173b2f1cd0b8a8947dfe69c832c0366e981",
+    "agent/crates/agent-core/src/clock.rs": "b72c495281e010f5bd9286c2597bd6b53cbebff8e9bdf6c3f22f111f67e84847",
+    "agent/crates/agent-api/src/lib.rs": "24c3196cf420b51026a6cc8f4c58d48f142d879d194fff62c403f68227af54ec",
+    "agent/crates/agent-api/src/http.rs": "0656a8b1d287afc2b84789355856e10623c25309d11abfc3174ebcf0c5fef619",
+    "agent/crates/agent-auth/src/lib.rs": "ec0d8185148f23176286b8ef98e4573f49ba31fca7f1f5f05b89e66aebf092ea",
+    "src/shared/remote/auth-vectors.json": "13ca3e2b12ca65a097a9cf72e9c53250fe70edb419283941c5187bae3f03ec11",
+    "prototypes/backend-agent-check/native-renewal.py": "e9b06e74b6f90b29d25dce651c389c209a195970a2e013a53f567b7fa7d7a44f",
+    "prototypes/backend-agent-check/webrtc-renewal.py": "3409dbdc0e8b1754d2d5d5b809f966f8edb135d0583a389f5a274179b43cd3e4",
+    "prototypes/backend-agent-check/isolated-webrtc-renewal.py": "3ce0a42f8461c75f91140ac277dfcaf16534f341ed7e63d94337303d93992949",
+    "agent/crates/agent-webrtc-lab/Cargo.toml": "767f4778b316e736d7bb789b07cb861d3f60a5f03028fe169626e73705781188",
+    "agent/crates/agent-webrtc-lab/build.rs": "180ff06664a75da7575fe1947e2d4cb29057ee6af5d222d11fb05048f902959d",
+    "agent/crates/agent-webrtc-lab/absor_bridge.h": "71c3a123b1de1812b99c443bd1bfad3a526d3951a897597af400417998b999b1",
+    "agent/crates/agent-webrtc-lab/src/bridge.rs": "36372deb85f46fa3b4ae69b153fa40de1f0a16928149281731debe89a19b6f7c",
+    "agent/crates/agent-webrtc-lab/src/lib.rs": "02d43c4be44b67a9da92e9923659c90a7c0babb454cdcb8875c4597258d571ce",
+    "agent/crates/agent-webrtc-lab/src/ffi.rs": "babd19c61df5719a0d88193a718d8365e2927746bb03da78563ecc47757abe11",
+    "prototypes/remote-desktop/webrtc-check/BUILD.gn": "424655c33e2fd5f9b22e9f30c2d29db53f2095e46d756a3c7f66d10ec283c2e5",
+    "prototypes/remote-desktop/webrtc-check/build.py": "e3e4ae0c7c5191a8f6376039dea2287945855bb7b1729e8e6113ed46a1b621b0",
+    "prototypes/remote-desktop/webrtc-check/channel_check.cc": "8b52dd5dda14829c7f587d7642bccec5425b272bec4596bf32e1a42dde81dc83",
+    "prototypes/remote-desktop/webrtc-check/synthetic_video.h": "45173025be1ed26bb4e0b0fb5f94fdc9fb903c253ba1611db40cebbdabe0e108",
+    "prototypes/remote-desktop/webrtc-check/interop-main.cjs": "5b94c53d28b277081ca6c87e0e0d8d2923bfcab0985a24cb7679881cda1de3a6",
+    "prototypes/remote-desktop/webrtc-check/interop-preload.cjs": "02ed21255f60eff6ac67ae697e3619a60ccad7558dc9d709236ad53bd3789749",
+    "prototypes/remote-desktop/webrtc-check/interop-renderer.js": "c3d71d0cf1de6f0d62b4894203c04f73ffa1b9c02984f3398cd99772d603c659",
+    "prototypes/remote-desktop/webrtc-check/run-interop.cjs": "a2f3cf2c8802a35dfc3dd0f0fb740eaef47daf19185df6e88884d0f4a76fa6bd",
+    "prototypes/remote-desktop/webrtc-check/dependencies.json": "9ecc5c5a6ca5cc738c66de8ac2ef0d932698fdfdb26fdf7460f107a0ebdc5ffe"
+  },
+  "privateEvidenceSha256": {
+    "mac-final-checks.json": "2eb1447ac457f3eeb81c5c33587fe670bd46568eb56f40a523cde41c2c90fa3e",
+    "linux-final-checks.log": "6692006c7d5614ffe61a76eda238cef18b39c7ac2be68c4fcd353e8a6db6e8b9",
+    "abi-exports.json": "37c6ce4f6618706f8c404925b8c54ffbaec8c761b4dd6ab5ac193be72d27c55d",
+    "native-build.log": "70ae7d24bff970777fa4ac280baee7490e00d70549f0febeaa1956b4e561a021",
+    "native-build-report.json": "facc545ad9910a421539e9fc11bd674d9865e958eb63916ea1ad5e836480323d",
+    "integration-results.json": "76b7bcaf2387cdc682b4de9d9eecc193945546bd149a22a232310827deca96ff",
+    "legacy-regression.log": "dc51825c56f10a1fc98e92a788744fa89dcb614e574e79edc6b09f0f3a127395",
+    "isolated-api-cleanup.json": "df11c98c6d4af067b35011baa58ee31be0463b1c846e632fab846d355d5de50b"
+  },
+  "limitations": [
+    "ABI y K fijas exclusivas del laboratorio, sin instalador o servicio.",
+    "El recorrido P2P nuevo se ejecutó solo en Mac ARM/Electron con vídeo artificial y transporte directo.",
+    "La compilación Rust/ABI en otros SO no certifica libwebrtc, captura o entrada allí.",
+    "No hay watchdog independiente: el adaptador consulta cada 50 ms; falta certificar bloqueos/caídas del servicio y límites temporales en todos los contextos.",
+    "Faltan almacenes protegidos, autenticación del IPC y señalización completa por API; el diagnóstico intercambia SDP por archivos privados.",
+    "No prueba captura real, entrada del sistema, TURN, Flutter, reinicio del equipo ni redes exteriores.",
+    "Las pruebas finales de hardware y la revisión de arquitectura/firma del agente Mac se mantienen.",
+    "CI del nuevo head debe revisarse en la PR; este informe registra comprobaciones locales.",
+    "Sin release o alta en producción. Tareas 3.1/3.2/3.4 parciales."
+  ],
+  "ciCorrection": {
+    "windowsImportLibrary": "Mincore.lib",
+    "failFastShell": "bash",
+    "initialWindowsLinkFailureObserved": true,
+    "failedJobUrl": "https://github.com/absortian/AbsorConnect/actions/runs/40239794603/job/121308942707"
+  }
+}

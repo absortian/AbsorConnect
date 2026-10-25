@@ -9,10 +9,12 @@ if (!lab) { console.error('Uso: node run-interop.cjs <laboratorio-externo>'); pr
 const options = process.argv.slice(3)
 let syntheticVideo = false
 let relayController = false
+let agentConfig
 let turnConfig
 for (let i = 0; i < options.length; i++) {
   if (options[i] === '--relay-controller' && !relayController) relayController = true
   else if (options[i] === '--synthetic-video' && !syntheticVideo) syntheticVideo = true
+  else if (options[i] === '--agent-config' && !agentConfig && options[i + 1]) { agentConfig = options[++i]; syntheticVideo = true }
   else if (options[i] === '--turn-config' && !turnConfig && options[i + 1]) turnConfig = options[++i]
   else throw new Error('Opción desconocida o repetida')
 }
@@ -35,16 +37,22 @@ if (turnConfig) {
   if (!value.iceServers.some((server) => server.urls.some((url) => /^turns?:/.test(url)))) throw new Error('Falta servidor TURN')
   relayConfiguration = value
 }
-const binary = path.join(lab, 'webrtc-native/src/out/AbsorProbe', syntheticVideo ? 'video_channel_check' : 'channel_check')
+const binary = path.join(lab, 'webrtc-native/src/out/AbsorProbe', agentConfig ? 'rust_video_channel_check' : syntheticVideo ? 'video_channel_check' : 'channel_check')
 if (!fs.statSync(binary).isFile()) throw new Error('Falta compilar channel_check')
 const build = JSON.parse(fs.readFileSync(path.join(lab, 'webrtc-probe-results.json'), 'utf8'))
 const binarySha256 = crypto.createHash('sha256').update(fs.readFileSync(binary)).digest('hex')
 if (build.webrtcRevision !== require('./dependencies.json').webrtc.revision ||
-    (syntheticVideo ? build.videoEndpoint : build.channelEndpoint)?.sha256 !== binarySha256) {
+    (agentConfig ? build.rustEndpoint : syntheticVideo ? build.videoEndpoint : build.channelEndpoint)?.sha256 !== binarySha256) {
   throw new Error('El extremo nativo no coincide con el informe de compilación; vuelve a ejecutar build.py')
 }
 const work = fs.mkdtempSync(path.join(lab, 'interop-'))
 fs.chmodSync(work, 0o700)
+if (agentConfig) {
+  const stat = fs.lstatSync(agentConfig)
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 16384 || (stat.mode & 0o077) !== 0 || stat.uid !== process.getuid()) throw new Error('Configuración de agente no privada')
+  fs.copyFileSync(agentConfig, path.join(work, 'agent-manifest.json'))
+  fs.chmodSync(path.join(work, 'agent-manifest.json'), 0o600)
+}
 if (relayConfiguration) fs.writeFileSync(path.join(work, 'turn-config.json'), JSON.stringify(relayConfiguration), { mode: 0o600, flag: 'wx' })
 for (const name of ['interop-main.cjs', 'interop-preload.cjs']) fs.copyFileSync(path.join(__dirname, name), path.join(work, name))
 fs.writeFileSync(path.join(work, 'index.html'), '<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'"><title>Prueba WebRTC nativa</title><script type="module" src="renderer.js"></script>', { mode: 0o600 })
@@ -54,8 +62,8 @@ fs.writeFileSync(path.join(work, 'artifact.json'), JSON.stringify({
   binarySha256,
   sourceRevision: require('./dependencies.json').webrtc.revision
 }, null, 2) + '\n', { mode: 0o600 })
-const child = spawn(require('electron'), [path.join(work, 'interop-main.cjs'), `--lab-work=${work}`, `--lab-binary=${binary}`, ...(syntheticVideo ? ['--lab-synthetic-video'] : []), ...(relayConfiguration ? ['--lab-relay-only'] : []), ...(relayController ? ['--lab-relay-controller'] : [])], {
+const child = spawn(require('electron'), [path.join(work, 'interop-main.cjs'), `--lab-work=${work}`, `--lab-binary=${binary}`, ...(agentConfig ? ['--lab-agent-bridge'] : []), ...(syntheticVideo ? ['--lab-synthetic-video'] : []), ...(relayConfiguration ? ['--lab-relay-only'] : []), ...(relayController ? ['--lab-relay-controller'] : [])], {
   env: { ...process.env, ELECTRON_RUN_AS_NODE: '' }, stdio: 'inherit'
 })
 child.on('error', (error) => { console.error(error.message); process.exitCode = 1 })
-child.on('exit', (code) => { if (relayConfiguration) { fs.rmSync(path.join(work, 'turn-config.json'), { force: true }); fs.rmSync(path.join(work, 'native-ice.json'), { force: true }) }; console.log(`Informe local: ${path.join(work, 'interop-results.json')}`); process.exitCode = code ?? 1 })
+child.on('exit', (code, signal) => { console.log(`Salida Electron: ${code}; señal: ${signal ?? 'ninguna'}`); if (relayConfiguration) { fs.rmSync(path.join(work, 'turn-config.json'), { force: true }); fs.rmSync(path.join(work, 'native-ice.json'), { force: true }) }; console.log(`Informe local: ${path.join(work, 'interop-results.json')}`); process.exitCode = code ?? 1 })

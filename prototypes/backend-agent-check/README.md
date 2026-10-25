@@ -38,3 +38,24 @@ solo HTTP con la IP literal loopback y puerto. El constructor normal sigue
 exigiendo HTTPS. El proceso hijo no captura ni envía entrada, y se simula la
 frontera del autenticador v1: esta prueba no acredita P2P ni un agente final.
 No apuntar este lanzador a producción ni reutilizar cuentas del propietario.
+
+## API aislada y trabajador WebRTC con autenticación Rust
+
+`isolated-webrtc-renewal.py /ruta/laboratorio --node /ruta/node` prepara una
+API temporal en un puerto loopback libre, con la imagen PHP de desarrollo,
+cache tmpfs y una BD exclusiva en el Postgres de desarrollo. Conserva los
+límites de registro y retira contenedor/BD/entorno al terminar, incluso si falla
+la matriz. No resetea los contadores compartidos ni cambia la API de desarrollo.
+Requiere sus contenedores existentes; no lee configuración de producción.
+
+Invoca `webrtc-renewal.py`, que crea cinco cuentas/dispositivos efímeros, un
+proxy de fallo local y manifiestos privados. El runner Electron comprueba HMAC,
+DTLS, vídeo artificial y cierre por revocación/caducidad con el cliente Rust.
+Después verifica que el token revocado y el cliente sin API no llegan a crear
+otra PeerConnection. El visor no recibe credenciales y prueba que no puede leer
+rutas privadas ni archivos locales. Las cuentas y copias de tokens se retiran.
+
+Hay que compilar antes con `webrtc-check/build.py ... --rust-bridge`. La nueva
+ABI/target son solo de laboratorio Mac; no es un agente instalable ni prueba
+captura/entrada/TURN/móvil. Los informes distinguen cada límite. Los logs y los
+archivos de señalización contienen metadatos locales: mantenerlos privados.

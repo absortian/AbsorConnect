@@ -1,0 +1,24 @@
+[package]
+name = "absor-agent-webrtc-lab"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[features]
+# Únicamente diagnóstico: ABI ausente por omisión, API restringida a loopback.
+lab-http = ["absor-agent-api/lab-http"]
+
+[dependencies]
+absor-agent-api = { path = "../agent-api" }
+absor-agent-auth = { path = "../agent-auth" }
+absor-agent-core = { path = "../agent-core" }
+base64 = "=0.22.1"
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = "=1.0.154"
+
+[dev-dependencies]
+ring = "=0.17.14"
