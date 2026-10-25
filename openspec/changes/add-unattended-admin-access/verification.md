@@ -1399,7 +1399,7 @@ Puerta del proyecto: typecheck, Vitest 276 correctos/5 omitidos, PHPUnit 162 pru
 y 1077 aserciones con PHP 8.5.12, OpenSpec estricto y comprobación de diff. Cambios
 limitados al laboratorio y evidencias, sin nueva publicación de producción.
 
-### Mint: emisor root y receptor de usuario preparados — 25/10/2026
+### Mint: entrada root hacia receptor de usuario verificada — 25/10/2026
 
 Se prepara `linux-root-input-check.py` para una prueba separada de privilegios:
 root abre exclusivamente la autoridad privada de Xorg validada por el auxiliar
@@ -1423,6 +1423,20 @@ Sintaxis del padre y receptor comprobadas, Bash válido y argumentos del lanzado
 rechazados antes de sudo. En Mint se rechaza el emisor sin root; en el contenedor
 se rechazan fuentes en un directorio no protegido. Con fuentes protegidas, la
 ausencia de herramientas de sesión produce `FileNotFoundError`, sin abrir X11 ni
-enviar entrada. Fuentes y lanzador transferidos con hashes verificados. **No se
-ha instalado ni ejecutado la prueba root en Mint**; no se certifica su recepción,
-entrada en LightDM/polkit o soporte desatendido a partir de esta preparación.
+enviar entrada. Fuentes y lanzador transferidos con hashes verificados.
+El informe de preparación conserva ese estado histórico previo al ensayo.
+
+Después de la ejecución local del propietario se recuperó el informe positivo,
+con el hash de fuente esperado: emisor root y receptor GTK de otro proceso/UID,
+ventana/PID comprobados, autoridad privada de root, un `mouseDown`, `mouseUp`,
+`keyDown` y `keyUp`, cero eventos inesperados. El puntero se restauró, el receptor
+terminó y se observó retorno al foco anterior. La limpieza posterior verificó
+cero emisores y receptores, Cinnamon sin salvapantallas activo y las dos fuentes
+instaladas como root/0600. No se observó el código de salida del lanzador en la
+Terminal del propietario; se conserva el informe bruto sin añadirlo.
+
+Evidencia saneada y hashes: `mint-root-input-results.json`; originales privados.
+Las fuentes quedan instaladas para auditoría en el directorio de laboratorio;
+no se creó servicio. Esto acredita entrada root → ventana propia del usuario,
+pero todavía no entrada en LightDM, bloqueo o polkit ni transporte remoto.
+La tarea 1.4 sigue parcial y `readyForUnattended:false`, total **8/57**.
