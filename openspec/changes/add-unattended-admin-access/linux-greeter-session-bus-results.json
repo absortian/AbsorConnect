@@ -1,0 +1,169 @@
+{
+  "schema": 1,
+  "date": "2026-10-25",
+  "status": "greeter_focus_full_supervisor_verified_in_vm",
+  "configuration": {
+    "distribution": "Ubuntu 24.04.5 LTS",
+    "architecture": "aarch64",
+    "cinnamon": "6.0.4",
+    "slickGreeter": "2.0.1-1build3"
+  },
+  "fullCycleSummary": {
+    "schema": 1,
+    "sourceHashesVerified": true,
+    "sourceMetadata": {
+      "linux-greeter-focus-install.sh": {
+        "sha256": "e19543bd0ce949c60ce2e06d1da49d06175b964cedbe84d63ba014f2f200c5ca",
+        "mode": "0o600"
+      },
+      "linux-session-check.py": {
+        "sha256": "40d222539fa05c21b9f0a95993efe40a386bc82dab4ad031b6d188e827b6e275",
+        "mode": "0o600"
+      },
+      "linux-greeter-focus-check.py": {
+        "sha256": "99526cac541b0e4853934a1cd8d7314cd805d99b77e20e9bd35813d833dfc799",
+        "mode": "0o600"
+      }
+    },
+    "progress": [
+      "READY_TO_LOGOUT_MINT",
+      "GREETER_OBSERVED_WAIT_FOR_MANUAL_LOGIN"
+    ],
+    "supervisorExitCode": 0,
+    "logout": {
+      "schema": 1,
+      "action": "logout",
+      "session": {
+        "User": "108",
+        "Type": "x11",
+        "Class": "greeter",
+        "State": "active"
+      },
+      "inputDriver": "lab administrator CLI",
+      "absorConnectInputTested": false
+    },
+    "login": {
+      "schema": 1,
+      "action": "login",
+      "nativeGuiAuthenticationCompleted": true,
+      "session": {
+        "User": "1000",
+        "Type": "x11",
+        "Class": "user",
+        "State": "active"
+      },
+      "inputDriver": "QMP virtual keyboard",
+      "absorConnectInputTested": false,
+      "credentialSource": "exclusive generated lab account; not logged"
+    },
+    "report": {
+      "schema": 1,
+      "platform": "linux",
+      "status": "greeter_focus_metadata_observed_not_certified",
+      "sourceSha256": "99526cac541b0e4853934a1cd8d7314cd805d99b77e20e9bd35813d833dfc799",
+      "sessionHelperSha256": "40d222539fa05c21b9f0a95993efe40a386bc82dab4ad031b6d188e827b6e275",
+      "inputTested": false,
+      "captureTested": false,
+      "preLoginTested": false,
+      "readyForUnattended": false,
+      "greeterSessionObserved": true,
+      "observerExitCode": 0,
+      "observerExited": true,
+      "greeterFocus": {
+        "greeterProcessVerified": true,
+        "observerUnprivileged": true,
+        "supplementaryGroupsEmpty": true,
+        "inputSent": false,
+        "greeterBusOwnerVerified": true,
+        "a11yBusAlreadyOwned": true,
+        "accessibilityDiscovery": "existing_greeter_session_bus",
+        "snapshot": {
+          "accessibleApplicationCount": 1,
+          "showingPasswordFields": 1,
+          "focusedPasswordFields": 1,
+          "focusedRoleCounts": {
+            "40": 1
+          }
+        },
+        "focusedPasswordObserved": true,
+        "focusQueriesStoppedBeforeManualLogin": true
+      },
+      "authorityResolvedForGreeter": true,
+      "manualLoginObserved": true,
+      "newUserSessionObserved": true,
+      "accessibilityPropertySummary": {
+        "queryCount": 38,
+        "allSamplesIdentical": true,
+        "sample": {
+          "queryStatus": 0,
+          "type": "absent",
+          "format": 0,
+          "itemCount": 0,
+          "remainingBytes": 0
+        }
+      }
+    },
+    "ownerInteractionRequired": false
+  },
+  "nativeDenials": {
+    "schema": 1,
+    "busOwnerMismatch": {
+      "exitCode": 3,
+      "report": {
+        "greeterProcessVerified": false,
+        "observerUnprivileged": true,
+        "supplementaryGroupsEmpty": true,
+        "inputSent": false,
+        "reason": "greeter_bus_owner_mismatch"
+      }
+    },
+    "wrongUid": {
+      "exitCode": 3,
+      "noObserverReport": true
+    },
+    "inputSent": false,
+    "temporaryBusProcessesExited": true,
+    "temporarySocketRemoved": true
+  },
+  "cleanup": {
+    "schema": 1,
+    "remainingProbeCount": 0,
+    "installedSources": [
+      {
+        "file": "linux-greeter-focus-check.py",
+        "uid": 0,
+        "mode": "0o600",
+        "regular": true,
+        "sha256": "99526cac541b0e4853934a1cd8d7314cd805d99b77e20e9bd35813d833dfc799"
+      },
+      {
+        "file": "linux-session-check.py",
+        "uid": 0,
+        "mode": "0o600",
+        "regular": true,
+        "sha256": "40d222539fa05c21b9f0a95993efe40a386bc82dab4ad031b6d188e827b6e275"
+      }
+    ]
+  },
+  "validation": {
+    "parentAndWorkerSyntaxCompiled": true,
+    "bashSyntaxExitCode": 0,
+    "transferredAndInstalledHashesVerified": true
+  },
+  "rawReportHashes": {
+    "full-cycle.json": "25c08a8df4c37dbdd1f37f5345ecb554cab1bf1c4403367e565b6f50f89c3a0c",
+    "native-denials.json": "ede83922436eef82b1bb5a8f155cdfa990f3884d2262808a3d2785bc2c2d40dc",
+    "cleanup.json": "5d2cc0dfd26bd581b9e66b6e036c8304dfc37d77d4daa0e13efa28bcc677b82a"
+  },
+  "inputTested": false,
+  "captureTested": false,
+  "preLoginTested": false,
+  "readyForUnattended": false,
+  "limits": [
+    "La revisión 3 se verificó completa en Ubuntu ARM, no en el Mint físico x86. Se conservan sus dos intentos históricos fallidos.",
+    "La dirección D-Bus se selecciona de un entorno de greeter validado y acotado; no se publica ni se conservan otros valores. El trabajador conecta con UID lightdm sin grupos adicionales.",
+    "Se comprueba PID/UID propietario de x.dm.SlickGreeter y org.a11y.Bus ya activo; GetAddress usa NO_AUTO_START. No se modifican políticas o servicios de acceso.",
+    "El controlador de laboratorio cierra sesión por administración y autentica la cuenta exclusiva mediante QMP; el supervisor observado no captura, envía entrada ni lee credenciales.",
+    "No acredita el agente final, entrada en greeter, transferencia de pantalla o control remoto desde otros clientes. Tarea 1.4 parcial, 8/57."
+  ]
+}

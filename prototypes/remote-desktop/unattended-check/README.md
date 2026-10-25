@@ -397,7 +397,7 @@ propietario confirmó contraseña y vuelta al escritorio. Evidencia reconciliada
 histórico; no repetir el instalador sobre el mismo destino. Sigue sin acreditar
 entrada en LightDM, credenciales o servicio/transporte completos.
 
-### Mint: observador de LightDM preparado
+### Mint: observador de foco de LightDM
 
 `linux-greeter-focus-install.sh` se lanza **por SSH desde el Mac**, como usuario
 ordinario; así la conexión continúa cuando se cierra Cinnamon. Exige una carpeta
@@ -437,9 +437,12 @@ quedaron procesos propios. Los informes completos y hashes se conservan en
 Ya está disponible una VM Linux ARM con Cinnamon/LightDM administrable desde
 el Mac por SSH y consola QMP. Pasaron entrada/cierre de sesión, arranque,
 restauración de un punto conocido y los prototipos de captura/entrada de
-escritorio sin intervención del propietario. La vía D-Bus del greeter se
-observó como lightdm en esta VM; queda llevarla al supervisor completo y al
-Mint físico. Versiones, operación y límites en
+escritorio sin intervención del propietario. La revisión 3 del supervisor ya
+pasó el ciclo completo con la vía D-Bus en esta VM: propietario PID/UID
+verificado, campo observado como lightdm sin grupos y vuelta a una nueva sesión.
+El bus ajeno y el UID incorrecto se rechazaron sin entrada. Evidencia:
+`linux-greeter-session-bus-results.json`. Falta la validación en el Mint físico.
+Versiones, operación y límites en
 [linux-virtual-lab.md](linux-virtual-lab.md). La VM no sustituye la certificación
 del Mint x86 ni del agente/transporte remoto.
 

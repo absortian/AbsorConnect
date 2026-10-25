@@ -1813,3 +1813,38 @@ en `prototypes/remote-desktop/unattended-check/linux-virtual-lab.md`. Esta VM
 reduce las intervenciones durante desarrollo, pero no sustituye la aceptación
 de Mint x86 ni los requisitos de Windows/Mac. Tarea 1.4 parcial, **8/57**,
 `readyForUnattended:false`. Sin publicación de una versión por el laboratorio.
+
+### Observador LightDM revisión 3: supervisor completo verificado en VM
+
+Se incorporó la vía D-Bus al supervisor: solo si AT_SPI_BUS permanece ausente
+tras la espera de arranque original, selecciona DBUS_SESSION_BUS_ADDRESS de un
+entorno acotado (64 KiB) del greeter cuyo UID/ejecutable comprueba antes y
+después. No conserva el entorno ni la dirección. El trabajador se ejecuta como
+lightdm sin grupos adicionales, comprueba el PID/UID propietario del nombre
+x.dm.SlickGreeter y exige org.a11y.Bus ya activo. GetAddress usa NO_AUTO_START y
+la dirección resultante debe seguir siendo Unix local, única y ≤512 bytes. No
+se amplían el plazo global ni los tipos/formatos aceptados de la vía X11.
+
+Con fuentes protegidas root/0600, instalador y hashes verificados, pasó el
+supervisor completo en la VM Ubuntu ARM: escritorio inicial → LightDM → campo
+de contraseña enfocado → nueva sesión del mismo usuario. Hubo 38 consultas
+X11 de propiedad ausente antes de seleccionar la vía de sesión existente. El
+trabajador y el supervisor terminaron con código 0, y el foco dejó de consultarse
+antes del inicio de sesión. El controlador de laboratorio hizo cierre e inicio
+por CLI/QMP con su cuenta exclusiva; el diagnóstico no envió entrada ni leyó
+contraseñas.
+
+En otra ejecución automática de la VM, un bus privado temporal con el nombre
+x.dm.SlickGreeter perteneciente a otro PID produjo greeter_bus_owner_mismatch y
+salida 3 antes de consultar AT-SPI. También se rechazó UID esperado incorrecto.
+Ambos casos sin entrada; procesos/socket temporales retirados. Comprobación
+independiente posterior: cero procesos del diagnóstico y fuentes root/0600 con
+los hashes esperados. Sintaxis del supervisor/trabajador y Bash correctas.
+
+Resultados y hashes privados reconciliados en
+`linux-greeter-session-bus-results.json`. La configuración ARM y las versiones
+difieren del Mint físico. No acredita entrada del agente en greeter, captura o
+transporte remoto y no sustituye la aceptación física. Los dos fallos físicos
+anteriores y la preparación se conservan. `inputTested:false`,
+`captureTested:false`, `preLoginTested:false`, `readyForUnattended:false`;
+tarea 1.4 parcial y **8/57**. Sin nueva publicación por estos diagnósticos.

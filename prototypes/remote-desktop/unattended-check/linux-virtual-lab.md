@@ -80,8 +80,13 @@ entorno. El trabajador accesible original, precedido por ese descubrimiento,
 observó un único campo de contraseña enfocado y terminó antes del inicio de
 sesión. Solo consulta roles/estados, no texto, valores o acciones.
 
-Esta vía está comprobada en el laboratorio ARM. Aún no se ha incorporado al
-supervisor completo ni validado en el greeter del Mint físico.
+La revisión 3 incorpora esta vía al supervisor completo cuando la propiedad
+X11 sigue ausente tras su espera de arranque. Pasó el ciclo completo en la VM:
+usuario → greeter → campo enfocado → nueva sesión de usuario, con código 0 del
+supervisor y del trabajador. También se rechazaron un bus privado con otro PID
+propietario y un UID esperado incorrecto, sin entrada. Evidencia posterior:
+`linux-greeter-session-bus-results.json`. Sigue pendiente validarlo en el greeter
+del Mint físico; la evidencia inicial del laboratorio se conserva por separado.
 
 ## Alcance
 
