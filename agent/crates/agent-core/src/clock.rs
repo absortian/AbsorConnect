@@ -82,7 +82,8 @@ mod native {
 #[allow(unsafe_code)]
 mod native {
     use super::*;
-    #[link(name = "kernel32")]
+    // Import library del SDK para QueryInterruptTimePrecise; el DLL sigue siendo Kernel32.
+    #[link(name = "mincore")]
     extern "system" {
         fn QueryInterruptTimePrecise(time: *mut u64);
     }

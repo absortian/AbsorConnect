@@ -220,12 +220,12 @@
     "php": "8.5.12"
   },
   "sources": {
-    ".github/workflows/agent-core.yml": "619fb3555b0942833a6880dab3559a18c553d5cdea71d5ef64016c7e0dc6d96c",
+    ".github/workflows/agent-core.yml": "629ba3ee261f1ebac6231447ccd38cbec7062bba5bb0d2f1a59a53a908ad602d",
     "agent/Cargo.toml": "2b61aba0f9d01178ca7b881f4b2d6e812114db388e99cdd4859b2fbee6e16176",
     "agent/Cargo.lock": "d2a1f277f12e2673813acb384da1021156567c0ae185a1ede323af9c59878ed6",
-    "agent/README.md": "597c6892c23c09797142358a035699c8bf3a8c166d478d6710eaaa5f6f244e55",
+    "agent/README.md": "e2e945df7f80e73cd5bb3b8735ee5f8c1ae7a56baeeef8babf7be505346fe7bf",
     "agent/crates/agent-core/src/lib.rs": "3061bc1fa8de8371e082a2ccf2019173b2f1cd0b8a8947dfe69c832c0366e981",
-    "agent/crates/agent-core/src/clock.rs": "4eabd3738bb16ddfc495e44ddba61e4b2f3eb54a24d47ad7c65acda57226da00",
+    "agent/crates/agent-core/src/clock.rs": "b72c495281e010f5bd9286c2597bd6b53cbebff8e9bdf6c3f22f111f67e84847",
     "agent/crates/agent-api/src/lib.rs": "24c3196cf420b51026a6cc8f4c58d48f142d879d194fff62c403f68227af54ec",
     "agent/crates/agent-api/src/http.rs": "0656a8b1d287afc2b84789355856e10623c25309d11abfc3174ebcf0c5fef619",
     "agent/crates/agent-auth/src/lib.rs": "ec0d8185148f23176286b8ef98e4573f49ba31fca7f1f5f05b89e66aebf092ea",
@@ -269,5 +269,11 @@
     "Las pruebas finales de hardware y la revisión de arquitectura/firma del agente Mac se mantienen.",
     "CI del nuevo head debe revisarse en la PR; este informe registra comprobaciones locales.",
     "Sin release o alta en producción. Tareas 3.1/3.2/3.4 parciales."
-  ]
+  ],
+  "ciCorrection": {
+    "windowsImportLibrary": "Mincore.lib",
+    "failFastShell": "bash",
+    "initialWindowsLinkFailureObserved": true,
+    "failedJobUrl": "https://github.com/absortian/AbsorConnect/actions/runs/40239794603/job/121308942707"
+  }
 }

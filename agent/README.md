@@ -27,7 +27,8 @@ El reloj cuenta la suspensión, sin depender del calendario:
 
 - Linux **de 64 bits**: `clock_gettime(CLOCK_BOOTTIME)`, con validación del resultado.
 - macOS: `mach_continuous_time` y conversión comprobada con `mach_timebase_info`.
-- Windows 10+: `QueryInterruptTimePrecise`, con unidades de 100 ns.
+- Windows 10+: `QueryInterruptTimePrecise`, con unidades de 100 ns y la import library
+  `Mincore.lib` del SDK ([contrato de Microsoft](https://learn.microsoft.com/en-us/windows/win32/api/realtimeapiset/nf-realtimeapiset-queryinterrupttimeprecise)).
 
 FFI está limitada a `clock.rs`; el resto del núcleo prohíbe `unsafe`. El crate
 `agent-core` no tiene dependencias de terceros. Rust mínimo 1.75; lockfile versionado y compilación

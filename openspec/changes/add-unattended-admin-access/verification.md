@@ -2084,3 +2084,12 @@ con captura/entrada real, supervisor/watchdog e instaladores. No se ha hecho
 alta en producción ni nueva release. 3.1/3.2/3.4 siguen parciales; **8/57 tareas
 cerradas (14 %)**. La revisión de firma/arquitectura Mac y la aceptación física
 final se mantienen.
+
+
+El primer CI de esta PR detectó que el reloj Windows se había declarado con
+la import library incorrecta. El SDK requiere Mincore.lib para
+QueryInterruptTimePrecise, aunque el DLL sea Kernel32. Se corrigió el enlace
+sin cambiar la base temporal. También se fija Bash con salida inmediata ante
+error en todos los runners: PowerShell había continuado tras fallos de comandos
+nativos, así que el éxito global anterior no acreditaba cada puerta de Windows.
+La repetición debe confirmar pruebas, ejemplos y ambos builds antes de integrar.

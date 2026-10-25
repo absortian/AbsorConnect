@@ -20,6 +20,12 @@ on:
 permissions:
   contents: read
 
+# Bash con -e/pipefail también en Windows: ningún fallo nativo queda oculto
+# por el éxito de un comando posterior en un paso con varias líneas.
+defaults:
+  run:
+    shell: bash
+
 jobs:
   authorization:
     strategy:
