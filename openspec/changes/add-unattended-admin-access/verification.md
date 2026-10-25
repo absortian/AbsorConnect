@@ -1614,3 +1614,21 @@ presencia delante de Mint antes de iniciar otra. Los archivos de una carpeta
 nueva están preparados con hashes verificados, sin arrancar otro observador.
 Evidencia: `mint-lock-focus-results.json`. Preparación previa conservada como
 histórica; tarea 1.4 parcial, **8/57**, sin nueva publicación.
+
+#### Segunda observación: bloqueo y foco verificados
+
+Con el propietario preparado se inició un observador nuevo y se coordinó el
+bloqueo/desbloqueo solo de Mint. El informe coincide con la fuente fijada:
+`lockedStateObserved:true`, un campo de contraseña mostrado/enfocado en la
+aplicación del propietario del bus verificado, `unlockedStateObserved:true` y
+cero campos después. El propietario confirmó que volvió al escritorio y que el
+desbloqueo pidió contraseña. Tras encontrar ese foco se dejaron de consultar sus
+metadatos hasta desbloquear, sin leer contenido ni escuchar teclas.
+
+Los tres eventos registran espera, activación y foco de contraseña observado.
+El trabajador terminó y se comprobaron cero procesos propios. Evidencia saneada
+y hashes en `mint-lock-focus-results.json`; originales privados. Es observación
+de contexto/foco con confirmación humana, no recepción de entrada sintética:
+`inputTested:false`, `captureTested:false`, `readyForUnattended:false`. Quedan
+entrada en bloqueo y LightDM y la integración del agente. Tarea 1.4 parcial,
+**8/57**, sin cambios de producción.

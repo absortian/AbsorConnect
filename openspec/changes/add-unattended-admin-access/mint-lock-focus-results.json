@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "date": "2026-10-25",
-  "status": "waiting_for_owner_readiness",
+  "status": "lock_focus_metadata_observed_not_certified",
   "attempts": [
     {
       "attempt": "a",
@@ -30,15 +30,73 @@
     },
     {
       "attempt": "b",
-      "status": "files_prepared_not_started",
-      "transferredHashesVerified": true
+      "status": "lock_focus_metadata_observed_not_certified",
+      "transferredHashesVerified": true,
+      "rawReport": {
+        "schema": 1,
+        "platform": "linux",
+        "status": "lock_focus_metadata_observed_not_certified",
+        "sourceSha256": "cacdd22685e36011e49eb68a5986e156887f954a557b2772ca665a8e5d0e7cc7",
+        "inputTested": false,
+        "captureTested": false,
+        "readyForUnattended": false,
+        "beforeLock": {
+          "busOwnerVerified": true,
+          "accessibleApplicationCount": 1,
+          "showingPasswordFields": 0,
+          "focusedPasswordFields": 0,
+          "focusedRoleCounts": {}
+        },
+        "lockedStateObserved": true,
+        "firstLockedSnapshot": {
+          "busOwnerVerified": true,
+          "accessibleApplicationCount": 1,
+          "showingPasswordFields": 0,
+          "focusedPasswordFields": 0,
+          "focusedRoleCounts": {
+            "69": 1
+          }
+        },
+        "lockedFocus": {
+          "busOwnerVerified": true,
+          "accessibleApplicationCount": 1,
+          "showingPasswordFields": 1,
+          "focusedPasswordFields": 1,
+          "focusedRoleCounts": {
+            "40": 1
+          }
+        },
+        "unlockedStateObserved": true,
+        "afterUnlock": {
+          "busOwnerVerified": true,
+          "accessibleApplicationCount": 1,
+          "showingPasswordFields": 0,
+          "focusedPasswordFields": 0,
+          "focusedRoleCounts": {}
+        }
+      },
+      "cleanup": {
+        "remainingAttemptObserverCount": 0
+      },
+      "ownerConfirmedPasswordRequired": true,
+      "lockTransitionVerified": true,
+      "lockedFocusMetadataVerified": true
     }
   ],
   "rawReportHashes": {
     "attempt-a-results.json": "aa851ba5cf979720429db7c9c84e51419abdf867b73590aaf5b8ae15bb93dbfc",
     "attempt-a-events.jsonl": "c441720362b733a10b7d44d9c242cea8fb543be3648589cb37a14a26ba1ec5bd",
-    "attempt-a-cleanup.json": "233fa0234c1789ed6ee9d1299a306a9bc2e0cd28e8764157960c16fafa63f74c"
+    "attempt-a-cleanup.json": "233fa0234c1789ed6ee9d1299a306a9bc2e0cd28e8764157960c16fafa63f74c",
+    "attempt-b-results.json": "9bbf04ccad9ad40c36260bf9834733ae784f2b7c383023de215ecab6819e0d45",
+    "attempt-b-events.jsonl": "301c419e8e3a5a996141bccbb913d563263d551ec6305254092b0394131122d9",
+    "attempt-b-cleanup.json": "233fa0234c1789ed6ee9d1299a306a9bc2e0cd28e8764157960c16fafa63f74c",
+    "attempt-b-owner-confirmation.json": "21f61854056ae3976adbb65156cea952dacb4eb0b9f16a5657b878a456a3af1a"
   },
   "inputTested": false,
-  "readyForUnattended": false
+  "readyForUnattended": false,
+  "limits": [
+    "Solo observación: no se capturan imágenes, envían teclas/clics ni consultan interfaces de texto/valores.",
+    "La contraseña requerida al desbloquear está confirmada por el propietario, separada del estado GetActive.",
+    "No acredita entrada sintética en bloqueo, LightDM, transporte remoto o agente final. La preparación previa preserva su estado histórico."
+  ]
 }
