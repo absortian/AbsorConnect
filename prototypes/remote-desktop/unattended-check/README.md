@@ -427,6 +427,22 @@ se atribuye una causa concreta al primer fallo, pues no registraba esos datos.
 Se prepara un destino nuevo para repetir; evidencia histórica y preparación:
 `mint-greeter-focus-attempts.json`.
 
+La segunda ejecución confirmó propiedad ausente en 36 consultas de arranque,
+sin iniciar el trabajador accesible. El propietario volvió al escritorio y no
+quedaron procesos propios. Los informes completos y hashes se conservan en
+`mint-greeter-focus-attempts.json`.
+
+### Laboratorio virtual autónomo
+
+Ya está disponible una VM Linux ARM con Cinnamon/LightDM administrable desde
+el Mac por SSH y consola QMP. Pasaron entrada/cierre de sesión, arranque,
+restauración de un punto conocido y los prototipos de captura/entrada de
+escritorio sin intervención del propietario. La vía D-Bus del greeter se
+observó como lightdm en esta VM; queda llevarla al supervisor completo y al
+Mint físico. Versiones, operación y límites en
+[linux-virtual-lab.md](linux-virtual-lab.md). La VM no sustituye la certificación
+del Mint x86 ni del agente/transporte remoto.
+
 ## Windows
 
 En el equipo de pruebas, desde PowerShell:

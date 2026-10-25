@@ -1761,3 +1761,55 @@ reconciliada y preparación de revisión 2 en `mint-greeter-focus-attempts.json`
 La repetición del greeter sigue pendiente; `inputTested:false`,
 `captureTested:false`, `preLoginTested:false`, `readyForUnattended:false`.
 La tarea 1.4 sigue parcial, **8/57**.
+
+#### Segunda ejecución: propiedad de accesibilidad ausente
+
+La revisión 2 detectó la sesión greeter. Las **36 consultas** durante el plazo
+de arranque devolvieron estado X11 0, tipo None, formato/cantidad/bytes restantes
+cero: `greeter_accessibility_property_absent`. No inició el trabajador
+accesible. El propietario volvió al escritorio y al prompt del Mac; la
+comprobación independiente encontró cero procesos propios y fuentes root/0600.
+El informe privado íntegro se conserva por hash; el artefacto público resume
+las muestras idénticas en `mint-greeter-focus-attempts.json`.
+
+Se acredita la ausencia de la propiedad durante ese intervalo, no la ausencia
+del bus privado de D-Bus del greeter ni un fallo de captura/entrada X11. No se
+aumenta el tiempo a ciegas ni se vuelve a solicitar el mismo ensayo físico. El
+propietario pidió priorizar una VM controlable desde el Mac para automatizar
+las repeticiones. Se prepara un laboratorio Linux ARM con Cinnamon/LightDM;
+la configuración física Mint x86 sigue siendo el objetivo de aceptación y sus
+resultados no se sustituyen por los de la VM. Tarea 1.4 parcial, **8/57**.
+
+### Laboratorio Linux ARM automatizado en el Mac — 25/10/2026
+
+Se creó una VM Ubuntu 24.04.5 ARM con Cinnamon 6.0.4/LightDM/Slick Greeter,
+QEMU 11.1.2/HVF, dos vCPU, 4 GiB y disco virtual qcow2 de 40 GiB. Imagen
+oficial y checksum comprobados; NoCloud terminó sin errores. Clave exclusiva,
+SSH en loopback, sockets privados y cuenta generada solo para laboratorio.
+La administración y el teclado virtual se controlan desde el Mac, sin pedir
+las credenciales personales del propietario.
+
+Pasaron arranque, observación del campo de contraseña como lightdm, inicio de
+sesión gráfico por QMP, cierre y nuevo inicio de sesión, apagado limpio, punto
+`desktop-ready`, nuevo arranque y restauración de disco/variables UEFI. Un
+marcador posterior desapareció tras restaurar y se verificó otro inicio de
+sesión. Estos controles de laboratorio no son entrada del agente AbsorConnect.
+
+También se ejecutaron los prototipos existentes: captura de región XGetImage
+con diez fotogramas no uniformes y recepción GTK nativa de clic/tecla por XTest
+(1/1/1/1, cero inesperados, puntero restaurado). El foco anterior no se observó
+restaurado en esa ejecución; no se fuerza ni se declara comprobado. Limpieza
+independiente: cero procesos de esos prototipos.
+
+La vía alternativa de D-Bus se comprobó en la VM: dirección seleccionada del
+entorno acotado del greeter verificado, consulta como lightdm sin grupos,
+propietario PID/UID de `x.dm.SlickGreeter` comprobado, `org.a11y.Bus` ya activo,
+sin solicitar activación automática ni guardar direcciones/entornos. El
+trabajador accesible original con ese prefijo observó el campo enfocado. No
+equivale a pasar el supervisor completo en el Mint físico.
+
+Evidencia y hashes en `linux-arm-virtual-lab-results.json`; operación y límites
+en `prototypes/remote-desktop/unattended-check/linux-virtual-lab.md`. Esta VM
+reduce las intervenciones durante desarrollo, pero no sustituye la aceptación
+de Mint x86 ni los requisitos de Windows/Mac. Tarea 1.4 parcial, **8/57**,
+`readyForUnattended:false`. Sin publicación de una versión por el laboratorio.
