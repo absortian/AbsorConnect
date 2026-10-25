@@ -76,7 +76,7 @@ def main():
         php_version = command(['docker', 'exec', container, 'php', '-r', 'echo PHP_VERSION;']).decode().strip()
         run = subprocess.run(['python3', '-B', str(Path(__file__).with_name('webrtc-renewal.py')),
                               str(lab), '--node', args.node, '--api-base', 'http://127.0.0.1:'+str(port)],
-                             cwd=ROOT, capture_output=True, timeout=120)
+                             cwd=ROOT, capture_output=True, timeout=240)
         log = private/'matrix.log'
         log.write_bytes(run.stdout+run.stderr)
         os.chmod(log, 0o600)

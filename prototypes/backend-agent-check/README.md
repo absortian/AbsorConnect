@@ -59,3 +59,12 @@ Hay que compilar antes con `webrtc-check/build.py ... --rust-bridge`. La nueva
 ABI/target son solo de laboratorio Mac; no es un agente instalable ni prueba
 captura/entrada/TURN/móvil. Los informes distinguen cada límite. Los logs y los
 archivos de señalización contienen metadatos locales: mantenerlos privados.
+
+
+La variante supervisada añade bloqueo y caída tanto del trabajador como de su
+supervisor, con los mismos cinco registros efímeros y diarios independientes.
+Comprueba corte del proceso y parada del vídeo; no exige un cierre DTLS remoto
+inmediato cuando el proceso muere. Un timeout del lanzador retira el grupo de
+procesos creado exclusivamente para la prueba. La ruta privada de trabajo se
+publica antes de arrancar Electron, para retirar las copias de credenciales
+también si la matriz termina con error. No usa procesos o grupos preexistentes.

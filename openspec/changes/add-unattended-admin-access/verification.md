@@ -2093,3 +2093,60 @@ sin cambiar la base temporal. También se fija Bash con salida inmediata ante
 error en todos los runners: PowerShell había continuado tras fallos de comandos
 nativos, así que el éxito global anterior no acreditaba cada puerta de Windows.
 La repetición debe confirmar pruebas, ejemplos y ambos builds antes de integrar.
+
+
+## 26/10/2026 — Vigilancia independiente y fallos integrados
+
+Se añade `agent-supervisor`: control terminal de progreso con reloj del arranque,
+pulsos secuenciales fechados y plazo de dos segundos. Una fecha acumulada no
+renueva desde su recepción. Protocolo/líneas/cola acotados; repetición, salto,
+fecha futura, reloj incoherente, EOF o saturación fallan cerrados. El lector de
+pipes no sustituye al actor de autorización para generar pulsos del trabajador.
+
+La feature `synthetic-lab` crea un supervisor sin privilegios y un trabajador
+artificial propio. En el recorrido WebRTC, el supervisor posee el proceso C++
+y lo termina/recoge si se bloquea su actor. Un hilo separado del trabajador
+vigila al supervisor y termina el proceso completo si pierde sus pulsos o su
+pipe. La salida de emergencia usa `_exit`/`TerminateProcess` sobre sí mismo;
+no depende de destructores C++/`atexit`. El ensayo integrado detectó que la
+salida ordinaria no aseguraba la terminación del trabajador dentro del plazo.
+También se corrigió la observación de EOF: llenar la cola es un fallo terminal,
+pero el lector sigue drenando para medir la salida real del proceso, sin
+confundir el cierre del lector con la muerte del trabajador.
+
+La matriz final pasó nueve casos Mac ARM/Electron: los cinco previos más
+bloqueo del actor, caída del trabajador, bloqueo del supervisor durante cinco
+segundos y caída del supervisor. HMAC/huella erróneos siguieron generando y
+recibiendo cero imágenes. Revocación cortó el canal en **2387 ms** y pérdida
+de API en **29370 ms**. El actor bloqueado terminó en **1999 ms**; el trabajador
+observó al supervisor bloqueado y terminó en **1934 ms** (EOF medido desde otro
+hilo, antes de que el actor padre despertara). Las caídas terminaron los pipes
+en **57 ms** y **50 ms**, respectivamente. En los cuatro casos dejaron de llegar
+fotogramas. Una muerte abrupta sobre UDP no garantiza aviso DTLS inmediato al
+controlador: ese estado no se confunde con la terminación del host.
+
+Se verifican hashes del extremo, dylib y supervisor antes de lanzar. No se
+reinicia ni reutiliza una PeerConnection anterior. Las peticiones de fallo
+son enumeradas y solo alcanzan procesos hijos propios; no se admiten comandos,
+PIDs ni ejecutables del renderer. El helper retira el grupo exclusivo del ensayo
+si vence su timeout y publica pronto su ruta privada para retirar copias de
+credenciales también en errores. Las cinco cuentas, contenedor/BD aislados y
+archivo de entorno se retiraron. Comprobación posterior: cero contenedores
+etiquetados y cero BD de laboratorio; límites compartidos de desarrollo intactos.
+
+Mac Rust 1.99.1 y VM Linux ARM Rust 1.75 pasaron **42 pruebas por omisión y 51
+con todas las features**, formato, Clippy sin advertencias y release en ambos
+modos. Incluyen seis pruebas con procesos reales y ocho de reloj/protocolo/pipe.
+La variante C++ anterior pasó sus tres casos de vídeo. TypeScript correcto,
+Vitest **276/5 omitidas** y PHPUnit **162/1077 aserciones**; sintaxis de los
+lanzadores y OpenSpec estricto correctos. Evidencia y hashes en
+`agent-supervisor-results.json`; logs con metadatos locales solo en laboratorio.
+La matriz CI ejecuta las mismas puertas Rust en los tres sistemas; la prueba
+WebRTC continúa limitada a Mac/Electron, sin atribuirla a Windows/Linux.
+
+Esta capa es vigilancia de vida, no autenticación de IPC ni autorización nueva.
+No implementa SCM/launchd/systemd, almacenes de credenciales protegidos, entrada
+liberada por un proceso separado tras caída, señalización completa o instaladores.
+No se instala un servicio ni se publica una release: producción sigue en 0.4.1.
+3.1/3.2/3.4 permanecen parciales, **8/57 tareas aceptadas (14 %)**; la revisión de
+macOS y las pruebas físicas continúan pendientes y se mantienen al final.

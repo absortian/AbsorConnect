@@ -101,7 +101,12 @@ El target Mac usa dylib y compilador Rust del checkout fijado de WebRTC, para
 no mezclar bibliotecas estándar estáticas. Autoriza la API antes de crear la
 PeerConnection y consume el resultado v1 antes de añadir vídeo artificial;
 el adaptador cierra fuente/canal/transporte al caducar o revocarse. Consulta
-cada 50 ms, sin watchdog independiente todavía. Su prueba no certifica el
+cada 50 ms. La variante supervisada añade vigilancia independiente en dos
+procesos sin privilegios, con pulsos de vida de dos segundos y corte sin
+destructores C++ al perder al supervisor. Solo su actor de autorización
+completa los pulsos del trabajador; el lector de pipes no los sustituye.
+No implementa todavía supervisor de servicio, IPC autenticado ni liberación
+de entrada del SO tras morir el proceso. Su prueba no certifica el
 servicio, captura/entrada ni la matriz de plataformas de D1/D2.
 
 Implementación parcial de autenticación: `agent-auth` es un componente Rust

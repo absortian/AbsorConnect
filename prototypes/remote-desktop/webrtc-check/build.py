@@ -53,13 +53,16 @@ def main():
             rust_environment["MACOSX_DEPLOYMENT_TARGET"] = "13.0"
         rust_environment["RUSTC"] = str(checkout / "third_party/rust-toolchain/bin/rustc")
         subprocess.run(["cargo", "build", "--manifest-path", str(REPOSITORY / "agent/Cargo.toml"),
-                        "--offline", "--locked", "--release", "-p", "absor-agent-webrtc-lab", "--features", "lab-http"], env=rust_environment, check=True)
+                        "--offline", "--locked", "--release", "-p", "absor-agent-webrtc-lab", "-p", "absor-agent-supervisor", "--features", "lab-http,synthetic-lab"], env=rust_environment, check=True)
         for source, name in ((REPOSITORY / "agent/target/release/libabsor_agent_webrtc_lab.dylib", "libabsor_agent_webrtc_lab.dylib"),
-                             (REPOSITORY / "agent/crates/agent-webrtc-lab/absor_bridge.h", "absor_bridge.h")):
+                             (REPOSITORY / "agent/crates/agent-webrtc-lab/absor_bridge.h", "absor_bridge.h"),
+                             (REPOSITORY / "agent/target/release/absor-lab-supervisor", "absor-lab-supervisor")):
             destination = target / name
             if destination.is_symlink():
                 raise RuntimeError("El destino de la ABI no puede ser un enlace.")
             shutil.copyfile(source, destination)
+            if name == "absor-lab-supervisor":
+                destination.chmod(0o700)
     vectors_path = REPOSITORY / "src/shared/remote/auth-vectors.json"
     vectors = json.loads(vectors_path.read_text())["vectors"]
     header = "#pragma once\n#include <string>\n#include <vector>\n"
@@ -125,6 +128,7 @@ def main():
                                   "compiled": True, "executedByThisCommand": False}
         report["rustCompiler"] = subprocess.check_output([rust_environment["RUSTC"], "--version"], text=True).strip()
         report["rustLibrarySha256"] = hashlib.sha256((target / "libabsor_agent_webrtc_lab.dylib").read_bytes()).hexdigest()
+        report["supervisorSha256"] = hashlib.sha256((target / "absor-lab-supervisor").read_bytes()).hexdigest()
     report_path = workspace / "webrtc-probe-results.json"
     if report_path.is_symlink():
         raise RuntimeError("El informe no puede ser un enlace simbólico.")

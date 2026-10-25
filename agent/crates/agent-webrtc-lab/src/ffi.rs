@@ -1,6 +1,7 @@
 //! Única frontera unsafe: buffers C válidos del adaptador compilado de laboratorio.
 //! Los identificadores no son direcciones ni se aceptan desde WebRTC/IPC.
 use super::bridge::Bridge;
+use absor_agent_supervisor::synthetic as supervision;
 use std::collections::HashMap;
 use std::sync::{
     atomic::{AtomicU64, Ordering},
@@ -28,6 +29,7 @@ unsafe fn input(ptr: *const u8, len: usize, max: usize) -> Option<Vec<u8>> {
 /// config debe satisfacer el contrato de input. Nunca pasar credenciales por argv.
 #[no_mangle]
 pub unsafe extern "C" fn absor_bridge_create(config: *const u8, len: usize) -> u64 {
+    supervision::start();
     std::panic::catch_unwind(|| {
         // SAFETY: precondición del llamador, límite interno de 4096 bytes.
         let Some(raw) = (unsafe { input(config, len, 4096) }) else {
@@ -56,13 +58,16 @@ pub unsafe extern "C" fn absor_bridge_create(config: *const u8, len: usize) -> u
 
 #[no_mangle]
 pub extern "C" fn absor_bridge_poll(id: u64) -> i32 {
-    std::panic::catch_unwind(|| {
+    supervision::before_poll();
+    let result = std::panic::catch_unwind(|| {
         let Ok(mut instances) = instances().lock() else {
             return -3;
         };
         instances.get_mut(&id).map_or(-3, Bridge::poll)
     })
-    .unwrap_or(-3)
+    .unwrap_or(-3);
+    supervision::pulse(result);
+    result
 }
 
 /// # Safety

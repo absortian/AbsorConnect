@@ -28,12 +28,21 @@ name = "absor-agent-core"
 version = "0.1.0"
 
 [[package]]
+name = "absor-agent-supervisor"
+version = "0.1.0"
+dependencies = [
+ "absor-agent-core",
+ "serde_json",
+]
+
+[[package]]
 name = "absor-agent-webrtc-lab"
 version = "0.1.0"
 dependencies = [
  "absor-agent-api",
  "absor-agent-auth",
  "absor-agent-core",
+ "absor-agent-supervisor",
  "base64",
  "ring",
  "serde",

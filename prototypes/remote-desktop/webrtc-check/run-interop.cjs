@@ -9,15 +9,18 @@ if (!lab) { console.error('Uso: node run-interop.cjs <laboratorio-externo>'); pr
 const options = process.argv.slice(3)
 let syntheticVideo = false
 let relayController = false
+let supervised = false
 let agentConfig
 let turnConfig
 for (let i = 0; i < options.length; i++) {
-  if (options[i] === '--relay-controller' && !relayController) relayController = true
+  if (options[i] === '--supervised' && !supervised) supervised = true
+  else if (options[i] === '--relay-controller' && !relayController) relayController = true
   else if (options[i] === '--synthetic-video' && !syntheticVideo) syntheticVideo = true
   else if (options[i] === '--agent-config' && !agentConfig && options[i + 1]) { agentConfig = options[++i]; syntheticVideo = true }
   else if (options[i] === '--turn-config' && !turnConfig && options[i + 1]) turnConfig = options[++i]
   else throw new Error('Opción desconocida o repetida')
 }
+if (supervised && !agentConfig) throw new Error('--supervised exige --agent-config')
 if (relayController && !turnConfig) throw new Error('--relay-controller exige --turn-config')
 let relayConfiguration
 if (turnConfig) {
@@ -45,8 +48,13 @@ if (build.webrtcRevision !== require('./dependencies.json').webrtc.revision ||
     (agentConfig ? build.rustEndpoint : syntheticVideo ? build.videoEndpoint : build.channelEndpoint)?.sha256 !== binarySha256) {
   throw new Error('El extremo nativo no coincide con el informe de compilación; vuelve a ejecutar build.py')
 }
+const supervisor = path.join(lab, 'webrtc-native/src/absor_connect_probe/absor-lab-supervisor')
+if (agentConfig && crypto.createHash('sha256').update(fs.readFileSync(path.join(lab, 'webrtc-native/src/absor_connect_probe/libabsor_agent_webrtc_lab.dylib'))).digest('hex') !== build.rustLibrarySha256) throw new Error('Biblioteca Rust distinta de la compilada')
+if (supervised && crypto.createHash('sha256').update(fs.readFileSync(supervisor)).digest('hex') !== build.supervisorSha256) throw new Error('Supervisor distinto del compilado')
 const work = fs.mkdtempSync(path.join(lab, 'interop-'))
 fs.chmodSync(work, 0o700)
+// Publicar pronto la ruta propia permite retirar credenciales también en fallos.
+console.log(`Informe local: ${path.join(work, 'interop-results.json')}`)
 if (agentConfig) {
   const stat = fs.lstatSync(agentConfig)
   if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 16384 || (stat.mode & 0o077) !== 0 || stat.uid !== process.getuid()) throw new Error('Configuración de agente no privada')
@@ -62,8 +70,8 @@ fs.writeFileSync(path.join(work, 'artifact.json'), JSON.stringify({
   binarySha256,
   sourceRevision: require('./dependencies.json').webrtc.revision
 }, null, 2) + '\n', { mode: 0o600 })
-const child = spawn(require('electron'), [path.join(work, 'interop-main.cjs'), `--lab-work=${work}`, `--lab-binary=${binary}`, ...(agentConfig ? ['--lab-agent-bridge'] : []), ...(syntheticVideo ? ['--lab-synthetic-video'] : []), ...(relayConfiguration ? ['--lab-relay-only'] : []), ...(relayController ? ['--lab-relay-controller'] : [])], {
+const child = spawn(require('electron'), [path.join(work, 'interop-main.cjs'), `--lab-work=${work}`, `--lab-binary=${binary}`, ...(supervised ? [`--lab-supervisor=${supervisor}`] : []), ...(agentConfig ? ['--lab-agent-bridge'] : []), ...(syntheticVideo ? ['--lab-synthetic-video'] : []), ...(relayConfiguration ? ['--lab-relay-only'] : []), ...(relayController ? ['--lab-relay-controller'] : [])], {
   env: { ...process.env, ELECTRON_RUN_AS_NODE: '' }, stdio: 'inherit'
 })
 child.on('error', (error) => { console.error(error.message); process.exitCode = 1 })
-child.on('exit', (code, signal) => { console.log(`Salida Electron: ${code}; señal: ${signal ?? 'ninguna'}`); if (relayConfiguration) { fs.rmSync(path.join(work, 'turn-config.json'), { force: true }); fs.rmSync(path.join(work, 'native-ice.json'), { force: true }) }; console.log(`Informe local: ${path.join(work, 'interop-results.json')}`); process.exitCode = code ?? 1 })
+child.on('exit', (code, signal) => { console.log(`Salida Electron: ${code}; señal: ${signal ?? 'ninguna'}`); if (relayConfiguration) { fs.rmSync(path.join(work, 'turn-config.json'), { force: true }); fs.rmSync(path.join(work, 'native-ice.json'), { force: true }) }; process.exitCode = code ?? 1 })

@@ -20,7 +20,10 @@ migración real e integración que impida toda captura/entrada antes de autentic
 El enlace de laboratorio ya verifica Rust + autorización API + autenticación
 DTLS/HMAC + vídeo artificial con Electron y corte del transporte. No cierra aún
 3.1/3.2/3.4: faltan almacenes/IPC protegidos, señalización completa, trabajador de
-captura/entrada, watchdog independiente y matriz del resto de plataformas.
+captura/entrada, supervisor de servicio/IPC protegido y matriz del resto de
+plataformas. El supervisor independiente optativo de laboratorio añade corte
+por bloqueo/caída en ambos sentidos, sin cerrar estas tareas ni certificar
+liberación de entrada del SO tras una caída.
 
 ## 1. Viabilidad y configuraciones objetivo
 

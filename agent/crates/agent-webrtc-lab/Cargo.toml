@@ -10,12 +10,13 @@ crate-type = ["rlib", "cdylib"]
 
 [features]
 # Únicamente diagnóstico: ABI ausente por omisión, API restringida a loopback.
-lab-http = ["absor-agent-api/lab-http"]
+lab-http = ["absor-agent-api/lab-http", "absor-agent-supervisor/synthetic-lab"]
 
 [dependencies]
 absor-agent-api = { path = "../agent-api" }
 absor-agent-auth = { path = "../agent-auth" }
 absor-agent-core = { path = "../agent-core" }
+absor-agent-supervisor = { path = "../agent-supervisor" }
 base64 = "=0.22.1"
 serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = "=1.0.154"
