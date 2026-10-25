@@ -1,0 +1,253 @@
+{
+  "schema": 1,
+  "date": "2026-10-25",
+  "status": "greeter_native_tab_navigation_verified_in_vm",
+  "configuration": {
+    "distribution": "Ubuntu 24.04.5 LTS",
+    "architecture": "aarch64",
+    "cinnamon": "6.0.4",
+    "lightdm": "1.30.0",
+    "slickGreeter": "2.0.1-1build3"
+  },
+  "sourceHashes": {
+    "linux-greeter-input-check.py": "e5ab3c25bd5333f6085b8074f6ca931293d6a1e247e22224f661eb173ca34a2a",
+    "linux-greeter-input-install.sh": "64fb7a0730c51bf757678020298ffa8466f06e5243b94ac9ad72d9daef8100f1",
+    "linux-greeter-focus-check.py": "99526cac541b0e4853934a1cd8d7314cd805d99b77e20e9bd35813d833dfc799",
+    "linux-session-check.py": "40d222539fa05c21b9f0a95993efe40a386bc82dab4ad031b6d188e827b6e275"
+  },
+  "results": {
+    "initialRefusal": {
+      "schema": 1,
+      "automatedLabOnly": true,
+      "ownerInteractionRequired": false,
+      "status": "failed",
+      "reason": "probe_ended_before_READY_TO_LOGOUT_MINT",
+      "report": {
+        "schema": 1,
+        "platform": "linux",
+        "sourceSha256": "e5ab3c25bd5333f6085b8074f6ca931293d6a1e247e22224f661eb173ca34a2a",
+        "greeterHelperSha256": "99526cac541b0e4853934a1cd8d7314cd805d99b77e20e9bd35813d833dfc799",
+        "inputTested": false,
+        "captureTested": false,
+        "preLoginTested": false,
+        "readyForUnattended": false,
+        "status": "greeter_navigation_not_verified",
+        "reason": "initial_unlocked_user_required",
+        "sentCounts": {
+          "tabDown": 0,
+          "tabUp": 0,
+          "shiftDown": 0,
+          "shiftUp": 0
+        }
+      },
+      "finalContext": {
+        "User": "1000",
+        "Type": "x11",
+        "Class": "user",
+        "State": "active"
+      }
+    },
+    "preflight": {
+      "unprivilegedSupervisorRejected": true,
+      "installerArgumentsRejected": true,
+      "userWritableRootSourceRejected": true,
+      "wrongWorkerIdentityRejected": true,
+      "workerNoReport": true
+    },
+    "fullCycle": {
+      "schema": 1,
+      "automatedLabOnly": true,
+      "ownerInteractionRequired": false,
+      "logout": {
+        "action": "logout",
+        "session": {
+          "User": "108",
+          "Type": "x11",
+          "Class": "greeter",
+          "State": "active"
+        },
+        "inputDriver": "lab administrator CLI",
+        "absorConnectInputTested": false
+      },
+      "nativeProbeFinishedBeforeAuthentication": true,
+      "login": {
+        "action": "login",
+        "nativeGuiAuthenticationCompleted": true,
+        "session": {
+          "User": "1000",
+          "Type": "x11",
+          "Class": "user",
+          "State": "active"
+        },
+        "inputDriver": "QMP virtual keyboard",
+        "absorConnectInputTested": false,
+        "credentialSource": "exclusive generated lab account; not logged"
+      },
+      "supervisorExitCode": 0,
+      "report": {
+        "schema": 1,
+        "platform": "linux",
+        "sourceSha256": "e5ab3c25bd5333f6085b8074f6ca931293d6a1e247e22224f661eb173ca34a2a",
+        "greeterHelperSha256": "99526cac541b0e4853934a1cd8d7314cd805d99b77e20e9bd35813d833dfc799",
+        "inputTested": true,
+        "captureTested": false,
+        "preLoginTested": false,
+        "readyForUnattended": false,
+        "status": "greeter_tab_navigation_verified_not_certified",
+        "sentCounts": {
+          "tabDown": 2,
+          "tabUp": 2,
+          "shiftDown": 1,
+          "shiftUp": 1
+        },
+        "neutralInputChecks": {
+          "beforeWorker": true,
+          "before_tab": true,
+          "before_reverse": true,
+          "afterNavigation": true
+        },
+        "initialFocus": {
+          "busOwnerVerified": true,
+          "showingPasswordFields": 1,
+          "focusedControlCount": 1,
+          "focusedRole": 40
+        },
+        "after_tabFocus": {
+          "busOwnerVerified": true,
+          "showingPasswordFields": 1,
+          "focusedControlCount": 1,
+          "focusedRole": 43
+        },
+        "after_reverseFocus": {
+          "busOwnerVerified": true,
+          "showingPasswordFields": 1,
+          "focusedControlCount": 1,
+          "focusedRole": 40
+        },
+        "observerExitCode": 0,
+        "nativeTabFocusChangeObserved": true,
+        "nativeShiftTabFocusReturnObserved": true,
+        "lightdmWorkerUnprivileged": true,
+        "registryOwnerVerified": true,
+        "focusQueriesStoppedBeforeLogin": true,
+        "greeterNavigationVerified": true,
+        "observerExited": true,
+        "newUserSessionObserved": true
+      },
+      "status": "native_navigation_and_desktop_return_verified",
+      "finalContext": {
+        "User": "1000",
+        "Type": "x11",
+        "Class": "user",
+        "State": "active"
+      }
+    },
+    "workerFailure": {
+      "schema": 1,
+      "logout": {
+        "action": "logout",
+        "session": {
+          "User": "108",
+          "Type": "x11",
+          "Class": "greeter",
+          "State": "active"
+        },
+        "inputDriver": "lab administrator CLI",
+        "absorConnectInputTested": false
+      },
+      "injection": {
+        "ownLightdmWorkerTerminated": true,
+        "unrelatedProcessesSignalled": false
+      },
+      "supervisorExitCode": 3,
+      "report": {
+        "schema": 1,
+        "platform": "linux",
+        "sourceSha256": "e5ab3c25bd5333f6085b8074f6ca931293d6a1e247e22224f661eb173ca34a2a",
+        "greeterHelperSha256": "99526cac541b0e4853934a1cd8d7314cd805d99b77e20e9bd35813d833dfc799",
+        "inputTested": false,
+        "captureTested": false,
+        "preLoginTested": false,
+        "readyForUnattended": false,
+        "status": "greeter_navigation_not_verified",
+        "reason": "JSONDecodeError",
+        "sentCounts": {
+          "tabDown": 0,
+          "tabUp": 0,
+          "shiftDown": 0,
+          "shiftUp": 0
+        },
+        "neutralInputChecks": {
+          "beforeWorker": true
+        },
+        "observerExited": true
+      },
+      "login": {
+        "action": "login",
+        "nativeGuiAuthenticationCompleted": true,
+        "session": {
+          "User": "1000",
+          "Type": "x11",
+          "Class": "user",
+          "State": "active"
+        },
+        "inputDriver": "QMP virtual keyboard",
+        "absorConnectInputTested": false,
+        "credentialSource": "exclusive generated lab account; not logged"
+      },
+      "status": "worker_failure_denied_without_input_and_login_recovered",
+      "finalContext": {
+        "User": "1000",
+        "Type": "x11",
+        "Class": "user",
+        "State": "active"
+      }
+    },
+    "installerDenials": {
+      "missingSshRejected": true,
+      "rootInstallerRejected": true,
+      "existingReportRejected": true,
+      "changedSourceRejectedBeforeInstallation": true,
+      "existingReportUnchanged": true
+    },
+    "cleanup": {
+      "schema": 1,
+      "sources": {
+        "linux-greeter-input-check.py": {
+          "sha256": "e5ab3c25bd5333f6085b8074f6ca931293d6a1e247e22224f661eb173ca34a2a",
+          "rootOwned": true,
+          "mode": "0o600"
+        },
+        "linux-session-check.py": {
+          "sha256": "40d222539fa05c21b9f0a95993efe40a386bc82dab4ad031b6d188e827b6e275",
+          "rootOwned": true,
+          "mode": "0o600"
+        },
+        "linux-greeter-focus-check.py": {
+          "sha256": "99526cac541b0e4853934a1cd8d7314cd805d99b77e20e9bd35813d833dfc799",
+          "rootOwned": true,
+          "mode": "0o600"
+        }
+      },
+      "remainingProbeProcesses": 0,
+      "heldKeyCount": 0,
+      "unlockedDesktopObserved": true,
+      "inputSent": false
+    }
+  },
+  "privateArtifactSha256": {
+    "initialRefusal": "1d95bb955594c6c5ce9c2d325e4bf1406454ecb6ba217cc6449ae7ef047f6b17",
+    "preflight": "9144d1bed91c10d66fbedf34465c0ac673099a791545c28d1e939362d06b9226",
+    "fullCycle": "5d88e4bdf12a9af1b4fa256c5a8e1efc889364878c75d2a71e01dc15a2587dec",
+    "workerFailure": "8da0b521ec00ea6ae4a20ada6de333ee767996941c0f8e5fbbef0fda69538275",
+    "installerDenials": "44cc73abf5a5d464c4c24f00f7224e3a6eb05875340e7bddf06007837e24af07",
+    "cleanup": "1539c4f237964af713f18558bb2c3a8e0a2e953ac289acd5e1119785ac34210d"
+  },
+  "limitations": [
+    "No es una prueba en Mint físico: cambian arquitectura y versiones de Cinnamon/Slick Greeter.",
+    "Solo Tab y Mayús+Tab son entrada nativa del prototipo; el cierre de sesión usa administración del laboratorio y el acceso posterior usa el teclado virtual QMP.",
+    "No se escribe ni autentica una contraseña mediante este prototipo; termina las consultas de foco antes de la autenticación independiente de laboratorio.",
+    "No prueba captura simultánea, entrada de texto, cambio de usuario, reconexión, servicio persistente ni transporte remoto autenticado.",
+    "La tarea 1.4 y readyForUnattended siguen incompletos; no se certifican plataformas ni se publica una release."
+  ]
+}
