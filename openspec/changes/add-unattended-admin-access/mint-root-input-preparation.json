@@ -1,0 +1,67 @@
+{
+  "schema": 1,
+  "date": "2026-10-25",
+  "status": "root_input_probe_prepared_not_executed_on_mint",
+  "sourceSha256": "b17f816e0fd75daa9b25efe226e005aabbd84e53d6fa2ed09a6f907d503c61fa",
+  "sessionHelperSha256": "40d222539fa05c21b9f0a95993efe40a386bc82dab4ad031b6d188e827b6e275",
+  "launcherSha256": "e1fb9ca505ad835b68cabc8abb6d67f24ee694307b4471d9ddd5817fbd7b5047",
+  "syntax": {
+    "parentPythonCompiled": true,
+    "receiverPythonCompiled": true,
+    "bashSyntaxExitCode": 0
+  },
+  "negativeCases": {
+    "unprivilegedSender": {
+      "exitCode": 3,
+      "report": {
+        "schema": 1,
+        "platform": "linux",
+        "status": "root_to_user_input_not_verified",
+        "reason": "root_context_required",
+        "inputTested": false,
+        "readyForUnattended": false
+      }
+    },
+    "unprotected": {
+      "exitCode": 3,
+      "report": {
+        "schema": 1,
+        "platform": "linux",
+        "status": "root_to_user_input_not_verified",
+        "reason": "root_protected_source_directory_required",
+        "inputTested": false,
+        "readyForUnattended": false
+      }
+    },
+    "sessionToolsUnavailable": {
+      "exitCode": 3,
+      "report": {
+        "schema": 1,
+        "platform": "linux",
+        "status": "root_to_user_input_not_verified",
+        "reason": "FileNotFoundError",
+        "inputTested": false,
+        "readyForUnattended": false
+      }
+    },
+    "rootInstaller": {
+      "exitCode": 3,
+      "rootInstallerRejected": true
+    },
+    "launcherUnknownArgumentsExitCode": 2
+  },
+  "rawReportHashes": {
+    "final-preparation.json": "af54e2898631ef6a82dc830eb5c71c18e1fb8feeaec0203365f0e9c436064727",
+    "final-context-negatives.json": "e5fd7f76c5534d9eab9b513e0a1623d261ac62596624a55e5b1c91c35807b777"
+  },
+  "preparedFilesTransferred": true,
+  "localSudoLauncherExecuted": false,
+  "positiveInputTestOnMintExecuted": false,
+  "readyForUnattended": false,
+  "limits": [
+    "Solo sintaxis y denegaciones: no acredita recepción nativa del receptor ni envío root en Mint.",
+    "El contenedor con fuentes protegidas carece de herramientas de sesión; FileNotFoundError no es un ensayo de pérdida de logind en una sesión gráfica real.",
+    "El futuro ensayo se limita a su propia ventana de otro proceso/UID, con un clic y una tecla fija. No certifica polkit, bloqueo, LightDM o transporte remoto.",
+    "No se ha activado un servicio ni un agente de producción."
+  ]
+}

@@ -242,9 +242,43 @@ hasta dos minutos y retira su solicitante si vence el plazo o se interrumpe.
 Una salida cero de `pkexec` registra que terminó la operación fija. La presencia
 del diálogo y el uso de contraseña requieren confirmación del propietario;
 el script no certifica por sí solo autenticación manual ni entrada remota.
-Se mantiene `polkitTested:false` hasta reconciliar la evidencia. Los significados
+El informe bruto conserva `polkitTested:false`. La prueba manual del 25/10 queda
+reconciliada en `mint-polkit-manual-results.json`: diez muestras durante la
+solicitud, ejecución fija terminada a cero y autenticación con contraseña
+confirmada por el propietario. Se observó `-i` minúscula en la invocación real y
+se pidió salir del intérprete interactivo; no acredita aislamiento `-I`.
+Los significados
 de los códigos y la desactivación del agente de texto siguen el
 [manual oficial de pkexec](https://www.freedesktop.org/software/polkit/docs/latest/pkexec.1.html).
+
+### Mint: emisor root hacia un receptor de usuario, pendiente de ensayo
+
+`linux-root-input-check.py --test-root-owned-input` exige fuentes protegidas de
+root y el auxiliar `linux-session-check.py` con su hash fijado. Resuelve la
+autoridad privada de Xorg para `:0`, sin copiar cookies ni cambiar permisos.
+El receptor es un proceso GTK separado del usuario activo, sin grupos adicionales.
+El emisor solo acepta la ventana de ese PID, con foco en su árbol propio y sin
+entrada retenida. Comprueba también sesión/Cinnamon y jerarquía bajo el puntero.
+Envía únicamente un clic y una tecla fija con sus liberaciones; compara los
+contadores nativos del receptor, restaura el puntero y retira el trabajador.
+No tiene servicio ni canal remoto; el socketpair heredado solo intercambia
+preparación, final y contadores. El límite del emisor es treinta segundos.
+
+El propietario ejecuta `linux-root-input-install.sh` como usuario desde una
+carpeta privada nueva, junto con esas dos fuentes. El lanzador comprueba hashes,
+usa sudo para copiarlas como root/0600 a un destino nuevo de laboratorio y
+vuelve a verificar sus hashes antes del ensayo. No sobrescribe una instalación
+o informe anterior, crea servicios ni cambia políticas. Python usa `-I` dentro
+del lanzador para evitar la confusión entre las letras al escribir el comando.
+
+Solo están comprobadas sintaxis y denegaciones sin root, con fuentes no protegidas,
+sin herramientas de sesión y con argumentos ajenos al lanzador. La ejecución
+real root → usuario está **pendiente**. Aun si pasa, será una ventana propia de
+laboratorio: no certificará entrada en greeter, bloqueo o polkit ni el agente.
+La retirada de UID/grupos y el paso exclusivo del descriptor siguen
+[Popen de Python](https://docs.python.org/3.12/library/subprocess.html#subprocess.Popen).
+La lectura de la propiedad PID respeta el formato y almacenamiento documentados
+por [XGetWindowProperty](https://xorg.freedesktop.org/archive/X11R7.5/doc/man/man3/XGetWindowProperty.3.html).
 
 ## Windows
 
