@@ -219,3 +219,38 @@ de conectar; los tres casos de autenticación seleccionaron `relay/relay`, con
 vídeo artificial solo en el positivo. El contenedor y las credenciales se retiraron.
 Esto separa la viabilidad del adaptador de la política del relé de producción:
 no demuestra que el recorrido doble esté permitido en ese servidor.
+
+## Rust, autorización de API y DTLS en una misma conexión
+
+```bash
+python3 prototypes/remote-desktop/webrtc-check/build.py /ruta/laboratorio --rust-bridge
+python3 prototypes/backend-agent-check/isolated-webrtc-renewal.py /ruta/laboratorio --node /ruta/node
+```
+
+La opción adicional compila `rust_video_channel_check`, enlazado a la dylib
+`absor-agent-webrtc-lab` con el compilador Rust fijado del checkout. Se mantiene
+el runtime separado del Rust interno de libwebrtc; no mezclar dos bibliotecas
+estándar estáticas ni eliminar errores del enlazador para conseguir el binario.
+El build usa objetivo macOS 13, pero eso no certifica soporte de esa versión:
+esta integración se ha ejecutado en Mac ARM del laboratorio. Sin la opción,
+los targets y el procedimiento anteriores no necesitan Cargo.
+
+El target nuevo requiere la credencial efímera y el diario de intentos de su
+directorio privado marcado. Solo HTTP loopback, K/salt públicos fijos y vídeo
+artificial; nunca usarlo como host. Las huellas que recibe Rust proceden de las
+descripciones aplicadas de la PeerConnection que valida el certificado DTLS.
+Se requiere autorización API antes de crearla y HMAC correcto antes de añadir
+la pista. Las pruebas negativas generan/reciben cero fotogramas; revocación o
+caducidad detienen fuente/canal/conexión. No se inyecta entrada ni captura pantalla.
+
+`--agent-config` permite al runner consumir el manifiesto privado creado por el
+lanzador. El proceso principal conserva las credenciales y el visor solo recibe
+recursos públicos por un protocolo limitado; comprueba rechazo de rutas privadas
+y lectura de archivos. Las cuentas y copias de credenciales se retiran al acabar.
+No incorporar manifiestos, SDP, stderr, logs de la API o diarios privados al repo.
+
+Los resultados nuevos no heredan automáticamente las pruebas TURN/móviles de
+la variante C++ anterior. Tampoco demuestran watchdog independiente, aislamiento
+de privilegios, almacenes del SO, captura real o un servicio instalable. El CI
+verifica Rust/ABI en los tres SO; el recorrido P2P de este target es evidencia
+local Mac/Electron, pendiente del resto de la matriz antes de publicar soporte.

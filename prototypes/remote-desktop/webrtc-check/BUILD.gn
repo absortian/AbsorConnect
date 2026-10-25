@@ -1,7 +1,14 @@
+declare_args() {
+  absor_rust_bridge = false
+}
+
 import("//webrtc.gni")
 
 group("all") {
   deps = [ ":auth_check", ":factory_check", ":offer_check", ":channel_check", ":video_channel_check" ]
+  if (absor_rust_bridge) {
+    deps += [ ":rust_video_channel_check" ]
+  }
 }
 
 rtc_executable("video_channel_check") {
@@ -35,6 +42,45 @@ rtc_executable("video_channel_check") {
     "//third_party/boringssl:boringssl",
     "//third_party/jsoncpp:jsoncpp",
   ]
+}
+
+if (absor_rust_bridge) {
+rtc_executable("rust_video_channel_check") {
+  sources = [ "channel_check.cc", "synthetic_video.h", "absor_bridge.h" ]
+  defines = [ "ABSOR_SYNTHETIC_VIDEO", "ABSOR_RUST_BRIDGE" ]
+  libs = [ "//absor_connect_probe/libabsor_agent_webrtc_lab.dylib" ]
+  ldflags = [ "-Wl,-rpath,@executable_path/../../absor_connect_probe" ]
+  deps = [
+    "//api/units:time_delta",
+    "//api:create_modular_peer_connection_factory",
+    "//api:enable_media",
+    "//api:data_channel_interface",
+    "//api:jsep",
+    "//api:make_ref_counted",
+    "//api:media_stream_interface",
+    "//api:rtp_parameters",
+    "//api:peer_connection_interface",
+    "//api:rtp_sender_interface",
+    "//api:rtp_transceiver_interface",
+    "//api:set_local_description_observer_interface",
+    "//api:set_remote_description_observer_interface",
+    "//api/audio_codecs:builtin_audio_decoder_factory",
+    "//api/audio_codecs:builtin_audio_encoder_factory",
+    "//api/environment:environment_factory",
+    "//api/video:adapted_video_track_source",
+    "//api/video:video_frame",
+    "//api/video_codecs:video_encoder_factory_template",
+    "//api/video_codecs:video_encoder_factory_template_libvpx_vp8_adapter",
+    "//api/video_codecs:video_decoder_factory_template",
+    "//api/video_codecs:video_decoder_factory_template_libvpx_vp8_adapter",
+    "//modules/audio_device:audio_device_impl",
+    "//rtc_base:ssl_adapter",
+    "//rtc_base:threading",
+    "//third_party/boringssl:boringssl",
+    "//third_party/jsoncpp:jsoncpp",
+  ]
+}
+
 }
 
 rtc_executable("channel_check") {

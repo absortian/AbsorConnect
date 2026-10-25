@@ -190,6 +190,11 @@ impl<C: Clock, S: Session> AuthorizationGate<C, S> {
         Ok(())
     }
 
+    /// Consultar sin conceder sesión ni entregar el trabajador.
+    pub fn check_authorization(&mut self) -> Result<(), Denied> {
+        self.authorized()
+    }
+
     /// Frontera de confianza: el trabajador ya verificó v1/DTLS/HMAC. Esta API
     /// NO prueba una contraseña ni sustituye ese protocolo todavía pendiente.
     pub fn attach_authenticated(&mut self, mut session: S) -> Result<SessionHandle, Denied> {

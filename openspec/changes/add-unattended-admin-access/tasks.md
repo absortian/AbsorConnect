@@ -14,8 +14,13 @@ servicio. La tarea 3.4 no se cierra solo con el proceso de prueba.
 Avance cerrado: **8/57 tareas (14 %)**. Es proporción de tareas aceptadas, no
 porcentaje del tiempo restante. La tarea 3.2 incorpora `agent-auth`: verificación
 v1, contrato de registro de intentos y prueba de reinicio con diario temporal.
-Siguen pendientes el enlace al trabajador DTLS, almacenes protegidos por SO,
+Siguen pendientes el enlace de producción al trabajador DTLS, almacenes protegidos por SO,
 migración real e integración que impida toda captura/entrada antes de autenticar.
+
+El enlace de laboratorio ya verifica Rust + autorización API + autenticación
+DTLS/HMAC + vídeo artificial con Electron y corte del transporte. No cierra aún
+3.1/3.2/3.4: faltan almacenes/IPC protegidos, señalización completa, trabajador de
+captura/entrada, watchdog independiente y matriz del resto de plataformas.
 
 ## 1. Viabilidad y configuraciones objetivo
 

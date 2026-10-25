@@ -28,6 +28,19 @@ name = "absor-agent-core"
 version = "0.1.0"
 
 [[package]]
+name = "absor-agent-webrtc-lab"
+version = "0.1.0"
+dependencies = [
+ "absor-agent-api",
+ "absor-agent-auth",
+ "absor-agent-core",
+ "base64",
+ "ring",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "base64"
 version = "0.22.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

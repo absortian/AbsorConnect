@@ -1,10 +1,15 @@
-const { app, BrowserWindow, ipcMain } = require('electron')
+const { app, BrowserWindow, ipcMain, protocol, session } = require('electron')
+const { pathToFileURL } = require('node:url')
 const fs = require('node:fs')
 const path = require('node:path')
 const { spawn } = require('node:child_process')
 const { setTimeout: delay } = require('node:timers/promises')
 const work = process.argv.find((arg) => arg.startsWith('--lab-work='))?.slice(11)
 const binary = process.argv.find((arg) => arg.startsWith('--lab-binary='))?.slice(13)
+const agentBridge = process.argv.includes('--lab-agent-bridge')
+const agentManifest = agentBridge ? JSON.parse(fs.readFileSync(path.join(work, 'agent-manifest.json'), 'utf8')) : null
+const caseNames = agentBridge ? ['correct', 'wrong-proof', 'fingerprint-mismatch', 'api-revoked', 'api-cut'] : ['correct', 'wrong-proof', 'fingerprint-mismatch']
+if (agentBridge) protocol.registerSchemesAsPrivileged([{ scheme: 'absor-agent-lab', privileges: { standard: true, secure: true, supportFetchAPI: true } }])
 const syntheticVideo = process.argv.includes('--lab-synthetic-video')
 if (!work || !binary) process.exit(64)
 const relayOnly = process.argv.includes('--lab-relay-only')
@@ -19,14 +24,31 @@ app.setPath('userData', path.join(work, 'electron-profile'))
 app.setName('Absor WebRTC Lab')
 
 function validate(event, name) {
-  if (event.sender !== window?.webContents || !['correct', 'wrong-proof', 'fingerprint-mismatch'].includes(name)) {
+  if (event.sender !== window?.webContents || !caseNames.includes(name)) {
     throw new Error('Solicitud de prueba no autorizada')
   }
 }
 
+ipcMain.handle('lab-credential-probe', (event) => {
+  if (!agentBridge || event.sender !== window?.webContents) throw new Error('Emisor inválido')
+  const file = path.join(work, 'renderer-denial-probe.txt')
+  fs.writeFileSync(file, 'Public marker; no secrets', { mode: 0o600 })
+  return pathToFileURL(file).href
+})
+
 ipcMain.handle('lab-ice', (event) => {
   if (event.sender !== window?.webContents) throw new Error('Emisor inválido')
   return ice
+})
+
+ipcMain.handle('lab-fault', async (event, name) => {
+  validate(event, name)
+  const entry = agentManifest?.[name]
+  if (!entry || !['api-revoked', 'api-cut'].includes(name)) throw new Error('Fallo no permitido')
+  const url = new URL(entry.faultUrl)
+  if (url.hostname !== '127.0.0.1' || url.protocol !== 'http:' || !url.port || url.pathname !== `/fault/${name}` || url.search || url.hash || url.username || url.password) throw new Error('Destino no local')
+  const response = await fetch(url, { method: 'POST', redirect: 'error', signal: AbortSignal.timeout(6000) })
+  if (response.status !== 204) throw new Error('No se pudo aplicar el fallo local')
 })
 
 ipcMain.handle('lab-offer', async (event, name, offer) => {
@@ -39,7 +61,19 @@ ipcMain.handle('lab-offer', async (event, name, offer) => {
   const offerPath = path.join(directory, 'offer.sdp')
   const answerPath = path.join(directory, 'answer.sdp')
   fs.writeFileSync(offerPath, offer, { mode: 0o600, flag: 'wx' })
-  const child = spawn(binary, [offerPath, answerPath, ...(relayOnly ? [nativeIcePath] : [])], { stdio: ['ignore', 'pipe', 'pipe'] })
+  let agentPath
+  if (agentBridge) {
+    const entry = agentManifest[name]
+    const origin = new URL(entry.origin)
+    if (origin.hostname !== '127.0.0.1' || origin.protocol !== 'http:' || !origin.port || origin.pathname !== '/' || origin.search || origin.hash || origin.username || origin.password || !/^acg_[A-Za-z0-9_-]{43}$/.test(entry.credential)) throw new Error('Configuración de agente inválida')
+    const stateDirectory = path.join(directory, 'rust-agent-state')
+    fs.mkdirSync(stateDirectory, { mode: 0o700 })
+    fs.writeFileSync(path.join(stateDirectory, 'absor-webrtc-lab'), 'synthetic-only', { mode: 0o600, flag: 'wx' })
+    fs.writeFileSync(path.join(stateDirectory, 'attempts.json'), JSON.stringify({ schema: 1, failures: [], locked_until: null, last_seen: 0 }), { mode: 0o600, flag: 'wx' })
+    agentPath = path.join(directory, 'agent-config.json')
+    fs.writeFileSync(agentPath, JSON.stringify({ origin: entry.origin, credential: entry.credential, stateDirectory }), { mode: 0o600, flag: 'wx' })
+  }
+  const child = spawn(binary, [offerPath, answerPath, ...(relayOnly ? [nativeIcePath] : []), ...(agentPath ? [agentPath] : [])], { stdio: ['ignore', 'pipe', 'pipe'] })
   let stdout = ''
   let stderr = ''
   child.stdout.on('data', (data) => { stdout = (stdout + data).slice(-16384) })
@@ -74,11 +108,12 @@ ipcMain.handle('lab-result', async (event, name, controller) => {
   await state.done
   if (state.code !== 0 || !state.summary?.dtlsConnected || !controller.connected ||
       state.summary.authenticated !== controller.authenticated ||
-      state.summary.authenticated !== (name === 'correct') ||
+      state.summary.authenticated !== !['wrong-proof', 'fingerprint-mismatch'].includes(name) ||
       state.summary.captureStarted || state.summary.inputEnabled || state.summary.relayOnly !== (relayOnly && !relayController)) {
     throw new Error('El extremo nativo y el controlador no concuerdan')
   }
-  if (syntheticVideo && (name === 'correct'
+  if (agentBridge && (!state.summary.rustAuthentication || state.summary.apiCutCode !== (name === 'api-revoked' ? -2 : name === 'api-cut' ? -1 : 0))) throw new Error('Corte del agente no confirmado')
+  if (syntheticVideo && (!['wrong-proof', 'fingerprint-mismatch'].includes(name)
     ? !(state.summary.syntheticVideoFrames > 0 && controller.decodedFrames >= 2 && controller.syntheticColorVerified)
     : state.summary.syntheticVideoFrames !== 0 || controller.decodedFrames !== 0)) {
     throw new Error('El vídeo artificial no respeta el resultado de autenticación')
@@ -89,7 +124,7 @@ ipcMain.handle('lab-result', async (event, name, controller) => {
 ipcMain.handle('lab-done', (event, result) => {
   if (event.sender !== window?.webContents) throw new Error('Emisor inválido')
   const report = { ...result, electron: process.versions.electron, chromium: process.versions.chrome,
-    videoTested: false, syntheticVideoTested: syntheticVideo, turnTested: relayOnly && result.ok, relayPolicy: relayOnly ? (relayController ? 'controller' : 'both') : 'none', mobileTested: false, readyForUnattended: false }
+    videoTested: false, rustAuthenticationTested: agentBridge, apiRenewalTested: agentBridge && result.ok, syntheticVideoTested: syntheticVideo, turnTested: relayOnly && result.ok, relayPolicy: relayOnly ? (relayController ? 'controller' : 'both') : 'none', mobileTested: false, readyForUnattended: false }
   fs.writeFileSync(path.join(work, 'interop-results.json'), JSON.stringify(report, null, 2) + '\n', { mode: 0o600 })
   console.log(JSON.stringify(report))
   setImmediate(() => { cleanup(); app.exit(result.ok ? 0 : 1) })
@@ -99,12 +134,26 @@ function cleanup() { for (const { child, exited } of cases.values()) { if (!exit
 app.on('will-quit', cleanup)
 app.whenReady().then(async () => {
   app.dock?.hide()
+  if (agentBridge) {
+    // El visor solo recibe dos recursos públicos; nunca archivos de configuración.
+    protocol.handle('absor-agent-lab', (request) => {
+      const url = new URL(request.url)
+      const file = url.hostname === 'probe' && !url.search && !url.hash && ({ '/index.html': 'index.html', '/renderer.js': 'renderer.js' })[url.pathname]
+      if (!file) return new Response('', { status: 404 })
+      return new Response(fs.readFileSync(path.join(work, file)), { headers: { 'Content-Type': file.endsWith('.js') ? 'text/javascript' : 'text/html' } })
+    })
+    session.defaultSession.webRequest.onBeforeRequest({ urls: ['file://*/*', 'http://*/*', 'https://*/*'] }, (_details, callback) => callback({ cancel: true }))
+  }
   window = new BrowserWindow({ show: false, webPreferences: {
     preload: path.join(__dirname, 'interop-preload.cjs'), contextIsolation: true,
     nodeIntegration: false, sandbox: true, backgroundThrottling: false,
     autoplayPolicy: 'no-user-gesture-required',
-    additionalArguments: [...(syntheticVideo ? ['--lab-synthetic-video'] : []), ...(relayOnly ? ['--lab-relay-only'] : []), ...(relayController ? ['--lab-relay-controller'] : [])]
+    additionalArguments: [...(agentBridge ? ['--lab-agent-bridge'] : []), ...(syntheticVideo ? ['--lab-synthetic-video'] : []), ...(relayOnly ? ['--lab-relay-only'] : []), ...(relayController ? ['--lab-relay-controller'] : [])]
   } })
-  await window.loadFile(path.join(work, 'index.html'))
+  window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
+  if (agentBridge) {
+    window.webContents.on('will-navigate', (event, url) => { if (url !== 'absor-agent-lab://probe/index.html') event.preventDefault() })
+    await window.loadURL('absor-agent-lab://probe/index.html')
+  } else await window.loadFile(path.join(work, 'index.html'))
 })
 setTimeout(() => { cleanup(); app.exit(2) }, 90000).unref()

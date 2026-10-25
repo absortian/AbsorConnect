@@ -90,9 +90,23 @@ su hijo carece de captura/entrada. Sus pruebas no certifican plataformas.
 
 ### D4. Secretos, IPC y traspaso transaccional
 
+El diagnóstico `agent-webrtc-lab` enlaza verificador, renovación y trabajador
+C++ con una ABI C optativa ausente en el build por omisión. Solo HTTP loopback,
+credenciales efímeras y K pública del vector; nunca debe instalarse como servicio.
+Un registro acotado de identificadores no reutilizados sustituye punteros de
+instancia en la ABI. `unsafe` se limita a buffers válidos del llamador C++
+compilado; no es una interfaz apta para IPC o entrada directa de red.
+
+El target Mac usa dylib y compilador Rust del checkout fijado de WebRTC, para
+no mezclar bibliotecas estándar estáticas. Autoriza la API antes de crear la
+PeerConnection y consume el resultado v1 antes de añadir vídeo artificial;
+el adaptador cierra fuente/canal/transporte al caducar o revocarse. Consulta
+cada 50 ms, sin watchdog independiente todavía. Su prueba no certifica el
+servicio, captura/entrada ni la matriz de plataformas de D1/D2.
+
 Implementación parcial de autenticación: `agent-auth` es un componente Rust
-reutilizable por el trabajador confiable; aún no tiene enlace al adaptador
-C++/DTLS ni cambia las fronteras de D1. Usa ring/HMAC-SHA256 y base64 ya fijados
+reutilizable por el trabajador confiable; su enlace al adaptador C++/DTLS es
+todavía de laboratorio y no cambia las fronteras de D1. Usa ring/HMAC-SHA256 y base64 ya fijados
 en el grafo de TLS, comprueba vectores v1 y acepta K aprovisionada con parámetros
 actuales. El resultado no serializable se consume para esa conexión. Un estado
 de autenticación recibido por IPC sin verificar no concede captura/entrada.
