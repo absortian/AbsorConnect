@@ -364,7 +364,7 @@ por sí solo no demuestra un bloqueo real: la confirmación de contraseña se
 registra por separado. Esta observación no acredita entrada nativa ni el agente
 o transporte remoto.
 
-### Mint: navegación en bloqueo, preparada
+### Mint: navegación en bloqueo
 
 `linux-lock-input-install.sh` instala en un destino nuevo tres fuentes protegidas
 (root/0600), con hashes fijados: `linux-lock-input-check.py`, el auxiliar de sesión
@@ -387,6 +387,15 @@ el propietario y dura hasta tres minutos. No hay servicios o políticas nuevos;
 un fallo solo retira el trabajador propio. La atribución accesible es del
 laboratorio, no una frontera de seguridad del agente final. La prueba no
 certificará credenciales, LightDM o transporte remoto.
+
+La ejecución posterior pasó: Tab cambió el foco a otro control y Mayús+Tab lo
+devolvió al mismo campo; se conservaron el contexto bloqueado y las liberaciones
+2/2 de Tab y 1/1 de Mayús. El trabajador dejó de consultar el foco antes del
+desbloqueo manual, terminó con código 0 y no quedaron procesos del ensayo. El
+propietario confirmó contraseña y vuelta al escritorio. Evidencia reconciliada:
+`mint-locked-navigation-results.json`. La preparación conserva su estado
+histórico; no repetir el instalador sobre el mismo destino. Sigue sin acreditar
+entrada en LightDM, credenciales o servicio/transporte completos.
 
 ## Windows
 

@@ -1668,3 +1668,28 @@ de envío a cero. Hashes transferidos comprobados. Evidencia:
 `mint-locked-navigation-preparation.json`. El ensayo con entrada está **pendiente**;
 no se certifican bloqueo, LightDM o transporte a partir del inventario.
 La tarea 1.4 sigue parcial, **8/57**, `readyForUnattended:false`.
+
+#### Ejecución: Tab y Mayús+Tab recibidos en el bloqueo
+
+El propietario ejecutó el lanzador y confirmó que volvió al escritorio tras
+introducir la contraseña. El informe identificado por los mismos hashes de
+preparación devolvió `locked_tab_navigation_verified_not_certified`: supervisor
+root y trabajador sin privilegios, identidad estable del campo, contexto
+bloqueado conservado y recepción nativa de ambas secuencias. El foco pasó del
+rol AT-SPI 40 al 43 y volvió al **mismo objeto** inicial; no se publican las
+referencias de esos objetos. Contadores Tab 2 pulsaciones/2 liberaciones y
+Mayús 1/1, con entrada neutra antes y después de la navegación.
+
+El trabajador dejó de consultar el foco antes del desbloqueo, observó la vuelta
+a escritorio y terminó con código 0. La comprobación independiente encontró
+cero procesos del ensayo, ScreenSaver inactivo y tres fuentes regulares
+root/0600. El foco X11 anterior también se observó restaurado, sin forzarlo.
+Evidencia y hashes privados reconciliados en
+`mint-locked-navigation-results.json`; la preparación anterior se conserva.
+
+Esto acredita navegación sin texto en el bloqueo de esta configuración de
+Cinnamon. No prueba contraseñas, autenticación sintética, entrada en LightDM,
+cambio de usuario, reinicio ni transporte remoto. `inputTested:true`,
+`captureTested:false`, `preLoginTested:false`, `readyForUnattended:false`. La
+tarea 1.4 sigue parcial y el progreso permanece en **8/57**. No hay nueva
+versión de producción por estos cambios de laboratorio.

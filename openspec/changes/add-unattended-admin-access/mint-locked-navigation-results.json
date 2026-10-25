@@ -1,0 +1,153 @@
+{
+  "schema": 1,
+  "date": "2026-10-25",
+  "status": "locked_tab_navigation_verified_not_certified",
+  "nativeLockedNavigationVerified": true,
+  "preparationArtifact": "mint-locked-navigation-preparation.json",
+  "rawReport": {
+    "schema": 1,
+    "platform": "linux",
+    "status": "locked_tab_navigation_verified_not_certified",
+    "sourceSha256": "843b094bd06494bf2a22cf60570967c405c1f5e41defffc2d9d5e2c730db5e54",
+    "sessionHelperSha256": "40d222539fa05c21b9f0a95993efe40a386bc82dab4ad031b6d188e827b6e275",
+    "focusHelperSha256": "5e698b3110a4bb433b1cc05fca4a186c1fd31c127ae4b5da9fb7f1d23d843e86",
+    "senderRoot": true,
+    "userWorkerUnprivileged": true,
+    "lockedTargetIdentityStable": true,
+    "nativeTabFocusChangeObserved": true,
+    "nativeShiftTabFocusReturnObserved": true,
+    "lockedContextRetainedDuringInput": true,
+    "manualUnlockObserved": true,
+    "focusQueriesStoppedBeforeUnlock": true,
+    "previousFocusRestoredObserved": true,
+    "inputTested": true,
+    "captureTested": false,
+    "preLoginTested": false,
+    "readyForUnattended": false,
+    "sentCounts": {
+      "tabDown": 2,
+      "tabUp": 2,
+      "shiftDown": 1,
+      "shiftUp": 1
+    },
+    "idleChecks": {
+      "beforeLock": {
+        "samples": 2,
+        "maxHeldKeys": 0,
+        "maxHeldButtons": 0,
+        "neutralSamples": 2,
+        "initialHeldKeys": 0,
+        "initialHeldButtons": 0,
+        "finalHeldKeys": 0,
+        "finalHeldButtons": 0
+      },
+      "beforeTab": {
+        "samples": 2,
+        "maxHeldKeys": 0,
+        "maxHeldButtons": 0,
+        "neutralSamples": 2,
+        "initialHeldKeys": 0,
+        "initialHeldButtons": 0,
+        "finalHeldKeys": 0,
+        "finalHeldButtons": 0
+      },
+      "beforeReverse": {
+        "samples": 2,
+        "maxHeldKeys": 0,
+        "maxHeldButtons": 0,
+        "neutralSamples": 2,
+        "initialHeldKeys": 0,
+        "initialHeldButtons": 0,
+        "finalHeldKeys": 0,
+        "finalHeldButtons": 0
+      }
+    },
+    "baselineFocus": {
+      "busOwnerVerified": true,
+      "accessibleApplicationCount": 1,
+      "showingPasswordFields": 0,
+      "focusedControlCount": 0,
+      "focusedRole": null
+    },
+    "lockedFocus": {
+      "busOwnerVerified": true,
+      "accessibleApplicationCount": 1,
+      "showingPasswordFields": 1,
+      "focusedControlCount": 1,
+      "focusedRole": 40
+    },
+    "beforeTabFocus": {
+      "busOwnerVerified": true,
+      "accessibleApplicationCount": 1,
+      "showingPasswordFields": 1,
+      "focusedControlCount": 1,
+      "focusedRole": 40
+    },
+    "afterTabFocus": {
+      "busOwnerVerified": true,
+      "accessibleApplicationCount": 1,
+      "showingPasswordFields": 1,
+      "focusedControlCount": 1,
+      "focusedRole": 43
+    },
+    "beforeReverseFocus": {
+      "busOwnerVerified": true,
+      "accessibleApplicationCount": 1,
+      "showingPasswordFields": 1,
+      "focusedControlCount": 1,
+      "focusedRole": 43
+    },
+    "afterReverseFocus": {
+      "busOwnerVerified": true,
+      "accessibleApplicationCount": 1,
+      "showingPasswordFields": 1,
+      "focusedControlCount": 1,
+      "focusedRole": 40
+    },
+    "userWorkerExitCode": 0,
+    "userWorkerExited": true
+  },
+  "cleanup": {
+    "schema": 1,
+    "remainingProbeCount": 0,
+    "screensaverInactive": true,
+    "installedSourcesMetadata": [
+      {
+        "file": "linux-lock-input-check.py",
+        "uid": 0,
+        "mode": "0o600",
+        "regular": true
+      },
+      {
+        "file": "linux-session-check.py",
+        "uid": 0,
+        "mode": "0o600",
+        "regular": true
+      },
+      {
+        "file": "linux-polkit-focus-check.py",
+        "uid": 0,
+        "mode": "0o600",
+        "regular": true
+      }
+    ]
+  },
+  "ownerConfirmedReturnedDesktop": true,
+  "ownerConfirmedPasswordRequired": true,
+  "rawReportHashes": {
+    "attempt-a-results.json": "63b176382bfa0fdefcc980ea8d0d127572070ef2eb49d034569eea5492a7db86",
+    "attempt-a-cleanup.json": "b2476433e5cb7884b3ffaa2a831e324f88c31c0d7ac1e63ac79243c15281c24a",
+    "attempt-a-owner-confirmation.json": "0c0d3da18b0ff9ebce334b8636d563723f756709abdef9ea3ee0683dfac8d190"
+  },
+  "inputTested": true,
+  "captureTested": false,
+  "preLoginTested": false,
+  "readyForUnattended": false,
+  "limits": [
+    "Se verifica solo Tab y Mayús+Tab desde root en el bloqueo de Cinnamon de esta configuración; no escritura de contraseñas, clics o autenticación sintética.",
+    "El foco cambió del rol AT-SPI 40 al 43 y volvió al mismo objeto inicial, comprobado dentro del trabajador sin publicar referencias accesibles.",
+    "El propietario confirmó que Mint pidió contraseña y volvió al escritorio; el diagnóstico dejó de consultar el foco antes del desbloqueo manual.",
+    "No acredita entrada en LightDM, cambio de usuario, reinicio, agente systemd, transporte remoto o preparación completa para viajes.",
+    "La preparación conserva sus resultados históricos anteriores a la ejecución; esta evidencia no modifica su campo positiveInputTestExecuted."
+  ]
+}
