@@ -90,7 +90,15 @@ public static class CaptureProbe
             value.Equals("Winlogon", StringComparison.OrdinalIgnoreCase) ? "Winlogon" : "other";
     }
 
-    static int Launch(bool requestElevation = false, bool testUacInput = false, bool ownedInput = false, bool userInput = false, bool elevatedInput = false, bool lockEscape = false) {
+    enum ProbeMode { Capture, Elevation, UacInput, OwnUser, OwnSystem, ElevatedInput, LockEscape, FocusSelf, LogonFocus }
+    enum SecureProbeMode { UacEscape, LogonEscape, LogonFocus }
+
+    static int Launch(ProbeMode mode = ProbeMode.Capture) {
+        bool requestElevation = mode == ProbeMode.Elevation, testUacInput = mode == ProbeMode.UacInput;
+        bool ownedInput = mode == ProbeMode.OwnUser || mode == ProbeMode.OwnSystem;
+        bool userInput = mode == ProbeMode.OwnUser || mode == ProbeMode.FocusSelf;
+        bool elevatedInput = mode == ProbeMode.ElevatedInput, lockEscape = mode == ProbeMode.LockEscape;
+        bool focusSelf = mode == ProbeMode.FocusSelf, logonFocus = mode == ProbeMode.LogonFocus;
         if (WindowsIdentity.GetCurrent().User.Value != "S-1-5-18") throw new InvalidOperationException("system_context_required");
         uint session = WTSGetActiveConsoleSessionId();
         if (session == UInt32.MaxValue || session == 0) throw new InvalidOperationException("console_session_unavailable");
@@ -108,18 +116,18 @@ public static class CaptureProbe
                 Check(SetTokenInformation(primary, 12, ref session, 4));
             }
             string binary = Assembly.GetExecutingAssembly().Location;
-            var startup = new StartupInfo { cb = Marshal.SizeOf(typeof(StartupInfo)), desktop = @"winsta0\default", flags = 1, show = (ushort)(ownedInput ? 5 : 0) };
+            var startup = new StartupInfo { cb = Marshal.SizeOf(typeof(StartupInfo)), desktop = @"winsta0\default", flags = 1, show = (ushort)(ownedInput || focusSelf ? 5 : 0) };
             ProcessInfo process;
-            string mode = lockEscape ? "--lock-escape-coordinator" : elevatedInput ? "--elevated-input-injector" : ownedInput ? (userInput ? "--owned-input-user" : "--owned-input-system") :
+            string commandMode = focusSelf ? "--focus-navigation-self" : logonFocus ? "--logon-focus-coordinator" : lockEscape ? "--lock-escape-coordinator" : elevatedInput ? "--elevated-input-injector" : ownedInput ? (userInput ? "--owned-input-user" : "--owned-input-system") :
                 requestElevation ? "--request-elevation" : testUacInput ? "--uac-input" : "--capture";
-            Check(CreateProcessAsUser(primary, binary, new StringBuilder("\"" + binary + "\" " + mode),
+            Check(CreateProcessAsUser(primary, binary, new StringBuilder("\"" + binary + "\" " + commandMode),
                 IntPtr.Zero, IntPtr.Zero, false, 0x08000000, IntPtr.Zero, Path.GetDirectoryName(binary), ref startup, out process));
             try {
                 uint wait = WaitForSingleObject(process.process, requestElevation ? 180000u : testUacInput ? 50000u : 15000u);
-                if (wait == 258 && (requestElevation || testUacInput || ownedInput || elevatedInput || lockEscape)) {
+                if (wait == 258 && (requestElevation || testUacInput || ownedInput || elevatedInput || lockEscape || focusSelf || logonFocus)) {
                     // Retira solo su trabajador si vence el plazo; no pulsa botones de UAC.
                     Check(TerminateProcess(process.process, 124));
-                    throw new InvalidOperationException(ownedInput || elevatedInput || lockEscape ? "input_probe_timeout" : "uac_probe_timeout");
+                    throw new InvalidOperationException(ownedInput || elevatedInput || lockEscape || focusSelf || logonFocus ? "input_probe_timeout" : "uac_probe_timeout");
                 }
                 if (wait != 0) throw new InvalidOperationException("worker_wait_failed_" + wait);
                 uint code; Check(GetExitCodeProcess(process.process, out code));
@@ -161,7 +169,11 @@ public static class CaptureProbe
         }
     }
 
-    static string RunSecureEscape(bool logon = false) {
+    static string RunSecureProbe(SecureProbeMode mode = SecureProbeMode.UacEscape) {
+        string argument = mode == SecureProbeMode.LogonFocus ? "--logon-focus" :
+            mode == SecureProbeMode.LogonEscape ? "--escape-logon" : "--escape-uac";
+        string reportName = mode == SecureProbeMode.LogonFocus ? "logon-focus-report.json" :
+            mode == SecureProbeMode.LogonEscape ? "lock-escape-report.json" : "escape-report.json";
         if (WindowsIdentity.GetCurrent().User.Value != "S-1-5-18" || Process.GetCurrentProcess().SessionId == 0 ||
             WTSGetActiveConsoleSessionId() != Process.GetCurrentProcess().SessionId)
             throw new InvalidOperationException("interactive_system_context_required");
@@ -172,7 +184,7 @@ public static class CaptureProbe
             Check(DuplicateTokenEx(token, 0x02000000, IntPtr.Zero, 2, 1, out primary));
             string binary = Assembly.GetExecutingAssembly().Location;
             var startup = new StartupInfo { cb = Marshal.SizeOf(typeof(StartupInfo)), desktop = @"winsta0\winlogon", flags = 1, show = 0 };
-            Check(CreateProcessAsUser(primary, binary, new StringBuilder("\"" + binary + "\" " + (logon ? "--escape-logon" : "--escape-uac")),
+            Check(CreateProcessAsUser(primary, binary, new StringBuilder("\"" + binary + "\" " + argument),
                 IntPtr.Zero, IntPtr.Zero, false, 0x08000000, IntPtr.Zero, Path.GetDirectoryName(binary), ref startup, out worker));
             uint wait = WaitForSingleObject(worker.process, 10000);
             if (wait != 0) {
@@ -180,7 +192,7 @@ public static class CaptureProbe
                 throw new InvalidOperationException("secure_worker_timeout");
             }
             uint code; Check(GetExitCodeProcess(worker.process, out code));
-            string report = File.ReadAllText(Path.Combine(Path.GetDirectoryName(binary), logon ? "lock-escape-report.json" : "escape-report.json"));
+            string report = File.ReadAllText(Path.Combine(Path.GetDirectoryName(binary), reportName));
             if (code != 0) throw new InvalidOperationException("secure_worker_failed_" + code + "_" + report);
             return report;
         } finally {
@@ -257,7 +269,7 @@ public static class CaptureProbe
             string capture = Capture();
             WriteReport("uac-input-capture.json", capture);
             if (WaitForSingleObject(requester.process, 0) == 0) throw new InvalidOperationException("requester_no_longer_pending");
-            string input = RunSecureEscape();
+            string input = RunSecureProbe();
             uint wait = WaitForSingleObject(requester.process, 5000);
             if (wait != 0) throw new InvalidOperationException("cancel_not_observed_" + wait);
             exited = true;
@@ -680,21 +692,166 @@ public static class CaptureProbe
         }
     }
 
+
+    // UI Automation se limita a foco, PID, tipo e IsPassword; nunca consulta Name, Value ni texto.
+    sealed class FocusSnapshot {
+        public int[] runtimeId; public int controlType; public bool password;
+    }
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern bool IsDialogMessage(IntPtr window, ref OwnedMessage message);
+
+    static bool SameFocus(int[] left, int[] right) {
+        if (left == null || right == null || left.Length != right.Length) return false;
+        for (int i = 0; i < left.Length; i++) if (left[i] != right[i]) return false;
+        return true;
+    }
+
+    static uint RequireFocusContext(bool logon) {
+        RequireInputLab();
+        int session = Process.GetCurrentProcess().SessionId;
+        bool system = WindowsIdentity.GetCurrent().User.Value == "S-1-5-18";
+        if (session == 0 || WTSGetActiveConsoleSessionId() != session || system != logon)
+            throw new InvalidOperationException("focus_probe_token_context_required");
+        string desktop = logon ? "Winlogon" : "Default";
+        if (InputDesktopName() != desktop || DesktopName(GetThreadDesktop(GetCurrentThreadId())) != desktop)
+            throw new InvalidOperationException("focus_probe_desktop_required");
+        uint pid;
+        if (GetWindowThreadProcessId(GetForegroundWindow(), out pid) == 0)
+            throw new InvalidOperationException("focus_foreground_unavailable");
+        if (logon) {
+            using (var process = Process.GetProcessById(checked((int)pid)))
+                if (!String.Equals(process.MainModule.FileName, Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System),
+                    "LogonUI.exe"), StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("logon_foreground_required");
+        } else if (pid != Process.GetCurrentProcess().Id) throw new InvalidOperationException("own_focus_window_required");
+        for (int key = 1; key < 255; key++)
+            if (GetAsyncKeyState(key) < 0) throw new InvalidOperationException("pressed_key_prevents_focus_probe");
+        return pid;
+    }
+
+    static FocusSnapshot FocusedSnapshot(uint expectedPid) {
+        var element = System.Windows.Automation.AutomationElement.FocusedElement;
+        if (element == null) throw new InvalidOperationException("uia_focus_unavailable");
+        var current = element.Current;
+        if (current.ProcessId != expectedPid) throw new InvalidOperationException("uia_focus_process_mismatch");
+        int[] id = element.GetRuntimeId();
+        if (id == null || id.Length == 0) throw new InvalidOperationException("uia_focus_identity_unavailable");
+        return new FocusSnapshot { runtimeId = id, controlType = current.ControlType.Id, password = current.IsPassword };
+    }
+
+    static FocusSnapshot WaitFocus(bool logon, uint pid, int[] previous, bool equal) {
+        var timer = Stopwatch.StartNew();
+        do {
+            if (RequireFocusContext(logon) != pid) throw new InvalidOperationException("focus_foreground_changed");
+            var value = FocusedSnapshot(pid);
+            if (SameFocus(previous, value.runtimeId) == equal) return value;
+            Thread.Sleep(25);
+        } while (timer.ElapsedMilliseconds < 2000);
+        throw new InvalidOperationException("focus_transition_not_observed");
+    }
+
+    static void SendFocusNavigation(bool logon, uint pid, int[] expectedFocus, bool backward) {
+        if (RequireFocusContext(logon) != pid || !SameFocus(expectedFocus, FocusedSnapshot(pid).runtimeId))
+            throw new InvalidOperationException("focus_changed_before_input");
+        var tabDown = new Input { type = 1, data = new InputUnion { keyboard = new KeyboardInput { key = 9 } } };
+        var tabUp = new Input { type = 1, data = new InputUnion { keyboard = new KeyboardInput { key = 9, flags = 2 } } };
+        var shiftUp = new Input { type = 1, data = new InputUnion { keyboard = new KeyboardInput { key = 16, flags = 2 } } };
+        Input[] events = backward ? new Input[] {
+            new Input { type = 1, data = new InputUnion { keyboard = new KeyboardInput { key = 16 } } }, tabDown, tabUp, shiftUp
+        } : new Input[] { tabDown, tabUp };
+        uint sent = SendInput((uint)events.Length, events, Marshal.SizeOf(typeof(Input)));
+        if (sent != events.Length) {
+            // Libera solo las teclas sintéticas que hayan podido quedar pulsadas.
+            if ((!backward && sent == 1) || (backward && sent == 2)) SendInput(1, new Input[] { tabUp }, Marshal.SizeOf(typeof(Input)));
+            if (backward && sent > 0 && sent < 4) SendInput(1, new Input[] { shiftUp }, Marshal.SizeOf(typeof(Input)));
+            throw new InvalidOperationException("focus_navigation_input_incomplete");
+        }
+    }
+
+    static string FocusNavigation(bool logon) {
+        uint pid = RequireFocusContext(logon);
+        var before = FocusedSnapshot(pid);
+        if (before.controlType != System.Windows.Automation.ControlType.Edit.Id || !before.password)
+            throw new InvalidOperationException("password_control_focus_required");
+        SendFocusNavigation(logon, pid, before.runtimeId, false);
+        var after = WaitFocus(logon, pid, before.runtimeId, false);
+        SendFocusNavigation(logon, pid, after.runtimeId, true);
+        var restored = WaitFocus(logon, pid, before.runtimeId, true);
+        if (!restored.password || restored.controlType != before.controlType)
+            throw new InvalidOperationException("focus_restore_metadata_mismatch");
+        return "{\"schema\":1,\"desktop\":\"" + (logon ? "Winlogon" : "Default") +
+            "\",\"focusChanged\":true,\"focusRestored\":true,\"eventsInserted\":6,\"beforeControlType\":" + before.controlType +
+            ",\"afterControlType\":" + after.controlType + ",\"passwordControlBefore\":true," +
+            "\"receptionObservedBy\":\"uia_runtime_id_comparison\",\"credentialsRead\":false,\"credentialsWritten\":false," +
+            "\"readyForUnattended\":false}";
+    }
+
+    static string FocusSelf() {
+        RequireInputLab();
+        if (WindowsIdentity.GetCurrent().User.Value == "S-1-5-18" || Process.GetCurrentProcess().SessionId == 0 ||
+            new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator))
+            throw new InvalidOperationException("filtered_user_context_required");
+        Exception uiFailure = null;
+        using (var ready = new ManualResetEvent(false))
+        using (var stop = new ManualResetEvent(false)) {
+            var ui = new Thread(delegate() {
+                IntPtr window = IntPtr.Zero, instance = GetModuleHandle(null);
+                string name = "AbsorConnectFocusLab_" + Process.GetCurrentProcess().Id;
+                bool registered = false;
+                try {
+                    var value = new OwnedWindowClass { procedure = Marshal.GetFunctionPointerForDelegate(ownedProcedure),
+                        instance = instance, background = new IntPtr(6), name = name };
+                    Check(RegisterClass(ref value) != 0); registered = true;
+                    window = CreateWindowEx(0x10000, name, "AbsorConnect: prueba de foco sin texto", 0x00CF0000,
+                        100, 100, 380, 220, IntPtr.Zero, IntPtr.Zero, instance, IntPtr.Zero);
+                    Check(window != IntPtr.Zero);
+                    // Edit vacío de solo lectura y con atributo de contraseña: no admite contenido del usuario.
+                    var edit = CreateWindowEx(0, "EDIT", "", 0x50810820, 30, 40, 260, 28, window, new IntPtr(1), instance, IntPtr.Zero);
+                    var button = CreateWindowEx(0, "BUTTON", "Solo foco", 0x50010000, 30, 90, 130, 28, window, new IntPtr(2), instance, IntPtr.Zero);
+                    Check(edit != IntPtr.Zero && button != IntPtr.Zero);
+                    ShowWindow(window, 5); SetForegroundWindow(window); SetFocus(edit); ready.Set();
+                    var lifetime = Stopwatch.StartNew();
+                    while (!stop.WaitOne(10) && IsWindow(window) && lifetime.ElapsedMilliseconds < 12000) {
+                        OwnedMessage message;
+                        while (PeekMessage(out message, IntPtr.Zero, 0, 0, 1)) {
+                            if (!IsDialogMessage(window, ref message)) { TranslateMessage(ref message); DispatchMessage(ref message); }
+                        }
+                    }
+                } catch (Exception error) { uiFailure = error; ready.Set(); }
+                finally {
+                    if (window != IntPtr.Zero && IsWindow(window)) DestroyWindow(window);
+                    if (registered) UnregisterClass(name, instance);
+                }
+            });
+            ui.IsBackground = true; ui.SetApartmentState(ApartmentState.STA); ui.Start();
+            try {
+                if (!ready.WaitOne(4000)) throw new InvalidOperationException("focus_self_window_timeout");
+                if (uiFailure != null) throw uiFailure;
+                // Cliente UIA en este hilo MTA; la ventana y su cola viven en otro hilo STA.
+                return FocusNavigation(false);
+            } finally { stop.Set(); if (!ui.Join(2000)) throw new InvalidOperationException("focus_self_cleanup_timeout"); }
+        }
+    }
+
     public static int Main(string[] args) {
         if (args.Length != 1) return 64;
         try {
-            if (args[0] == "--launch-lock-escape-probe") return Launch(lockEscape: true);
-            if (args[0] == "--lock-escape-coordinator") {
-                RequireInputLab(); Console.WriteLine(RunSecureEscape(true)); return 0;
+            if (args[0] == "--launch-focus-self-probe") return Launch(ProbeMode.FocusSelf);
+            if (args[0] == "--focus-navigation-self") { FocusSelf(); return 0; }
+            if (args[0] == "--launch-logon-focus-probe") return Launch(ProbeMode.LogonFocus);
+            if (args[0] == "--logon-focus-coordinator") {
+                RequireInputLab(); Console.WriteLine(RunSecureProbe(SecureProbeMode.LogonFocus)); return 0;
             }
-            if (args[0] == "--launch-elevated-input-probe") return Launch(false, false, false, false, true);
+            if (args[0] == "--launch-lock-escape-probe") return Launch(ProbeMode.LockEscape);
+            if (args[0] == "--lock-escape-coordinator") {
+                RequireInputLab(); Console.WriteLine(RunSecureProbe(SecureProbeMode.LogonEscape)); return 0;
+            }
+            if (args[0] == "--launch-elevated-input-probe") return Launch(ProbeMode.ElevatedInput);
             if (args[0] == "--elevated-input-injector") return ElevatedInput();
             if (args[0] == "--elevated-input-target") return OwnedInput(false, true);
             if (args[0] == "--launch-console-probe") return Launch();
-            if (args[0] == "--launch-uac-probe") return Launch(true);
-            if (args[0] == "--launch-uac-input-probe") return Launch(false, true);
-            if (args[0] == "--launch-user-owned-input-probe") return Launch(false, false, true, true);
-            if (args[0] == "--launch-system-owned-input-probe") return Launch(false, false, true);
+            if (args[0] == "--launch-uac-probe") return Launch(ProbeMode.Elevation);
+            if (args[0] == "--launch-uac-input-probe") return Launch(ProbeMode.UacInput);
+            if (args[0] == "--launch-user-owned-input-probe") return Launch(ProbeMode.OwnUser);
+            if (args[0] == "--launch-system-owned-input-probe") return Launch(ProbeMode.OwnSystem);
             if (args[0] == "--owned-input-user") return OwnedInput(true);
             if (args[0] == "--owned-input-system") return OwnedInput(false);
             if (args[0] == "--request-elevation") return RequestElevation();
@@ -705,15 +862,16 @@ public static class CaptureProbe
             bool testUacInput = args[0] == "--uac-input";
             bool escapeUac = args[0] == "--escape-uac";
             bool escapeLogon = args[0] == "--escape-logon";
-            if (args[0] != "--capture" && !testUacInput && !escapeUac && !escapeLogon) return 64;
-            string reportName = escapeLogon ? "lock-escape-report.json" : testUacInput ? "uac-input-report.json" :
+            bool logonFocus = args[0] == "--logon-focus";
+            if (args[0] != "--capture" && !testUacInput && !escapeUac && !escapeLogon && !logonFocus) return 64;
+            string reportName = logonFocus ? "logon-focus-report.json" : escapeLogon ? "lock-escape-report.json" : testUacInput ? "uac-input-report.json" :
                 escapeUac ? "escape-report.json" : "capture-report.json";
             string report = null; Exception failure = null;
-            var thread = new Thread(delegate() { try { report = testUacInput ? UacInput() : escapeUac || escapeLogon ? EscapeUac(escapeLogon) : Capture(); } catch (Exception e) { failure = e; } });
+            var thread = new Thread(delegate() { try { report = logonFocus ? FocusNavigation(true) : testUacInput ? UacInput() : escapeUac || escapeLogon ? EscapeUac(escapeLogon) : Capture(); } catch (Exception e) { failure = e; } });
             thread.IsBackground = true; thread.Start();
             if (!thread.Join(testUacInput ? 45000 : 10000)) throw new InvalidOperationException("probe_timeout");
             if (failure != null) {
-                if (testUacInput || escapeUac || escapeLogon) {
+                if (testUacInput || escapeUac || escapeLogon || logonFocus) {
                     string message = failure.Message.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\r", " ").Replace("\n", " ");
                     WriteReport(reportName, "{\"status\":\"input_probe_failed\",\"error\":\"" + message +
                         "\",\"cleanupAttempted\":" + (cleanupAttempted ? "true" : "false") + ",\"cleanupDefaultObserved\":" + (cleanupDefaultObserved ? "true" : "false") +

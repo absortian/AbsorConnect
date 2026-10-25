@@ -96,16 +96,32 @@
   "rawReportHashes": {
     "lock-results.json": "47b8a4edfd4759397dde364d6d36fe9fc3b1d69e272491691a4b19c24ff02d99",
     "repeat-lock-escape-report.json": "f8937311639daaacbf4425b102084ec97a29d174a4bcbe742bd9216dff118890",
-    "regression-results.json": "aecc13e85598824d7b5e3cada4d7ad91f482bf42f14a323592636f79728facf1"
+    "regression-results.json": "aecc13e85598824d7b5e3cada4d7ad91f482bf42f14a323592636f79728facf1",
+    "return-capture-report.json": "6e77b8980e68a236aa0ed958580b7e05896c7c96b777bf0de1f573a2be06e55b",
+    "return-launcher.json": "15d68e084ba32a8d8f7f02374e9ca0e03a995ac125411849c6b1dd4f0b590ec0"
   },
   "nativeReceptionCertified": false,
-  "ownerUnlockVerified": false,
+  "ownerUnlockVerified": true,
   "readyForUnattended": false,
   "status": "lock_capture_verified_escape_reception_inconclusive",
   "limits": [
     "SendInput devuelve dos eventos con LogonUI y Winlogon comprobados, pero la observación inmediata no verifica su recepción o efecto en la interfaz.",
     "Una observación posterior mostró el fondo de bloqueo; no se atribuye al Escape porque puede intervenir la inactividad. La repetición inmediata y la comparación por consola no mostraron cambio.",
     "No se escribe texto, no se pulsan Enter ni botones del formulario y no se prueba una contraseña por el canal del diagnóstico.",
-    "El propietario debe desbloquear; la recuperación tras ese desbloqueo se registra por separado. No certifica cierre/inicio de sesión, SAS, DXGI, servicio ni WebRTC."
-  ]
+    "El propietario desbloqueó y se verificó recuperación de captura en Default. No certifica cierre/inicio de sesión, SAS, DXGI, servicio ni WebRTC."
+  ],
+  "afterOwnerUnlock": {
+    "schema": 1,
+    "platform": "windows",
+    "captureApi": "gdi",
+    "desktop": "Default",
+    "frames": 8,
+    "nonUniformFrames": 8,
+    "inputTested": false,
+    "readyForUnattended": false
+  },
+  "afterOwnerUnlockLauncher": {
+    "workerExited": true,
+    "workerExitCode": 0
+  }
 }
