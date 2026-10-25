@@ -397,6 +397,27 @@ propietario confirmó contraseña y vuelta al escritorio. Evidencia reconciliada
 histórico; no repetir el instalador sobre el mismo destino. Sigue sin acreditar
 entrada en LightDM, credenciales o servicio/transporte completos.
 
+### Mint: observador de LightDM preparado
+
+`linux-greeter-focus-install.sh` se lanza **por SSH desde el Mac**, como usuario
+ordinario; así la conexión continúa cuando se cierra Cinnamon. Exige una carpeta
+privada nueva y hashes correctos; instala dos fuentes root/0600, sin servicio o
+configuración persistente. No repetir sobre el mismo destino/informe.
+
+Tras `READY_TO_LOGOUT_MINT`, el propietario cierra sesión solo en Mint, deja el
+campo de contraseña visible veinte segundos y vuelve a entrar normalmente. El
+supervisor espera el greeter de lightdm, resuelve su autoridad X11 y lee la
+propiedad acotada AT_SPI_BUS. El trabajador usa ese bus como lightdm, sin grupos
+adicionales, DISPLAY ni Xauthority; solo consulta roles/estados del PID de Slick
+Greeter comprobado. Termina la consulta de foco antes del inicio manual y el
+supervisor espera la nueva sesión del mismo usuario. Nunca envía entrada,
+captura imágenes, lee texto/valores o modifica LightDM.
+
+Sintaxis, lectura nativa de la propiedad desde el escritorio actual y rechazos
+comprobados; la observación real del greeter sigue pendiente. Preparación:
+`mint-greeter-focus-preparation.json`. No acredita entrada en LightDM ni el
+agente final.
+
 ## Windows
 
 En el equipo de pruebas, desde PowerShell:

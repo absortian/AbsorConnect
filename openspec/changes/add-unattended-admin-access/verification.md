@@ -1693,3 +1693,40 @@ cambio de usuario, reinicio ni transporte remoto. `inputTested:true`,
 `captureTested:false`, `preLoginTested:false`, `readyForUnattended:false`. La
 tarea 1.4 sigue parcial y el progreso permanece en **8/57**. No hay nueva
 versión de producción por estos cambios de laboratorio.
+
+### Mint: observador de Slick Greeter preparado — 25/10/2026
+
+La entrada nativa en LightDM sigue pendiente. El nuevo diagnóstico
+`linux-greeter-focus-check.py --observe-greeter` es de solo lectura: espera el
+paso de la sesión Cinnamon desbloqueada al greeter X11 de lightdm, vuelve a
+resolver la autoridad privada del Xorg actual y lee únicamente la propiedad
+`AT_SPI_BUS` de la raíz, limitada a 512 bytes y a una dirección Unix local. No
+lee entornos de procesos, cookies, títulos ni contenido de pantalla. La lectura
+de esa propiedad y el tipo ABI se comprobaron en el escritorio real de Mint
+como usuario ordinario; esto no acredita todavía el greeter.
+
+Comprueba un único `/usr/sbin/slick-greeter` con UID de lightdm y crea un
+trabajador con ese UID/GID, sin grupos adicionales y sin DISPLAY/XAUTHORITY.
+Solo recibe la dirección local de accesibilidad y el PID esperado; selecciona
+la aplicación accesible con ese PID y consulta roles/estados acotados. Al
+encontrar el campo de contraseña enfocado termina el trabajador y deja de
+consultar el foco. El supervisor espera únicamente una nueva sesión del usuario
+original y la vuelta a Cinnamon desbloqueado. No cambia servicios ni
+configuración, no envía entrada y no autentica. Plazo global de tres minutos.
+
+El lanzador instala dos fuentes root/0600 en un destino nuevo, con hashes
+fijados, y guarda un informe privado exclusivo. Exige ejecutarse por SSH desde
+el Mac para conservar el diagnóstico al cerrar la sesión gráfica de Mint. La
+contraseña de sudo y el posterior inicio de sesión los hace el propietario.
+
+Sintaxis Python del supervisor/trabajador y Bash comprobadas; rechazo sin root
+en Mint, argumentos ajenos, lanzador local sin SSH, directorio no protegido,
+hash de auxiliar alterado, greeter ausente en contenedor y lanzador root
+verificados. Transferencia y hashes comprobados. Evidencia:
+`mint-greeter-focus-preparation.json`. La observación de LightDM, incluido el
+trabajador como lightdm, sigue **pendiente**. No acredita entrada ni completa
+1.4: **8/57**, `readyForUnattended:false`.
+
+Referencias primarias del mecanismo:
+[publicación/retirada de AT_SPI_BUS en Slick Greeter](https://github.com/linuxmint/slick-greeter/blob/master/src/slick-greeter.vala)
+y [selección de AT_SPI_BUS_ADDRESS en libatspi](https://github.com/GNOME/at-spi2-core/blob/main/atspi/atspi-misc.c).
