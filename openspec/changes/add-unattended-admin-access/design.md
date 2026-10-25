@@ -90,6 +90,21 @@ su hijo carece de captura/entrada. Sus pruebas no certifican plataformas.
 
 ### D4. Secretos, IPC y traspaso transaccional
 
+Implementación parcial de autenticación: `agent-auth` es un componente Rust
+reutilizable por el trabajador confiable; aún no tiene enlace al adaptador
+C++/DTLS ni cambia las fronteras de D1. Usa ring/HMAC-SHA256 y base64 ya fijados
+en el grafo de TLS, comprueba vectores v1 y acepta K aprovisionada con parámetros
+actuales. El resultado no serializable se consume para esa conexión. Un estado
+de autenticación recibido por IPC sin verificar no concede captura/entrada.
+
+El contrato del registro de intentos reserva durablemente un fallo antes de
+verificar y lo borra solo tras éxito y escritura confirmada. Una caída puede
+consumir un intento. La carga ausente/corrupta, la escritura fallida o la hora
+local retrocedida deniegan acceso; no se reinicia el contador por defecto.
+El ejemplo entre procesos solo usa un diario efímero de laboratorio. Quedan
+almacenes protegidos y exclusión por host de cada SO, migración transaccional,
+autenticación del IPC y conexión con el trabajador real antes de cerrar 3.2.
+
 El alta, ejecutada con autorización inicial del sistema, entrega al almacén protegido identidad del host, credencial limitada, K y parámetros de contraseña, opciones y bloqueo vigente. No entrega el token de cuenta, conexiones S3/SSH ni contraseñas del sistema. La interfaz solo recibe estado y resultados; el trabajador recibe únicamente los secretos que necesita.
 
 | Plataforma | Protección e IPC |
