@@ -354,8 +354,10 @@ Necesita una carpeta privada con los auxiliares de contexto y foco fijados por
 hash; sus fuentes se ejecutan desde bytes comprobados sin pycache. Los informes
 y eventos se crean como 0600, sin sobrescribirlos. `--observe-lock --inventory-only`
 valida el contexto inicial y sale sin esperar ni guardar archivos. El inventario
-real está comprobado; la transición coordinada está pendiente en
-`mint-lock-focus-preparation.json`. El uso de contraseña se confirma con el
+real está comprobado; la primera espera terminó por tiempo sin observar bloqueo.
+La transición coordinada sigue pendiente en `mint-lock-focus-results.json`; la
+preparación anterior se conserva en `mint-lock-focus-preparation.json`. Antes de
+arrancar otra espera se coordina la presencia del propietario. El uso de contraseña se confirma con el
 propietario: GetActive por sí solo no demuestra un bloqueo real. Esta observación
 no acredita entrada nativa ni el agente o transporte remoto.
 

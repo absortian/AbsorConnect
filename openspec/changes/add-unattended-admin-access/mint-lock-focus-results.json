@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "date": "2026-10-25",
+  "status": "waiting_for_owner_readiness",
+  "attempts": [
+    {
+      "attempt": "a",
+      "rawReport": {
+        "schema": 1,
+        "platform": "linux",
+        "status": "lock_focus_not_observed",
+        "sourceSha256": "cacdd22685e36011e49eb68a5986e156887f954a557b2772ca665a8e5d0e7cc7",
+        "inputTested": false,
+        "captureTested": false,
+        "readyForUnattended": false,
+        "beforeLock": {
+          "busOwnerVerified": true,
+          "accessibleApplicationCount": 1,
+          "showingPasswordFields": 0,
+          "focusedPasswordFields": 0,
+          "focusedRoleCounts": {}
+        },
+        "reason": "owner_lock_transition_timeout"
+      },
+      "cleanup": {
+        "remainingAttemptObserverCount": 0
+      },
+      "lockTransitionVerified": false,
+      "reconciliation": "Terminó el plazo de tres minutos sin observar GetActive:true. No se atribuye una avería del bloqueo ni se certifica transición a partir de la preparación."
+    },
+    {
+      "attempt": "b",
+      "status": "files_prepared_not_started",
+      "transferredHashesVerified": true
+    }
+  ],
+  "rawReportHashes": {
+    "attempt-a-results.json": "aa851ba5cf979720429db7c9c84e51419abdf867b73590aaf5b8ae15bb93dbfc",
+    "attempt-a-events.jsonl": "c441720362b733a10b7d44d9c242cea8fb543be3648589cb37a14a26ba1ec5bd",
+    "attempt-a-cleanup.json": "233fa0234c1789ed6ee9d1299a306a9bc2e0cd28e8764157960c16fafa63f74c"
+  },
+  "inputTested": false,
+  "readyForUnattended": false
+}

@@ -1601,3 +1601,16 @@ La transición y los metadatos en bloqueo siguen **pendientes**. El uso real de
 contraseña requiere confirmación humana independiente; GetActive por sí solo no
 certifica bloqueo. No prueba entrada nativa en bloqueo/LightDM ni transporte.
 La tarea 1.4 sigue parcial, **8/57**, `readyForUnattended:false`.
+
+#### Primera espera sin transición
+
+El observador terminó con `owner_lock_transition_timeout` tras tres minutos,
+sin observar GetActive:true ni enviar entrada. Solo registró el contexto inicial
+válido y `waiting_for_owner_lock`. Se recuperaron el informe y el registro privado;
+se verificaron cero procesos de esa ejecución. Esto no indica una avería de
+bloqueo: no hay una transición observada que permita evaluar el foco.
+Se avisó de que ya no se debe bloquear para esa ejecución y se pidió confirmar
+presencia delante de Mint antes de iniciar otra. Los archivos de una carpeta
+nueva están preparados con hashes verificados, sin arrancar otro observador.
+Evidencia: `mint-lock-focus-results.json`. Preparación previa conservada como
+histórica; tarea 1.4 parcial, **8/57**, sin nueva publicación.
