@@ -418,6 +418,15 @@ comprobados; la observación real del greeter sigue pendiente. Preparación:
 `mint-greeter-focus-preparation.json`. No acredita entrada en LightDM ni el
 agente final.
 
+La primera ejecución detectó el greeter, pero abortó al validar la propiedad
+AT_SPI_BUS, antes de consultar el foco. La revisión 2 añade metadatos acotados
+de la lectura y distingue propiedad ausente aunque el átomo exista, con espera
+breve y los mismos límites de formato/tamaño/dirección. Las regresiones nativas
+usaron una ventana propia no mapeada, ya destruida; la raíz no se modificó. No
+se atribuye una causa concreta al primer fallo, pues no registraba esos datos.
+Se prepara un destino nuevo para repetir; evidencia histórica y preparación:
+`mint-greeter-focus-attempts.json`.
+
 ## Windows
 
 En el equipo de pruebas, desde PowerShell:

@@ -19,18 +19,18 @@ if [ "$(/usr/bin/stat -c '%u:%a' "$source_directory")" != "$(/usr/bin/id -u):700
   printf 'Se necesita una carpeta privada 0700 del usuario actual.\n' >&2
   exit 3
 fi
-root_directory='/var/lib/AbsorConnectLab/greeter-focus-v1'
+root_directory='/var/lib/AbsorConnectLab/greeter-focus-v2'
 report_path="$source_directory/greeter-focus-results.json"
 if [ -e "$report_path" ]; then
   printf 'Ya existe el informe; no repitas esta instalación.\n' >&2
   exit 3
 fi
 printf '%s  %s\n' \
-  '5d04385e399a1efed230fe28e2a9a7dd46a912c4c471661d532e31b633832175' "$source_directory/linux-greeter-focus-check.py" \
+  '79bedddbd971fdcc2d70ccf5a55ed780bfb7a0e957754662b00cdaee60635d4e' "$source_directory/linux-greeter-focus-check.py" \
   '40d222539fa05c21b9f0a95993efe40a386bc82dab4ad031b6d188e827b6e275' "$source_directory/linux-session-check.py" \
   | /usr/bin/sha256sum --check --status
 printf 'Se instalarán dos fuentes protegidas para probar metadatos de foco de Slick Greeter.\n'
-printf 'Introduce la contraseña solo en sudo. Espera READY_TO_LOGOUT_MINT antes de cerrar sesión en Mint. Deja el campo de entrada visible veinte segundos y vuelve a iniciar sesión normalmente.\n'
+printf 'Introduce la contraseña solo en sudo. Espera READY_TO_LOGOUT_MINT antes de cerrar sesión en Mint. Deja el campo de entrada visible treinta segundos y vuelve a iniciar sesión normalmente.\n'
 # mkdir sin -p en el destino final impide sobrescribir una prueba anterior.
 /usr/bin/sudo /usr/bin/mkdir -p /var/lib/AbsorConnectLab
 /usr/bin/sudo /usr/bin/mkdir -m 0755 "$root_directory"
@@ -38,7 +38,7 @@ printf 'Introduce la contraseña solo en sudo. Espera READY_TO_LOGOUT_MINT antes
   "$source_directory/linux-greeter-focus-check.py" "$source_directory/linux-session-check.py" \
   "$root_directory/"
 printf '%s  %s\n' \
-  '5d04385e399a1efed230fe28e2a9a7dd46a912c4c471661d532e31b633832175' "$root_directory/linux-greeter-focus-check.py" \
+  '79bedddbd971fdcc2d70ccf5a55ed780bfb7a0e957754662b00cdaee60635d4e' "$root_directory/linux-greeter-focus-check.py" \
   '40d222539fa05c21b9f0a95993efe40a386bc82dab4ad031b6d188e827b6e275' "$root_directory/linux-session-check.py" \
   | /usr/bin/sudo /usr/bin/sha256sum --check --status
 set -o noclobber

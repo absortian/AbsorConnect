@@ -129,7 +129,41 @@ def greeter_process(uid):
     return candidates[0]
 
 
-def accessibility_address(authority, display_name):
+def read_accessibility_property(x11, display, window, observation):
+    # Que exista el átomo no implica que la propiedad ya esté publicada.
+    # Conserva únicamente tipo/tamaño/estado; nunca la dirección del bus.
+    number, pointer = c.c_ulong, c.c_void_p
+    value = pointer()
+    try:
+        atom = x11.XInternAtom(display, b"AT_SPI_BUS", True)
+        if not atom:
+            raise RuntimeError("greeter_accessibility_property_absent")
+        actual, width, length, remaining = number(), c.c_int(), number(), number()
+        status = x11.XGetWindowProperty(display, window, atom, 0, 128, False, 31,
+                                       c.byref(actual), c.byref(width), c.byref(length),
+                                       c.byref(remaining), c.byref(value))
+        shape = {"queryStatus": status,
+                 "type": "absent" if actual.value == 0 else "string" if actual.value == 31 else "other",
+                 "format": width.value, "itemCount": length.value, "remainingBytes": remaining.value}
+        attempts = observation.setdefault("accessibilityPropertyAttempts", [])
+        if len(attempts) >= 48:
+            raise RuntimeError("accessibility_property_attempt_limit")
+        attempts.append(shape)
+        if not status and actual.value == 0 and width.value == 0 and length.value == 0 and remaining.value == 0:
+            raise RuntimeError("greeter_accessibility_property_absent")
+        if status or actual.value != 31 or width.value != 8 or remaining.value or not 0 < length.value <= 512 or not value.value:
+            raise RuntimeError("bounded_accessibility_string_required")
+        address = c.string_at(value, length.value).decode("ascii").rstrip("\x00")
+        # Una única dirección local; nunca TCP, autolaunch ni listas alternativas.
+        if not re.fullmatch(r"unix:(?:path|abstract)=[/A-Za-z0-9_.%-]+(?:,guid=[0-9a-f]{32})?", address):
+            raise RuntimeError("single_local_accessibility_address_required")
+        return address
+    finally:
+        if value.value:
+            x11.XFree(value)
+
+
+def accessibility_address(authority, display_name, observation):
     # Solo AT_SPI_BUS, propiedad pública del servidor X actual, limitada a 512
     # bytes. No consulta títulos, ventanas de usuario ni cookies Xauthority.
     os.environ["XAUTHORITY"] = str(authority)
@@ -151,25 +185,9 @@ def accessibility_address(authority, display_name):
     display = x11.XOpenDisplay(display_name.encode("ascii"))
     if not display:
         raise RuntimeError("root_x11_connection_failed")
-    value = pointer()
     try:
-        atom = x11.XInternAtom(display, b"AT_SPI_BUS", True)
-        if not atom:
-            raise RuntimeError("greeter_accessibility_property_absent")
-        actual, width, length, remaining = number(), c.c_int(), number(), number()
-        status = x11.XGetWindowProperty(display, x11.XDefaultRootWindow(display), atom, 0, 128,
-                                       False, 31, c.byref(actual), c.byref(width), c.byref(length),
-                                       c.byref(remaining), c.byref(value))
-        if status or actual.value != 31 or width.value != 8 or remaining.value or not 0 < length.value <= 512:
-            raise RuntimeError("bounded_accessibility_string_required")
-        address = c.string_at(value, length.value).decode("ascii").rstrip("\x00")
-        # Una única dirección local; nunca TCP, autolaunch ni listas alternativas.
-        if not re.fullmatch(r"unix:(?:path|abstract)=[/A-Za-z0-9_.%-]+(?:,guid=[0-9a-f]{32})?", address):
-            raise RuntimeError("single_local_accessibility_address_required")
-        return address
+        return read_accessibility_property(x11, display, x11.XDefaultRootWindow(display), observation)
     finally:
-        if value.value:
-            x11.XFree(value)
         x11.XCloseDisplay(display)
 
 
@@ -206,7 +224,7 @@ def observe(report):
     while True:
         try:
             pid = greeter_process(uid)
-            address = accessibility_address(session_api.authority_for(":0"), ":0")
+            address = accessibility_address(session_api.authority_for(":0"), ":0", report)
             break
         except RuntimeError as error:
             if str(error) not in ("unique_greeter_process_required", "unique_private_root_authority_required",

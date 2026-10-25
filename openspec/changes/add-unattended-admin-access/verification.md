@@ -1730,3 +1730,34 @@ trabajador como lightdm, sigue **pendiente**. No acredita entrada ni completa
 Referencias primarias del mecanismo:
 [publicación/retirada de AT_SPI_BUS en Slick Greeter](https://github.com/linuxmint/slick-greeter/blob/master/src/slick-greeter.vala)
 y [selección de AT_SPI_BUS_ADDRESS en libatspi](https://github.com/GNOME/at-spi2-core/blob/main/atspi/atspi-misc.c).
+
+#### Primera ejecución y revisión 2 del observador de greeter
+
+El propietario ejecutó la primera revisión por SSH, cerró sesión y confirmó
+vuelta al escritorio y al prompt del Mac. El diagnóstico detectó la sesión
+greeter, pero terminó con `bounded_accessibility_string_required`, antes de
+iniciar el trabajador accesible. La comprobación independiente encontró cero
+procesos propios y dos fuentes root/0600. El informe no distinguía qué
+condición falló; no permite atribuirlo a formato, tamaño o ausencia transitoria.
+
+La revisión 2 distingue átomo existente con propiedad ausente (tipo None,
+formato/longitud cero) y reintenta solo esa ausencia dentro del plazo de arranque
+ya previsto. Registra únicamente estado, categoría de tipo, formato, cantidad
+y bytes restantes, con número de muestras limitado. Conserva STRING, formato
+8, máximo 512 bytes y dirección Unix única, sin aceptar propiedades truncadas,
+otros tipos, direcciones TCP o listas de direcciones.
+
+En el Mint real se verificaron la propiedad del escritorio y seis casos sobre
+una **ventana propia no mapeada**, destruida después: átomo existente sin
+propiedad, cadena local válida, tipo incorrecto, propiedad excesiva, dirección
+no local y lista de direcciones. No se modificó la propiedad de la raíz ni se
+envió entrada. El primer caso reproduce el guard que faltaba, pero no demuestra
+que causara la ejecución inicial. Sintaxis Python/Bash, denegación sin root,
+lanzador sin SSH/argumentos ajenos y denegaciones de directorio/hash/binario
+ausente/lanzador root pasaron con los nuevos hashes; transferencia comprobada.
+
+Se preparó un destino nuevo, sin sobrescribir el ensayo anterior. Evidencia
+reconciliada y preparación de revisión 2 en `mint-greeter-focus-attempts.json`.
+La repetición del greeter sigue pendiente; `inputTested:false`,
+`captureTested:false`, `preLoginTested:false`, `readyForUnattended:false`.
+La tarea 1.4 sigue parcial, **8/57**.
