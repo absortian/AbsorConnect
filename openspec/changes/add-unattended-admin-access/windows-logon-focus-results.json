@@ -165,7 +165,13 @@
   },
   "cleanup": {
     "remainingProbeCount": 0,
-    "remainingLabTaskCount": 0
+    "remainingLabTaskCount": 0,
+    "uac": {
+      "EnableLUA": 1,
+      "PromptOnSecureDesktop": 1,
+      "ConsentPromptBehaviorAdmin": 5,
+      "ConsentPromptBehaviorUser": 3
+    }
   },
   "rawReportHashes": {
     "self-a-results.json": "fa439669d47a5aced3eead21c5dcb1af863aa710492577f5f20832cab58d6b72",
@@ -174,17 +180,34 @@
     "logon-a-logon-focus-report.json": "e0fa55247a1f84ecf0b300e46bb7366a9af900a0ac9fb834cd69a4fa88db9bd3",
     "logon-a-capture-report.json": "0aad555127d1c1276b307a9c16938e8304a4a7f66a45ecd71c785ecb400e8957",
     "negative-session-zero.json": "713d944980ee37127b601b4fb6af5bacc7b1baca00d8ccca609ef95960a17580",
-    "cleanup.json": "2f627ae185cfbac310ef10942ec673d357a8ccc543829289017dffacd1260401"
+    "cleanup.json": "2f627ae185cfbac310ef10942ec673d357a8ccc543829289017dffacd1260401",
+    "return-capture-report.json": "23fdb1444148aa22b926438b458f58660a0532533e45d7855575d2ed5728e6ea",
+    "return-launcher.json": "15d68e084ba32a8d8f7f02374e9ca0e03a995ac125411849c6b1dd4f0b590ec0",
+    "return-cleanup.json": "2886e9b799e0a381164550680c4176c1bd919beaa2c6eb57b265afe1d6c88c62"
   },
   "nativeFocusNavigationVerified": true,
   "remoteCredentialInjectionTested": false,
-  "ownerUnlockVerified": false,
+  "ownerUnlockVerified": true,
   "readyForUnattended": false,
-  "status": "logon_focus_navigation_verified_recovery_pending",
+  "status": "logon_focus_navigation_and_capture_recovery_verified",
   "limits": [
     "Se comprueba recepción de Tab y Mayús+Tab por cambio y restauración de foco en LogonUI. No se equipara al retorno de SendInput.",
     "UI Automation solo consulta PID, tipo, IsPassword e identidad opaca en memoria. No se leen Name, Value ni texto; no se guardan runtime IDs ni imágenes.",
     "No introduce ni envía contraseñas, no autentica y no prueba SAS, ratón en LogonUI, cierre/inicio de sesión completo, DXGI, SCM ni transporte WebRTC.",
-    "Se debe comprobar captura Default después del desbloqueo manual de esta repetición. El ensayo Escape anterior mantiene recepción inconclusa."
-  ]
+    "Tras el desbloqueo manual se verificaron nueve capturas no uniformes en Default. El ensayo Escape anterior mantiene recepción inconclusa."
+  ],
+  "afterOwnerUnlock": {
+    "schema": 1,
+    "platform": "windows",
+    "captureApi": "gdi",
+    "desktop": "Default",
+    "frames": 9,
+    "nonUniformFrames": 9,
+    "inputTested": false,
+    "readyForUnattended": false
+  },
+  "afterOwnerUnlockLauncher": {
+    "workerExited": true,
+    "workerExitCode": 0
+  }
 }

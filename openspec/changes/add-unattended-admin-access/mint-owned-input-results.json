@@ -1,0 +1,122 @@
+{
+  "schema": 1,
+  "date": "2026-10-25",
+  "configuration": {
+    "os": "Linux Mint 22.3",
+    "architecture": "x86_64",
+    "desktop": "Cinnamon 6.6.9",
+    "sessionType": "x11",
+    "displayManager": "LightDM"
+  },
+  "sourceSha256": "948e62402572c0a517ab1a16b5d2a1f7af9ddc76dd81ac57ada3d4e4379a16ce",
+  "command": "python3 -I linux-owned-input-check.py --test-own-input",
+  "firstRevision": {
+    "sourceSha256": "9c39b40b622084f33ea9b51d1ca08297bd4bcb0fba775848f5dd588fe4da6227",
+    "exitCode": 3,
+    "report": {
+      "inputTested": false,
+      "platform": "linux",
+      "readyForUnattended": false,
+      "reason": "own_window_focus_and_session_required",
+      "schema": 1,
+      "status": "own_window_input_not_verified"
+    },
+    "resolution": "GTK enfoca un hijo InputOnly propio. La revisión final verifica su pertenencia al árbol de la ventana propia, sin aceptar ventanas ajenas."
+  },
+  "trials": [
+    {
+      "exitCode": 0,
+      "stderrBytes": 0,
+      "report": {
+        "captureTested": false,
+        "counts": {
+          "keyDown": 1,
+          "keyUp": 1,
+          "mouseDown": 1,
+          "mouseUp": 1,
+          "unexpectedEvents": 0
+        },
+        "inputApi": "XTest",
+        "inputTested": true,
+        "nativeFocusWasOwnedChild": true,
+        "platform": "linux",
+        "pointerRestored": true,
+        "polkitTested": false,
+        "preLoginTested": false,
+        "previousFocusRestoredObserved": true,
+        "readyForUnattended": false,
+        "receptionObservedBy": "gtk_native_event_callbacks",
+        "schema": 1,
+        "senderProfile": "unprivileged_console_user",
+        "status": "own_window_input_verified_not_certified",
+        "target": "own_window_same_process"
+      }
+    },
+    {
+      "exitCode": 0,
+      "stderrBytes": 0,
+      "report": {
+        "captureTested": false,
+        "counts": {
+          "keyDown": 1,
+          "keyUp": 1,
+          "mouseDown": 1,
+          "mouseUp": 1,
+          "unexpectedEvents": 0
+        },
+        "inputApi": "XTest",
+        "inputTested": true,
+        "nativeFocusWasOwnedChild": true,
+        "platform": "linux",
+        "pointerRestored": true,
+        "polkitTested": false,
+        "preLoginTested": false,
+        "previousFocusRestoredObserved": true,
+        "readyForUnattended": false,
+        "receptionObservedBy": "gtk_native_event_callbacks",
+        "schema": 1,
+        "senderProfile": "unprivileged_console_user",
+        "status": "own_window_input_verified_not_certified",
+        "target": "own_window_same_process"
+      }
+    }
+  ],
+  "negativeCases": {
+    "missingOptInExitCode": 2,
+    "unknownTargetWithOptInExitCode": 2,
+    "rootProcess": {
+      "exitCode": 3,
+      "report": {
+        "inputTested": false,
+        "platform": "linux",
+        "readyForUnattended": false,
+        "reason": "unprivileged_user_required",
+        "schema": 1,
+        "status": "own_window_input_not_verified"
+      }
+    }
+  },
+  "cleanup": {
+    "architecture": "x86_64",
+    "remainingOwnedInputProbeCount": 0,
+    "screensaverInactive": true,
+    "systemConfigurationChanged": false
+  },
+  "rawReportHashes": {
+    "trial-a-launcher.json": "07321366de2c664cf77bd63861496e6ebc1dcae54591a6b164bb273bf0f56a2c",
+    "trial-b-launcher.json": "7ed5922e149ed99598dee9d9539a5674f6effdb121a07729c4d5b49128067e9b",
+    "repeat-and-negative-launcher.json": "db48feeb73dbfe6383aabcf33dbe02b8837bc1c6b3e312623f7505abd5de918c",
+    "polkit-preparation.json": "a52bdb874424b2bcad6d7422314b03f93a619de8d01b2df826fe7fda9e25fd29",
+    "cleanup.json": "c346773fb0207412579eeaf561a428275a3177496ad55005c1b0fd52e3380bc5",
+    "root-negative.json": "c6b25a59cd1ebfa60e2f099b084dbf42ca9834a7ba4fd41bd6c1c6903f32aead"
+  },
+  "readyForUnattended": false,
+  "status": "unprivileged_own_window_input_verified",
+  "limits": [
+    "Emisor y receptor pertenecen al mismo proceso y al usuario de la sesión gráfica. No acredita entrada desde root, en otro proceso ni en LightDM/polkit o bloqueo.",
+    "Se observan eventos nativos de pulsación y liberación; no se verifica texto Unicode ni distribución de teclado. Solo se publica el recuento de la tecla fija esperada.",
+    "No guarda imágenes, teclas ajenas, títulos, coordenadas, identidades de ventanas ni cookies Xauthority. No cambia permisos ni instala paquetes.",
+    "La restauración del foco anterior se observa, sin enfocar forzosamente aplicaciones ajenas. El puntero no se disputa si interviene el usuario o cambia el contexto.",
+    "Las capturas de bloqueo/LightDM anteriores y este ensayo de entrada son evidencias separadas; no constituyen un recorrido remoto completo."
+  ]
+}

@@ -1321,8 +1321,10 @@ fotogramas de `Winlogon`. Compilación con las bibliotecas UIA ya presentes en
 
 Evidencia saneada y hashes de binarios e informes brutos en
 `windows-logon-focus-results.json`. Tareas temporales retiradas y cero procesos
-restantes. La recuperación tras el nuevo desbloqueo manual queda pendiente de
-confirmación del propietario. Se confirma navegación de foco en bloqueo; no
+restantes. Tras el nuevo desbloqueo confirmado por el propietario, el mismo
+binario obtuvo nueve fotogramas no uniformes en `Default` y terminó con cero.
+Se retiró la tarea temporal: cero procesos y tareas, UAC conserva los valores
+1/1/5/3. Se confirma navegación de foco en bloqueo y recuperación de captura; no
 autenticación por el diagnóstico, SAS, ratón en LogonUI, DXGI, SCM ni WebRTC.
 La tarea 1.2 continúa parcial, `readyForUnattended:false`, total **8/57**.
 
@@ -1330,3 +1332,58 @@ Verificación del proyecto: typecheck correcto, Vitest 276 correctos/5 omitidos
 con Node nativo de macOS, PHPUnit 162 pruebas/1077 aserciones con PHP 8.5.12 y
 OpenSpec estricto correcto. Los cambios siguen limitados al laboratorio y sus
 evidencias; no se publica una nueva versión de la aplicación.
+
+### Mint: recepción XTest en ventana propia — 25/10/2026
+
+Se implementó `linux-owned-input-check.py --test-own-input` como usuario gráfico
+sin privilegios. No necesita instalar paquetes ni modificar Xauthority: usa el
+archivo privado del usuario, Cinnamon/X11 activo y las bibliotecas GTK 3/XTest
+existentes. Crea únicamente una ventana propia sin campo de texto; cuenta los
+eventos nativos recibidos de un clic y una pulsación fija, con sus liberaciones.
+
+Antes de enviar comprueba sesión, salvapantallas inactivo, ninguna tecla o botón
+retenido y foco propio. Antes del clic comprueba además posición y jerarquía de
+la ventana bajo el puntero. No admite coordenadas, teclas ni destinos externos.
+Los pares down/up difieren la cancelación; el ensayo tiene un plazo de veinte
+segundos, destruye su ventana y restaura el puntero si no cambió el contexto.
+
+La primera revisión se canceló porque GTK enfoca un hijo InputOnly interno y
+su XID no coincidía con el principal. La revisión final verifica la pertenencia
+al árbol propio, sin aceptar ventanas ajenas. Dos ejecuciones en Mint x86_64
+obtuvieron exactamente un mouse-down/up y un key-down/up, cero eventos
+inesperados, puntero restaurado y retorno observado al foco anterior. Ambos
+trabajadores terminaron a cero y sin stderr. No se leen ni guardan teclas ajenas,
+texto, títulos, coordenadas, cookies ni identificadores de ventanas.
+
+Se verificó rechazo antes de abrir interfaz sin opción explícita, con un destino
+arbitrario incluso aportando la opción y como root en el contenedor. Tras la
+prueba hay cero trabajadores propios y Cinnamon sigue sin salvapantallas activo.
+No se cambiaron servicios, políticas ni permisos del sistema. Evidencias saneadas
+y hashes: `mint-owned-input-results.json`; originales privados.
+
+Este emisor y receptor comparten proceso/usuario. **No** se acredita entrada de
+root, otro proceso, polkit, bloqueo o LightDM ni transporte remoto. La tarea 1.4
+continúa parcial, `readyForUnattended:false`, total **8/57**.
+
+### Mint: solicitud polkit manual preparada — 25/10/2026
+
+`linux-polkit-manual-check.py --request-polkit` fija únicamente
+`pkexec --disable-internal-agent /usr/bin/true`, con ejecutables del sistema
+pertenecientes a root y sin escritura para otros. Se ejecuta como usuario desde
+Terminal de Mint, con los dos diagnósticos auxiliares fijados por SHA-256 en una
+carpeta privada nueva. No hay agente de texto, credenciales por stdin ni entrada
+sintética sobre el aviso. Cuenta imágenes solo mientras su solicitud sigue
+pendiente y publica `CAPTURA_COMPLETADA` antes de que autentique el propietario.
+Retira su solicitante si se cancela o vence la espera de dos minutos; no sobrescribe
+los informes. Código cero acredita la operación fija; ver el diálogo y usar
+contraseña requieren confirmación humana separada.
+
+Sintaxis y ayuda verificadas; rechazo como root comprobado en el contenedor antes
+de solicitar permisos o escribir archivos. Archivos de prueba transferidos con
+sus hashes comprobados, sin ejecutar aún la solicitud. El propietario confirmó
+que puede manejar Mint y recibió el comando para la prueba coordinada. La
+autorización manual y su resultado siguen **pendientes**; no se certifica polkit.
+
+Puerta del proyecto: typecheck, Vitest 276 correctos/5 omitidos, PHPUnit 162 pruebas
+y 1077 aserciones con PHP 8.5.12, OpenSpec estricto y comprobación de diff. Cambios
+limitados al laboratorio y evidencias, sin nueva publicación de producción.

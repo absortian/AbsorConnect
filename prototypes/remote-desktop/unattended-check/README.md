@@ -196,6 +196,56 @@ está pulsado, no mueve nada. Desplaza el puntero ocho píxeles y comprueba su
 restauración, sin clics, teclas ni coordenadas en el informe. El resultado sigue
 sin acreditar bloqueo, polkit ni LightDM. Puede combinarse con `--capture`.
 
+### Mint: recepción en una ventana propia
+
+`linux-owned-input-check.py --test-own-input` crea una ventana GTK 3 propia del
+usuario de Cinnamon/X11 y comprueba un clic y una pulsación fija, con sus
+liberaciones. Requiere Python 3, PyGObject/Gtk/GdkX11, libX11 y libXtst ya
+instalados, `:0` y el `.Xauthority` privado del usuario. Rechaza root y no admite
+otros destinos ni teclas. Caduca a los veinte segundos y no tiene campos de texto.
+
+Antes de enviar comprueba la sesión activa y desbloqueada, el estado de Cinnamon,
+ausencia de entrada retenida y foco en la ventana propia o uno de sus hijos GTK.
+Para el clic comprueba también posición y jerarquía bajo el puntero, evitando
+ventanas superpuestas. Cuenta callbacks nativos de GTK, sin equiparar el retorno
+de XTest a recepción. Difiere cancelaciones durante cada par down/up y restaura
+el puntero si continúa siendo suyo; no lo disputa si interviene el usuario.
+Destruye su ventana y observa si el gestor devuelve el foco anterior.
+
+Dos ejecuciones de la revisión final en Mint x86_64 recibieron un mouse-down/up y
+un key-down/up, sin eventos inesperados, con puntero y foco previo restaurados.
+La primera revisión se canceló al comparar solo el XID principal: GTK enfocaba
+un hijo InputOnly propio. La revisión final verifica ese árbol propio y mantiene
+el rechazo de ventanas ajenas. Evidencia: `mint-owned-input-results.json`.
+No demuestra entrada en otro proceso, como root, en bloqueo o en LightDM/polkit.
+
+Las APIs usadas se documentan en [Gtk.DrawingArea](https://docs.gtk.org/gtk3/class.DrawingArea.html),
+[GdkX11.get_xid](https://docs.gtk.org/gdk3-x11/method.X11Window.get_xid.html) y el
+[manual de XTest](https://xorg.freedesktop.org/archive/X11R7.5/doc/man/man3/XTestFakeKeyEvent.3.html).
+
+### Mint: solicitud manual de polkit
+
+`linux-polkit-manual-check.py --request-polkit` debe ejecutarse desde Terminal
+del escritorio Mint, como usuario normal, en una carpeta nueva privada (0700).
+Copiar allí también `linux-probe.py` y `linux-owned-input-check.py`, con permisos
+0600; el solicitante fija sus hashes antes de importar/ejecutar esos diagnósticos.
+Los archivos de eventos y resultado se crean exclusivamente, sin sobrescrituras.
+
+El único destino es `pkexec --disable-internal-agent /usr/bin/true`, con ambos
+ejecutables pertenecientes al sistema y sin permisos de escritura para otros.
+La contraseña se introduce manualmente en el agente gráfico de polkit. El script
+no recibe credenciales ni envía entrada. Mientras la solicitud sigue pendiente,
+cuenta dos segundos de imágenes de una región; no las conserva. Cuando publica
+`CAPTURA_COMPLETADA`, el propietario puede autenticar o cancelar el aviso. Espera
+hasta dos minutos y retira su solicitante si vence el plazo o se interrumpe.
+
+Una salida cero de `pkexec` registra que terminó la operación fija. La presencia
+del diálogo y el uso de contraseña requieren confirmación del propietario;
+el script no certifica por sí solo autenticación manual ni entrada remota.
+Se mantiene `polkitTested:false` hasta reconciliar la evidencia. Los significados
+de los códigos y la desactivación del agente de texto siguen el
+[manual oficial de pkexec](https://www.freedesktop.org/software/polkit/docs/latest/pkexec.1.html).
+
 ## Windows
 
 En el equipo de pruebas, desde PowerShell:
@@ -398,8 +448,10 @@ de controles. No envía Enter, clics ni credenciales.
 En Windows ARM64 se verificó cambio de foco de campo de contraseña a botón y
 vuelta al campo original, con nueve capturas no uniformes de `Winlogon`. La
 regresión también pasa las ventanas propias y la cancelación UAC con 1223.
+Tras desbloquear manualmente se recuperaron nueve capturas de `Default`.
 Evidencia: `windows-logon-focus-results.json`. Esta prueba confirma esas teclas
-de navegación en bloqueo; no certifica autenticación remota, SAS ni el agente.
+de navegación en bloqueo y recuperación; no certifica autenticación remota, SAS
+ni el agente.
 
 El compilador usa las bibliotecas UI Automation de .NET ya presentes en Windows,
 sin instalar paquetes. Se sigue la documentación de Microsoft para separar el
