@@ -1365,7 +1365,7 @@ Este emisor y receptor comparten proceso/usuario. **No** se acredita entrada de
 root, otro proceso, polkit, bloqueo o LightDM ni transporte remoto. La tarea 1.4
 continúa parcial, `readyForUnattended:false`, total **8/57**.
 
-### Mint: solicitud polkit manual preparada — 25/10/2026
+### Mint: autorización manual de polkit y captura — 25/10/2026
 
 `linux-polkit-manual-check.py --request-polkit` fija únicamente
 `pkexec --disable-internal-agent /usr/bin/true`, con ejecutables del sistema
@@ -1378,12 +1378,51 @@ Retira su solicitante si se cancela o vence la espera de dos minutos; no sobresc
 los informes. Código cero acredita la operación fija; ver el diálogo y usar
 contraseña requieren confirmación humana separada.
 
-Sintaxis y ayuda verificadas; rechazo como root comprobado en el contenedor antes
-de solicitar permisos o escribir archivos. Archivos de prueba transferidos con
-sus hashes comprobados, sin ejecutar aún la solicitud. El propietario confirmó
-que puede manejar Mint y recibió el comando para la prueba coordinada. La
-autorización manual y su resultado siguen **pendientes**; no se certifica polkit.
+El propietario confirmó haber autenticado con contraseña en el aviso local.
+Los informes recuperados y sus hashes verifican diez muestras no uniformes de
+128×72 mientras la solicitud seguía pendiente, `requesterExitCode:0`,
+`noOpCompleted:true` y `requesterExited:true`. No quedan procesos pkexec. Los
+hashes de las tres fuentes en Mint coinciden con los transferidos. Se reconcilia
+este escenario manual en `mint-polkit-manual-results.json`; el campo original
+`polkitTested:false` se conserva en el informe bruto. No prueba entrada sintética
+sobre polkit ni una comprobación administrativa dentro de código del diagnóstico.
+
+La invocación real usó `-i` minúscula: Python quedó interactivo después de acabar
+la solicitud. Se registra esta variante, sin contar aislamiento `-I` ni salida
+del proceso Python a cero. Se pidió al propietario salir con Ctrl+D, sin repetir
+la autenticación. El propietario confirmó después su salida; se comprobaron cero
+intérpretes de la prueba, cero pkexec y Cinnamon sin salvapantallas activo.
+No hubo contraseñas por stdin o por el chat.
+La tarea 1.4 sigue parcial y `readyForUnattended:false`, total **8/57**.
 
 Puerta del proyecto: typecheck, Vitest 276 correctos/5 omitidos, PHPUnit 162 pruebas
 y 1077 aserciones con PHP 8.5.12, OpenSpec estricto y comprobación de diff. Cambios
 limitados al laboratorio y evidencias, sin nueva publicación de producción.
+
+### Mint: emisor root y receptor de usuario preparados — 25/10/2026
+
+Se prepara `linux-root-input-check.py` para una prueba separada de privilegios:
+root abre exclusivamente la autoridad privada de Xorg validada por el auxiliar
+de sesión fijado por hash. Crea un receptor GTK como el usuario activo, sin grupos
+suplementarios ni entorno heredado del administrador. El código del receptor es
+fijo, y el canal es un socketpair anónimo heredado, sin servidor de red ni socket
+en el disco. El emisor comprueba UID del proceso creado y PID de su ventana,
+foco en su árbol propio, sesión/Cinnamon, posición del puntero y entrada no
+retenida antes de un clic y una tecla fija, con liberaciones. El receptor cuenta
+eventos nativos; no recibe texto, comandos ni rutas arbitrarias. El plazo del
+emisor es treinta segundos; el receptor y el canal se retiran al terminar.
+
+El programa exige fuentes pertenecientes a root y padres sin escritura para
+otros; ejecuta exactamente los bytes comprobados del auxiliar, sin pycache.
+`linux-root-input-install.sh` verifica hashes, crea un destino nuevo protegido,
+copia solo dos fuentes y ejecuta el ensayo mediante sudo. El lanzador debe
+ejecutarse como usuario; no instala servicios, cambia polkit ni abre puertos.
+El informe se escribe como usuario en su carpeta privada, sin sobrescribirlo.
+
+Sintaxis del padre y receptor comprobadas, Bash válido y argumentos del lanzador
+rechazados antes de sudo. En Mint se rechaza el emisor sin root; en el contenedor
+se rechazan fuentes en un directorio no protegido. Con fuentes protegidas, la
+ausencia de herramientas de sesión produce `FileNotFoundError`, sin abrir X11 ni
+enviar entrada. Fuentes y lanzador transferidos con hashes verificados. **No se
+ha instalado ni ejecutado la prueba root en Mint**; no se certifica su recepción,
+entrada en LightDM/polkit o soporte desatendido a partir de esta preparación.

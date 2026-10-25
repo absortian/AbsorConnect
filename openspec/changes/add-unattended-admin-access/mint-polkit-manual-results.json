@@ -1,0 +1,93 @@
+{
+  "schema": 1,
+  "date": "2026-10-25",
+  "configuration": {
+    "os": "Linux Mint 22.3",
+    "architecture": "x86_64",
+    "desktop": "Cinnamon 6.6.9",
+    "sessionType": "x11",
+    "displayManager": "LightDM"
+  },
+  "sourceSha256": "ceda7bceaffcf4569179f2b42a0dccf4ecf5257f53569a25e81c062b9812553a",
+  "dependencyHashes": {
+    "linux-owned-input-check.py": "948e62402572c0a517ab1a16b5d2a1f7af9ddc76dd81ac57ada3d4e4379a16ce",
+    "linux-probe.py": "5c6dc1a14a6a0c8d4e2fc0eaf8816bfed9be3caae19733aa11ad5002a79b7d5e"
+  },
+  "fixedRequest": "pkexec --disable-internal-agent /usr/bin/true",
+  "rawReport": {
+    "schema": 1,
+    "platform": "linux",
+    "status": "polkit_noop_completed_not_certified",
+    "captureTested": true,
+    "inputTested": false,
+    "polkitTested": false,
+    "noOpCompleted": true,
+    "readyForUnattended": false,
+    "capture": {
+      "captureApi": "XGetImage",
+      "captureRegion": [
+        128,
+        72
+      ],
+      "frames": 10,
+      "nonUniformFrames": 10
+    },
+    "requesterExitCode": 0,
+    "manualCancellationObserved": false,
+    "requesterExited": true
+  },
+  "events": [
+    {
+      "event": "starting_fixed_polkit_request",
+      "credentialsHandledBy": "system_graphical_agent"
+    },
+    {
+      "event": "capture_complete_waiting_for_owner",
+      "capture": {
+        "captureApi": "XGetImage",
+        "captureRegion": [
+          128,
+          72
+        ],
+        "frames": 10,
+        "nonUniformFrames": 10
+      }
+    },
+    {
+      "event": "request_finished",
+      "requesterExitCode": 0
+    }
+  ],
+  "ownerConfirmedLocalPasswordAuthentication": true,
+  "manualPolkitScenarioVerified": true,
+  "invocation": {
+    "interpreterFlagObserved": "-i",
+    "interactive": true,
+    "isolatedInterpreterVerified": false,
+    "workerProcessExitCodeVerified": false
+  },
+  "cleanup": {
+    "remainingPkexecCount": 0,
+    "remainingLabInterpreterCount": 0,
+    "screensaverInactive": true,
+    "ownerConfirmedInterpreterExit": true,
+    "observedInvocationUsedLowercaseInteractiveFlag": true,
+    "isolatedInterpreterVerified": false
+  },
+  "rawReportHashes": {
+    "polkit-results.json": "82ef585a26f1fece946e2ab31469703dd5a2eef6a5d329595ee0e5381a5d93db",
+    "polkit-events.jsonl": "f31c0938911f21933b44f8e5e654ce075bdb999754d2e4b074b2dca7a6c19221",
+    "owner-confirmation.json": "5a14be4515a7a9f427abd492b210de25d942130c7cfaaa95fc61e97c9e7502d1",
+    "cleanup.json": "5c31b70af9a878c662863e457537c04191faaca4bc6b7f31616a6e2ebf57d677",
+    "final-cleanup.json": "e6f2522d1cc3d1ffc5e158defbb53fcf6ef0b5bf956b318a97499592d8d5d5f0"
+  },
+  "readyForUnattended": false,
+  "status": "manual_polkit_authorization_and_region_capture_verified",
+  "limits": [
+    "El propietario introduce la contraseña en el agente gráfico de polkit. El diagnóstico no recibe credenciales ni envía entrada al diálogo.",
+    "Se contaron diez muestras no uniformes de una región 128×72 mientras la solicitud seguía pendiente; no se conservaron imágenes ni se certifica su contenido semántico o la pantalla completa.",
+    "El código cero corresponde a pkexec y /usr/bin/true, no a una comprobación de token del diagnóstico ni a entrada administrativa de AbsorConnect.",
+    "Se observó -i minúscula en la invocación real: el intérprete quedó interactivo tras acabar la solicitud. No se cuenta como ejecución aislada -I; se pidió salir con Ctrl+D sin repetir autenticación.",
+    "El informe bruto conserva polkitTested:false; la comprobación manual se reconcilia aquí con la confirmación del propietario. No acredita inyección sobre polkit, root a otro proceso, bloqueo/LightDM ni transporte remoto."
+  ]
+}
