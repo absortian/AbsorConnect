@@ -1888,3 +1888,54 @@ texto, captura/entrada integrada, cambio de usuario y servicio/transporte
 finales. El paso nativo tiene `inputTested:true`, pero `preLoginTested:false`
 y `readyForUnattended:false`; tarea 1.4 parcial y **8/57**. Sin nueva release ni
 certificación de acceso desatendido completo por este ensayo.
+
+
+### Núcleo Rust de autorización: implementación anterior al piloto físico
+
+El propietario pidió el 25/10/2026 dejar la aceptación física al final y avanzar
+primero las partes comunes en laboratorios. Se creó el workspace `agent/` con
+la biblioteca `absor-agent-core`, sin dependencias de terceros. Tiene permiso
+inicial vacío, una única sesión, vigencia de hasta 30 segundos desde el inicio
+de petición, respuestas de un solo uso y referencias ligadas a cada instancia.
+Revocar/parar cierra e inhabilita; el error de red no prolonga el permiso. La
+caducidad invalida la sesión anterior incluso si después llega otra validación.
+
+Los relojes nativos cuentan suspensión: CLOCK_BOOTTIME de Linux 64 bits,
+mach_continuous_time de Mac y QueryInterruptTimePrecise de Windows. Un error o
+retroceso cierra e inhabilita. El reloj se consulta antes/después de operaciones
+y mediante poll sin tráfico. La implementación FFI está aislada y no cambia
+permisos del sistema ni consulta cuentas.
+
+Pasaron 14 pruebas en Mac ARM (Rust 1.99.1) y VM Ubuntu ARM (Rust 1.75.0): plazo
+exacto de 30 segundos, viaje de red descontado, respuesta tardía/repetida/ajena,
+renovación, error de red, revocación, parada, exclusión de sesiones, referencias
+obsoletas, reloj averiado/retrocedido y suspensión simulada. Pasó también el
+ensayo con reloj nativo y proceso hijo real: al caducar lo termina y rechaza
+operaciones posteriores. Ese hijo no captura, envía entrada ni usa red, y su
+frontera de autenticación es simulada explícitamente.
+
+Formato Rust, Clippy sin advertencias, compilación release y lockfile offline
+correctos en ambos sistemas. La descarga inicial del instalador Rust externo
+en VM venció sin ejecutarse; se usaron después los paquetes oficiales de Ubuntu,
+y se comprobó el mínimo 1.75. CI dedicado añade las mismas puertas con toolchain
+1.85.0 fijado en Linux/Mac/Windows. El resultado de cada ejecución se consulta
+en la PR; añadir el workflow no equivale a certificarlo ni a probar el hardware.
+
+TypeScript pasó; Vitest: 276 correctas y 5 omitidas. PHPUnit: 162 pruebas,
+1077 aserciones, PHP 8.5.12. El build desde el contenedor falló por el binario
+opcional Rollup de Linux ausente en los node_modules del host; el mismo build
+pasó con Node nativo de Mac, sin modificar dependencias ni el lockfile de npm.
+
+La biblioteca es una primera parte de 3.1/3.2/3.4. Faltan cliente HTTPS validado,
+autenticador v1, persistencia de intentos/secretos, trabajadores reales y
+watchdog que termine captura/entrada/transporte aun si el broker cae. No se
+anuncia el cumplimiento integrado de la revocación de 30 segundos por pasar
+pruebas aisladas del núcleo. La revisión de macOS se mantiene para su agente
+final. Tareas parciales, **8/57**; ningún alta o servicio nuevo ni release.
+
+
+El paquete Mac ARM sin publicación también se construyó con electron-builder
+26.15.3 y firma ad-hoc. Se inspeccionó su `app.asar`: 9668 entradas, sin `agent/`
+ni backend/mobile/prototypes. Evidencia de fuentes, artefactos y comprobaciones
+locales en `agent-authorization-core-results.json`; hashes de logs privados
+reconciliados. No se instaló este paquete ni se cambió la app del propietario.

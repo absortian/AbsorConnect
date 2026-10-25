@@ -2,6 +2,12 @@
 
 Implementación y despliegue autorizados por el propietario el 22/10/2026 y continuación solicitada el 23/10/2026. Aplicación iniciada: las tareas 1.1–1.6, 11.6 y la verificación automatizada tienen avances parciales documentados en `verification.md`; no se marcan completas hasta cumplir todos sus criterios. Las pruebas de viabilidad son condiciones para continuar, no una certificación ya obtenida. Si obligan a cambiar arquitectura o alcance, se revisan estos artefactos antes de seguir.
 
+El 25/10/2026 el propietario acordó continuar las partes comunes y la integración
+en VM antes del piloto físico. Las tareas 3.1/3.2/3.4 incorporan un núcleo de
+autorización parcial en `agent/`; no se marcan completas sin trabajadores,
+autenticador, API y watchdog integrados. Se mantienen los criterios físicos y
+la revisión de macOS antes de su agente final.
+
 ## 1. Viabilidad y configuraciones objetivo
 
 - [ ] 1.1 Registrar versiones, arquitecturas, cifrado de arranque y opciones de conectividad de los Windows/Mac del propietario y confirmar Mint Cinnamon/X11/LightDM; verificar un inventario privado sin secretos y una matriz pública de configuraciones objetivo sin IPs personales.
