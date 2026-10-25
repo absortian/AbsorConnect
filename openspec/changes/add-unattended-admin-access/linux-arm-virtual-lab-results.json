@@ -1,0 +1,246 @@
+{
+  "schema": 1,
+  "date": "2026-10-25",
+  "status": "autonomous_linux_arm_lab_verified",
+  "configuration": {
+    "distribution": "Ubuntu 24.04.5 LTS",
+    "architecture": "aarch64",
+    "cinnamon": "6.0.4",
+    "lightdm": "1.30.0-0ubuntu14",
+    "slickGreeter": "2.0.1-1build3",
+    "qemu": "11.1.2",
+    "accelerator": "hvf",
+    "vcpus": 2,
+    "ramMiB": 4096,
+    "diskVirtualGiB": 40,
+    "sshBoundToLoopback": true,
+    "privateQmpAndVncSockets": true
+  },
+  "image": {
+    "schema": 1,
+    "sourceUrl": "https://cloud-images.ubuntu.com/noble/20261017/noble-server-cloudimg-arm64.img",
+    "sha256": "50e24e1fb79e89116e939d90aa7738f7af48c442fa1bc2510131e0b39c50348e",
+    "checksumMatched": true,
+    "bytes": 616522752,
+    "distribution": "Ubuntu 24.04 LTS",
+    "architecture": "arm64",
+    "targetPhysicalMintCertified": false
+  },
+  "greeterBusInventory": {
+    "schema": 1,
+    "environmentFieldSelected": "DBUS_SESSION_BUS_ADDRESS",
+    "environmentOrAddressLogged": false,
+    "workerExitCode": 0,
+    "workerReport": {
+      "observerUnprivileged": true,
+      "supplementaryGroupsEmpty": true,
+      "inputSent": false,
+      "greeterBusOwnerVerified": true,
+      "a11yBusAlreadyOwned": true,
+      "a11yAddressLocal": true,
+      "greeterAccessibleApplicationCount": 1
+    }
+  },
+  "greeterFocus": {
+    "greeterProcessVerified": true,
+    "observerUnprivileged": true,
+    "supplementaryGroupsEmpty": true,
+    "inputSent": false,
+    "snapshot": {
+      "accessibleApplicationCount": 1,
+      "showingPasswordFields": 1,
+      "focusedPasswordFields": 1,
+      "focusedRoleCounts": {
+        "40": 1
+      }
+    },
+    "focusedPasswordObserved": true,
+    "focusQueriesStoppedBeforeManualLogin": true
+  },
+  "sessionCycle": {
+    "schema": 1,
+    "cycleCompleted": true,
+    "ownerInteractionRequired": false,
+    "results": [
+      {
+        "schema": 1,
+        "action": "logout",
+        "session": {
+          "User": "108",
+          "Type": "x11",
+          "Class": "greeter",
+          "State": "active"
+        },
+        "inputDriver": "lab administrator CLI",
+        "absorConnectInputTested": false
+      },
+      {
+        "schema": 1,
+        "action": "login",
+        "nativeGuiAuthenticationCompleted": true,
+        "session": {
+          "User": "1000",
+          "Type": "x11",
+          "Class": "user",
+          "State": "active"
+        },
+        "inputDriver": "QMP virtual keyboard",
+        "absorConnectInputTested": false,
+        "credentialSource": "exclusive generated lab account; not logged"
+      }
+    ],
+    "limits": [
+      "Control de laboratorio por SSH/QMP; no equivale al agente AbsorConnect ni certifica Mint físico."
+    ]
+  },
+  "checkpoint": {
+    "schema": 1,
+    "cleanShutdownObserved": true,
+    "offlineSnapshotCreated": true,
+    "snapshotName": "desktop-ready",
+    "firmwareVarsCopySaved": true,
+    "bootToGreeterObserved": true,
+    "ownerInteractionRequired": false,
+    "virtualDiskBytes": 42949672960,
+    "session": {
+      "User": "108",
+      "Type": "x11",
+      "Class": "greeter",
+      "State": "active"
+    }
+  },
+  "restore": {
+    "schema": 1,
+    "snapshotRestored": true,
+    "firmwareVarsRestored": true,
+    "bootToGreeterObserved": true,
+    "ownerInteractionRequired": false,
+    "session": {
+      "User": "108",
+      "Type": "x11",
+      "Class": "greeter",
+      "State": "active"
+    },
+    "postSnapshotMarkerAbsentAfterRestore": true
+  },
+  "postRestoreLogin": {
+    "schema": 1,
+    "action": "login",
+    "nativeGuiAuthenticationCompleted": true,
+    "session": {
+      "User": "1000",
+      "Type": "x11",
+      "Class": "user",
+      "State": "active"
+    },
+    "inputDriver": "QMP virtual keyboard",
+    "absorConnectInputTested": false,
+    "credentialSource": "exclusive generated lab account; not logged"
+  },
+  "nativeProbes": {
+    "linux-probe.py": {
+      "exitCode": 0,
+      "sourceSha256": "5c6dc1a14a6a0c8d4e2fc0eaf8816bfed9be3caae19733aa11ad5002a79b7d5e",
+      "report": {
+        "architecture": "aarch64",
+        "captureApi": "XGetImage",
+        "captureRegion": [
+          128,
+          72
+        ],
+        "captureTested": true,
+        "displayManager": {
+          "ActiveState": "active",
+          "Id": "lightdm.service"
+        },
+        "distribution": {
+          "ID": "ubuntu",
+          "PRETTY_NAME": "Ubuntu 24.04.5 LTS",
+          "VERSION_ID": "24.04"
+        },
+        "frames": 10,
+        "inputTested": false,
+        "keyboardTested": false,
+        "nonUniformFrames": 10,
+        "platform": "linux",
+        "pointerRequested": false,
+        "preLoginTested": false,
+        "processUid": 1000,
+        "readyForUnattended": false,
+        "schema": 2,
+        "session": {
+          "Desktop": "cinnamon",
+          "Display": ":0",
+          "LockedHint": "no",
+          "State": "active",
+          "Type": "x11",
+          "User": "1000"
+        },
+        "status": "region_capture_ok_not_certified",
+        "x11Connected": true,
+        "xtestAvailable": true
+      }
+    },
+    "linux-owned-input-check.py": {
+      "exitCode": 0,
+      "sourceSha256": "948e62402572c0a517ab1a16b5d2a1f7af9ddc76dd81ac57ada3d4e4379a16ce",
+      "report": {
+        "captureTested": false,
+        "counts": {
+          "keyDown": 1,
+          "keyUp": 1,
+          "mouseDown": 1,
+          "mouseUp": 1,
+          "unexpectedEvents": 0
+        },
+        "inputApi": "XTest",
+        "inputTested": true,
+        "nativeFocusWasOwnedChild": true,
+        "platform": "linux",
+        "pointerRestored": true,
+        "polkitTested": false,
+        "preLoginTested": false,
+        "previousFocusRestoredObserved": false,
+        "readyForUnattended": false,
+        "receptionObservedBy": "gtk_native_event_callbacks",
+        "schema": 1,
+        "senderProfile": "unprivileged_console_user",
+        "status": "own_window_input_verified_not_certified",
+        "target": "own_window_same_process"
+      }
+    }
+  },
+  "cleanup": {
+    "schema": 1,
+    "remainingNativeProbeCount": 0
+  },
+  "rawReportHashes": {
+    "image-verification.json": "ad57df3c5366fbc846a46dca36c74babdfe1bbac431254702abb6564d6ea8dc2",
+    "greeter-bus-inventory.json": "cb9090d0a0af76d2d872587d9591923e0b60d6111781e0d6714748e4a6b1d3d7",
+    "greeter-focus-session-bus.json": "14dd29061cca067e517570ec6c8ae2d7e8bca4b2750876c4b0ab0caa6e65ca17",
+    "autonomous-session-cycle.json": "7934c70d9ffaec58d671bf8ea2bfe413ac4788c33d3e38eb9800afbd64ddc5fd",
+    "checkpoint-result.json": "596255a6d2a97c207698049ae0b117ef4a1bb316e25ae10b9a44ae2ea1abe22a",
+    "restore-result.json": "666f1b36e85cdf03bf8a83bab3bf8c1975b0beaf866a5d083200647d70ab13a0",
+    "post-restore-login.json": "fb242e9e46d57412dfcf1c5058b78801c64cf359f4d76e64f42cca898cea89d6",
+    "native-initial-results.json": "5af5accecc64cc540bdbd39e23b904f35085de663956d92bcaefce19dde02f82",
+    "native-cleanup.json": "eadd62596ac620b5c23cc871e1f1db547fdb5c63e109812df57820d0c84f7513"
+  },
+  "fixtureSourceHashes": {
+    "vm-control.py": "89d026c567ba14552fdd366d594a48eb89a750ca339f43beb3982c0da4531481",
+    "vm-lifecycle.py": "1dfcb33c693aec86a3528498ce4c7dd63c0d86298f30e1251226122c9e754722",
+    "inspect-greeter-via-session-bus.py": "c01b54c9990d8639a9f573543b43a29809b075c9acb5cb2ca49cd36a7e1242dc"
+  },
+  "ownerInteractionRequiredForCompletedLabCycle": false,
+  "physicalMintCertified": false,
+  "absorConnectAgentImplemented": false,
+  "readyForUnattended": false,
+  "limits": [
+    "Es un laboratorio Ubuntu ARM con versiones distintas de Cinnamon y Slick Greeter; no sustituye la aceptación del Mint físico x86.",
+    "La autenticación de laboratorio usa teclado virtual QMP y una cuenta generada exclusiva; no acredita autenticación mediante el agente AbsorConnect.",
+    "El inventario de D-Bus extrae únicamente DBUS_SESSION_BUS_ADDRESS del entorno acotado del proceso greeter validado. No se registran el entorno, la dirección o credenciales; no se consulta el entorno de la sesión personal.",
+    "La consulta se ejecuta como lightdm sin grupos adicionales, exige propietario PID/UID del nombre x.dm.SlickGreeter y org.a11y.Bus ya activo; no solicita activar accesibilidad.",
+    "Se reutilizó el trabajador accesible del prototipo con un prefijo de descubrimiento del bus; el supervisor completo de la revisión 2 sigue sin pasar en el Mint físico.",
+    "La captura prueba una región de 128 por 72, no pantalla completa o transporte. La entrada prueba una ventana GTK propia; el foco anterior no se observó restaurado en esa ejecución, aunque sí el puntero y las liberaciones.",
+    "No acredita entrada nativa del agente en greeter, polkit, otros usuarios, permisos Mac, rendimiento de hardware físico o publicación en producción."
+  ]
+}

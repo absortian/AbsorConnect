@@ -397,6 +397,52 @@ propietario confirmó contraseña y vuelta al escritorio. Evidencia reconciliada
 histórico; no repetir el instalador sobre el mismo destino. Sigue sin acreditar
 entrada en LightDM, credenciales o servicio/transporte completos.
 
+### Mint: observador de LightDM preparado
+
+`linux-greeter-focus-install.sh` se lanza **por SSH desde el Mac**, como usuario
+ordinario; así la conexión continúa cuando se cierra Cinnamon. Exige una carpeta
+privada nueva y hashes correctos; instala dos fuentes root/0600, sin servicio o
+configuración persistente. No repetir sobre el mismo destino/informe.
+
+Tras `READY_TO_LOGOUT_MINT`, el propietario cierra sesión solo en Mint, deja el
+campo de contraseña visible veinte segundos y vuelve a entrar normalmente. El
+supervisor espera el greeter de lightdm, resuelve su autoridad X11 y lee la
+propiedad acotada AT_SPI_BUS. El trabajador usa ese bus como lightdm, sin grupos
+adicionales, DISPLAY ni Xauthority; solo consulta roles/estados del PID de Slick
+Greeter comprobado. Termina la consulta de foco antes del inicio manual y el
+supervisor espera la nueva sesión del mismo usuario. Nunca envía entrada,
+captura imágenes, lee texto/valores o modifica LightDM.
+
+Sintaxis, lectura nativa de la propiedad desde el escritorio actual y rechazos
+comprobados; la observación real del greeter sigue pendiente. Preparación:
+`mint-greeter-focus-preparation.json`. No acredita entrada en LightDM ni el
+agente final.
+
+La primera ejecución detectó el greeter, pero abortó al validar la propiedad
+AT_SPI_BUS, antes de consultar el foco. La revisión 2 añade metadatos acotados
+de la lectura y distingue propiedad ausente aunque el átomo exista, con espera
+breve y los mismos límites de formato/tamaño/dirección. Las regresiones nativas
+usaron una ventana propia no mapeada, ya destruida; la raíz no se modificó. No
+se atribuye una causa concreta al primer fallo, pues no registraba esos datos.
+Se prepara un destino nuevo para repetir; evidencia histórica y preparación:
+`mint-greeter-focus-attempts.json`.
+
+La segunda ejecución confirmó propiedad ausente en 36 consultas de arranque,
+sin iniciar el trabajador accesible. El propietario volvió al escritorio y no
+quedaron procesos propios. Los informes completos y hashes se conservan en
+`mint-greeter-focus-attempts.json`.
+
+### Laboratorio virtual autónomo
+
+Ya está disponible una VM Linux ARM con Cinnamon/LightDM administrable desde
+el Mac por SSH y consola QMP. Pasaron entrada/cierre de sesión, arranque,
+restauración de un punto conocido y los prototipos de captura/entrada de
+escritorio sin intervención del propietario. La vía D-Bus del greeter se
+observó como lightdm en esta VM; queda llevarla al supervisor completo y al
+Mint físico. Versiones, operación y límites en
+[linux-virtual-lab.md](linux-virtual-lab.md). La VM no sustituye la certificación
+del Mint x86 ni del agente/transporte remoto.
+
 ## Windows
 
 En el equipo de pruebas, desde PowerShell:

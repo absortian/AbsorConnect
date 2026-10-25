@@ -1,0 +1,123 @@
+{
+  "schema": 1,
+  "date": "2026-10-25",
+  "status": "greeter_focus_observer_prepared_not_executed",
+  "preparation": {
+    "schema": 1,
+    "date": "2026-10-25",
+    "sourceSha256": "5d04385e399a1efed230fe28e2a9a7dd46a912c4c471661d532e31b633832175",
+    "launcherSha256": "8739f6042c2b383a847c00fa559daba99dca7dd0a4cc9168537192a0d14eaebe",
+    "parentAndWorkerCompiled": true,
+    "bashSyntaxExitCode": 0,
+    "unknownArgumentsExitCode": 2,
+    "nativeUnprivilegedCase": {
+      "exitCode": 3,
+      "report": {
+        "schema": 1,
+        "platform": "linux",
+        "status": "greeter_focus_not_observed",
+        "sourceSha256": "5d04385e399a1efed230fe28e2a9a7dd46a912c4c471661d532e31b633832175",
+        "sessionHelperSha256": "40d222539fa05c21b9f0a95993efe40a386bc82dab4ad031b6d188e827b6e275",
+        "inputTested": false,
+        "captureTested": false,
+        "preLoginTested": false,
+        "readyForUnattended": false,
+        "reason": "root_context_required"
+      }
+    },
+    "transferredHashesVerified": true,
+    "positiveGreeterObservationExecuted": false,
+    "localLauncherWithoutSshExitCode": 3
+  },
+  "nativeDesktopProperty": {
+    "schema": 1,
+    "desktopAccessibilityPropertyRead": true,
+    "singleLocalAddressAccepted": true,
+    "inputSent": false,
+    "files": {
+      "linux-session-check.py": {
+        "sha256": "40d222539fa05c21b9f0a95993efe40a386bc82dab4ad031b6d188e827b6e275",
+        "mode": "0o600",
+        "uid": 1000
+      },
+      "linux-greeter-focus-install.sh": {
+        "sha256": "8739f6042c2b383a847c00fa559daba99dca7dd0a4cc9168537192a0d14eaebe",
+        "mode": "0o600",
+        "uid": 1000
+      },
+      "linux-greeter-focus-check.py": {
+        "sha256": "5d04385e399a1efed230fe28e2a9a7dd46a912c4c471661d532e31b633832175",
+        "mode": "0o600",
+        "uid": 1000
+      }
+    }
+  },
+  "containerNegativeCases": {
+    "unprotectedDirectory": {
+      "exitCode": 3,
+      "report": {
+        "schema": 1,
+        "platform": "linux",
+        "status": "greeter_focus_not_observed",
+        "sourceSha256": "5d04385e399a1efed230fe28e2a9a7dd46a912c4c471661d532e31b633832175",
+        "sessionHelperSha256": "40d222539fa05c21b9f0a95993efe40a386bc82dab4ad031b6d188e827b6e275",
+        "inputTested": false,
+        "captureTested": false,
+        "preLoginTested": false,
+        "readyForUnattended": false,
+        "reason": "root_protected_source_directory_required"
+      }
+    },
+    "alteredSessionHash": {
+      "exitCode": 3,
+      "report": {
+        "schema": 1,
+        "platform": "linux",
+        "status": "greeter_focus_not_observed",
+        "sourceSha256": "5d04385e399a1efed230fe28e2a9a7dd46a912c4c471661d532e31b633832175",
+        "sessionHelperSha256": "40d222539fa05c21b9f0a95993efe40a386bc82dab4ad031b6d188e827b6e275",
+        "inputTested": false,
+        "captureTested": false,
+        "preLoginTested": false,
+        "readyForUnattended": false,
+        "reason": "session_helper_hash_mismatch"
+      }
+    },
+    "protectedWithoutGreeterBinary": {
+      "exitCode": 3,
+      "report": {
+        "schema": 1,
+        "platform": "linux",
+        "status": "greeter_focus_not_observed",
+        "sourceSha256": "5d04385e399a1efed230fe28e2a9a7dd46a912c4c471661d532e31b633832175",
+        "sessionHelperSha256": "40d222539fa05c21b9f0a95993efe40a386bc82dab4ad031b6d188e827b6e275",
+        "inputTested": false,
+        "captureTested": false,
+        "preLoginTested": false,
+        "readyForUnattended": false,
+        "reason": "FileNotFoundError"
+      }
+    },
+    "rootInstaller": {
+      "exitCode": 3,
+      "rootInstallerRejected": true
+    },
+    "sourceSha256": "5d04385e399a1efed230fe28e2a9a7dd46a912c4c471661d532e31b633832175"
+  },
+  "rawReportHashes": {
+    "preparation.json": "3f3ce09985d87c6130f096e985c6560f8f588d539cf771030b24774508c91af7",
+    "native-desktop-property.json": "f901e678e012584d6c11154472c369d10f74ed66334bc0450e961dcb77d5f78d",
+    "container-negatives.json": "fa4584a08a746fcbe476785a213c7ef88265a3d641a13dda8c30a7685ce38c99"
+  },
+  "inputTested": false,
+  "captureTested": false,
+  "preLoginTested": false,
+  "readyForUnattended": false,
+  "limits": [
+    "La lectura nativa de AT_SPI_BUS se verificó como el usuario del escritorio actual; no acredita LightDM ni ejecución con UID lightdm.",
+    "El observador de greeter, el descarte de grupos y la transición completa siguen pendientes de la ejecución autorizada por el propietario.",
+    "Solo consulta roles, estados y PID de aplicaciones; no texto, nombres, valores, acciones, contraseñas ni entornos de procesos.",
+    "No envía entrada, captura pantalla ni cambia LightDM, accesibilidad, permisos de X11 o servicios.",
+    "La dirección local de AT-SPI permanece en memoria del diagnóstico y no se publica; la atribución sirve al laboratorio, no sustituye la seguridad del agente final."
+  ]
+}

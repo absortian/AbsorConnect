@@ -1,0 +1,289 @@
+{
+  "schema": 1,
+  "date": "2026-10-25",
+  "status": "greeter_x11_accessibility_property_unavailable",
+  "attempts": [
+    {
+      "attempt": "a",
+      "rawReport": {
+        "schema": 1,
+        "platform": "linux",
+        "status": "greeter_focus_not_observed",
+        "sourceSha256": "5d04385e399a1efed230fe28e2a9a7dd46a912c4c471661d532e31b633832175",
+        "sessionHelperSha256": "40d222539fa05c21b9f0a95993efe40a386bc82dab4ad031b6d188e827b6e275",
+        "inputTested": false,
+        "captureTested": false,
+        "preLoginTested": false,
+        "readyForUnattended": false,
+        "greeterSessionObserved": true,
+        "reason": "bounded_accessibility_string_required"
+      },
+      "cleanup": {
+        "schema": 1,
+        "remainingProbeCount": 0,
+        "installedSourcesMetadata": [
+          {
+            "file": "linux-greeter-focus-check.py",
+            "uid": 0,
+            "mode": "0o600",
+            "regular": true
+          },
+          {
+            "file": "linux-session-check.py",
+            "uid": 0,
+            "mode": "0o600",
+            "regular": true
+          }
+        ]
+      },
+      "ownerConfirmedReturnedDesktop": true,
+      "ownerConfirmedMacPrompt": true,
+      "reconciliation": "Se detectó la sesión greeter, pero la lectura AT_SPI_BUS no pasó el guard de tipo/formato/tamaño. No se inició la observación accesible; el informe no registraba qué componente del guard falló."
+    },
+    {
+      "attempt": "b",
+      "rawReportSummary": {
+        "schema": 1,
+        "platform": "linux",
+        "status": "greeter_focus_not_observed",
+        "sourceSha256": "79bedddbd971fdcc2d70ccf5a55ed780bfb7a0e957754662b00cdaee60635d4e",
+        "sessionHelperSha256": "40d222539fa05c21b9f0a95993efe40a386bc82dab4ad031b6d188e827b6e275",
+        "inputTested": false,
+        "captureTested": false,
+        "preLoginTested": false,
+        "readyForUnattended": false,
+        "greeterSessionObserved": true,
+        "reason": "greeter_accessibility_property_absent",
+        "accessibilityPropertySummary": {
+          "queryCount": 36,
+          "allSamplesIdentical": true,
+          "sample": {
+            "queryStatus": 0,
+            "type": "absent",
+            "format": 0,
+            "itemCount": 0,
+            "remainingBytes": 0
+          }
+        }
+      },
+      "cleanup": {
+        "schema": 1,
+        "remainingProbeCount": 0,
+        "installedSourcesMetadata": [
+          {
+            "file": "linux-greeter-focus-check.py",
+            "uid": 0,
+            "mode": "0o600",
+            "regular": true
+          },
+          {
+            "file": "linux-session-check.py",
+            "uid": 0,
+            "mode": "0o600",
+            "regular": true
+          }
+        ]
+      },
+      "ownerConfirmedReturnedDesktop": true,
+      "ownerConfirmedMacPrompt": true,
+      "reconciliation": "La sesión de LightDM se detectó y las 36 consultas de la propiedad durante el plazo de arranque devolvieron ausencia. No se inició el trabajador accesible. No se deduce que falte el bus D-Bus privado o que la captura/entrada X11 sea imposible."
+    }
+  ],
+  "revision2": {
+    "preparation": {
+      "schema": 1,
+      "date": "2026-10-25",
+      "sourceSha256": "79bedddbd971fdcc2d70ccf5a55ed780bfb7a0e957754662b00cdaee60635d4e",
+      "launcherSha256": "a2c029a8832c12d1989e4f43271351d634060945240361955b4407ec686733a4",
+      "parentAndWorkerCompiled": true,
+      "bashSyntaxExitCode": 0,
+      "unknownArgumentsExitCode": 2,
+      "localLauncherWithoutSshExitCode": 3,
+      "nativeUnprivilegedCase": {
+        "exitCode": 3,
+        "report": {
+          "schema": 1,
+          "platform": "linux",
+          "status": "greeter_focus_not_observed",
+          "sourceSha256": "79bedddbd971fdcc2d70ccf5a55ed780bfb7a0e957754662b00cdaee60635d4e",
+          "sessionHelperSha256": "40d222539fa05c21b9f0a95993efe40a386bc82dab4ad031b6d188e827b6e275",
+          "inputTested": false,
+          "captureTested": false,
+          "preLoginTested": false,
+          "readyForUnattended": false,
+          "reason": "root_context_required"
+        }
+      },
+      "transferredHashesVerified": true,
+      "positiveGreeterObservationExecuted": false
+    },
+    "nativePropertyRegression": {
+      "accessibilityPropertyAttempts": [
+        {
+          "queryStatus": 0,
+          "type": "string",
+          "format": 8,
+          "itemCount": 75,
+          "remainingBytes": 0
+        }
+      ],
+      "schema": 1,
+      "sourceSha256": "79bedddbd971fdcc2d70ccf5a55ed780bfb7a0e957754662b00cdaee60635d4e",
+      "nativeDesktopPropertyRead": true,
+      "ownUnmappedWindowCases": {
+        "atomExistsPropertyAbsent": {
+          "result": "greeter_accessibility_property_absent",
+          "shape": {
+            "queryStatus": 0,
+            "type": "absent",
+            "format": 0,
+            "itemCount": 0,
+            "remainingBytes": 0
+          }
+        },
+        "localString": {
+          "result": "accepted",
+          "shape": {
+            "queryStatus": 0,
+            "type": "string",
+            "format": 8,
+            "itemCount": 33,
+            "remainingBytes": 0
+          }
+        },
+        "otherPropertyType": {
+          "result": "bounded_accessibility_string_required",
+          "shape": {
+            "queryStatus": 0,
+            "type": "other",
+            "format": 8,
+            "itemCount": 0,
+            "remainingBytes": 33
+          }
+        },
+        "oversizeProperty": {
+          "result": "bounded_accessibility_string_required",
+          "shape": {
+            "queryStatus": 0,
+            "type": "string",
+            "format": 8,
+            "itemCount": 512,
+            "remainingBytes": 99
+          }
+        },
+        "nonLocalAddress": {
+          "result": "single_local_accessibility_address_required",
+          "shape": {
+            "queryStatus": 0,
+            "type": "string",
+            "format": 8,
+            "itemCount": 31,
+            "remainingBytes": 0
+          }
+        },
+        "multipleAddresses": {
+          "result": "single_local_accessibility_address_required",
+          "shape": {
+            "queryStatus": 0,
+            "type": "string",
+            "format": 8,
+            "itemCount": 33,
+            "remainingBytes": 0
+          }
+        }
+      },
+      "ownWindowDestroyed": true,
+      "inputSent": false,
+      "rootWindowUnmodified": true,
+      "files": {
+        "linux-session-check.py": {
+          "sha256": "40d222539fa05c21b9f0a95993efe40a386bc82dab4ad031b6d188e827b6e275",
+          "mode": "0o600"
+        },
+        "linux-greeter-focus-install.sh": {
+          "sha256": "a2c029a8832c12d1989e4f43271351d634060945240361955b4407ec686733a4",
+          "mode": "0o600"
+        },
+        "linux-greeter-focus-check.py": {
+          "sha256": "79bedddbd971fdcc2d70ccf5a55ed780bfb7a0e957754662b00cdaee60635d4e",
+          "mode": "0o600"
+        }
+      }
+    },
+    "containerNegativeCases": {
+      "unprotectedDirectory": {
+        "exitCode": 3,
+        "report": {
+          "schema": 1,
+          "platform": "linux",
+          "status": "greeter_focus_not_observed",
+          "sourceSha256": "79bedddbd971fdcc2d70ccf5a55ed780bfb7a0e957754662b00cdaee60635d4e",
+          "sessionHelperSha256": "40d222539fa05c21b9f0a95993efe40a386bc82dab4ad031b6d188e827b6e275",
+          "inputTested": false,
+          "captureTested": false,
+          "preLoginTested": false,
+          "readyForUnattended": false,
+          "reason": "root_protected_source_directory_required"
+        }
+      },
+      "alteredSessionHash": {
+        "exitCode": 3,
+        "report": {
+          "schema": 1,
+          "platform": "linux",
+          "status": "greeter_focus_not_observed",
+          "sourceSha256": "79bedddbd971fdcc2d70ccf5a55ed780bfb7a0e957754662b00cdaee60635d4e",
+          "sessionHelperSha256": "40d222539fa05c21b9f0a95993efe40a386bc82dab4ad031b6d188e827b6e275",
+          "inputTested": false,
+          "captureTested": false,
+          "preLoginTested": false,
+          "readyForUnattended": false,
+          "reason": "session_helper_hash_mismatch"
+        }
+      },
+      "protectedWithoutGreeterBinary": {
+        "exitCode": 3,
+        "report": {
+          "schema": 1,
+          "platform": "linux",
+          "status": "greeter_focus_not_observed",
+          "sourceSha256": "79bedddbd971fdcc2d70ccf5a55ed780bfb7a0e957754662b00cdaee60635d4e",
+          "sessionHelperSha256": "40d222539fa05c21b9f0a95993efe40a386bc82dab4ad031b6d188e827b6e275",
+          "inputTested": false,
+          "captureTested": false,
+          "preLoginTested": false,
+          "readyForUnattended": false,
+          "reason": "FileNotFoundError"
+        }
+      },
+      "rootInstaller": {
+        "exitCode": 3,
+        "rootInstallerRejected": true
+      },
+      "sourceSha256": "79bedddbd971fdcc2d70ccf5a55ed780bfb7a0e957754662b00cdaee60635d4e"
+    }
+  },
+  "rawReportHashes": {
+    "attempt-a-results.json": "60a9b56d00375e426e086d210dd351c9ae95e299f8e3e4d497f56942a0879ab5",
+    "attempt-a-cleanup.json": "d92a6a2f62eda5eba3f515cde2dd3026d3603de98e03c89aa761c9c2f24185c4",
+    "attempt-a-owner-confirmation.json": "1e42f932079a00f64035ecd5743129959635e5fff05486f6cfafd1c75a82906b",
+    "revision2-preparation.json": "dc4be17d316b0e1de42510e7519684862e354149bc1d6efc0bac3c1969b461cb",
+    "revision2-native-property.json": "e969a13fa1feb7c6b333764863ea905905adc1f560a37b5b2ed988633e167c84",
+    "revision2-container-negatives.json": "2ddbe51d0ddae509ef144ffc91e433b3e05f8f7a7c5d86e7c2c0ba7f4edb1d49",
+    "attempt-b-results.json": "afddc1c61f54dd7eecd5dece495b0d2f3bb50aad21bf68038682759f326a57c2",
+    "attempt-b-cleanup.json": "d92a6a2f62eda5eba3f515cde2dd3026d3603de98e03c89aa761c9c2f24185c4",
+    "attempt-b-owner-confirmation.json": "1e42f932079a00f64035ecd5743129959635e5fff05486f6cfafd1c75a82906b"
+  },
+  "inputTested": false,
+  "captureTested": false,
+  "preLoginTested": false,
+  "readyForUnattended": false,
+  "limits": [
+    "No se atribuye una causa concreta al fallo inicial: no registraba tipo, formato, longitud ni estado de la propiedad.",
+    "La revisión 2 distingue propiedad ausente aunque exista el átomo, reintenta solo esa ausencia dentro del plazo original y conserva tipo STRING/formato 8/512 bytes/dirección Unix única.",
+    "La regresión nativa usó una ventana propia no mapeada, destruida al terminar; no modificó la raíz ni envió entrada. No acredita el greeter.",
+    "La revisión 2 conserva solo metadatos de la lectura; no la dirección del bus, contenido de pantalla, texto o credenciales.",
+    "La observación accesible con identidad lightdm y el retorno completo siguen pendientes de repetición; 1.4 parcial, 8/57.",
+    "La ausencia de AT_SPI_BUS en la segunda ejecución impide esta vía de descubrimiento; no se amplía el plazo ni se solicita otra repetición física sin verificar primero una alternativa en laboratorio."
+  ]
+}
