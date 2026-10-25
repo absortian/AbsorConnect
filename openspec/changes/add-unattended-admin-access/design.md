@@ -126,6 +126,15 @@ Todos los paquetes incluyen un manifiesto de versiones y compatibilidad protegid
 
 ## Migration Plan
 
+**Orden actualizado con el propietario el 25/10/2026:** avanzar el núcleo común
+y su integración en las VM administrables antes de pedir más repeticiones
+físicas. La aceptación física se concentra al final, sin eliminar criterios ni
+anunciar capacidades por haber pasado en VM. La revisión Mac sigue siendo
+condición para su agente final. El núcleo inicial `agent/` aplica vigencia desde
+el comienzo de petición, referencias por instancia y relojes que cuentan
+suspensión; todavía requiere conectar API, autenticador v1, trabajadores y
+watchdog real. No adopta libwebrtc ni modifica permisos por sí mismo.
+
 1. **Revisión conjunta:** aceptar objetivos, exclusiones y comportamiento al salir/revocar. Inventariar versiones/arquitecturas de Mac y Windows y confirmar cómo se distribuirá el helper de Mac antes de implementar allí. El inventario afina las configuraciones certificadas, no habilita plataformas sin pruebas.
 2. **Pruebas de viabilidad por plataforma:** UAC/entrada en Windows, autorización/bloqueo/`loginwindow` en Mac y LightDM/Cinnamon en Mint, más WebRTC/vectores v1 en Electron y Flutter. Cada prueba registra el resultado y el artefacto probado. Cualquier fallo arquitectónico vuelve a revisión; no se sustituye por un TODO de publicación.
 3. **Backend aditivo:** migraciones y rutas nuevas primero, pruebas y despliegue por Jenkins conservando la versión de PHP y `--pull` exigidos. Los clientes anteriores siguen operativos. No dar de alta agentes reales todavía.
