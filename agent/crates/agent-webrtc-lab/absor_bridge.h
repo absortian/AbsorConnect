@@ -11,8 +11,14 @@ extern "C" {
 uint64_t absor_bridge_create(const uint8_t* config, size_t length);
 // Estado: 0 espera API, 1 permiso API, 2 autenticado; -1 caducado, -2 revocado, -3 error/parado.
 int32_t absor_bridge_poll(uint64_t id);
+// Oferta/ICE de API, una sola vez. 0 pendiente, longitud positiva, negativo error.
+// out exclusivo de capacidad 262144; nunca contiene credencial de agente/cuenta.
+int32_t absor_bridge_offer(uint64_t id, uint8_t* out, size_t capacity);
+// Publicar la respuesta de ESA oferta por API; no renueva la autorización.
+int32_t absor_bridge_answer(uint64_t id, const uint8_t* answer, size_t length);
 // Huellas de las descripciones realmente aplicadas de ESA PeerConnection.
-// out es exclusivo; capacidad 1024..4096. Devuelve longitud positiva o error negativo.
+// out es exclusivo; capacidad 1024..4096. Longitud positiva, 0 si espera
+// confirmación de respuesta API o error negativo. No se reutiliza un reto.
 int32_t absor_bridge_hello(uint64_t id, const uint8_t* offer, size_t offer_length,
     const uint8_t* answer, size_t answer_length, uint8_t* out, size_t capacity);
 // Una prueba: 1 aceptada y autorizada, 0 incorrecta, negativo error/parado.

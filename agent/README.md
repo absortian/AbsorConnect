@@ -260,6 +260,12 @@ corta todos los hilos de vídeo y sockets; liberar teclas/botones físicos al
 morir un trabajador queda pendiente del adaptador del SO. No se reinicia ni
 se rehabilita una PeerConnection anterior después de ningún fallo.
 
+Si el pipe se cierra antes de que el SO publique la salida del hijo, el
+supervisor espera como máximo 250 ms a recoger su estado final. Durante esa
+espera no envía más pulsos ni concede otra autorización. Un hijo que mantiene
+el proceso vivo tras cerrar el pipe se termina y recoge; dos pruebas de
+proceso fuerzan ambos órdenes, incluido el cierre anticipado en Windows.
+
 ```bash
 cargo test --manifest-path agent/Cargo.toml --locked --all-features
 # Compila supervisor y dylib con el mismo Rust fijado del checkout:
@@ -273,6 +279,51 @@ solo pueden provocarse contra procesos propios del laboratorio, por comandos
 enumerados de su lanzador local. En una muerte abrupta UDP, que el host haya
 terminado no implica que el controlador reciba inmediatamente un cierre DTLS:
 se comprueban por separado terminación/EOF y ausencia de nuevos fotogramas.
+
+## Señalización por API y trabajador X11 inicial
+
+`agent-api/signaling` añade un carril HTTP separado para ICE, respuesta SDP y
+rechazo `busy`. Un solo trabajo/respuesta en vuelo; no bloquea al actor ni crea
+hilos nuevos al repetir una petición pendiente. Reutiliza TLS verificado,
+sin redirecciones, proxy del entorno o token de cuenta. Los UUID y SDP están
+validados antes de construir rutas; ICE limita cuerpos, servidores, URLs,
+credenciales y TTL. Una operación de señalización nunca renueva el lease.
+
+En `agent-webrtc-lab`, `apiSignaling` consume una oferta validada por la API,
+retiene su ID dentro de Rust y publica una sola respuesta para esa solicitud.
+El trabajador usa las descripciones realmente aplicadas para HMAC/DTLS. Espera
+la confirmación de la respuesta antes de emitir el reto; ofertas duplicadas,
+respuesta repetida o una solicitud resuelta/caducada no conceden otra sesión.
+Las solicitudes adicionales se rechazan como ocupadas mediante la misma API.
+La variante anterior por archivos sigue disponible para regresiones; el
+lanzador aislado selecciona la variante API y exige cero archivos SDP.
+
+`agent-x11-lab` es un trabajador inicial Linux de 64 bits, optativo y acotado
+a una ventana propia de la VM. Recibe un resultado consumible del verificador
+v1 y trabaja por una cola de capacidad uno, separada del actor de autorización.
+La ventana es de 320×180, RGB/TrueColor24, sin decoraciones del gestor; captura
+XGetImage y comprueba eventos XTest de un clic izquierdo y la tecla fija A.
+Comprueba sesión/asiento/usuario X11 y Cinnamon desbloqueado, identidad de la
+sesión, foco propio, destino del puntero y entrada libre. No lee texto de eventos.
+Eleva solo su ventana antes del pulso y revalida contexto, foco y destino
+antes del clic; nunca reintenta la entrada si la comprobación falla.
+Restaura el puntero y libera los pulsos enviados; un error del trabajador es
+terminal. `Session::close` solo marca parada, sin bloquear al actor con Xlib.
+
+No acepta ventanas, comandos de shell, archivos o teclas arbitrarios. Exige un
+marcador root creado temporalmente por el lanzador de la VM propia, una cuenta
+sin privilegios y su Xauthority privada. Solo carga dos bibliotecas fijadas
+del SO por ruta absoluta, conservadas durante el proceso por sus callbacks
+TLS. Nunca se ejecuta al compilar o al pasar `cargo test`. La descripción del
+ensayo, sus límites y comandos están en `crates/agent-x11-lab/README.md`.
+
+La prueba opcional de la VM usa el backend real por un túnel SSH loopback,
+credencial efímera por stdin y los mismos gate/verificador del agente. No
+guarda ni transmite los píxeles; valida rojo → entrada → verde y corte de
+API. Las huellas de esa prueba nativa son públicas de laboratorio, por lo
+que no acredita el recorrido P2P Linux. Ese recorrido continúa usando vídeo
+artificial en Mac/Electron. No hay servicio final, IPC protegido, almacenes
+del SO, captura de escritorio general ni soporte de administración anunciado.
 
 ## Orden de aceptación acordado
 

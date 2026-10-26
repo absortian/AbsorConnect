@@ -1,6 +1,7 @@
 //! Renovación asíncrona respecto al actor del broker, con una sola consulta en vuelo.
 #![forbid(unsafe_code)]
 pub mod http;
+pub mod signaling;
 use absor_agent_core::clock::Clock;
 use absor_agent_core::{AuthorizationGate, Denied, Session, SessionHandle, ValidationTicket};
 use http::{ApiError, Authorization, HeartbeatSource, PendingRequest, POLL_INTERVAL};

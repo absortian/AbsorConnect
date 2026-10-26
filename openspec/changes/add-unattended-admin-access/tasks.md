@@ -25,6 +25,15 @@ plataformas. El supervisor independiente optativo de laboratorio añade corte
 por bloqueo/caída en ambos sentidos, sin cerrar estas tareas ni certificar
 liberación de entrada del SO tras una caída.
 
+El 26/10/2026 la señalización del laboratorio pasa por la API real (oferta,
+ICE, respuesta y rechazo ocupado), sin archivos SDP. El trabajador X11 inicial
+captura una ventana propia e inyecta un clic/tecla en la VM con gate/verificador
+y corte por API; también rechaza el salvapantallas activo sin captura/entrada.
+Los recorridos siguen separados: P2P Mac con vídeo artificial y operaciones
+nativas Linux en ventana propia. La unión del trabajador al transporte Linux,
+servicios, IPC y almacenes finales mantienen 3.1/3.2/3.4/3.5/6.2 parciales.
+No se incrementa el porcentaje por pruebas que aún no cubren una tarea completa.
+
 ## 1. Viabilidad y configuraciones objetivo
 
 - [ ] 1.1 Registrar versiones, arquitecturas, cifrado de arranque y opciones de conectividad de los Windows/Mac del propietario y confirmar Mint Cinnamon/X11/LightDM; verificar un inventario privado sin secretos y una matriz pública de configuraciones objetivo sin IPs personales.

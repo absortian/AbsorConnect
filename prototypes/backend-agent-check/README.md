@@ -68,3 +68,16 @@ inmediato cuando el proceso muere. Un timeout del lanzador retira el grupo de
 procesos creado exclusivamente para la prueba. La ruta privada de trabajo se
 publica antes de arrancar Electron, para retirar las copias de credenciales
 también si la matriz termina con error. No usa procesos o grupos preexistentes.
+
+
+La matriz usa ahora señalización por la API real: ofertas/respuestas e ICE,
+sin archivos SDP y con rechazo de segundo controlador. El proxy de laboratorio
+conserva el token de cuenta en memoria; el nativo recibe solo la credencial
+limitada y el renderer solo SDP/ICE. Las URLs de control son loopback y fijas.
+
+`--x11-worker-vm <directorio-privado>` añade el ensayo del trabajador X11 en la
+VM propia preparada. Reutiliza una cuenta efímera del caso positivo, verifica
+captura/entrada y corte de API, valida un arranque bloqueado sin operaciones
+nativas y restaura la sesión de la VM. No instala servicios ni toca el Mac
+anfitrión. No interpreta ese ensayo como vídeo WebRTC Linux; los dos recorridos
+se informan separados. Véase `agent/crates/agent-x11-lab/README.md`.

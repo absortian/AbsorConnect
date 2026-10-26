@@ -72,7 +72,7 @@ ipcMain.handle('lab-offer', async (event, name, offer) => {
   fs.mkdirSync(directory, { mode: 0o700 })
   const offerPath = path.join(directory, 'offer.sdp')
   const answerPath = path.join(directory, 'answer.sdp')
-  fs.writeFileSync(offerPath, offer, { mode: 0o600, flag: 'wx' })
+  if (!agentManifest?.[name]?.apiSignaling) fs.writeFileSync(offerPath, offer, { mode: 0o600, flag: 'wx' })
   let agentPath
   if (agentBridge) {
     const entry = agentManifest[name]
@@ -83,7 +83,13 @@ ipcMain.handle('lab-offer', async (event, name, offer) => {
     fs.writeFileSync(path.join(stateDirectory, 'absor-webrtc-lab'), 'synthetic-only', { mode: 0o600, flag: 'wx' })
     fs.writeFileSync(path.join(stateDirectory, 'attempts.json'), JSON.stringify({ schema: 1, failures: [], locked_until: null, last_seen: 0 }), { mode: 0o600, flag: 'wx' })
     agentPath = path.join(directory, 'agent-config.json')
-    fs.writeFileSync(agentPath, JSON.stringify({ origin: entry.origin, credential: entry.credential, stateDirectory }), { mode: 0o600, flag: 'wx' })
+    fs.writeFileSync(agentPath, JSON.stringify({ origin: entry.origin, credential: entry.credential, stateDirectory, apiSignaling: Boolean(entry.apiSignaling) }), { mode: 0o600, flag: 'wx' })
+  }
+  let signalUrl
+  if (agentManifest?.[name]?.apiSignaling) {
+    signalUrl = new URL(agentManifest[name].signalUrl)
+    if (signalUrl.hostname !== '127.0.0.1' || signalUrl.protocol !== 'http:' || !signalUrl.port || signalUrl.pathname !== `/signal/${name}` || signalUrl.search || signalUrl.hash || signalUrl.username || signalUrl.password) throw new Error('Señalización no local')
+
   }
   const reportPath = path.join(directory, 'supervisor-events.jsonl')
   const child = spawn(supervisor ?? binary, [...(supervisor ? [reportPath, binary] : []), offerPath, answerPath, ...(relayOnly ? [nativeIcePath] : []), ...(agentPath ? [agentPath] : [])], { stdio: [supervisor ? 'pipe' : 'ignore', 'pipe', 'pipe'] })
@@ -92,7 +98,7 @@ ipcMain.handle('lab-offer', async (event, name, offer) => {
   let stderr = ''
   child.stdout.on('data', (data) => { stdout = (stdout + data).slice(-16384) })
   child.stderr.on('data', (data) => { stderr = (stderr + data).slice(-16384) })
-  const state = { child, exited: false, code: null, summary: null, reportPath }
+  const state = { child, exited: false, code: null, summary: null, reportPath, signalUrl }
   state.done = new Promise((resolve) => {
     child.on('error', () => { state.exited = true; state.code = -1; resolve() })
     child.on('close', (code) => {
@@ -104,15 +110,34 @@ ipcMain.handle('lab-offer', async (event, name, offer) => {
     })
   })
   cases.set(name, state)
+  if (signalUrl) {
+    const response = await fetch(signalUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ offer }), redirect: 'error', signal: AbortSignal.timeout(6000) })
+    if (response.status !== 201) throw new Error('No se pudo crear la solicitud por API')
+  }
   const deadline = Date.now() + 25000
-  while (!fs.existsSync(answerPath)) {
+  let answer
+  while (true) {
     if (state.exited) throw new Error(`El extremo nativo terminó con código ${state.code}`)
     if (Date.now() > deadline) throw new Error('Sin respuesta SDP del extremo nativo')
-    await delay(50)
+    if (signalUrl) {
+      const response = await fetch(signalUrl, { redirect: 'error', signal: AbortSignal.timeout(6000) })
+      if (response.status !== 200) throw new Error('Consulta de respuesta rechazada')
+      const value = await response.json()
+      if (value.status === 'answered' && typeof value.answer === 'string') { answer = value.answer; break }
+      if (value.status !== 'pending') throw new Error('Solicitud rechazada por el agente')
+    } else if (fs.existsSync(answerPath)) { answer = fs.readFileSync(answerPath, 'utf8'); break }
+    await delay(100)
   }
-  const answer = fs.readFileSync(answerPath, 'utf8')
-  if (Buffer.byteLength(answer) > 262144) throw new Error('Respuesta SDP demasiado grande')
+  if (Buffer.byteLength(answer) > 65536) throw new Error('Respuesta SDP demasiado grande')
   return answer
+})
+
+ipcMain.handle('lab-busy', async (event) => {
+  validate(event, 'correct')
+  const state = cases.get('correct')
+  if (!state?.signalUrl || state.exited) throw new Error('Prueba de ocupado no disponible')
+  const response = await fetch(state.signalUrl.href + '/busy', { method:'POST', redirect:'error', signal:AbortSignal.timeout(12000) })
+  if (response.status !== 204) throw new Error('No se rechazó el segundo controlador')
 })
 
 ipcMain.handle('lab-result', async (event, name, controller) => {
@@ -147,7 +172,7 @@ ipcMain.handle('lab-result', async (event, name, controller) => {
 ipcMain.handle('lab-done', (event, result) => {
   if (event.sender !== window?.webContents) throw new Error('Emisor inválido')
   const report = { ...result, electron: process.versions.electron, chromium: process.versions.chrome,
-    videoTested: false, rustAuthenticationTested: agentBridge, apiRenewalTested: agentBridge && result.ok, supervisorTested: Boolean(supervisor) && result.ok, syntheticVideoTested: syntheticVideo, turnTested: relayOnly && result.ok, relayPolicy: relayOnly ? (relayController ? 'controller' : 'both') : 'none', mobileTested: false, readyForUnattended: false }
+    videoTested: false, rustAuthenticationTested: agentBridge, apiRenewalTested: agentBridge && result.ok, apiSignalingTested: Boolean(agentManifest?.correct?.apiSignaling) && result.ok, supervisorTested: Boolean(supervisor) && result.ok, syntheticVideoTested: syntheticVideo, turnTested: relayOnly && result.ok, relayPolicy: relayOnly ? (relayController ? 'controller' : 'both') : 'none', mobileTested: false, readyForUnattended: false }
   fs.writeFileSync(path.join(work, 'interop-results.json'), JSON.stringify(report, null, 2) + '\n', { mode: 0o600 })
   console.log(JSON.stringify(report))
   setImmediate(() => { cleanup(); app.exit(result.ok ? 0 : 1) })
@@ -171,7 +196,7 @@ app.whenReady().then(async () => {
     preload: path.join(__dirname, 'interop-preload.cjs'), contextIsolation: true,
     nodeIntegration: false, sandbox: true, backgroundThrottling: false,
     autoplayPolicy: 'no-user-gesture-required',
-    additionalArguments: [...(supervisor ? ['--lab-supervised'] : []), ...(agentBridge ? ['--lab-agent-bridge'] : []), ...(syntheticVideo ? ['--lab-synthetic-video'] : []), ...(relayOnly ? ['--lab-relay-only'] : []), ...(relayController ? ['--lab-relay-controller'] : [])]
+    additionalArguments: [...(agentManifest?.correct?.apiSignaling ? ['--lab-api-signaling'] : []), ...(supervisor ? ['--lab-supervised'] : []), ...(agentBridge ? ['--lab-agent-bridge'] : []), ...(syntheticVideo ? ['--lab-synthetic-video'] : []), ...(relayOnly ? ['--lab-relay-only'] : []), ...(relayController ? ['--lab-relay-controller'] : [])]
   } })
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
   if (agentBridge) {

@@ -1,3 +1,4 @@
+use super::signaling::ApiSignaling;
 use absor_agent_api::{
     http::{AgentApi, Credential},
     RenewingAgent,
@@ -28,6 +29,8 @@ struct Configuration {
     credential: String,
     #[serde(rename = "stateDirectory")]
     state_directory: PathBuf,
+    #[serde(default, rename = "apiSignaling")]
+    api_signaling: bool,
 }
 struct WallClock;
 impl AttemptClock for WallClock {
@@ -137,6 +140,7 @@ pub(crate) struct Bridge {
     active: Arc<AtomicU8>,
     handle: Option<SessionHandle>,
     had_authorization: bool,
+    signaling: Option<ApiSignaling>,
 }
 impl Bridge {
     pub(crate) fn new(raw: &[u8]) -> Result<Self, ()> {
@@ -153,12 +157,16 @@ impl Bridge {
             Credential::new(config.credential).map_err(|_| ())?,
         )
         .map_err(|_| ())?;
+        let signaling = config
+            .api_signaling
+            .then(|| ApiSignaling::new(api.signaling()));
         Ok(Self {
             renewal: RenewingAgent::new(BootClock, api),
             verifier,
             active: Arc::new(AtomicU8::new(0)),
             handle: None,
             had_authorization: false,
+            signaling,
         })
     }
     // 0 esperando primera API, 1 autorizado sin autenticar, 2 sesión activa;
@@ -170,13 +178,27 @@ impl Bridge {
             4 => return -3,
             _ => (),
         }
-        if self.renewal.tick().is_err() {
-            self.verifier.stop();
-            return if self.active.load(Ordering::SeqCst) == 3 {
-                -2
-            } else {
-                -3
-            };
+        let progress = match self.renewal.tick() {
+            Ok(value) => value,
+            Err(_) => {
+                self.verifier.stop();
+                return if self.active.load(Ordering::SeqCst) == 3 {
+                    -2
+                } else {
+                    -3
+                };
+            }
+        };
+        if let Some(signaling) = self.signaling.as_mut() {
+            let authorized = self.renewal.check_authorization().is_ok();
+            if let Err(error) = signaling.poll(progress.requests, authorized) {
+                self.verifier.stop();
+                self.renewal.stop();
+                let revoked = error == absor_agent_api::http::ApiError::Revoked;
+                self.active
+                    .store(if revoked { 3 } else { 4 }, Ordering::SeqCst);
+                return if revoked { -2 } else { -3 };
+            }
         }
         // tick puede caducar la sesión y aceptar una respuesta tardía en la misma
         // llamada. Una concesión nueva nunca rehabilita ese transporte ya cerrado.
@@ -210,16 +232,35 @@ impl Bridge {
             }
         }
     }
-    pub(crate) fn hello(&mut self, offer: String, answer: String) -> Result<Vec<u8>, ()> {
+    pub(crate) fn hello(&mut self, offer: String, answer: String) -> Result<Option<Vec<u8>>, ()> {
         if self.poll() != 1 {
             return Err(());
+        }
+        if self.signaling.as_ref().is_some_and(|s| !s.ready_for_auth()) {
+            return Ok(None);
         }
         let binding = DtlsBinding::new(offer, answer).map_err(|_| ())?;
         let hello = self
             .verifier
             .begin(binding, "Host Rust/WebRTC de laboratorio".into())
             .map_err(|_| ())?;
-        serde_json::to_vec(&hello).map_err(|_| ())
+        serde_json::to_vec(&hello).map(Some).map_err(|_| ())
+    }
+    pub(crate) fn offer(&mut self) -> Result<Option<Vec<u8>>, ()> {
+        if self.poll() != 1 {
+            return Ok(None);
+        }
+        self.signaling.as_mut().ok_or(())?.offer().map_err(|_| ())
+    }
+    pub(crate) fn answer(&mut self, answer: String) -> Result<(), ()> {
+        if self.poll() != 1 {
+            return Err(());
+        }
+        self.signaling
+            .as_mut()
+            .ok_or(())?
+            .answer(answer)
+            .map_err(|_| ())
     }
     pub(crate) fn authenticate(&mut self, raw: &[u8]) -> i32 {
         if self.poll() != 1 {

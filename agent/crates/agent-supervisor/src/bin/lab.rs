@@ -125,6 +125,27 @@ fn run() -> Result<i32, ()> {
             watch.poll()
         })();
         if let Err(fault) = result {
+            if fault == absor_agent_supervisor::Fault::Closed {
+                // EOF puede preceder a la publicación del estado final en Windows.
+                // No enviar más pulsos ni reactivar al hijo. Si no termina por sí
+                // mismo en 250 ms, se fuerza el corte como cualquier cierre anómalo.
+                let started = BootClock.now().map_err(|_| ())?;
+                let deadline = started.checked_add(Duration::from_millis(250)).ok_or(())?;
+                loop {
+                    if let Some(status) = child.0.try_wait().map_err(|_| ())? {
+                        record(
+                            &mut report,
+                            json!({"event":"exited","workerCode":status.code(),"eofBeforeExit":true}),
+                        )?;
+                        return Ok(status.code().unwrap_or(70));
+                    }
+                    let now = BootClock.now().map_err(|_| ())?;
+                    if now < started || now >= deadline {
+                        break;
+                    }
+                    thread::sleep(POLL_INTERVAL.min(deadline - now));
+                }
+            }
             child.0.kill().map_err(|_| ())?;
             let status = child.0.wait().map_err(|_| ())?;
             record(

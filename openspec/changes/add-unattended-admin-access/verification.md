@@ -2150,3 +2150,88 @@ liberada por un proceso separado tras caída, señalización completa o instalad
 No se instala un servicio ni se publica una release: producción sigue en 0.4.1.
 3.1/3.2/3.4 permanecen parciales, **8/57 tareas aceptadas (14 %)**; la revisión de
 macOS y las pruebas físicas continúan pendientes y se mantienen al final.
+
+
+## 26/10/2026 — Señalización API y base de trabajador X11
+
+La variante Rust/libwebrtc intercambia ahora ofertas/respuestas e ICE a través
+del backend real de laboratorio. El controlador publica su solicitud desde
+main; Rust retiene su ID, consume la oferta una vez y publica su respuesta,
+sin confiar en IDs o rutas aportados por el renderer. El reto v1 espera la
+confirmación de esa respuesta. Un carril HTTP separado, con un solo trabajo,
+evita que la señalización bloquee la renovación. Una respuesta/ICE/204 no
+amplía el lease. UUID, SDP, ICE y TTL están acotados; no hay redirecciones,
+proxy del entorno, token de cuenta en el trabajador o credencial en el visor.
+
+Pasaron los nueve casos Mac ARM/Electron anteriores usando esa API, con **cero
+archivos SDP**. La prueba positiva recibió otra solicitud mientras seguía el
+vídeo y la rechazó como `busy`. HMAC/huellas incorrectos generaron y recibieron
+cero imágenes. Revocación cortó el canal en **2174 ms**, pérdida de API en
+**29285 ms**. El trabajador bloqueado terminó en **2004 ms**; se mantuvieron
+las comprobaciones de caída/bloqueo de supervisor y ausencia de nuevos frames.
+El lanzador comprobó los hashes de extremo, dylib y supervisor antes de
+ejecutarlos. La ABI sigue ausente por omisión; el build optativo
+exporta ahora siete funciones, con oferta/respuesta adicionales acotadas.
+
+`agent-x11-lab` añade un trabajador inicial nativo, ejecutado sin privilegios
+en la VM Ubuntu ARM/Cinnamon. Tiene un hilo de Xlib y una cola de capacidad uno;
+`Session::close` marca parada sin esperar a Xlib, se descarta respuesta tras
+parada y un error del trabajador es terminal. Requiere `VerifiedConnection`
+consumible, autorización del mismo gate y un marcador root temporal exclusivo
+de la VM. Comprueba UID/sesión/asiento/Display X11, estado activo y señal de
+Cinnamon desbloqueado antes de abrir y operar; ni `LockedHint` ni el foco X11
+sustituyen esa señal. Solo captura su ventana propia 320×180/TrueColor24 y
+acepta un pulso de clic izquierdo y tecla fija. Exige foco/destino del puntero
+propios y entrada libre, con liberación de pulsos y restauración del puntero.
+No lee texto de eventos y no guarda/transmite píxeles por red.
+
+El ensayo real con el backend confirmó **cero operaciones nativas antes de
+autenticar**, prueba HMAC incorrecta rechazada, captura roja, un clic/tecla
+recibidos con sus liberaciones y captura verde posterior. Al cortar API cerró
+el trabajador en **29665 ms**, rechazó captura/entrada posteriores y no hubo
+más operaciones nativas. Otro arranque con Cinnamon activo terminó con **cero
+intentos de captura y entrada**. El helper restituyó el escritorio de la VM,
+retiró el marcador y cerró su túnel loopback. Credencial por stdin en SSH,
+sin token de cuenta o secretos escritos en la VM; core dumps desactivados.
+
+Los primeros ensayos detectaron mapeado asíncrono de la ventana y un
+salvapantallas que interceptaba eventos aunque el foco figurara propio. No se
+contaron como éxito. Se añadió espera de visibilidad y comprobación explícita
+de sesión/Cinnamon. La ventana de ensayo sin decoraciones evita los agarres
+del gestor; se verifica además el destino del puntero. Xlib se inicializa para
+hilos y sus bibliotecas del SO permanecen mapeadas por sus callbacks TLS.
+Una comprobación previa con API simulada de cinco segundos se usó solo para
+diagnóstico; los resultados anteriores corresponden al backend real aislado.
+
+CI detectó en Windows que EOF podía preceder al estado final del proceso:
+una salida correcta se clasificaba como fallo. El supervisor ahora recoge el
+estado durante una espera acotada de 250 ms sin emitir más pulsos ni renovar
+autorización. Si el hijo sigue vivo, lo termina y recoge. Dos pruebas de
+proceso fuerzan EOF antes de una salida correcta y EOF con un hijo que sigue
+vivo. Pasan en Mac y Linux; CI verifica además la variante Windows.
+
+Una repetición nativa se detuvo antes del clic al no coincidir el destino
+real del puntero con la ventana propia. Se conserva esa denegación y se eleva
+solo nuestra ventana antes de la comprobación, con contexto/foco/entrada libre
+revalidados antes del clic. Se registran únicamente booleanos del fallo, sin
+IDs o contenido de ventanas. Tres repeticiones con API simulada de cinco
+segundos pasaron; se mantienen separadas del ensayo con backend real.
+
+Mac/Rust 1.99.1 pasó **43 pruebas por omisión y 60 con todas las features**;
+la VM Linux ARM/Rust 1.75 pasó **43 y 62**, con dos pruebas Linux adicionales
+sin interfaz (propiedad exclusiva y fallo terminal). Formato, Clippy sin
+advertencias y release en ambos modos correctos. El ejemplo nativo se compiló
+y ejecutó en la VM; la variante C++ anterior pasó sus tres casos. TypeScript,
+Vitest **276/5 omitidas**, PHPUnit **162/1077 aserciones**, sintaxis y OpenSpec
+estricto correctos. CI amplía las puertas Rust a Windows/Mac/Linux, sin ejecutar
+captura en sus runners. Fuentes, hashes y límites en `agent-api-workers-results.json`.
+
+Se retiraron las cinco cuentas, contenedor/BD aislados y archivos de entorno/
+credenciales. No se alteraron límites compartidos o datos de desarrollo. PHP
+sigue en 8.5.12. No se instala agente final ni se publica release; producción
+continúa 0.4.1. El P2P sigue probado en Mac con vídeo artificial; el trabajador
+Linux nativo aún no transporta sus píxeles/entrada por WebRTC. Pendientes
+procesos/IPC protegidos, captura general, contexto continuo, liberación tras
+muerte, servicios e instaladores de plataforma y aceptación física/móvil.
+La revisión Mac sigue vigente. **8/57 tareas aceptadas (14 %)**, sin cierre
+prematuro de 3.1/3.2/3.4/3.5/6.2.

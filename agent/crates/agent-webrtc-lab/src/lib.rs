@@ -6,3 +6,5 @@ mod bridge;
 #[cfg(feature = "lab-http")]
 #[allow(unsafe_code)]
 mod ffi;
+#[cfg(feature = "lab-http")]
+mod signaling;

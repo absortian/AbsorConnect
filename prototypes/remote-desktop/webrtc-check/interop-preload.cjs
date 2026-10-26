@@ -1,5 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron')
 contextBridge.exposeInMainWorld('lab', {
+  apiSignaling: process.argv.includes('--lab-api-signaling'),
+  busy: () => ipcRenderer.invoke('lab-busy'),
   supervised: process.argv.includes('--lab-supervised'),
   agentBridge: process.argv.includes('--lab-agent-bridge'),
   credentialProbe: () => ipcRenderer.invoke('lab-credential-probe'),

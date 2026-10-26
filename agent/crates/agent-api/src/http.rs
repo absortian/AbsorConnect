@@ -17,6 +17,9 @@ pub enum ApiError {
     RateLimited(Duration),
     Unavailable,
     InvalidResponse,
+    InvalidRequest,
+    RequestGone,
+    AlreadyAnswered,
 }
 
 pub struct Credential(String);
@@ -82,7 +85,7 @@ fn utc_timestamp(value: &str) -> bool {
             _ => byte.is_ascii_digit(),
         })
 }
-fn uuid(value: &str) -> bool {
+pub(crate) fn uuid(value: &str) -> bool {
     value.len() == 36
         && value.bytes().enumerate().all(|(i, b)| {
             if [8, 13, 18, 23].contains(&i) {
@@ -131,6 +134,7 @@ pub struct AgentApi {
     client: ureq::Agent,
     endpoint: String,
     credential: Credential,
+    origin: Url,
 }
 
 impl AgentApi {
@@ -180,7 +184,88 @@ impl AgentApi {
             client,
             endpoint,
             credential,
+            origin: url,
         })
+    }
+
+    // Copia exclusivamente interna: el segundo carril no recibe token de cuenta.
+    pub fn signaling(&self) -> crate::signaling::SignalingLane {
+        crate::signaling::SignalingLane::new(Self {
+            client: self.client.clone(),
+            endpoint: self.endpoint.clone(),
+            origin: self.origin.clone(),
+            credential: Credential(self.credential.0.clone()),
+        })
+    }
+
+    pub(crate) fn signal_request(
+        &mut self,
+        method: &str,
+        route: &str,
+        body: Option<String>,
+    ) -> Result<Vec<u8>, ApiError> {
+        // Las rutas las construye este crate con constantes y UUID validado.
+        let endpoint = self
+            .origin
+            .join(route)
+            .map_err(|_| ApiError::InvalidRequest)?;
+        let request = self
+            .client
+            .request(method, endpoint.as_str())
+            .set("Accept", "application/json")
+            .set("Authorization", &format!("Bearer {}", self.credential.0));
+        let result = match body {
+            Some(body) => request
+                .set("Content-Type", "application/json")
+                .send_string(&body),
+            None => request.call(),
+        };
+        let response = match result {
+            Ok(value) | Err(ureq::Error::Status(_, value)) => value,
+            Err(_) => return Err(ApiError::Unavailable),
+        };
+        match response.status() {
+            401 | 403 => return Err(ApiError::Revoked),
+            404 | 410 => return Err(ApiError::RequestGone),
+            409 => return Err(ApiError::AlreadyAnswered),
+            429 => {
+                return Err(ApiError::RateLimited(Duration::from_secs(
+                    response
+                        .header("Retry-After")
+                        .filter(|v| v.len() <= 5 && v.bytes().all(|b| b.is_ascii_digit()))
+                        .and_then(|v| v.parse().ok())
+                        .filter(|v| (1..=86_400).contains(v))
+                        .unwrap_or(3),
+                )))
+            }
+            204 if method == "PUT" => return Ok(vec![]),
+            200 if method == "GET" => (),
+            _ => return Err(ApiError::Unavailable),
+        }
+        if response
+            .header("Content-Type")
+            .unwrap_or("")
+            .split(';')
+            .next()
+            .unwrap_or("")
+            .trim()
+            != "application/json"
+            || response
+                .header("Content-Encoding")
+                .is_some_and(|v| v != "identity")
+        {
+            return Err(ApiError::InvalidResponse);
+        }
+        let mut bytes = Vec::new();
+        response
+            .into_reader()
+            .take(65_537)
+            .read_to_end(&mut bytes)
+            .map_err(|_| ApiError::Unavailable)?;
+        if bytes.len() > 65_536 {
+            return Err(ApiError::InvalidResponse);
+        }
+        Ok(bytes)
     }
 
     fn fetch(&mut self) -> Result<Authorization, ApiError> {

@@ -179,7 +179,12 @@ class Observer final : public webrtc::PeerConnectionObserver, public webrtc::Dat
       const int length = absor_bridge_hello(bridge_,
           reinterpret_cast<const uint8_t*>(offer_fingerprint.data()), offer_fingerprint.size(),
           reinterpret_cast<const uint8_t*>(answer_fingerprint.data()), answer_fingerprint.size(), output.data(), output.size());
-      if (length <= 0 || static_cast<size_t>(length) > output.size()) { Detach(); return; }
+      if (length == 0) {
+        hello_sent_ = false;
+        signaling_->PostDelayedTask([this] { OnStateChange(); }, webrtc::TimeDelta::Millis(50));
+        return;
+      }
+      if (length < 0 || static_cast<size_t>(length) > output.size()) { Detach(); return; }
       std::istringstream encoded(std::string(reinterpret_cast<const char*>(output.data()), length));
       Json::CharReaderBuilder parser;
       std::string errors;
@@ -283,7 +288,11 @@ class Observer final : public webrtc::PeerConnectionObserver, public webrtc::Dat
 
 bool Exchange(webrtc::scoped_refptr<webrtc::PeerConnectionInterface> connection,
               Observer& observer, webrtc::Thread* signaling,
-              const std::string& offer_text, const char* answer_path) {
+              const std::string& offer_text, const char* answer_path
+#ifdef ABSOR_RUST_BRIDGE
+              , uint64_t bridge, bool api_signaling
+#endif
+              ) {
   observer.offer_fingerprint = Fingerprint(offer_text);
   auto description = webrtc::CreateSessionDescription(webrtc::SdpType::kOffer, offer_text);
   if (!description || observer.offer_fingerprint.empty() || observer.nonce.empty()) return false;
@@ -326,12 +335,19 @@ bool Exchange(webrtc::scoped_refptr<webrtc::PeerConnectionInterface> connection,
   observer.offer_fingerprint = Fingerprint(applied_remote);
   observer.answer_fingerprint = Fingerprint(final_sdp);
 #endif
-  // El controlador crea la carpeta privada y espera este archivo antes de leerlo.
-  const auto temporary = std::string(answer_path) + ".part";
-  { std::ofstream file(temporary, std::ios::binary); file << final_sdp; if (!file) return false; }
-  std::error_code rename_error;
-  std::filesystem::rename(temporary, answer_path, rename_error);
-  if (rename_error) return false;
+#ifdef ABSOR_RUST_BRIDGE
+  if (api_signaling) {
+    if (absor_bridge_answer(bridge, reinterpret_cast<const uint8_t*>(final_sdp.data()), final_sdp.size()) != 1) return false;
+  } else
+#endif
+  {
+    // Compatibilidad del diagnóstico anterior: solo esa variante escribe SDP.
+    const auto temporary = std::string(answer_path) + ".part";
+    { std::ofstream file(temporary, std::ios::binary); file << final_sdp; if (!file) return false; }
+    std::error_code rename_error;
+    std::filesystem::rename(temporary, answer_path, rename_error);
+    if (rename_error) return false;
+  }
   auto acknowledged = observer.acknowledged.get_future();
   return Wait(acknowledged);
 }
@@ -339,7 +355,7 @@ bool Exchange(webrtc::scoped_refptr<webrtc::PeerConnectionInterface> connection,
 int Run(const std::string& offer, const char* answer_path,
         const webrtc::PeerConnectionInterface::RTCConfiguration& configuration
 #ifdef ABSOR_RUST_BRIDGE
-        , uint64_t bridge
+        , uint64_t bridge, bool api_signaling
 #endif
         ) {
   auto network = webrtc::Thread::CreateWithSocketServer();
@@ -378,7 +394,11 @@ int Run(const std::string& offer, const char* answer_path,
   };
   signaling->BlockingCall([&] { observer.Poll(); });
 #endif
-  const bool exchanged = Exchange(connection, observer, signaling.get(), offer, answer_path);
+  const bool exchanged = Exchange(connection, observer, signaling.get(), offer, answer_path
+#ifdef ABSOR_RUST_BRIDGE
+      , bridge, api_signaling
+#endif
+      );
   bool connected = false;
   bool authenticated = false;
   signaling->BlockingCall([&] {
@@ -403,7 +423,7 @@ int Run(const std::string& offer, const char* answer_path,
             << ",\"syntheticVideoFrames\":" << synthetic_frames
 #endif
 #ifdef ABSOR_RUST_BRIDGE
-            << ",\"rustAuthentication\":true,\"apiCutCode\":" << observer.bridge_cut
+            << ",\"rustAuthentication\":true,\"apiSignaling\":" << (api_signaling ? "true" : "false") << ",\"apiCutCode\":" << observer.bridge_cut
 #endif
             << "}\n";
   return 0;
@@ -422,10 +442,38 @@ int main(int argc, char** argv) {
 #pragma clang unsafe_buffer_usage begin
   const std::span<char*> arguments(argv, static_cast<size_t>(argc));
 #pragma clang unsafe_buffer_usage end
-  std::ifstream file(arguments[1], std::ios::binary | std::ios::ate);
-  if (!file || file.tellg() < 0 || file.tellg() > 262144) return 65;
-  file.seekg(0);
-  std::string offer((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+#ifdef ABSOR_RUST_BRIDGE
+  // Ruta privada creada por el lanzador, sin secretos en argumentos o renderer.
+  std::ifstream bridge_file(arguments[argc - 1], std::ios::binary | std::ios::ate);
+  if (!bridge_file || bridge_file.tellg() < 0 || bridge_file.tellg() > 4096) return 65;
+  bridge_file.seekg(0);
+  const std::string bridge_config((std::istreambuf_iterator<char>(bridge_file)), std::istreambuf_iterator<char>());
+  const auto bridge = absor_bridge_create(reinterpret_cast<const uint8_t*>(bridge_config.data()), bridge_config.size());
+  if (!bridge) return 66;
+  struct BridgeOwner { uint64_t id; ~BridgeOwner() { absor_bridge_close(id); } } owner{bridge};
+  Json::Value bridge_value;
+  Json::CharReaderBuilder bridge_parser;
+  std::string bridge_errors;
+  std::istringstream bridge_json(bridge_config);
+  if (!Json::parseFromStream(bridge_parser, bridge_json, &bridge_value, &bridge_errors)) return 66;
+  const bool api_signaling = bridge_value.get("apiSignaling", false).asBool();
+  const auto api_deadline = std::chrono::steady_clock::now() + std::chrono::seconds(8);
+  int state = 0;
+  while ((state = absor_bridge_poll(bridge)) == 0 && std::chrono::steady_clock::now() < api_deadline) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
+  if (state != 1) return 67;
+#endif
+  std::string offer;
+#ifdef ABSOR_RUST_BRIDGE
+  if (!api_signaling)
+#endif
+  {
+    std::ifstream file(arguments[1], std::ios::binary | std::ios::ate);
+    if (!file || file.tellg() < 0 || file.tellg() > 262144) return 65;
+    file.seekg(0);
+    offer.assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+  }
   webrtc::PeerConnectionInterface::RTCConfiguration configuration;
   if (has_turn) {
     std::ifstream config_file(arguments[3], std::ios::binary | std::ios::ate);
@@ -459,25 +507,37 @@ int main(int argc, char** argv) {
         ? webrtc::PeerConnectionInterface::kAll : webrtc::PeerConnectionInterface::kRelay;
   }
 #ifdef ABSOR_RUST_BRIDGE
-  // Ruta privada creada por el lanzador, sin secretos en argumentos o renderer.
-  std::ifstream bridge_file(arguments[argc - 1], std::ios::binary | std::ios::ate);
-  if (!bridge_file || bridge_file.tellg() < 0 || bridge_file.tellg() > 4096) return 65;
-  bridge_file.seekg(0);
-  const std::string bridge_config((std::istreambuf_iterator<char>(bridge_file)), std::istreambuf_iterator<char>());
-  const auto bridge = absor_bridge_create(reinterpret_cast<const uint8_t*>(bridge_config.data()), bridge_config.size());
-  if (!bridge) return 66;
-  struct BridgeOwner { uint64_t id; ~BridgeOwner() { absor_bridge_close(id); } } owner{bridge};
-  const auto api_deadline = std::chrono::steady_clock::now() + std::chrono::seconds(8);
-  int state = 0;
-  while ((state = absor_bridge_poll(bridge)) == 0 && std::chrono::steady_clock::now() < api_deadline) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  if (api_signaling) {
+    if (has_turn) return 64;  // ICE solo procede de la API en esta variante.
+    std::vector<uint8_t> bytes(262144);
+    const auto offer_deadline = std::chrono::steady_clock::now() + std::chrono::seconds(12);
+    int length = 0;
+    while (std::chrono::steady_clock::now() < offer_deadline) {
+      if (absor_bridge_poll(bridge) < 0) return 67;
+      length = absor_bridge_offer(bridge, bytes.data(), bytes.size());
+      if (length != 0) break;
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+    if (length <= 0 || static_cast<size_t>(length) > bytes.size()) return 68;
+    Json::Value payload;
+    Json::CharReaderBuilder parser;
+    std::string errors;
+    std::istringstream encoded(std::string(reinterpret_cast<const char*>(bytes.data()), length));
+    if (!Json::parseFromStream(parser, encoded, &payload, &errors) || !payload["offer"].isString() || !payload["iceServers"].isArray()) return 68;
+    offer = payload["offer"].asString();
+    for (const auto& server : payload["iceServers"]) {
+      webrtc::PeerConnectionInterface::IceServer ice;
+      for (const auto& url : server["urls"]) ice.urls.push_back(url.asString());
+      if (server.isMember("username")) ice.username = server["username"].asString();
+      if (server.isMember("credential")) ice.password = server["credential"].asString();
+      configuration.servers.push_back(std::move(ice));
+    }
   }
-  if (state != 1) return 67;
 #endif
   if (!webrtc::InitializeSSL()) return 1;
   const int result = Run(offer, arguments[2], configuration
 #ifdef ABSOR_RUST_BRIDGE
-      , bridge
+      , bridge, api_signaling
 #endif
       );
   webrtc::CleanupSSL();
