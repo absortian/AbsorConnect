@@ -95,7 +95,8 @@ proceso de red irrecuperable. Cerrar/parar impide procesar respuestas nuevas.
 Producción exige un origen HTTPS de configuración protegida, sin credenciales,
 ruta, consulta o fragmento. El cliente solo consulta
 `/api/host-agent/remote-requests` con una credencial `acg_` válida en memoria.
-No implementa login, alta o cambios de cuenta. Su carril separado de
+No implementa login ni cambios de cuenta. `EnrollmentClient` añade el canje
+consumible de un permiso de alta, separado de la consulta y sin token de cuenta. Su carril separado de
 señalización implementa respuestas SDP/ICE y rechazo ocupado.
 Rechaza redirecciones, proxies de entorno, cookies y compresión. Conserva
 verificación TLS/raíces de rustls, límites de conexión (2 s), petición (4 s) y
@@ -410,3 +411,11 @@ del sistema, conserva los intentos y corta al perder progreso del broker. Los
 archivos, límites, retirada y comando de extracción sin secretos están en
 [`linux-lab/README.md`](linux-lab/README.md). El paquete de producción y las
 transiciones/entrada generales siguen pendientes.
+
+## Credenciales únicas e IPC entre identidades distintas
+
+`agent-security` y la característica `protected-ipc-lab` añaden alta nativa,
+almacenamiento AES-256-GCM, registro protegido y socket activado por systemd
+con `SO_PEERCRED`/PID de unidad. La sonda no captura ni envía entrada; aún debe
+unirse al trabajador WebRTC/X11. Archivos, identidades, límites, reproducción
+y retirada: [`linux-secure-lab/README.md`](linux-secure-lab/README.md).

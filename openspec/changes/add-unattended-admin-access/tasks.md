@@ -54,6 +54,17 @@ con el escritorio, contextos protegidos/captura general y paquete final pendient
 El reinicio en caliente de QEMU/HVF se detuvo en UEFI; solo se acepta el arranque
 en frío. La revisión Mac y el piloto físico permanecen pendientes.
 
+La integración del 27/10 añade un laboratorio independiente de credenciales e
+IPC: alta `ace_` canjeada por el instalador nativo, K aleatoria del host y token
+`acg_` cifrados con AES-256-GCM, cuenta de servicio distinta del escritorio,
+LoadCredential y socket activado por systemd con SO_PEERCRED/PID de unidad.
+Se comprueban compensación de alta fallida, denegaciones locales, repetición,
+estado ausente/corrupto/manipulado, bloqueo persistente y revocación terminal.
+La sonda solo incrementa un contador, con huellas fijas de diagnóstico; aún no
+está unida al trabajador DTLS/captura/entrada. No cierra 3.2/6.4/7.2, ni cambia
+el 10/57 aceptado. Véanse `protected-ipc-results.json`, `verification.md` y
+`agent/linux-secure-lab/README.md`. Se mantiene el piloto físico para el final.
+
 ## 1. Viabilidad y configuraciones objetivo
 
 - [ ] 1.1 Registrar versiones, arquitecturas, cifrado de arranque y opciones de conectividad de los Windows/Mac del propietario y confirmar Mint Cinnamon/X11/LightDM; verificar un inventario privado sin secretos y una matriz pública de configuraciones objetivo sin IPs personales.

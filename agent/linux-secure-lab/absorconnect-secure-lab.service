@@ -1,0 +1,46 @@
+[Unit]
+Description=AbsorConnect isolated secret authority laboratory
+Requires=absorconnect-secure-lab.socket
+After=absorconnect-secure-lab.socket network.target
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=notify
+User=absorconnect-lab
+Group=absorconnect-lab
+UMask=0077
+ExecStart=/opt/absorconnect-secure-lab/absor-secure-broker-lab
+LoadCredential=wrapping.key:/etc/absorconnect-secure-lab/wrapping.key
+LoadCredential=host.sealed.json:/etc/absorconnect-secure-lab/host.sealed.json
+StateDirectory=absorconnect-secure-lab
+StateDirectoryMode=0700
+WatchdogSec=5s
+NotifyAccess=main
+Restart=on-failure
+RestartSec=1s
+SuccessExitStatus=77
+RestartPreventExitStatus=77 78
+TimeoutStartSec=10s
+TimeoutStopSec=3s
+KillMode=control-group
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+LimitCORE=0
+LimitFSIZE=2097152
+MemoryMax=192M
+TasksMax=32
+
+[Install]
+WantedBy=multi-user.target
