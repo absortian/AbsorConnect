@@ -28,7 +28,9 @@ def main():
     parser.add_argument('--node', default='node')
     parser.add_argument('--api-base', default=BASE)
     parser.add_argument('--x11-worker-vm', type=Path)
+    parser.add_argument('--linux-webrtc-vm', type=Path)
     args = parser.parse_args()
+    assert not (args.x11_worker_vm and args.linux_webrtc_vm), 'choose_separate_or_joined_worker'
     uri = urlsplit(args.api_base)
     assert uri.scheme == 'http' and uri.hostname == '127.0.0.1' and uri.port and 1024 <= uri.port <= 65535 and not (uri.username or uri.password or uri.query or uri.fragment) and uri.path in ['', '/'], 'api_must_be_local_loopback'
     lab = args.lab.resolve()
@@ -41,7 +43,7 @@ def main():
     server = thread = None
     work = None
     signals = {}
-    log_path = lab/'rust-webrtc-renewal.log'
+    log_path = lab/('rust-linux-webrtc-renewal.log' if args.linux_webrtc_vm else 'rust-webrtc-renewal.log')
     try:
         for name in NAMES:
             password = secrets.token_urlsafe(32)
@@ -148,7 +150,7 @@ def main():
                         self.send_error(400)
                         return
                     item = owned[name]
-                    deadline = time.monotonic()+5
+                    deadline = time.monotonic()+(30 if args.linux_webrtc_vm else 5)
                     while time.monotonic()-item.get('lastPoll', 0) > 1:
                         if time.monotonic() > deadline:
                             self.send_error(504)
@@ -175,7 +177,9 @@ def main():
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
         origin = 'http://127.0.0.1:'+str(server.server_address[1])
-        for name in ['worker-stall', 'worker-crash', 'supervisor-stall', 'supervisor-crash']:
+        if args.linux_webrtc_vm:
+            owned['linux-locked'] = owned['correct']
+        for name in ([] if args.linux_webrtc_vm else ['worker-stall', 'worker-crash', 'supervisor-stall', 'supervisor-crash']):
             owned[name] = owned['correct']
         manifest = {name: {'origin': origin, 'credential': item['credential'], 'faultUrl': origin+'/fault/'+name, 'signalUrl': origin+'/signal/'+name, 'apiSignaling': True}
                     for name, item in owned.items()}
@@ -185,7 +189,8 @@ def main():
             json.dump(manifest, file)
         try:
             child = subprocess.Popen([args.node, str(ROOT/'prototypes/remote-desktop/webrtc-check/run-interop.cjs'),
-                                      str(lab), '--agent-config', str(manifest_path), '--supervised'], cwd=ROOT,
+                                      str(lab), '--agent-config', str(manifest_path)]
+                                     + (['--linux-vm', str(args.linux_webrtc_vm)] if args.linux_webrtc_vm else ['--supervised']), cwd=ROOT,
                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
             try:
                 stdout, stderr = child.communicate(timeout=170)
@@ -205,20 +210,21 @@ def main():
             assert run.returncode == 0, 'interop_failed_inspect_private_log'
             result = json.loads(report_path.read_text())
             assert result['ok'] and result['rustAuthenticationTested'] and result['apiRenewalTested'] and result['rendererCredentialsDenied']
-            assert len(result['cases']) == 9 and result['supervisorTested']
+            assert len(result['cases']) == (6 if args.linux_webrtc_vm else 9)
+            assert result['nativeWorkerConnected'] if args.linux_webrtc_vm else result['supervisorTested']
             assert owned['correct'].get('busyVerified'), 'second_controller_not_rejected'
             assert all(c['native']['apiSignaling'] for c in result['cases'] if 'native' in c)
             assert not list(work.glob('**/*.sdp')), 'sdp_files_written_in_api_mode'
             # Rechazo ANTES de crear PeerConnection: token revocado y API inaccesible.
             binary = lab/'webrtc-native/src/out/AbsorProbe/rust_video_channel_check'
-            for name in ['api-revoked', 'api-cut']:
+            for name in ([] if args.linux_webrtc_vm else ['api-revoked', 'api-cut']):
                 directory = work/name
                 answer = directory/'no-peer-answer.sdp'
                 check = subprocess.run([str(binary), str(directory/'offer.sdp'), str(answer),
                                         str(directory/'agent-config.json')], capture_output=True, timeout=12)
                 assert check.returncode == 67 and not answer.exists() and not check.stdout, 'peer_started_without_api'
-            result.update({'apiRejectedBeforePeerCreation': True, 'productionTested': False,
-                           'osCaptureOrInputTested': False, 'temporaryAccountsRemoved': False,
+            result.update({'apiRejectedBeforePeerCreation': not bool(args.linux_webrtc_vm), 'productionTested': False,
+                           'osCaptureOrInputTested': bool(args.linux_webrtc_vm), 'temporaryAccountsRemoved': False,
                            'apiSignalingTested': True, 'sdpFilesWritten': False, 'secondControllerBusyRejected': True})
             if args.x11_worker_vm:
                 worker_spec = importlib.util.spec_from_file_location('native_x11_worker', Path(__file__).with_name('native-x11-worker.py'))
@@ -250,11 +256,11 @@ def main():
                 (work/name/'agent-config.json').unlink(missing_ok=True)
         assert errors == 0, 'temporary_account_cleanup_failed'
     result['temporaryAccountsRemoved'] = True
-    destination = lab/'rust-webrtc-renewal-results.json'
+    destination = lab/('rust-linux-webrtc-renewal-results.json' if args.linux_webrtc_vm else 'rust-webrtc-renewal-results.json')
     destination.write_text(json.dumps(result, indent=2)+'\n')
     os.chmod(destination, 0o600)
     print(json.dumps({'ok': True, 'cases': len(result['cases']), 'accountsRemoved': len(NAMES),
-                      'apiRejectedBeforePeerCreation': True, 'productionTested': False, 'report': str(destination)}))
+                      'apiRejectedBeforePeerCreation': not bool(args.linux_webrtc_vm), 'productionTested': False, 'report': str(destination)}))
 
 
 if __name__ == '__main__':

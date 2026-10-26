@@ -316,6 +316,9 @@ impl Surface {
         let motion = unsafe {
             std::mem::transmute::<*mut c_void, FakeMove>(xtst.symbol(b"XTestFakeMotionEvent\0")?)
         };
+        if !alive.load(Ordering::Acquire) {
+            return Err("worker_stopped");
+        }
         // SAFETY: nombre local constante; conexión utilizada solo por este hilo.
         let display = unsafe { (x.open)(b":0\0".as_ptr().cast()) };
         if display.is_null() {
@@ -338,6 +341,9 @@ impl Surface {
             _slot: slot,
             session,
         };
+        if !alive.load(Ordering::Acquire) {
+            return Err("worker_stopped");
+        }
         // SAFETY: display válido, todos los recursos pertenecen a esta instancia.
         unsafe {
             surface.screen = (surface.x.screen)(display);
@@ -384,6 +390,9 @@ impl Surface {
                 return Err("own_window_not_viewable");
             }
             thread::sleep(Duration::from_millis(10));
+        }
+        if !alive.load(Ordering::Acquire) {
+            return Err("worker_stopped");
         }
         unsafe {
             (surface.x.focus)(display, surface.window, 2, 0);

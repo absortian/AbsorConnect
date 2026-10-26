@@ -42,10 +42,20 @@ bibliotecas del SO se mantienen mapeadas hasta la salida, para conservar sus
 callbacks de hilo. El código unsafe está concentrado en el adaptador LP64.
 El build normal no incluye este adaptador ni abre una conexión X11.
 
+El constructor consume la prueba pero deja el hilo esperando. Solo `start()`
+dentro de `with_session` abre el acceso gráfico; cerrar antes no abre Xlib.
+La cancelación previa al arranque tiene una prueba unitaria sin interfaz.
+
+La integración optativa `agent-webrtc-lab/native-fixture` transporta los frames
+de esta ventana por VP8 y entrega un subconjunto fijo de eventos v1 recibidos
+por DataChannel. El visor comprueba rojo → entrada → verde y ausencia de frames
+con HMAC/huellas rechazados o Cinnamon bloqueado. Véase `agent/README.md` para
+compilación cruzada y ejecución en systemd de usuario, todavía de laboratorio.
+
 Límites pendientes: escritorio general, multimonitor/escalado, transiciones
 continuas de contexto, entrada sostenida/modificadores, liberación tras muerte
 abrupta desde otro proceso, IPC/almacén protegidos y systemd. La prueba usa
-K y huellas públicas; no establece DTLS/WebRTC Linux ni certifica Mint físico.
-Los resultados positivos del controlador Mac/WebRTC y los del trabajador Linux
-se registran por separado. La capa final deberá ejecutar trabajadores aislados
-y conectar el flujo de píxeles/entrada al transporte nativo autorizado.
+K y huellas públicas; el ejemplo independiente no establece DTLS/WebRTC ni
+certifica Mint físico. La variante integrada usa las huellas realmente aplicadas
+por libwebrtc, con la misma K pública. Ninguna de las dos certifica todavía
+trabajadores privilegiados, LightDM o aislamiento/almacén de producción.

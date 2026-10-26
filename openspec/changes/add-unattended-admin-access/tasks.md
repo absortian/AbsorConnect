@@ -9,16 +9,17 @@ autenticador, API y watchdog integrados. Se mantienen los criterios físicos y
 la revisión de macOS antes de su agente final. El cliente de consulta y el
 coordinador de renovación ya tienen verificación con API local y proceso hijo;
 siguen pendientes API completa, autenticador, trabajador P2P y watchdog del
-servicio. La tarea 3.4 no se cierra solo con el proceso de prueba.
+servicio. La tarea 3.4 no se cierra solo con el proceso de prueba; su aceptación posterior
+añade el gate/API/DTLS y trabajador nativo conectados, con la evidencia del 26/10.
 
-Avance cerrado: **8/57 tareas (14 %)**. Es proporción de tareas aceptadas, no
+Avance cerrado: **9/57 tareas (16 %)**. Es proporción de tareas aceptadas, no
 porcentaje del tiempo restante. La tarea 3.2 incorpora `agent-auth`: verificación
 v1, contrato de registro de intentos y prueba de reinicio con diario temporal.
 Siguen pendientes el enlace de producción al trabajador DTLS, almacenes protegidos por SO,
 migración real e integración que impida toda captura/entrada antes de autenticar.
 
-El enlace de laboratorio ya verifica Rust + autorización API + autenticación
-DTLS/HMAC + vídeo artificial con Electron y corte del transporte. No cierra aún
+El enlace de laboratorio inicial verificó Rust + autorización API + autenticación
+DTLS/HMAC + vídeo artificial con Electron y corte del transporte. No cerró
 3.1/3.2/3.4: faltan almacenes/IPC protegidos, señalización completa, trabajador de
 captura/entrada, supervisor de servicio/IPC protegido y matriz del resto de
 plataformas. El supervisor independiente optativo de laboratorio añade corte
@@ -29,10 +30,15 @@ El 26/10/2026 la señalización del laboratorio pasa por la API real (oferta,
 ICE, respuesta y rechazo ocupado), sin archivos SDP. El trabajador X11 inicial
 captura una ventana propia e inyecta un clic/tecla en la VM con gate/verificador
 y corte por API; también rechaza el salvapantallas activo sin captura/entrada.
-Los recorridos siguen separados: P2P Mac con vídeo artificial y operaciones
-nativas Linux en ventana propia. La unión del trabajador al transporte Linux,
-servicios, IPC y almacenes finales mantienen 3.1/3.2/3.4/3.5/6.2 parciales.
-No se incrementa el porcentaje por pruebas que aún no cubren una tarea completa.
+La variante posterior `native-fixture` une el trabajador a VP8/WebRTC Linux
+y a una unidad transitoria systemd de usuario. Se verifican seis casos con
+captura/entrada, autenticación rechazada, revocación/caducidad y bloqueo de la
+VM, además de recuperación/parada/cgroup con procesos artificiales.
+La tarea 3.4 se acepta por sus criterios de núcleo común: reloj/red simulados,
+corte P2P real ≤30 s y denegación sin validación nueva. No acepta servicios
+finales ni la matriz completa: 3.1/3.2/3.5/6.1/6.2 siguen parciales por IPC,
+almacenes, contexto/entrada generales y arranque en LightDM pendientes.
+Solo se cierra 3.4; las pruebas parciales restantes no aumentan el porcentaje.
 
 ## 1. Viabilidad y configuraciones objetivo
 
@@ -57,7 +63,7 @@ No se incrementa el porcentaje por pruebas que aún no cubren una tarea completa
 - [ ] 3.1 Crear `agent/` con broker Rust, trabajador y adaptador libwebrtc fijados; verificar compilación de los componentes separados en los sistemas objetivo y documentar sus comandos de desarrollo.
 - [ ] 3.2 Implementar el desafío compatible v1, PBKDF2/HMAC/huellas DTLS, persistencia de intentos y una sesión por equipo; verificar vectores compartidos, prueba repetida, fallo de contraseña, bloqueo después de reiniciar y cero captura/entrada antes de autenticar.
 - [ ] 3.3 Implementar las extensiones negociadas de capacidades/contexto/operación/resultado y deduplicación; verificar mensajes malformados, límites de tamaño, comando no anunciado y dos entregas del mismo reinicio con una sola ejecución.
-- [ ] 3.4 Añadir renovación de autorización y reloj monotónico; verificar con reloj/red simulados que una sesión P2P termina ≤30 segundos tras perder validación, sin aceptar otra sesión hasta recuperar autorización.
+- [x] 3.4 Añadir renovación de autorización y reloj monotónico; verificar con reloj/red simulados que una sesión P2P termina ≤30 segundos tras perder validación, sin aceptar otra sesión hasta recuperar autorización.
 - [ ] 3.5 Implementar transición de contexto, liberación de entrada y descarte de portapapeles/transferencias/audio; verificar que el siguiente usuario no recibe contenido del anterior ni imagen presentada como actual durante una transición.
 - [ ] 3.6 Añadir registro local acotado y diagnóstico sin contraseñas ni teclas; verificar eventos de inicio/fin/revocación/fallo y documentar cómo extraer un informe sin secretos.
 

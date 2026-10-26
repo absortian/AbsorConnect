@@ -310,12 +310,68 @@ antes del clic; nunca reintenta la entrada si la comprobación falla.
 Restaura el puntero y libera los pulsos enviados; un error del trabajador es
 terminal. `Session::close` solo marca parada, sin bloquear al actor con Xlib.
 
+Crear el trabajador consume la prueba v1 pero no abre X11: permanece en espera
+hasta `start()` dentro del gate autorizado. Si la sesión caduca o se cancela
+antes, el hilo termina sin abrir conexión gráfica. El ejemplo independiente y
+el enlace WebRTC usan esa misma secuencia.
+
 No acepta ventanas, comandos de shell, archivos o teclas arbitrarios. Exige un
 marcador root creado temporalmente por el lanzador de la VM propia, una cuenta
 sin privilegios y su Xauthority privada. Solo carga dos bibliotecas fijadas
 del SO por ruta absoluta, conservadas durante el proceso por sus callbacks
 TLS. Nunca se ejecuta al compilar o al pasar `cargo test`. La descripción del
 ensayo, sus límites y comandos están en `crates/agent-x11-lab/README.md`.
+
+## WebRTC Linux y systemd de laboratorio
+
+La feature adicional `native-fixture` conecta ese trabajador al enlace Rust/C++.
+Tres funciones C acotadas permiten solicitar un frame RGB 320×180, entregar
+el subconjunto fijo de `input` v1 y leer contadores/códigos estáticos de error.
+Cada operación revalida el gate; el actor no espera a Xlib. El resultado
+verificado de DTLS/HMAC se consume para el trabajador de esa conexión.
+La fuente C++ convierte sus píxeles a I420 y los transporta por VP8/WebRTC.
+
+El canal `input` solo admite una secuencia completa de botón izquierdo y KeyA,
+con sus liberaciones, para ejecutar el pulso fijo sobre la ventana propia.
+No mantiene teclas entre paquetes ni acepta texto/otras teclas. Rechaza entrada
+previa a la autenticación, mensajes malformados, fuera de orden o repetidos.
+Es un adaptador de ensayo, no entrada general del escritorio.
+
+```bash
+python3 prototypes/remote-desktop/webrtc-check/sync.py /ruta/laboratorio --linux-target
+python3 prototypes/remote-desktop/webrtc-check/build-linux.py /ruta/laboratorio /ruta/VM-privada
+python3 prototypes/backend-agent-check/isolated-webrtc-renewal.py /ruta/laboratorio --node /ruta/node --linux-webrtc-vm /ruta/VM-privada
+```
+
+El primer comando conserva las revisiones fijadas y añade el sysroot oficial
+Bullseye ARM64. El segundo usa Clang del checkout en Mac y Rust/lld en la VM;
+ambos enlazan contra ese sysroot, sin relajar comprobaciones de símbolos. Se
+usan salidas Linux separadas de Mac. La VM necesita los paquetes de compilación
+y `lld`; el helper privado existente identifica exclusivamente la VM propia.
+No se ejecutan estos diagnósticos al compilar o pasar pruebas unitarias.
+
+El lanzador crea una unidad transitoria **systemd de usuario** por conexión.
+Ejecuta supervisor y trabajador sin privilegios, con `NoNewPrivileges`,
+`UMask=0077`, core dumps desactivados, límites de memoria/procesos y duración
+máxima de 65 segundos. `KillMode=control-group` y parada acotada cubren los
+descendientes. La unidad de conexión no se reinicia automáticamente. El pipe
+de vida del lanzador permanece abierto: cerrarlo corta el trabajador.
+
+El filtro de familias permite Unix, IPv4, IPv6 y Netlink; `getifaddrs` necesita
+este último para descubrir interfaces. No concede capacidades administrativas
+de red. La credencial efímera se entrega por SSH y vive en un archivo 0600 de
+un runtime 0700 en tmpfs; systemd lo retira al terminar. Nunca recibe el token
+de cuenta. No es el almacén protegido ni el IPC autenticado del servicio final.
+
+`prototypes/backend-agent-check/linux-service-check.py`, instalado solo en la VM,
+prueba aparte recuperación limitada tras una caída, parada explícita que queda
+detenida, terminación de descendientes y retirada del runtime. Usa procesos
+artificiales y no certifica recuperación del agente con entrada retenida.
+
+Siguen pendientes systemd de sistema/arranque en LightDM, broker persistente,
+IPC/almacén protegidos, selección de contexto, escritorio general y liberación
+de teclas desde otro proceso tras una caída. No se instala ni habilita una unidad
+permanente, no se publica una release y no cambia la revisión del agente Mac.
 
 La prueba opcional de la VM usa el backend real por un túnel SSH loopback,
 credencial efímera por stdin y los mismos gate/verificador del agente. No

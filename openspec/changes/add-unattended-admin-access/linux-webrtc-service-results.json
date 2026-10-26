@@ -1,0 +1,606 @@
+{
+  "schema": 1,
+  "date": "2026-10-26",
+  "scope": "Ventana propia Linux ARM → VP8/WebRTC → Electron; input v1 fijo; systemd de usuario transitorio",
+  "linuxBuild": {
+    "webrtcRevision": "5d27ce25e244b90d09de3429dd3e702fd70f400b",
+    "boringSslRevision": "890a85a274947ba27b386f1af8ddf183ac5947fa",
+    "target": "aarch64-linux-gnu",
+    "crossCompiled": true,
+    "executedByBuild": false,
+    "binarySha256": "410c66fe49a4f884a538890a07d466b8c16ebdda091f8bea6189e606a5fbd627",
+    "libraries": {
+      "libabsor_agent_webrtc_lab.so": "7fbae34e88e98fca0a8440b3ce347015c9d56658a417af53aa1ed8e878d9d045",
+      "absor-lab-supervisor": "874000afbd5dd18cb8dca4c13415704ee20f874340d07648a5fd86a12fc60775"
+    },
+    "gnArgs": "target_os=\"linux\" target_cpu=\"arm64\" is_debug=false symbol_level=0 rtc_include_tests=false rtc_build_examples=false is_component_build=false use_remoteexec=false use_siso=false rtc_use_h264=false proprietary_codecs=false rtc_use_x11=false rtc_use_pipewire=false use_glib=false use_dbus=false rtc_include_pulse_audio=false absor_rust_bridge=true absor_linux_fixture=true",
+    "sysrootSha256": "278c36fe3a785d7f89fbe3f46956899a3bd49fe665f68dc667d6f626a951fcd6",
+    "rustCompiler": "rustc 1.75.0 (82e1608df 2023-12-21) (built from a source tarball)",
+    "rustLinker": "Ubuntu LLD 18.1.3 (compatible with GNU linkers)",
+    "artifactSourceSha256": {
+      "agent/Cargo.toml": "b950f456ee5291b8cf4db5b0942ca269caf574a0284d397b98b6b1cddfe5d67d",
+      "agent/Cargo.lock": "6d02b19b25e6f4cf222e6c0da42f1ae25a369696c560c69fde6e0c4d6601804b",
+      "agent/crates/agent-api/Cargo.toml": "d54a196c0720b2f9c50420525bf9abc2bd2e3b8a0a5365693d081c03e98b0d68",
+      "agent/crates/agent-api/tests/renewal.rs": "3e4525d6fea42a24fc1161ff294fd2b74de8eee153a4a682a9e47161c14136c6",
+      "agent/crates/agent-api/tests/signaling.rs": "aac76aaa380a17fe7f2b1a8b83699123b05d0c064473b87939564a2a3f699455",
+      "agent/crates/agent-api/examples/api-smoke.rs": "27f22b7a75f50ac10d7a149c00ee508f841ade4d07f15f096f0753647c4cb63c",
+      "agent/crates/agent-api/src/signaling.rs": "58799805b9a6085fbfc72122d9b8a66f2a2791cc61e7ebda1049c6b28dc3cce5",
+      "agent/crates/agent-api/src/lib.rs": "d4d8ac6d9409a1ab9e767abf827f2eddd2f687ac14bc55822f3f9edb02bdfdb3",
+      "agent/crates/agent-api/src/http.rs": "569ca59a977bd3931a7bdfdb8c7b5a9cd09c0fec40453793294cf5a33835edf9",
+      "agent/crates/agent-x11-lab/Cargo.toml": "fc4e3fb4d95bf5ea57c895b01dc1893f2885049b0824002518b417a71a7129c5",
+      "agent/crates/agent-x11-lab/examples/x11-worker-smoke.rs": "0d3a2a5b257d3d374774ed10c969b6505f3271821dfece5e01dac66ea70c63e2",
+      "agent/crates/agent-x11-lab/src/lib.rs": "87788bada9b48f7889cbffc35f7d4a705d6f6a7576d55dc03528df1865080eea",
+      "agent/crates/agent-x11-lab/src/worker.rs": "cc979b27b7be917854342b39b208548ef75124a35d5cc09c38f5fa81aa03e2f2",
+      "agent/crates/agent-x11-lab/src/x11.rs": "b8b7c072230ba32362765d5bded3ffe163e7b98a7044d9334e919c9bb1f809b1",
+      "agent/crates/agent-webrtc-lab/Cargo.toml": "02e017787188f692562460d49128be3d2cb1d53cfe32bbb37d2a516b206439ed",
+      "agent/crates/agent-webrtc-lab/build.rs": "180ff06664a75da7575fe1947e2d4cb29057ee6af5d222d11fb05048f902959d",
+      "agent/crates/agent-webrtc-lab/absor_bridge.h": "9c649079f1a7d28938cb5da7a383c7083a18a1b6d876a7f7cd4e46cc66df7e23",
+      "agent/crates/agent-webrtc-lab/src/native.rs": "5f5c2e85a9e1131ff81747b910e0ff667140edc5fa483232f397aed9464fe4cb",
+      "agent/crates/agent-webrtc-lab/src/bridge.rs": "f183c87ffb2cded3ceac0c36cb71ab138be0672a83f0bbb921039978152847d9",
+      "agent/crates/agent-webrtc-lab/src/signaling.rs": "a426d15e606c42e420c6a166ae8b7743e1a9728cc89795145d67572361bebf58",
+      "agent/crates/agent-webrtc-lab/src/lib.rs": "40423cd39de52bcf347ab6746bff931d3a0ed6f7b9f23ed8eda9b1d281e20367",
+      "agent/crates/agent-webrtc-lab/src/ffi.rs": "9358d47a725e59931062d739dca2286f9205ddc486c79541a039383367c29528",
+      "agent/crates/agent-auth/Cargo.toml": "edb4793eb51f4c436fc753b73fb72dfdd242ed9aaf926493f1ac23b9a5bfc60a",
+      "agent/crates/agent-auth/tests/authentication.rs": "e41505887ad3cfd289a0fa2fb596a09b4c1c5ca0e64c044f2497054d271ae295",
+      "agent/crates/agent-auth/examples/restart-smoke.rs": "d805edbf57df61ad561d9b07933160ccfb8b2a5d716bb477e0cc873b320ab4bf",
+      "agent/crates/agent-auth/src/lib.rs": "ec0d8185148f23176286b8ef98e4573f49ba31fca7f1f5f05b89e66aebf092ea",
+      "agent/crates/agent-auth/src/vectors.rs": "5031ea3ccf20baee66cf378674a75b905d67f0566dace1838d9dffe32d802019",
+      "agent/crates/agent-supervisor/Cargo.toml": "764b28a3caedab793f0cca5e001ba8b6a71271544309a7b8969f1b237a17ab93",
+      "agent/crates/agent-supervisor/tests/liveness.rs": "14bf5385192c3b2d45a832e4c825af9df3389968397898fb376030da9b264aa5",
+      "agent/crates/agent-supervisor/tests/processes.rs": "80aa690a35caa9fa4a1471f9703edabd7a01aa65a2f197d7633a6d71caac3c38",
+      "agent/crates/agent-supervisor/src/lib.rs": "7d9052507f972e8c95ef74a716bb893ee55c728780838dbe6a9bdf702278f609",
+      "agent/crates/agent-supervisor/src/synthetic.rs": "6bf92678911f65397e659a9582d88809a265011d1d8179c716b136b3f9669d4e",
+      "agent/crates/agent-supervisor/src/pipe.rs": "70016e9b6965aa96dcec09a658b6f27e4b5a780236877f9d83a64ff2a8571d5a",
+      "agent/crates/agent-supervisor/src/terminate.rs": "08c5836f16818e6db9f27d32b2826a8afc1e2ea2d8a933c332305a9f48ac7813",
+      "agent/crates/agent-supervisor/src/bin/fixture.rs": "67e2ff29772643d48a3327f54e139b46267190aec70739075e4457b82b4f40af",
+      "agent/crates/agent-supervisor/src/bin/lab.rs": "ef6205dabf8828625209ff6653f98647493a8cb48e746b93e220a500e9c8ca01",
+      "agent/crates/agent-core/Cargo.toml": "dd520c7dc1c7307cfed3f0f8689279dd6f5dd21d5fb4fcce7a6cfae3be03cc23",
+      "agent/crates/agent-core/tests/authorization.rs": "0393de807ecafb6782f4f57325e03ae508dd3526241055c9b975236257b7aae2",
+      "agent/crates/agent-core/examples/lease-smoke.rs": "ecfcc4775b35badd5cba2b1c65de1ddcc88de4b7d24b34795bffb7723832ec76",
+      "agent/crates/agent-core/src/clock.rs": "b72c495281e010f5bd9286c2597bd6b53cbebff8e9bdf6c3f22f111f67e84847",
+      "agent/crates/agent-core/src/lib.rs": "3061bc1fa8de8371e082a2ccf2019173b2f1cd0b8a8947dfe69c832c0366e981",
+      "prototypes/remote-desktop/webrtc-check/BUILD.gn": "8553790083deaf2a698a557864e68d84378eb2f93e72a4a457a2bc89f3bf67b3",
+      "prototypes/remote-desktop/webrtc-check/channel_check.cc": "b317e3f6f1876561a8a1d41a854f612b4f68c3e03ed0bb322fc71e02375eb1f6",
+      "prototypes/remote-desktop/webrtc-check/synthetic_video.h": "45173025be1ed26bb4e0b0fb5f94fdc9fb903c253ba1611db40cebbdabe0e108",
+      "prototypes/remote-desktop/webrtc-check/native_fixture_video.h": "a8171e8aa0a9958778a9533ecb00b83af530d067ac45828fefd4a177748e517e",
+      "src/shared/remote/auth-vectors.json": "13ca3e2b12ca65a097a9cf72e9c53250fe70edb419283941c5187bae3f03ec11"
+    }
+  },
+  "macBuild": {
+    "webrtcRevision": "5d27ce25e244b90d09de3429dd3e702fd70f400b",
+    "rustCompiler": "rustc 1.100.0-nightly (1edd55dcf 2026-09-09) (1edd55dcfcd573872c727fa3e086369a71661ee0-1125-llvmorg-24-init-7747-g62397f8b chromium)",
+    "rustLibrarySha256": "6b426bccecf12c0784ad216e4d531e1fe38f080caf08d635bc6b094259393edc",
+    "supervisorSha256": "be86b00c86e62de52b0d2b139a39c775f9b922a0c7f8ff48f7b42810d3fd7252"
+  },
+  "abi": {
+    "defaultAbiExports": [],
+    "macLabAbiExports": [
+      "_absor_bridge_answer",
+      "_absor_bridge_auth",
+      "_absor_bridge_close",
+      "_absor_bridge_create",
+      "_absor_bridge_hello",
+      "_absor_bridge_offer",
+      "_absor_bridge_poll"
+    ],
+    "linuxNativeAbiExports": [
+      "absor_bridge_answer",
+      "absor_bridge_auth",
+      "absor_bridge_close",
+      "absor_bridge_create",
+      "absor_bridge_hello",
+      "absor_bridge_native_frame",
+      "absor_bridge_native_input",
+      "absor_bridge_native_status",
+      "absor_bridge_offer",
+      "absor_bridge_poll"
+    ],
+    "linuxRustMaximumGlibcSymbol": "GLIBC_2.25",
+    "vmMarkerRemoved": true,
+    "vmDesktopRestored": true,
+    "allLabUnitsRemoved": true,
+    "runtimeDirectories": 0,
+    "serviceCheckRuntimeDirectories": 0
+  },
+  "linuxInterop": {
+    "ok": true,
+    "cases": [
+      {
+        "name": "correct",
+        "native": {
+          "dtlsConnected": true,
+          "authenticated": true,
+          "captureStarted": true,
+          "inputEnabled": true,
+          "nativeFixture": true,
+          "native": {
+            "captures": 90,
+            "closed": false,
+            "errorCode": null,
+            "inputs": 1,
+            "keyDown": 1,
+            "keyUp": 1,
+            "mouseDown": 1,
+            "mouseUp": 1,
+            "opens": 1
+          },
+          "relayOnly": false,
+          "nativeVideoFrames": 89,
+          "rustAuthentication": true,
+          "apiSignaling": true,
+          "apiCutCode": 0,
+          "systemd": {
+            "userService": true,
+            "exitCode": 0,
+            "activeAfterExit": false,
+            "runtimeRemoved": true,
+            "restart": "no",
+            "privileged": false,
+            "workerSupervised": true,
+            "maximumRuntimeSeconds": 65
+          }
+        },
+        "controller": {
+          "authenticated": true,
+          "connected": true,
+          "helloCount": 1,
+          "candidateTypes": [
+            "host",
+            "prflx"
+          ],
+          "relayProtocol": null,
+          "channelClosedAfterFault": false,
+          "decodedFrames": 2,
+          "syntheticColorVerified": true,
+          "preAuthInputSent": true,
+          "nativeGreenVerified": true,
+          "lockedInputSent": false
+        }
+      },
+      {
+        "name": "wrong-proof",
+        "native": {
+          "dtlsConnected": true,
+          "authenticated": false,
+          "captureStarted": false,
+          "inputEnabled": false,
+          "nativeFixture": true,
+          "native": {
+            "captures": 0,
+            "closed": false,
+            "errorCode": null,
+            "inputs": 0,
+            "keyDown": 0,
+            "keyUp": 0,
+            "mouseDown": 0,
+            "mouseUp": 0,
+            "opens": 0
+          },
+          "relayOnly": false,
+          "nativeVideoFrames": 0,
+          "rustAuthentication": true,
+          "apiSignaling": true,
+          "apiCutCode": 0,
+          "systemd": {
+            "userService": true,
+            "exitCode": 0,
+            "activeAfterExit": false,
+            "runtimeRemoved": true,
+            "restart": "no",
+            "privileged": false,
+            "workerSupervised": true,
+            "maximumRuntimeSeconds": 65
+          }
+        },
+        "controller": {
+          "authenticated": false,
+          "connected": true,
+          "helloCount": 1,
+          "candidateTypes": [
+            "host",
+            "prflx"
+          ],
+          "relayProtocol": null,
+          "channelClosedAfterFault": false,
+          "decodedFrames": 0,
+          "syntheticColorVerified": false,
+          "preAuthInputSent": true,
+          "nativeGreenVerified": false,
+          "lockedInputSent": false
+        }
+      },
+      {
+        "name": "fingerprint-mismatch",
+        "native": {
+          "dtlsConnected": true,
+          "authenticated": false,
+          "captureStarted": false,
+          "inputEnabled": false,
+          "nativeFixture": true,
+          "native": {
+            "captures": 0,
+            "closed": false,
+            "errorCode": null,
+            "inputs": 0,
+            "keyDown": 0,
+            "keyUp": 0,
+            "mouseDown": 0,
+            "mouseUp": 0,
+            "opens": 0
+          },
+          "relayOnly": false,
+          "nativeVideoFrames": 0,
+          "rustAuthentication": true,
+          "apiSignaling": true,
+          "apiCutCode": 0,
+          "systemd": {
+            "userService": true,
+            "exitCode": 0,
+            "activeAfterExit": false,
+            "runtimeRemoved": true,
+            "restart": "no",
+            "privileged": false,
+            "workerSupervised": true,
+            "maximumRuntimeSeconds": 65
+          }
+        },
+        "controller": {
+          "authenticated": false,
+          "connected": true,
+          "helloCount": 1,
+          "candidateTypes": [
+            "host",
+            "prflx"
+          ],
+          "relayProtocol": null,
+          "channelClosedAfterFault": false,
+          "decodedFrames": 0,
+          "syntheticColorVerified": false,
+          "preAuthInputSent": true,
+          "nativeGreenVerified": false,
+          "lockedInputSent": false
+        }
+      },
+      {
+        "name": "api-revoked",
+        "native": {
+          "dtlsConnected": true,
+          "authenticated": true,
+          "captureStarted": true,
+          "inputEnabled": true,
+          "nativeFixture": true,
+          "native": {
+            "captures": 90,
+            "closed": true,
+            "errorCode": null,
+            "inputs": 1,
+            "keyDown": 1,
+            "keyUp": 1,
+            "mouseDown": 1,
+            "mouseUp": 1,
+            "opens": 1
+          },
+          "relayOnly": false,
+          "nativeVideoFrames": 89,
+          "rustAuthentication": true,
+          "apiSignaling": true,
+          "apiCutCode": -2,
+          "systemd": {
+            "userService": true,
+            "exitCode": 0,
+            "activeAfterExit": false,
+            "runtimeRemoved": true,
+            "restart": "no",
+            "privileged": false,
+            "workerSupervised": true,
+            "maximumRuntimeSeconds": 65
+          }
+        },
+        "controller": {
+          "authenticated": true,
+          "connected": true,
+          "helloCount": 1,
+          "candidateTypes": [
+            "host",
+            "prflx"
+          ],
+          "relayProtocol": null,
+          "channelClosedAfterFault": true,
+          "cutAfterFaultMilliseconds": 1531,
+          "decodedFrames": 4,
+          "syntheticColorVerified": true,
+          "preAuthInputSent": true,
+          "nativeGreenVerified": true,
+          "lockedInputSent": false
+        }
+      },
+      {
+        "name": "api-cut",
+        "native": {
+          "dtlsConnected": true,
+          "authenticated": true,
+          "captureStarted": true,
+          "inputEnabled": true,
+          "nativeFixture": true,
+          "native": {
+            "captures": 1421,
+            "closed": true,
+            "errorCode": null,
+            "inputs": 1,
+            "keyDown": 1,
+            "keyUp": 1,
+            "mouseDown": 1,
+            "mouseUp": 1,
+            "opens": 1
+          },
+          "relayOnly": false,
+          "nativeVideoFrames": 1420,
+          "rustAuthentication": true,
+          "apiSignaling": true,
+          "apiCutCode": -1,
+          "systemd": {
+            "userService": true,
+            "exitCode": 0,
+            "activeAfterExit": false,
+            "runtimeRemoved": true,
+            "restart": "no",
+            "privileged": false,
+            "workerSupervised": true,
+            "maximumRuntimeSeconds": 65
+          }
+        },
+        "controller": {
+          "authenticated": true,
+          "connected": true,
+          "helloCount": 1,
+          "candidateTypes": [
+            "host",
+            "prflx"
+          ],
+          "relayProtocol": null,
+          "channelClosedAfterFault": true,
+          "cutAfterFaultMilliseconds": 28558,
+          "decodedFrames": 2,
+          "syntheticColorVerified": true,
+          "preAuthInputSent": true,
+          "nativeGreenVerified": true,
+          "lockedInputSent": false
+        }
+      },
+      {
+        "name": "linux-locked",
+        "native": {
+          "dtlsConnected": true,
+          "authenticated": true,
+          "captureStarted": false,
+          "inputEnabled": false,
+          "nativeFixture": true,
+          "native": {
+            "captures": 0,
+            "closed": true,
+            "errorCode": "unlocked_cinnamon_required",
+            "inputs": 0,
+            "keyDown": 0,
+            "keyUp": 0,
+            "mouseDown": 0,
+            "mouseUp": 0,
+            "opens": 1
+          },
+          "relayOnly": false,
+          "nativeVideoFrames": 0,
+          "rustAuthentication": true,
+          "apiSignaling": true,
+          "apiCutCode": -3,
+          "systemd": {
+            "userService": true,
+            "exitCode": 0,
+            "activeAfterExit": false,
+            "runtimeRemoved": true,
+            "restart": "no",
+            "privileged": false,
+            "workerSupervised": true,
+            "maximumRuntimeSeconds": 65
+          }
+        },
+        "controller": {
+          "authenticated": true,
+          "connected": true,
+          "helloCount": 1,
+          "candidateTypes": [
+            "host",
+            "prflx"
+          ],
+          "relayProtocol": null,
+          "channelClosedAfterFault": true,
+          "decodedFrames": 0,
+          "syntheticColorVerified": false,
+          "preAuthInputSent": true,
+          "nativeGreenVerified": false,
+          "lockedInputSent": true
+        }
+      }
+    ],
+    "rendererCredentialsDenied": true,
+    "electron": "39.8.5",
+    "chromium": "142.0.7444.265",
+    "videoTested": true,
+    "fixtureOnly": true,
+    "nativeWorkerConnected": true,
+    "systemdUserServiceTested": true,
+    "rustAuthenticationTested": true,
+    "apiRenewalTested": true,
+    "apiSignalingTested": true,
+    "supervisorTested": false,
+    "syntheticVideoTested": false,
+    "turnTested": false,
+    "relayPolicy": "none",
+    "mobileTested": false,
+    "readyForUnattended": false,
+    "apiRejectedBeforePeerCreation": false,
+    "productionTested": false,
+    "osCaptureOrInputTested": true,
+    "temporaryAccountsRemoved": true,
+    "sdpFilesWritten": false,
+    "secondControllerBusyRejected": true
+  },
+  "macRegression": {
+    "cases": 9,
+    "ok": true,
+    "apiRejectedBeforePeerCreation": true,
+    "supervisorTested": true
+  },
+  "legacySyntheticCases": 3,
+  "systemdLifecycle": {
+    "status": "systemd_lifecycle_ok",
+    "userService": true,
+    "restartedAfterCrash": true,
+    "restartCount": 1,
+    "stopKilledWorkerAndChild": true,
+    "explicitStopStayedStopped": true,
+    "runtimeRemoved": true,
+    "noNewPrivileges": true,
+    "effectiveCapabilitiesZero": true,
+    "readyForUnattended": false
+  },
+  "networkDiscoveryProbe": {
+    "withoutNetlink": {
+      "result": -1,
+      "errno": 97
+    },
+    "withNetlink": {
+      "result": 0,
+      "errno": 0
+    }
+  },
+  "rust": {
+    "mac": {
+      "defaultTests": 43,
+      "allFeatureTests": 61,
+      "fmt": true,
+      "clippyWarnings": 0,
+      "releaseDefault": true,
+      "releaseAllFeatures": true
+    },
+    "linuxArmVm": {
+      "defaultTests": 43,
+      "allFeatureTests": 64,
+      "fmt": true,
+      "clippyWarnings": 0,
+      "releaseDefault": true,
+      "releaseAllFeatures": true
+    }
+  },
+  "regression": {
+    "typecheckExitCode": 0,
+    "vitestPassed": 276,
+    "vitestSkipped": 5,
+    "phpunitTests": 162,
+    "phpunitAssertions": 1077,
+    "syntaxExitCode": 0,
+    "openspecStrictExitCode": 0
+  },
+  "cleanup": {
+    "linux": {
+      "isolatedApiRemoved": true,
+      "isolatedDatabaseRemoved": true,
+      "developmentRateLimitsNotReset": true,
+      "rateLimitConfigurationChanged": false,
+      "productionTested": false,
+      "phpRuntime": "8.5.12"
+    },
+    "mac": {
+      "isolatedApiRemoved": true,
+      "isolatedDatabaseRemoved": true,
+      "developmentRateLimitsNotReset": true,
+      "rateLimitConfigurationChanged": false,
+      "productionTested": false,
+      "phpRuntime": "8.5.12"
+    },
+    "vmDesktopRestored": true,
+    "allLabUnitsRemoved": true,
+    "vmMarkerRemoved": true
+  },
+  "acceptedTasks": {
+    "done": 9,
+    "total": 57,
+    "percentRounded": 16,
+    "newlyCompleted": [
+      "3.4"
+    ]
+  },
+  "acceptance3_4": {
+    "simulatedClockAndNetwork": true,
+    "exclusiveThirtySecondDeadline": true,
+    "lateRepliesDoNotRenew": true,
+    "newValidationAndSessionRequiredAfterExpiry": true,
+    "realAuthenticatedP2pCutOnRevocationAndApiLoss": true,
+    "nativeWorkerClosed": true
+  },
+  "limitations": [
+    "Solo ventana propia y secuencia fija de entrada",
+    "Systemd de usuario transitorio; sin servicio de sistema, broker persistente o LightDM",
+    "K pública de prueba; IPC/almacén protegidos pendientes",
+    "Sin entrada sostenida/liberación desde otro proceso tras muerte ni transición continua",
+    "Sin TURN/móviles/piloto físico de esta variante",
+    "Agente Mac final pendiente de revisión"
+  ],
+  "productionVersion": "0.4.1",
+  "productionDeployed": false,
+  "readyForUnattended": false,
+  "sourceSha256": {
+    "agent/Cargo.lock": "6d02b19b25e6f4cf222e6c0da42f1ae25a369696c560c69fde6e0c4d6601804b",
+    "agent/README.md": "ed605a721eb1a0e7acd6a0f76717441a51f471d449861cf7265e8553f175a3e7",
+    "agent/crates/agent-supervisor/src/bin/lab.rs": "ef6205dabf8828625209ff6653f98647493a8cb48e746b93e220a500e9c8ca01",
+    "agent/crates/agent-webrtc-lab/Cargo.toml": "02e017787188f692562460d49128be3d2cb1d53cfe32bbb37d2a516b206439ed",
+    "agent/crates/agent-webrtc-lab/absor_bridge.h": "9c649079f1a7d28938cb5da7a383c7083a18a1b6d876a7f7cd4e46cc66df7e23",
+    "agent/crates/agent-webrtc-lab/src/bridge.rs": "f183c87ffb2cded3ceac0c36cb71ab138be0672a83f0bbb921039978152847d9",
+    "agent/crates/agent-webrtc-lab/src/ffi.rs": "9358d47a725e59931062d739dca2286f9205ddc486c79541a039383367c29528",
+    "agent/crates/agent-webrtc-lab/src/lib.rs": "40423cd39de52bcf347ab6746bff931d3a0ed6f7b9f23ed8eda9b1d281e20367",
+    "agent/crates/agent-webrtc-lab/src/native.rs": "5f5c2e85a9e1131ff81747b910e0ff667140edc5fa483232f397aed9464fe4cb",
+    "agent/crates/agent-x11-lab/README.md": "ae8eef40a5b5ab7aad2c403e217a9cb56648d5bcbb05a1e0c93f2961ae889648",
+    "agent/crates/agent-x11-lab/examples/x11-worker-smoke.rs": "0d3a2a5b257d3d374774ed10c969b6505f3271821dfece5e01dac66ea70c63e2",
+    "agent/crates/agent-x11-lab/src/worker.rs": "cc979b27b7be917854342b39b208548ef75124a35d5cc09c38f5fa81aa03e2f2",
+    "agent/crates/agent-x11-lab/src/x11.rs": "b8b7c072230ba32362765d5bded3ffe163e7b98a7044d9334e919c9bb1f809b1",
+    "openspec/changes/add-unattended-admin-access/design.md": "19297cd9cde7cbfc6f659528facc3d529e2ef1275b10ee8a2d1c336ab6eb877a",
+    "openspec/changes/add-unattended-admin-access/tasks.md": "23d0d07abe28f5028e09c2978f5d13f802f98415a4d3fe2aee5afd6a0f2031d3",
+    "openspec/changes/add-unattended-admin-access/verification.md": "1e7242e86b059f92e5bcc2ca62853c1cdf3769deeca34100f235be58eb53bce8",
+    "prototypes/backend-agent-check/README.md": "75bf977bae4d5d957ffbcef825f2d03e19e12de5f60b19a6b96ec903f69dae46",
+    "prototypes/backend-agent-check/isolated-webrtc-renewal.py": "091a38e28fdc471063d530ac3287a44359fe2ae75a5a1391b428e4bd2eed02fe",
+    "prototypes/backend-agent-check/linux-service-check.py": "44db5825985d91445f339bfc9583d1658aede79474b2513e07694267aebfa999",
+    "prototypes/backend-agent-check/linux-service-worker.py": "2621b0fe7fe8d969e3e0f92121942888bbb9876b31fbf45035074396ace0bf0c",
+    "prototypes/backend-agent-check/linux-webrtc-worker.py": "0658a95d5b2515c1bae672e72786b50293debe8e4523d1ac67a100aef3f1e8fe",
+    "prototypes/backend-agent-check/webrtc-renewal.py": "ccdc0606f83f3770230ab7b0357e18de2c9ff8c5830a965e1e3c9974e5493644",
+    "prototypes/remote-desktop/webrtc-check/BUILD.gn": "8553790083deaf2a698a557864e68d84378eb2f93e72a4a457a2bc89f3bf67b3",
+    "prototypes/remote-desktop/webrtc-check/README.md": "de66720a67a6a14491d0ff22bca1e0916939c686db6ad3bb902dabf32f74b352",
+    "prototypes/remote-desktop/webrtc-check/build-linux.py": "25aa6df7dac72ab7a13c482ca65e3bc5f402efabcd7f6ab0e34b7f36e08d703b",
+    "prototypes/remote-desktop/webrtc-check/channel_check.cc": "b317e3f6f1876561a8a1d41a854f612b4f68c3e03ed0bb322fc71e02375eb1f6",
+    "prototypes/remote-desktop/webrtc-check/interop-main.cjs": "a836b6dc6f6435b7af0d373ea4c4aa72476bbd8f29fd94bbc359bbda319f6ea9",
+    "prototypes/remote-desktop/webrtc-check/interop-preload.cjs": "3e6b64307473e49001304ebb2bed6cb98ace665f067bbb89ef65f66695114a80",
+    "prototypes/remote-desktop/webrtc-check/interop-renderer.js": "5442c292f54f52feabd193e2298db0ceb1fc337bcdc8b41f26fdd7b2cfe377c4",
+    "prototypes/remote-desktop/webrtc-check/native_fixture_video.h": "a8171e8aa0a9958778a9533ecb00b83af530d067ac45828fefd4a177748e517e",
+    "prototypes/remote-desktop/webrtc-check/run-interop.cjs": "4913087bed9f94253ba29cbbccd6baa7086ab6fb0f1dc82467a25df69dc0f73c",
+    "prototypes/remote-desktop/webrtc-check/sync.py": "8b41840b461bc133f20c41b7a7730f7cb7d70aa63ed7e19bd6550ac69855d580"
+  },
+  "privateEvidenceSha256": {
+    "linuxInterop": "ce5d3fa54f136af13b36125d44bbfcda9e4bb33862a0618f1462ca20ae3cabae",
+    "macInterop": "dc9081844f8939929cdacb035d0603933397c771e0f6f1a3be35f0dc314417ac",
+    "linuxBuild": "a14692f60264f326288452d55339b1620b3340aa5e6b5fceb19103223180587a",
+    "macBuild": "45c24d1efa81e3e36f4f63fba97270de0fb6a1bbb2e8548b779fec8449f82afc",
+    "macChecks": "5def3f4f01ed1f2aa555bb3c08218f0a7dcb24148616b070ccef262ab7f84dd8",
+    "linuxChecks": "1b021aece1600f9e5331ce0644100e1a49e0c0b636cb76ef61b929c74b073c2d",
+    "serviceLifecycle": "9eed14f88003e9d191e5af680fb0843a5ff3515b72376a8fdf05384527dcbc7b",
+    "nativeMetadata": "17dfbe24fc4502100972f5032b780b6bc3eb2353c9d3c9820c35275bd518df6f",
+    "linuxCleanup": "426ec540ad1b9f295bf99bfe5ea1ec7b9bea61382cadee4570d9526927def329",
+    "macCleanup": "29fe23f7894255e439196019373f0ffe9c8e31002bd2c6fbd8a7cf844ce32fee",
+    "legacy": "155c2d59fc037308fa1053696fdbfcbad69ca217d9fd7011aca4fcb67706fb27",
+    "typecheck": "eb06aafaa08b67d7b2ddc2113a11b4f8dc5f8f8c59af33cc2bf49397787f5c74",
+    "vitest": "96a4ed6418ea27946a8c76943a09dae906e0cb4cf5fda863fef74f85bd2503bd",
+    "phpunit": "bb79333cfc8ff73066425d68d530d0bcb8b0edd03ca2e21cf734a1973536eaa0",
+    "macCheck0": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "macCheck1": "360511be39746d0f0bb651dc696f01c2684bb0e5468951a94705a472c86a08c6",
+    "macCheck2": "f6326813af257bcb1238275be33f940d6f11235005759ed94090d3d1f7f93712",
+    "macCheck3": "cfa9298f5452170fd184ae229d9b0063ac67d58fdf0dc9a5a708682e3e552da5",
+    "macCheck4": "01a0fab4bd411fab29757958a4f58597b65222741c378eb4566bd9444e32dbcf",
+    "macCheck5": "ae3001067140ff0d23e591a0494983461f960d9dec40efa52bb5bbae5092a72f"
+  }
+}

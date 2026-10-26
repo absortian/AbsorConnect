@@ -32,6 +32,7 @@ pub enum Reply {
 }
 pub struct FixtureWorker {
     alive: Arc<AtomicBool>,
+    armed: Arc<AtomicBool>,
     closed: Arc<AtomicBool>,
     commands: SyncSender<Operation>,
     replies: Receiver<Result<Reply, &'static str>>,
@@ -42,9 +43,14 @@ impl FixtureWorker {
     /// ensayo es un vector público, no una certificación del trabajador P2P Linux.
     pub fn authenticated(verified: VerifiedConnection) -> Self {
         let _binding = verified.into_binding();
+        Self::waiting()
+    }
+    fn waiting() -> Self {
         let alive = Arc::new(AtomicBool::new(true));
+        let armed = Arc::new(AtomicBool::new(false));
         let closed = Arc::new(AtomicBool::new(false));
         let flag = alive.clone();
+        let begin = armed.clone();
         let ended = closed.clone();
         let (commands, input) = mpsc::sync_channel(1);
         let (output, replies) = mpsc::sync_channel(1);
@@ -57,6 +63,14 @@ impl FixtureWorker {
                 }
             }
             let _end = End(ended);
+            // No abrir Xlib ni cambiar foco hasta que el actor haya aceptado
+            // esta sesión con su autorización vigente. Cerrar antes no abre nada.
+            while flag.load(Ordering::Acquire) && !begin.load(Ordering::Acquire) {
+                thread::sleep(Duration::from_millis(10));
+            }
+            if !flag.load(Ordering::Acquire) {
+                return;
+            }
             OPENS.fetch_add(1, Ordering::SeqCst);
             let mut surface = match Surface::open(&flag) {
                 Ok(v) => v,
@@ -97,11 +111,19 @@ impl FixtureWorker {
         });
         Self {
             alive,
+            armed,
             closed,
             commands,
             replies,
             pending: true,
         }
+    }
+    /// Solo el actor autorizado, dentro de with_session, inicia el acceso nativo.
+    pub fn start(&mut self) -> Result<(), &'static str> {
+        if !self.alive.load(Ordering::Acquire) || self.armed.swap(true, Ordering::AcqRel) {
+            return Err("worker_not_startable");
+        }
+        Ok(())
     }
     pub fn submit(&mut self, operation: Operation) -> Result<(), &'static str> {
         if !self.alive.load(Ordering::Acquire) || self.pending {
@@ -158,11 +180,26 @@ impl Drop for FixtureWorker {
 mod tests {
     use super::*;
     #[test]
+    fn closing_before_the_authorized_start_never_opens_x11() {
+        let before = native_attempts();
+        let mut worker = FixtureWorker::waiting();
+        worker.close(CloseReason::Revoked);
+        assert!(worker.start().is_err());
+        let deadline = std::time::Instant::now() + Duration::from_secs(1);
+        while !worker.closed.load(Ordering::Acquire) {
+            assert!(std::time::Instant::now() < deadline);
+            thread::sleep(Duration::from_millis(5));
+        }
+        assert_eq!(native_attempts(), before);
+        assert!(worker.submit(Operation::Capture).is_err());
+    }
+    #[test]
     fn a_native_context_error_is_terminal_and_cannot_resume_input() {
         let (commands, _input) = mpsc::sync_channel(1);
         let (output, replies) = mpsc::sync_channel(1);
         let mut worker = FixtureWorker {
             alive: Arc::new(AtomicBool::new(true)),
+            armed: Arc::new(AtomicBool::new(true)),
             closed: Arc::new(AtomicBool::new(false)),
             commands,
             replies,

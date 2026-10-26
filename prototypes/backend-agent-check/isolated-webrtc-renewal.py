@@ -25,6 +25,7 @@ def main():
     parser.add_argument('lab', type=Path)
     parser.add_argument('--node', default='node')
     parser.add_argument('--x11-worker-vm', type=Path)
+    parser.add_argument('--linux-webrtc-vm', type=Path)
     args = parser.parse_args()
     lab = args.lab.resolve()
     identifier = uuid.uuid4().hex
@@ -78,7 +79,8 @@ def main():
         php_version = command(['docker', 'exec', container, 'php', '-r', 'echo PHP_VERSION;']).decode().strip()
         run = subprocess.run(['python3', '-B', str(Path(__file__).with_name('webrtc-renewal.py')),
                               str(lab), '--node', args.node, '--api-base', 'http://127.0.0.1:'+str(port)]
-                             + (['--x11-worker-vm', str(args.x11_worker_vm)] if args.x11_worker_vm else []),
+                             + (['--x11-worker-vm', str(args.x11_worker_vm)] if args.x11_worker_vm else [])
+                             + (['--linux-webrtc-vm', str(args.linux_webrtc_vm)] if args.linux_webrtc_vm else []),
                              cwd=ROOT, capture_output=True, timeout=240)
         log = private/'matrix.log'
         log.write_bytes(run.stdout+run.stderr)

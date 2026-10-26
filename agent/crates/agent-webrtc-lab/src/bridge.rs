@@ -31,6 +31,8 @@ struct Configuration {
     state_directory: PathBuf,
     #[serde(default, rename = "apiSignaling")]
     api_signaling: bool,
+    #[serde(default, rename = "nativeFixture")]
+    native_fixture: bool,
 }
 struct WallClock;
 impl AttemptClock for WallClock {
@@ -119,10 +121,26 @@ impl AttemptStore for LabStore {
     }
 }
 
-struct Active(Arc<AtomicU8>);
+struct Active {
+    flag: Arc<AtomicU8>,
+    #[cfg(all(
+        feature = "native-fixture",
+        target_os = "linux",
+        target_pointer_width = "64"
+    ))]
+    native: Option<absor_agent_x11_lab::FixtureWorker>,
+}
 impl Session for Active {
     fn close(&mut self, reason: CloseReason) {
-        self.0.store(
+        #[cfg(all(
+            feature = "native-fixture",
+            target_os = "linux",
+            target_pointer_width = "64"
+        ))]
+        if let Some(worker) = self.native.as_mut() {
+            worker.close(reason);
+        }
+        self.flag.store(
             if reason == CloseReason::AuthorizationExpired {
                 2
             } else if reason == CloseReason::Revoked {
@@ -141,10 +159,31 @@ pub(crate) struct Bridge {
     handle: Option<SessionHandle>,
     had_authorization: bool,
     signaling: Option<ApiSignaling>,
+    #[cfg(all(
+        feature = "native-fixture",
+        target_os = "linux",
+        target_pointer_width = "64"
+    ))]
+    native_fixture: bool,
+    #[cfg(all(
+        feature = "native-fixture",
+        target_os = "linux",
+        target_pointer_width = "64"
+    ))]
+    native: super::native::NativeState,
 }
 impl Bridge {
     pub(crate) fn new(raw: &[u8]) -> Result<Self, ()> {
         let config: Configuration = serde_json::from_slice(raw).map_err(|_| ())?;
+        if config.native_fixture
+            && (!cfg!(all(
+                feature = "native-fixture",
+                target_os = "linux",
+                target_pointer_width = "64"
+            )) || !config.api_signaling)
+        {
+            return Err(());
+        }
         let store = LabStore::open(config.state_directory)?;
         let key: [u8; 32] = STANDARD
             .decode(KEY)
@@ -167,6 +206,18 @@ impl Bridge {
             handle: None,
             had_authorization: false,
             signaling,
+            #[cfg(all(
+                feature = "native-fixture",
+                target_os = "linux",
+                target_pointer_width = "64"
+            ))]
+            native_fixture: config.native_fixture,
+            #[cfg(all(
+                feature = "native-fixture",
+                target_os = "linux",
+                target_pointer_width = "64"
+            ))]
+            native: super::native::NativeState::default(),
         })
     }
     // 0 esperando primera API, 1 autorizado sin autenticar, 2 sesión activa;
@@ -275,15 +326,56 @@ impl Bridge {
             }
         };
         // Un Bridge pertenece a una sola PeerConnection en el llamador C++.
+        #[cfg(all(
+            feature = "native-fixture",
+            target_os = "linux",
+            target_pointer_width = "64"
+        ))]
+        let native = if self.native_fixture {
+            let worker = absor_agent_x11_lab::FixtureWorker::authenticated(verified);
+            self.native.closed = Some(worker.closed_observer());
+            Some(worker)
+        } else {
+            let _binding = verified.into_binding();
+            None
+        };
+        #[cfg(not(all(
+            feature = "native-fixture",
+            target_os = "linux",
+            target_pointer_width = "64"
+        )))]
         let _binding = verified.into_binding();
-        match self
-            .renewal
-            .attach_authenticated(Active(self.active.clone()))
-        {
+        match self.renewal.attach_authenticated(Active {
+            flag: self.active.clone(),
+            #[cfg(all(
+                feature = "native-fixture",
+                target_os = "linux",
+                target_pointer_width = "64"
+            ))]
+            native,
+        }) {
             Ok(handle) => {
                 self.handle = Some(handle);
                 self.active.store(1, Ordering::SeqCst);
                 if self.poll() == 2 {
+                    #[cfg(all(
+                        feature = "native-fixture",
+                        target_os = "linux",
+                        target_pointer_width = "64"
+                    ))]
+                    if self.native_fixture {
+                        let started = self
+                            .renewal
+                            .with_session(self.handle.as_ref().unwrap(), |session| {
+                                session.native.as_mut().ok_or(())?.start().map_err(|_| ())
+                            });
+                        if !matches!(started, Ok(Ok(()))) {
+                            self.renewal.stop();
+                            self.verifier.stop();
+                            self.active.store(4, Ordering::SeqCst);
+                            return -3;
+                        }
+                    }
                     1
                 } else {
                     -3
@@ -291,5 +383,108 @@ impl Bridge {
             }
             Err(_) => -3,
         }
+    }
+
+    #[cfg(feature = "native-fixture")]
+    pub(crate) fn native_frame(&mut self) -> Result<Option<Vec<u8>>, ()> {
+        if self.poll() != 2 {
+            return Err(());
+        }
+        #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
+        {
+            use super::native::Phase;
+            use absor_agent_x11_lab::{Operation, Reply};
+            if !self.native_fixture {
+                return Err(());
+            }
+            let handle = self.handle.as_ref().ok_or(())?;
+            let state = &mut self.native;
+            let result = self.renewal.with_session(handle, |session| {
+                let worker = session.native.as_mut().ok_or(())?;
+                let mut frame = None;
+                if let Some(reply) = worker.poll().map_err(|code| {
+                    state.error = Some(code);
+                })? {
+                    match (&state.phase, reply) {
+                        (Phase::Boot, Reply::Ready) => (),
+                        (Phase::Capture, Reply::Frame(value))
+                            if value.width == 320
+                                && value.height == 180
+                                && value.rgb.len() == 172_800 =>
+                        {
+                            frame = Some(value.rgb);
+                        }
+                        (Phase::Pulse, Reply::Input(counts)) => state.counts = Some(counts),
+                        _ => return Err(()),
+                    }
+                    state.phase = Phase::Idle;
+                }
+                if state.phase == Phase::Idle {
+                    let operation = if state.input_queued {
+                        state.input_queued = false;
+                        state.phase = Phase::Pulse;
+                        Operation::Pulse
+                    } else {
+                        state.phase = Phase::Capture;
+                        Operation::Capture
+                    };
+                    worker.submit(operation).map_err(|_| ())?;
+                }
+                Ok(frame)
+            });
+            if let Ok(Ok(frame)) = result {
+                return Ok(frame);
+            }
+            self.verifier.stop();
+            self.renewal.stop();
+            self.active.store(4, Ordering::SeqCst);
+        }
+        Err(())
+    }
+
+    #[cfg(feature = "native-fixture")]
+    pub(crate) fn native_input(&mut self, raw: &[u8]) -> Result<(), ()> {
+        if self.poll() != 2 {
+            return Err(());
+        }
+        #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
+        {
+            if !self.native_fixture || self.native.phase == super::native::Phase::Boot {
+                return Err(());
+            }
+            let next = super::native::next_step(self.native.input_step, raw)?;
+            let handle = self.handle.as_ref().ok_or(())?;
+            self.renewal.with_session(handle, |_| ()).map_err(|_| ())?;
+            self.native.input_step = next;
+            if next == 4 {
+                self.native.input_queued = true;
+            }
+            Ok(())
+        }
+        #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
+        let _ = raw;
+        #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
+        Err(())
+    }
+
+    #[cfg(feature = "native-fixture")]
+    pub(crate) fn native_status(&self) -> Vec<u8> {
+        #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
+        {
+            let (opens, captures, inputs) = absor_agent_x11_lab::native_attempts();
+            let counts = self.native.counts.as_ref();
+            serde_json::to_vec(&serde_json::json!({
+                "opens":opens,"captures":captures,"inputs":inputs,
+                "closed":self.native.closed.as_ref().is_some_and(|v| v.load(Ordering::Acquire)),
+                "errorCode":self.native.error,
+                "mouseDown":counts.map_or(0, |v| v.mouse_down),
+                "mouseUp":counts.map_or(0, |v| v.mouse_up),
+                "keyDown":counts.map_or(0, |v| v.key_down),
+                "keyUp":counts.map_or(0, |v| v.key_up)
+            }))
+            .unwrap_or_default()
+        }
+        #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
+        b"{}".to_vec()
     }
 }

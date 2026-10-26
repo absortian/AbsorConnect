@@ -12,15 +12,18 @@ let relayController = false
 let supervised = false
 let agentConfig
 let turnConfig
+let linuxVm
 for (let i = 0; i < options.length; i++) {
   if (options[i] === '--supervised' && !supervised) supervised = true
   else if (options[i] === '--relay-controller' && !relayController) relayController = true
   else if (options[i] === '--synthetic-video' && !syntheticVideo) syntheticVideo = true
   else if (options[i] === '--agent-config' && !agentConfig && options[i + 1]) { agentConfig = options[++i]; syntheticVideo = true }
   else if (options[i] === '--turn-config' && !turnConfig && options[i + 1]) turnConfig = options[++i]
+  else if (options[i] === '--linux-vm' && !linuxVm && options[i + 1]) linuxVm = fs.realpathSync(options[++i])
   else throw new Error('Opción desconocida o repetida')
 }
 if (supervised && !agentConfig) throw new Error('--supervised exige --agent-config')
+if (linuxVm && (!agentConfig || supervised || turnConfig)) throw new Error('--linux-vm exige API y transporte directo sin el lanzador Mac')
 if (relayController && !turnConfig) throw new Error('--relay-controller exige --turn-config')
 let relayConfiguration
 if (turnConfig) {
@@ -40,16 +43,24 @@ if (turnConfig) {
   if (!value.iceServers.some((server) => server.urls.some((url) => /^turns?:/.test(url)))) throw new Error('Falta servidor TURN')
   relayConfiguration = value
 }
-const binary = path.join(lab, 'webrtc-native/src/out/AbsorProbe', agentConfig ? 'rust_video_channel_check' : syntheticVideo ? 'video_channel_check' : 'channel_check')
+const binary = path.join(lab, linuxVm ? 'webrtc-native/src/out/AbsorLinuxProbe' : 'webrtc-native/src/out/AbsorProbe', agentConfig ? 'rust_video_channel_check' : syntheticVideo ? 'video_channel_check' : 'channel_check')
 if (!fs.statSync(binary).isFile()) throw new Error('Falta compilar channel_check')
-const build = JSON.parse(fs.readFileSync(path.join(lab, 'webrtc-probe-results.json'), 'utf8'))
+const build = JSON.parse(fs.readFileSync(linuxVm ? path.join(linuxVm, 'linux-webrtc-build.json') : path.join(lab, 'webrtc-probe-results.json'), 'utf8'))
 const binarySha256 = crypto.createHash('sha256').update(fs.readFileSync(binary)).digest('hex')
 if (build.webrtcRevision !== require('./dependencies.json').webrtc.revision ||
-    (agentConfig ? build.rustEndpoint : syntheticVideo ? build.videoEndpoint : build.channelEndpoint)?.sha256 !== binarySha256) {
+    (linuxVm ? build.binarySha256 : (agentConfig ? build.rustEndpoint : syntheticVideo ? build.videoEndpoint : build.channelEndpoint)?.sha256) !== binarySha256) {
   throw new Error('El extremo nativo no coincide con el informe de compilación; vuelve a ejecutar build.py')
 }
 const supervisor = path.join(lab, 'webrtc-native/src/absor_connect_probe/absor-lab-supervisor')
-if (agentConfig && crypto.createHash('sha256').update(fs.readFileSync(path.join(lab, 'webrtc-native/src/absor_connect_probe/libabsor_agent_webrtc_lab.dylib'))).digest('hex') !== build.rustLibrarySha256) throw new Error('Biblioteca Rust distinta de la compilada')
+if (agentConfig && !linuxVm && crypto.createHash('sha256').update(fs.readFileSync(path.join(lab, 'webrtc-native/src/absor_connect_probe/libabsor_agent_webrtc_lab.dylib'))).digest('hex') !== build.rustLibrarySha256) throw new Error('Biblioteca Rust distinta de la compilada')
+if (linuxVm) {
+  const meta = fs.statSync(linuxVm)
+  if (meta.uid !== process.getuid() || (meta.mode & 0o077) !== 0) throw new Error('Directorio VM no privado')
+  for (const name of ['libabsor_agent_webrtc_lab.so', 'absor-lab-supervisor']) {
+    const file = path.join(lab, 'webrtc-native/src/absor_connect_probe', name === 'absor-lab-supervisor' ? name + '-linux' : name)
+    if (crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex') !== build.libraries[name]) throw new Error('Artefacto Linux distinto del compilado')
+  }
+}
 if (supervised && crypto.createHash('sha256').update(fs.readFileSync(supervisor)).digest('hex') !== build.supervisorSha256) throw new Error('Supervisor distinto del compilado')
 const work = fs.mkdtempSync(path.join(lab, 'interop-'))
 fs.chmodSync(work, 0o700)
@@ -70,7 +81,7 @@ fs.writeFileSync(path.join(work, 'artifact.json'), JSON.stringify({
   binarySha256,
   sourceRevision: require('./dependencies.json').webrtc.revision
 }, null, 2) + '\n', { mode: 0o600 })
-const child = spawn(require('electron'), [path.join(work, 'interop-main.cjs'), `--lab-work=${work}`, `--lab-binary=${binary}`, ...(supervised ? [`--lab-supervisor=${supervisor}`] : []), ...(agentConfig ? ['--lab-agent-bridge'] : []), ...(syntheticVideo ? ['--lab-synthetic-video'] : []), ...(relayConfiguration ? ['--lab-relay-only'] : []), ...(relayController ? ['--lab-relay-controller'] : [])], {
+const child = spawn(require('electron'), [path.join(work, 'interop-main.cjs'), `--lab-work=${work}`, `--lab-binary=${binary}`, ...(linuxVm ? [`--lab-linux-vm=${linuxVm}`, `--lab-linux-launcher=${path.resolve(__dirname, '../../backend-agent-check/linux-webrtc-worker.py')}`] : []), ...(supervised ? [`--lab-supervisor=${supervisor}`] : []), ...(agentConfig ? ['--lab-agent-bridge'] : []), ...(syntheticVideo ? ['--lab-synthetic-video'] : []), ...(relayConfiguration ? ['--lab-relay-only'] : []), ...(relayController ? ['--lab-relay-controller'] : [])], {
   env: { ...process.env, ELECTRON_RUN_AS_NODE: '' }, stdio: 'inherit'
 })
 child.on('error', (error) => { console.error(error.message); process.exitCode = 1 })

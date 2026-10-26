@@ -117,6 +117,9 @@ fn run() -> Result<serde_json::Value, &'static str> {
     let handle = agent
         .attach_authenticated(worker)
         .map_err(|_| "attach_denied")?;
+    agent
+        .with_session(&handle, |worker| worker.start())
+        .map_err(|_| "start_denied")??;
     fn next(
         agent: &mut RenewingAgent<BootClock, FixtureWorker>,
         handle: &SessionHandle,

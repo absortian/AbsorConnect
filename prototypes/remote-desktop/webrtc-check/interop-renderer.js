@@ -22,6 +22,8 @@ async function deriveKey(hello) {
 
 async function runCase(name) {
   const pc = new RTCPeerConnection(await window.lab.ice())
+  let everConnected = false
+  pc.addEventListener('connectionstatechange', () => { if (pc.connectionState === 'connected') everConnected = true })
   const iceErrors = []
   const candidateCounts = {}
   pc.onicecandidateerror = ({ errorCode }) => { if (iceErrors.length < 16) iceErrors.push(errorCode) }
@@ -39,6 +41,13 @@ async function runCase(name) {
     }
   }
   const channel = pc.createDataChannel(CHANNELS.control)
+  const input = window.lab.nativeFixture ? pc.createDataChannel(CHANNELS.input) : null
+  const fixedInput = [
+    { type:'button', button:0, down:true }, { type:'button', button:0, down:false },
+    { type:'key', code:'KeyA', down:true }, { type:'key', code:'KeyA', down:false }
+  ]
+  let preAuthInputSent = false
+  let lockedInputSent = false
   let offer
   let answer
   let resolveAuth
@@ -53,6 +62,16 @@ async function runCase(name) {
       if (!message || Array.isArray(message) || message.v !== PROTOCOL_VERSION) throw new Error('Mensaje de host inválido')
       if (message.type === 'hello') {
         if (++helloCount !== 1) throw new Error('Reto repetido')
+        if (input) {
+          const deadline = Date.now() + 5000
+          while (input.readyState !== 'open') {
+            if (Date.now() > deadline) throw new Error('Canal input no disponible')
+            await delay(10)
+          }
+          for (const event of fixedInput) input.send(JSON.stringify(event))
+          preAuthInputSent = true
+          await delay(200)
+        }
         const key = await deriveKey(message)
         if (syntheticVideo) {
           const stats = await pc.getStats()
@@ -68,6 +87,10 @@ async function runCase(name) {
         if (name === 'wrong-proof') proof = 'A'.repeat(44)
         channel.send(JSON.stringify({ v: 1, type: 'auth', proof }))
       } else if (message.type === 'auth-result') {
+        if (input && name === 'linux-locked' && message.ok && input.readyState === 'open') {
+          for (const event of fixedInput) input.send(JSON.stringify(event))
+          lockedInputSent = true
+        }
         resolveAuth(message)
       } else {
         throw new Error('Datos inesperados antes de terminar la prueba de autenticación')
@@ -94,19 +117,21 @@ async function runCase(name) {
       new Promise((_, reject) => { timeout = setTimeout(() => reject(new Error('Sin resultado de autenticación')), 20000) })
     ]).finally(() => clearTimeout(timeout))
     const expected = !['wrong-proof', 'fingerprint-mismatch'].includes(name)
+    const expectedVideo = expected && name !== 'linux-locked'
     if (result.ok !== expected || (!expected && result.reason !== 'wrong_password')) {
       throw new Error('Resultado de autenticación inesperado')
     }
     let decodedFrames = 0
     let syntheticColorVerified = false
+    let nativeGreenVerified = false
     if (syntheticVideo) {
-      const deadline = Date.now() + (expected ? 15000 : 500)
+      const deadline = Date.now() + (expectedVideo ? 15000 : 500)
       while (Date.now() < deadline) {
         const mediaStats = await pc.getStats()
         const inbound = [...mediaStats.values()].find((item) => item.type === 'inbound-rtp' && item.kind === 'video')
         decodedFrames = inbound?.framesDecoded ?? 0
-        if (!expected && decodedFrames > 0) throw new Error('Vídeo recibido con autenticación rechazada')
-        if (expected && decodedFrames >= 2 && video.readyState >= 2) {
+        if (!expectedVideo && decodedFrames > 0) throw new Error('Vídeo recibido con autenticación rechazada o contexto bloqueado')
+        if (expectedVideo && decodedFrames >= 2 && video.readyState >= 2) {
           if (video.videoWidth !== 320 || video.videoHeight !== 180) throw new Error('Resolución artificial incorrecta')
           const canvas = document.createElement('canvas')
           canvas.width = 1; canvas.height = 1
@@ -119,7 +144,24 @@ async function runCase(name) {
         }
         await delay(50)
       }
-      if (expected && (!syntheticColorVerified || decodedFrames < 2)) throw new Error('No se recibió vídeo artificial válido')
+      if (expectedVideo && (!syntheticColorVerified || decodedFrames < 2)) throw new Error('No se recibió vídeo válido')
+    }
+    if (input && expectedVideo) {
+      for (const event of [{ type:'text', text:'rejected' }, { type:'key', code:'KeyZ', down:true }, ...fixedInput]) input.send(JSON.stringify(event))
+      const deadline = Date.now() + 10000
+      const canvas = document.createElement('canvas')
+      canvas.width = 1; canvas.height = 1
+      const context = canvas.getContext('2d', { willReadFrequently:true })
+      while (Date.now() < deadline) {
+        context.drawImage(video, 160, 90, 1, 1, 0, 0, 1, 1)
+        const [red, green, blue] = context.getImageData(0, 0, 1, 1).data
+        if (green > 180 && red < 80 && blue < 80) { nativeGreenVerified = true; break }
+        await delay(50)
+      }
+      if (!nativeGreenVerified) throw new Error('La entrada remota no produjo el frame verde nativo')
+      // Duplicados y otra entrada no deben generar un segundo pulso del SO.
+      for (const event of fixedInput) input.send(JSON.stringify(event))
+      await delay(150)
     }
     if (window.lab.apiSignaling && name === 'correct') await window.lab.busy()
     const stats = await pc.getStats()
@@ -127,14 +169,20 @@ async function runCase(name) {
     const pair = transport && stats.get(transport.selectedCandidatePairId)
     const local = pair && stats.get(pair.localCandidateId)
     const remote = pair && stats.get(pair.remoteCandidateId)
-    if (!local || !remote || local.candidateType !== (window.lab.relayOnly ? 'relay' : 'host') || (!window.lab.relayController && remote.candidateType !== (window.lab.relayOnly ? 'relay' : 'host'))) {
+    if (!local || !remote || local.candidateType !== (window.lab.relayOnly ? 'relay' : 'host') || (!window.lab.relayController && !(window.lab.nativeFixture ? ['host', 'prflx'].includes(remote.candidateType) : remote.candidateType === (window.lab.relayOnly ? 'relay' : 'host')))) {
       throw new Error('No se ha comprobado el par de candidatos exigido')
     }
-    const connected = pc.connectionState === 'connected'
+    const connected = name === 'linux-locked' ? everConnected : pc.connectionState === 'connected'
     let cutAfterFaultMilliseconds
     let channelClosedAfterFault = false
     let framesStoppedAfterFault
-    if (window.lab.supervised && failureNames.includes(name)) {
+    if (name === 'linux-locked') {
+      if (channel.readyState !== 'closed') {
+        let timeout
+        await Promise.race([new Promise((resolve) => channel.addEventListener('close', resolve, { once:true })), new Promise((_, reject) => { timeout = setTimeout(() => reject(new Error('El contexto bloqueado no cortó el canal')), 3000) })]).finally(() => clearTimeout(timeout))
+      }
+      channelClosedAfterFault = true
+    } else if (window.lab.supervised && failureNames.includes(name)) {
       await window.lab.fault(name)
       // UDP no envía un cierre DTLS al morir abruptamente. Comprobar proceso y
       // ausencia de nuevos fotogramas, sin confundirlo con cierre del canal remoto.
@@ -160,9 +208,10 @@ async function runCase(name) {
       candidateTypes: [local.candidateType, remote.candidateType],
       relayProtocol: local.relayProtocol ?? null,
       ...(window.lab.agentBridge ? { channelClosedAfterFault, cutAfterFaultMilliseconds, framesStoppedAfterFault } : {}),
-      ...(syntheticVideo ? { decodedFrames, syntheticColorVerified } : {})
+      ...(syntheticVideo ? { decodedFrames, syntheticColorVerified } : {}),
+      ...(input ? { preAuthInputSent, nativeGreenVerified, lockedInputSent } : {})
     })
-  } finally { video.pause(); video.srcObject = null; channel.close(); pc.close() }
+  } finally { video.pause(); video.srcObject = null; input?.close(); channel.close(); pc.close() }
 }
 
 try {
@@ -176,7 +225,7 @@ try {
     rendererCredentialsDenied = true
   }
   const results = []
-  for (const name of (window.lab.agentBridge ? ['correct', 'wrong-proof', 'fingerprint-mismatch', 'api-revoked', 'api-cut', ...(window.lab.supervised ? failureNames : [])] : ['correct', 'wrong-proof', 'fingerprint-mismatch'])) results.push(await runCase(name))
+  for (const name of (window.lab.agentBridge ? ['correct', 'wrong-proof', 'fingerprint-mismatch', 'api-revoked', 'api-cut', ...(window.lab.nativeFixture ? ['linux-locked'] : []), ...(window.lab.supervised ? failureNames : [])] : ['correct', 'wrong-proof', 'fingerprint-mismatch'])) results.push(await runCase(name))
   await window.lab.done({ ok: true, cases: results, ...(window.lab.agentBridge ? { rendererCredentialsDenied } : {}) })
 } catch (error) {
   await window.lab.done({ ok: false, error: String(error) })

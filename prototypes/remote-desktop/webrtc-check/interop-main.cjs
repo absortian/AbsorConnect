@@ -9,8 +9,10 @@ const binary = process.argv.find((arg) => arg.startsWith('--lab-binary='))?.slic
 const agentBridge = process.argv.includes('--lab-agent-bridge')
 const agentManifest = agentBridge ? JSON.parse(fs.readFileSync(path.join(work, 'agent-manifest.json'), 'utf8')) : null
 const supervisor = process.argv.find((arg) => arg.startsWith('--lab-supervisor='))?.slice(17)
+const linuxVm = process.argv.find((arg) => arg.startsWith('--lab-linux-vm='))?.slice(15)
+const linuxLauncher = process.argv.find((arg) => arg.startsWith('--lab-linux-launcher='))?.slice(21)
 const failureCommands = { 'worker-stall': 'S', 'worker-crash': 'K', 'supervisor-stall': 'B', 'supervisor-crash': 'X' }
-const caseNames = agentBridge ? ['correct', 'wrong-proof', 'fingerprint-mismatch', 'api-revoked', 'api-cut', ...(supervisor ? Object.keys(failureCommands) : [])] : ['correct', 'wrong-proof', 'fingerprint-mismatch']
+const caseNames = agentBridge ? ['correct', 'wrong-proof', 'fingerprint-mismatch', 'api-revoked', 'api-cut', ...(linuxVm ? ['linux-locked'] : []), ...(supervisor ? Object.keys(failureCommands) : [])] : ['correct', 'wrong-proof', 'fingerprint-mismatch']
 if (agentBridge) protocol.registerSchemesAsPrivileged([{ scheme: 'absor-agent-lab', privileges: { standard: true, secure: true, supportFetchAPI: true } }])
 const syntheticVideo = process.argv.includes('--lab-synthetic-video')
 if (!work || !binary) process.exit(64)
@@ -83,7 +85,7 @@ ipcMain.handle('lab-offer', async (event, name, offer) => {
     fs.writeFileSync(path.join(stateDirectory, 'absor-webrtc-lab'), 'synthetic-only', { mode: 0o600, flag: 'wx' })
     fs.writeFileSync(path.join(stateDirectory, 'attempts.json'), JSON.stringify({ schema: 1, failures: [], locked_until: null, last_seen: 0 }), { mode: 0o600, flag: 'wx' })
     agentPath = path.join(directory, 'agent-config.json')
-    fs.writeFileSync(agentPath, JSON.stringify({ origin: entry.origin, credential: entry.credential, stateDirectory, apiSignaling: Boolean(entry.apiSignaling) }), { mode: 0o600, flag: 'wx' })
+    fs.writeFileSync(agentPath, JSON.stringify({ origin: entry.origin, credential: entry.credential, stateDirectory, apiSignaling: Boolean(entry.apiSignaling), ...(linuxVm && name === 'linux-locked' ? { lockedFixture:true } : {}) }), { mode: 0o600, flag: 'wx' })
   }
   let signalUrl
   if (agentManifest?.[name]?.apiSignaling) {
@@ -92,12 +94,14 @@ ipcMain.handle('lab-offer', async (event, name, offer) => {
 
   }
   const reportPath = path.join(directory, 'supervisor-events.jsonl')
-  const child = spawn(supervisor ?? binary, [...(supervisor ? [reportPath, binary] : []), offerPath, answerPath, ...(relayOnly ? [nativeIcePath] : []), ...(agentPath ? [agentPath] : [])], { stdio: [supervisor ? 'pipe' : 'ignore', 'pipe', 'pipe'] })
+  const child = linuxVm
+    ? spawn('/usr/bin/python3', [linuxLauncher, linuxVm, agentPath], { stdio: ['ignore', 'pipe', 'pipe'] })
+    : spawn(supervisor ?? binary, [...(supervisor ? [reportPath, binary] : []), offerPath, answerPath, ...(relayOnly ? [nativeIcePath] : []), ...(agentPath ? [agentPath] : [])], { stdio: [supervisor ? 'pipe' : 'ignore', 'pipe', 'pipe'] })
   child.stdin?.on('error', () => {})
   let stdout = ''
   let stderr = ''
   child.stdout.on('data', (data) => { stdout = (stdout + data).slice(-16384) })
-  child.stderr.on('data', (data) => { stderr = (stderr + data).slice(-16384) })
+  child.stderr.on('data', (data) => { stderr = (stderr + data).slice(-16384); fs.writeFileSync(path.join(directory, 'native-stderr.txt'), stderr, { mode:0o600 }) })
   const state = { child, exited: false, code: null, summary: null, reportPath, signalUrl }
   state.done = new Promise((resolve) => {
     child.on('error', () => { state.exited = true; state.code = -1; resolve() })
@@ -111,10 +115,10 @@ ipcMain.handle('lab-offer', async (event, name, offer) => {
   })
   cases.set(name, state)
   if (signalUrl) {
-    const response = await fetch(signalUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ offer }), redirect: 'error', signal: AbortSignal.timeout(6000) })
+    const response = await fetch(signalUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ offer }), redirect: 'error', signal: AbortSignal.timeout(linuxVm ? 35000 : 6000) })
     if (response.status !== 201) throw new Error('No se pudo crear la solicitud por API')
   }
-  const deadline = Date.now() + 25000
+  const deadline = Date.now() + (linuxVm ? 60000 : 25000)
   let answer
   while (true) {
     if (state.exited) throw new Error(`El extremo nativo terminó con código ${state.code}`)
@@ -156,11 +160,19 @@ ipcMain.handle('lab-result', async (event, name, controller) => {
   if (state.code !== 0 || !state.summary?.dtlsConnected || !controller.connected ||
       state.summary.authenticated !== controller.authenticated ||
       state.summary.authenticated !== !['wrong-proof', 'fingerprint-mismatch'].includes(name) ||
-      state.summary.captureStarted || state.summary.inputEnabled || state.summary.relayOnly !== (relayOnly && !relayController)) {
+      (!linuxVm && (state.summary.captureStarted || state.summary.inputEnabled)) || state.summary.relayOnly !== (relayOnly && !relayController)) {
     throw new Error('El extremo nativo y el controlador no concuerdan')
   }
-  if (agentBridge && (!state.summary.rustAuthentication || state.summary.apiCutCode !== (name === 'api-revoked' ? -2 : name === 'api-cut' ? -1 : 0))) throw new Error('Corte del agente no confirmado')
-  if (syntheticVideo && (!['wrong-proof', 'fingerprint-mismatch'].includes(name)
+  if (agentBridge && (!state.summary.rustAuthentication || state.summary.apiCutCode !== (name === 'api-revoked' ? -2 : name === 'api-cut' ? -1 : name === 'linux-locked' ? -3 : 0))) throw new Error('Corte del agente no confirmado')
+  if (linuxVm) {
+    const expected = !['wrong-proof', 'fingerprint-mismatch', 'linux-locked'].includes(name)
+    const n = state.summary.native
+    if (!state.summary.nativeFixture || !state.summary.systemd?.runtimeRemoved || !state.summary.systemd?.workerSupervised || state.summary.systemd.activeAfterExit || !controller.preAuthInputSent ||
+        (expected ? !(state.summary.captureStarted && state.summary.inputEnabled && controller.nativeGreenVerified && state.summary.nativeVideoFrames >= 2 && n.opens === 1 && n.captures >= 2 && n.inputs === 1 && [n.mouseDown,n.mouseUp,n.keyDown,n.keyUp].every((v) => v === 1))
+          : state.summary.captureStarted || state.summary.inputEnabled || controller.decodedFrames !== 0 || n.opens !== (name === 'linux-locked' ? 1 : 0) || n.captures !== 0 || n.inputs !== 0)) throw new Error('El trabajador nativo Linux no confirmó captura/entrada o su denegación')
+    if (name === 'linux-locked' && (!controller.lockedInputSent || !controller.channelClosedAfterFault || !n.closed || !['unlocked_cinnamon_required', 'own_unlocked_session_required'].includes(n.errorCode))) throw new Error('No se confirmó el rechazo por bloqueo de Cinnamon')
+  }
+  if (syntheticVideo && !linuxVm && (!['wrong-proof', 'fingerprint-mismatch'].includes(name)
     ? !(state.summary.syntheticVideoFrames > 0 && controller.decodedFrames >= 2 && controller.syntheticColorVerified)
     : state.summary.syntheticVideoFrames !== 0 || controller.decodedFrames !== 0)) {
     throw new Error('El vídeo artificial no respeta el resultado de autenticación')
@@ -172,13 +184,17 @@ ipcMain.handle('lab-result', async (event, name, controller) => {
 ipcMain.handle('lab-done', (event, result) => {
   if (event.sender !== window?.webContents) throw new Error('Emisor inválido')
   const report = { ...result, electron: process.versions.electron, chromium: process.versions.chrome,
-    videoTested: false, rustAuthenticationTested: agentBridge, apiRenewalTested: agentBridge && result.ok, apiSignalingTested: Boolean(agentManifest?.correct?.apiSignaling) && result.ok, supervisorTested: Boolean(supervisor) && result.ok, syntheticVideoTested: syntheticVideo, turnTested: relayOnly && result.ok, relayPolicy: relayOnly ? (relayController ? 'controller' : 'both') : 'none', mobileTested: false, readyForUnattended: false }
+    videoTested: Boolean(linuxVm) && result.ok, fixtureOnly: Boolean(linuxVm), nativeWorkerConnected: Boolean(linuxVm) && result.ok, systemdUserServiceTested: Boolean(linuxVm) && result.ok, rustAuthenticationTested: agentBridge, apiRenewalTested: agentBridge && result.ok, apiSignalingTested: Boolean(agentManifest?.correct?.apiSignaling) && result.ok, supervisorTested: Boolean(supervisor) && result.ok, syntheticVideoTested: syntheticVideo && !linuxVm, turnTested: relayOnly && result.ok, relayPolicy: relayOnly ? (relayController ? 'controller' : 'both') : 'none', mobileTested: false, readyForUnattended: false }
   fs.writeFileSync(path.join(work, 'interop-results.json'), JSON.stringify(report, null, 2) + '\n', { mode: 0o600 })
   console.log(JSON.stringify(report))
   setImmediate(() => { cleanup(); app.exit(result.ok ? 0 : 1) })
 })
 
-function cleanup() { for (const { child, exited } of cases.values()) { if (!exited) child.kill() } }
+function cleanup() {
+  for (const state of cases.values()) {
+    if (!state.exited && !state.terminationSent) { state.terminationSent = true; state.child.kill() }
+  }
+}
 app.on('will-quit', cleanup)
 app.whenReady().then(async () => {
   app.dock?.hide()
@@ -196,7 +212,7 @@ app.whenReady().then(async () => {
     preload: path.join(__dirname, 'interop-preload.cjs'), contextIsolation: true,
     nodeIntegration: false, sandbox: true, backgroundThrottling: false,
     autoplayPolicy: 'no-user-gesture-required',
-    additionalArguments: [...(agentManifest?.correct?.apiSignaling ? ['--lab-api-signaling'] : []), ...(supervisor ? ['--lab-supervised'] : []), ...(agentBridge ? ['--lab-agent-bridge'] : []), ...(syntheticVideo ? ['--lab-synthetic-video'] : []), ...(relayOnly ? ['--lab-relay-only'] : []), ...(relayController ? ['--lab-relay-controller'] : [])]
+    additionalArguments: [...(linuxVm ? ['--lab-native-fixture'] : []), ...(agentManifest?.correct?.apiSignaling ? ['--lab-api-signaling'] : []), ...(supervisor ? ['--lab-supervised'] : []), ...(agentBridge ? ['--lab-agent-bridge'] : []), ...(syntheticVideo ? ['--lab-synthetic-video'] : []), ...(relayOnly ? ['--lab-relay-only'] : []), ...(relayController ? ['--lab-relay-controller'] : [])]
   } })
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
   if (agentBridge) {

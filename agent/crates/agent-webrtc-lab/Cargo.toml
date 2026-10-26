@@ -11,6 +11,11 @@ crate-type = ["rlib", "cdylib"]
 [features]
 # Únicamente diagnóstico: ABI ausente por omisión, API restringida a loopback.
 lab-http = ["absor-agent-api/lab-http", "absor-agent-supervisor/synthetic-lab"]
+# Ventana propia de la VM; ausente del servicio y de los builds normales.
+native-fixture = ["lab-http", "dep:absor-agent-x11-lab"]
+
+[target.'cfg(target_os = "linux")'.dependencies]
+absor-agent-x11-lab = { path = "../agent-x11-lab", features = ["x11-lab"], optional = true }
 
 [dependencies]
 absor-agent-api = { path = "../agent-api" }
