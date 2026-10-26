@@ -25,6 +25,8 @@ const SALT: &str = "c2FsdC1maWpvLTE2LWJ5dA==";
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Configuration {
+    #[serde(default, rename = "requestId")]
+    request_id: Option<String>,
     origin: String,
     credential: String,
     #[serde(rename = "stateDirectory")]
@@ -184,6 +186,9 @@ impl Bridge {
         {
             return Err(());
         }
+        if let Some(id) = &config.request_id {
+            absor_agent_api::signaling::RequestId::new(id.clone()).map_err(|_| ())?;
+        }
         let store = LabStore::open(config.state_directory)?;
         let key: [u8; 32] = STANDARD
             .decode(KEY)
@@ -198,7 +203,7 @@ impl Bridge {
         .map_err(|_| ())?;
         let signaling = config
             .api_signaling
-            .then(|| ApiSignaling::new(api.signaling()));
+            .then(|| ApiSignaling::new(api.signaling(), config.request_id));
         Ok(Self {
             renewal: RenewingAgent::new(BootClock, api),
             verifier,

@@ -1,4 +1,6 @@
 #![cfg(feature = "synthetic-lab")]
+use absor_agent_core::clock::{BootClock, Clock};
+use absor_agent_supervisor::Pulse;
 use std::{
     fs,
     io::{BufRead, BufReader, Read, Write},
@@ -19,6 +21,9 @@ fn run(fault: Option<u8>) -> (i32, String, Duration) {
     run_case(fault, if fault.is_none() { "normal" } else { "fault" })
 }
 fn run_case(fault: Option<u8>, mode: &str) -> (i32, String, Duration) {
+    run_controlled(fault, mode, None)
+}
+fn run_controlled(fault: Option<u8>, mode: &str, broker: Option<&str>) -> (i32, String, Duration) {
     let candidate = std::env::temp_dir().join(format!(
         "absor-supervisor-{}-{}-{}",
         std::process::id(),
@@ -39,7 +44,11 @@ fn run_case(fault: Option<u8>, mode: &str) -> (i32, String, Duration) {
     let config = scratch.0.join("config.json");
     fs::write(&config, mode).unwrap();
     let report = scratch.0.join("events.jsonl");
-    let mut child = Command::new(env!("CARGO_BIN_EXE_absor-lab-supervisor"))
+    let mut command = Command::new(env!("CARGO_BIN_EXE_absor-lab-supervisor"));
+    if broker.is_some() {
+        command.env("ABSOR_LAB_BROKER_WATCH", "1");
+    }
+    let mut child = command
         .args([
             &report,
             &worker,
@@ -76,7 +85,34 @@ fn run_case(fault: Option<u8>, mode: &str) -> (i32, String, Duration) {
             .write_all(&[fault, b'\n'])
             .unwrap();
     }
+    let mut sequence = 0_u64;
+    let mut next_pulse = Duration::ZERO;
     let status = loop {
+        if (broker == Some("pulses") || broker == Some("replay") && sequence < 2)
+            && started.elapsed() >= next_pulse
+        {
+            let n = if broker == Some("replay") {
+                1
+            } else {
+                sequence + 1
+            };
+            let line = Pulse::new(n, BootClock.now().unwrap()).unwrap().encode();
+            let _ = child.stdin.as_mut().unwrap().write_all(line.as_bytes());
+            sequence += 1;
+            next_pulse = started.elapsed() + Duration::from_millis(100);
+        }
+        if broker == Some("partial") && sequence == 0 {
+            child
+                .stdin
+                .as_mut()
+                .unwrap()
+                .write_all(b"ABSOR_LAB_PULSE_V1 ")
+                .unwrap();
+            sequence += 1;
+        }
+        if broker == Some("eof") {
+            child.stdin.take();
+        }
         if let Some(status) = child.try_wait().unwrap() {
             break status;
         }
@@ -156,4 +192,27 @@ fn invalid_command_fails_closed() {
     let (code, _, elapsed) = run(Some(b'?'));
     assert_eq!(code, 71);
     assert!(elapsed < Duration::from_secs(3));
+}
+
+#[test]
+fn broker_pulses_allow_normal_exit() {
+    let (code, report, _) = run_controlled(None, "normal", Some("pulses"));
+    assert_eq!(code, 0);
+    assert!(report.contains("\"workerCode\":0"));
+}
+#[test]
+fn broker_stall_and_partial_line_do_not_keep_worker_alive() {
+    for mode in ["silent", "partial"] {
+        let (code, _, elapsed) = run_controlled(None, "fault", Some(mode));
+        assert_eq!(code, 71);
+        assert!(elapsed < Duration::from_millis(3500));
+    }
+}
+#[test]
+fn broker_replay_and_eof_cut_worker() {
+    for mode in ["replay", "eof"] {
+        let (code, _, elapsed) = run_controlled(None, "fault", Some(mode));
+        assert_eq!(code, 71);
+        assert!(elapsed < Duration::from_secs(3));
+    }
 }

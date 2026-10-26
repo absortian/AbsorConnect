@@ -43,6 +43,7 @@ def main():
         vm.login()
     assert helper.screen_state(vm) == '(false,)' and vm.context().get('Class') == 'user'
     print('LINUX_VM_CONTEXT_READY', file=sys.stderr, flush=True)
+    broker = config.get('brokerFixture') is True
     marker = '/run/absorconnect-owned-vm-lab'
     job = uuid.uuid4().hex
     child = None
@@ -60,13 +61,20 @@ def main():
         build = json.loads((directory/'linux-webrtc-build.json').read_text())
         assert build['webrtcRevision'] == json.loads((ROOT/'prototypes/remote-desktop/webrtc-check/dependencies.json').read_text())['webrtc']['revision']
         archive = io.BytesIO()
-        with tarfile.open(fileobj=archive, mode='w') as output:
-            for source, target in [(lab/'webrtc-native/src/out/AbsorLinuxProbe/rust_video_channel_check', 'out/AbsorLinuxProbe/rust_video_channel_check'),
+        files = [(lab/'webrtc-native/src/out/AbsorLinuxProbe/rust_video_channel_check', 'out/AbsorLinuxProbe/rust_video_channel_check'),
                                    (lab/'webrtc-native/src/absor_connect_probe/libabsor_agent_webrtc_lab.so', 'absor_connect_probe/libabsor_agent_webrtc_lab.so'),
                                    (lab/'webrtc-native/src/absor_connect_probe/absor-lab-supervisor-linux', 'absor_connect_probe/absor-lab-supervisor'),
-                                   (ROOT/'prototypes/backend-agent-check/linux-service-worker.py', 'linux-service-worker.py')]:
+                                   (ROOT/'prototypes/backend-agent-check/linux-service-worker.py', 'linux-service-worker.py')]
+        if broker:
+            files += [(lab/'webrtc-native/src/absor_connect_probe/absor-linux-broker-lab-linux', 'absor-linux-broker-lab'),
+                      (ROOT/'agent/linux-lab/absorconnect-broker-lab.service', 'absorconnect-broker-lab.service'),
+                      (ROOT/'prototypes/backend-agent-check/linux-broker-install.py', 'linux-broker-install.py'),
+                      (ROOT/'prototypes/backend-agent-check/linux-broker-service-worker.py', 'linux-broker-service-worker.py')]
+        with tarfile.open(fileobj=archive, mode='w') as output:
+            for source, target in files:
                 output.add(source, arcname=target, recursive=False)
-        subprocess.run(vm.SSH+['umask 077 && mkdir -p /home/absorlab/AbsorConnectLab/linux-webrtc-runtime && tar -xf - -C /home/absorlab/AbsorConnectLab/linux-webrtc-runtime && chmod 700 /home/absorlab/AbsorConnectLab/linux-webrtc-runtime/out/AbsorLinuxProbe/rust_video_channel_check'], input=archive.getvalue(), capture_output=True, check=True, timeout=30)
+        remote_base = '/home/absorlab/AbsorConnectLab/'+('broker-staging' if broker else 'linux-webrtc-runtime')
+        subprocess.run(vm.SSH+['umask 077 && mkdir -p '+remote_base+' && tar -xf - -C '+remote_base+' && chmod 700 '+remote_base+'/out/AbsorLinuxProbe/rust_video_channel_check'], input=archive.getvalue(), capture_output=True, check=True, timeout=30)
         if config.get('lockedFixture') is True:
             vm.remote('DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus gdbus call --session --dest org.cinnamon.ScreenSaver --object-path /org/cinnamon/ScreenSaver --method org.cinnamon.ScreenSaver.SetActive true')
             locked_by_test = True
@@ -75,8 +83,13 @@ def main():
         assert 1024 <= port <= 65535
         payload = {'job':job, 'configuration':{'origin':f'http://127.0.0.1:{port}', 'credential':config['credential'], 'apiSignaling':True, 'nativeFixture':True},
                    'artifacts':{'binary':build['binarySha256'], 'library':build['libraries']['libabsor_agent_webrtc_lab.so'], 'supervisor':build['libraries']['absor-lab-supervisor']}}
+        if broker:
+            import hashlib
+            payload = {'configuration':{'origin':f'http://127.0.0.1:{port}', 'credential':config['credential']},
+                       'artifacts':{target:hashlib.sha256(source.read_bytes()).hexdigest() for source, target in files
+                                    if target not in ['linux-service-worker.py','linux-broker-install.py','linux-broker-service-worker.py']}}
         command = vm.SSH[:-1]+['-o', 'ExitOnForwardFailure=yes', '-R', f'127.0.0.1:{port}:127.0.0.1:{uri.port}', vm.SSH[-1],
-                              'ulimit -c 0 && exec env XDG_RUNTIME_DIR=/run/user/1000 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus python3 -I /home/absorlab/AbsorConnectLab/linux-webrtc-runtime/linux-service-worker.py']
+                              'ulimit -c 0 && exec env XDG_RUNTIME_DIR=/run/user/1000 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus python3 -I '+remote_base+('/linux-broker-service-worker.py' if broker else '/linux-service-worker.py')]
         child = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         print('LINUX_SERVICE_START', file=sys.stderr, flush=True)
         stdout, stderr = child.communicate(json.dumps(payload).encode(), timeout=85)
@@ -92,6 +105,8 @@ def main():
             child.kill()
             child.wait(timeout=5)
         try:
+            if broker and vm.remote('test -f /opt/absorconnect-broker-lab/.absor-broker-lab && echo yes || true').strip() == b'yes':
+                vm.remote('sudo -n python3 -I /home/absorlab/AbsorConnectLab/broker-staging/linux-broker-install.py remove')
             vm.remote('XDG_RUNTIME_DIR=/run/user/1000 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus systemctl --user stop absor-webrtc-fixture-'+job+'.service || true')
         finally:
             if created:

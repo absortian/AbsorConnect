@@ -12,7 +12,7 @@ siguen pendientes API completa, autenticador, trabajador P2P y watchdog del
 servicio. La tarea 3.4 no se cierra solo con el proceso de prueba; su aceptación posterior
 añade el gate/API/DTLS y trabajador nativo conectados, con la evidencia del 26/10.
 
-Avance cerrado: **9/57 tareas (16 %)**. Es proporción de tareas aceptadas, no
+Avance cerrado: **10/57 tareas (18 %)**. Es proporción de tareas aceptadas, no
 porcentaje del tiempo restante. La tarea 3.2 incorpora `agent-auth`: verificación
 v1, contrato de registro de intentos y prueba de reinicio con diario temporal.
 Siguen pendientes el enlace de producción al trabajador DTLS, almacenes protegidos por SO,
@@ -40,6 +40,20 @@ finales ni la matriz completa: 3.1/3.2/3.5/6.1/6.2 siguen parciales por IPC,
 almacenes, contexto/entrada generales y arranque en LightDM pendientes.
 Solo se cierra 3.4; las pruebas parciales restantes no aumentan el porcentaje.
 
+La siguiente integración del 26/10 añade el broker persistente y una unidad del
+sistema en la VM: dos trabajadores artificiales sucesivos con el mismo broker,
+caída del supervisor con limpieza del cgroup, corte por bloqueo del broker,
+recuperación, parada explícita, arranque idle en LightDM y arranque en frío.
+Los intentos y la revocación sobreviven al reinicio. Se repiten seis casos P2P
+nativos bajo ese servicio y se verifica su registro de eventos acotado.
+Se acepta **3.6**: enum sin texto libre, 64 registros/16 KiB, secuencia persistente,
+rotación/reapertura/denegaciones, eventos reales de inicio/fin/rechazo/fallo/
+caducidad/revocación y extracción documentada sin secretos. No cierra 3.1/3.2/
+3.5/6.1/6.2/6.4: K pública y HTTP local de laboratorio, identidad aún compartida
+con el escritorio, contextos protegidos/captura general y paquete final pendientes.
+El reinicio en caliente de QEMU/HVF se detuvo en UEFI; solo se acepta el arranque
+en frío. La revisión Mac y el piloto físico permanecen pendientes.
+
 ## 1. Viabilidad y configuraciones objetivo
 
 - [ ] 1.1 Registrar versiones, arquitecturas, cifrado de arranque y opciones de conectividad de los Windows/Mac del propietario y confirmar Mint Cinnamon/X11/LightDM; verificar un inventario privado sin secretos y una matriz pública de configuraciones objetivo sin IPs personales.
@@ -65,7 +79,7 @@ Solo se cierra 3.4; las pruebas parciales restantes no aumentan el porcentaje.
 - [ ] 3.3 Implementar las extensiones negociadas de capacidades/contexto/operación/resultado y deduplicación; verificar mensajes malformados, límites de tamaño, comando no anunciado y dos entregas del mismo reinicio con una sola ejecución.
 - [x] 3.4 Añadir renovación de autorización y reloj monotónico; verificar con reloj/red simulados que una sesión P2P termina ≤30 segundos tras perder validación, sin aceptar otra sesión hasta recuperar autorización.
 - [ ] 3.5 Implementar transición de contexto, liberación de entrada y descarte de portapapeles/transferencias/audio; verificar que el siguiente usuario no recibe contenido del anterior ni imagen presentada como actual durante una transición.
-- [ ] 3.6 Añadir registro local acotado y diagnóstico sin contraseñas ni teclas; verificar eventos de inicio/fin/revocación/fallo y documentar cómo extraer un informe sin secretos.
+- [x] 3.6 Añadir registro local acotado y diagnóstico sin contraseñas ni teclas; verificar eventos de inicio/fin/revocación/fallo y documentar cómo extraer un informe sin secretos.
 
 ## 4. Agente Windows
 

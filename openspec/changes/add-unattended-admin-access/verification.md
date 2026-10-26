@@ -2316,3 +2316,78 @@ La revisión Mac sigue vigente. Se retiraron cuentas, contenedores/BD/entorno,
 credenciales temporales, unidades y marcador; no cambian límites compartidos.
 No se publica release ni se instala agente en producción, que continúa 0.4.1.
 Evidencia acotada y hashes en `linux-webrtc-service-results.json`.
+
+
+## 26/10/2026: broker persistente, servicio del sistema y diagnóstico acotado
+
+`absor-agent-broker`, optativo `linux-broker-lab`, mantiene el actor entre
+conexiones y ejecuta el transporte fijado mediante su supervisor. El UUID de
+solicitud queda fijado: no elige otra oferta mientras espera la primera.
+El broker consulta la API solo cuando está libre; cada transporte obtiene su
+propia validación nueva y verifica DTLS/HMAC antes de abrir X11. El reinicio no
+conserva autorización, y el diario de intentos deja de crearse por conexión.
+No hay RPC/shell o rutas de ejecución recibidas desde WebRTC.
+
+La unidad **del sistema** es instalada/habilitada temporalmente solo en la VM,
+con ejecutables de root, UID 1000, capacidades cero, `NoNewPrivs=1`, `UMask=0077`,
+montajes protegidos, límites y `KillMode=control-group`. La credencial original
+es root 0600 dentro de un directorio 0700 y llega mediante `LoadCredential`,
+fuera de argv/env. Se verificó la representación real de systemd 255: root:root
+0440 con ACL del servicio. Un UID ajeno no puede leer configuración/copia/estado
+ni sustituir el ejecutable. La identidad del broker todavía coincide con la
+cuenta gráfica de laboratorio: no es el aislamiento/alta del paquete final.
+
+La matriz de ciclo de vida usa un trabajador **artificial sin pantalla/entrada**:
+dos sesiones sucesivas con el mismo PID del broker, ausencia de relanzamiento
+de la solicitud pendiente, muerte del supervisor con retirada de todos los PIDs
+anteriores, recuperación del cgroup, conservación del diario tras reinicio y
+arranque del SO, parada explícita sin autoarranque y límite de activaciones.
+Al detener el progreso del broker, el supervisor cortó su trabajador en
+**2147 ms**; systemd recuperó después la unidad. Una muerte anómala del supervisor
+hace salir al broker con código 75 para que la recuperación siempre limpie todo
+el cgroup, en vez de admitir otro trabajador con un nieto incierto.
+
+También se verificó el broker idle en LightDM y el arranque en frío antes del
+primer login, sin Electron. El apagado del laboratorio puede esperar el plazo
+de la sesión gráfica; no se modificó esa política. El reinicio en caliente
+anterior quedó detenido en shim/UEFI con QEMU/HVF y requirió arrancar de nuevo
+el hipervisor; **no se certifica reinicio remoto completo**. La prueba final
+usa apagado limpio y arranque en frío, sin restaurar snapshots. Tras revocación,
+la marca terminal permanece; un arranque manual termina con 77 antes de READY
+sin volver a consultar la API ni activar un trabajador.
+
+La matriz P2P separada usa el binario **nativo real**, API/BD y cuentas efímeras.
+Los seis casos pasan bajo la nueva unidad: vídeo/entrada de ventana propia,
+HMAC incorrecto, huella DTLS incorrecta, revocación, corte de API y Cinnamon
+bloqueado. El caso correcto produjo 90 frames nativos, cambio rojo/verde y una
+sola secuencia de clic/KeyA. Contraseña/huella erróneas y bloqueo no produjeron
+frames, capturas o entrada. El corte por revocación fue **1415 ms**; sin API,
+**28465 ms**. El registro muestra `worker_ended`, `worker_denied`,
+`authorization_revoked`, `authorization_expired` y `worker_failed` según el caso.
+El broker permanece tras sesiones ordinarias y queda detenido al revocarse.
+Las seis retiraron servicio, runtime, estado y credencial al terminar. Continúan
+el rechazo ocupado, cero SDP en archivos y denegación de credenciales al renderer.
+
+El módulo común `audit` solo acepta eventos de enum, sin texto libre, datos de
+usuario, red, UUID, SDP, credenciales o teclas. Máximo 64 registros y 16 KiB,
+secuencia persistente, escritura exclusiva/sync/rename y fallo terminal de esa
+instancia si no puede completar una escritura. Las pruebas verifican rotación,
+reapertura, evento/campo/esquema ajenos, huecos, archivo grande, enlaces/permisos
+Unix y transacción interrumpida. La extracción documentada en
+`agent/linux-lab/README.md` lee únicamente `audit.json`; los informes reales
+comprueban sus eventos. Se acepta **3.6**, sin certificar por ello el servicio
+final ni su IPC/almacén de alta y controladores multiplataforma.
+
+Rust pasa **49/71 pruebas en Mac** y **49/74 en Linux ARM**, formato, Clippy sin
+advertencias y releases por omisión/todas las características; Linux conserva
+Rust 1.75 y el sysroot fijado. Se conservan nueve casos de interoperabilidad Mac,
+typecheck, Vitest **276 con 5 omitidas** y PHPUnit **162/1077**. La revisión CI se
+consulta para el SHA exacto del PR y se conserva separada con sus logs completos.
+
+**10/57 tareas aceptadas (18 %)**. 3.1/3.2/3.5/6.1/6.2/6.4 siguen parciales:
+trabajador general, separación de identidades/IPC, credencial/K reales, guardian
+de entrada tras muerte, transiciones/LightDM, paquete y piloto físico pendientes.
+La revisión Mac no cambia. Producción continúa **0.4.1**, sin release ni agente
+final desplegados. Se retiraron cuentas, contenedores/BD, archivos de entorno,
+servicios, marcador y credenciales; la VM volvió al escritorio. Resultados y
+hashes de fuentes/artefactos/evidencia en `linux-broker-results.json`.

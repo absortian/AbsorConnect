@@ -1,9 +1,10 @@
 # Núcleo del agente desatendido
 
 Implementación inicial de las tareas 3.1, 3.2 y 3.4 de
-`add-unattended-admin-access`. Es una biblioteca Rust, **no un servicio instalable
-ni un host remoto**. No abre puertos, no lee cuentas, no captura pantallas ni
-envía entrada. El modo publicado de Electron continúa sin cambios.
+`add-unattended-admin-access`. El núcleo Rust por omisión no captura ni envía entrada. Los modos optativos
+de laboratorio añaden API, WebRTC, una ventana X11 propia y un broker persistente
+bajo systemd; véase [`linux-lab/README.md`](linux-lab/README.md). No son un
+agente distribuible. El modo publicado de Electron continúa sin cambios.
 
 ## Qué está implementado
 
@@ -43,9 +44,9 @@ sin autenticar**. El núcleo no implementa HTTP ni considera confiable un JSON p
 La respuesta de la API está descrita en [`backend/AGENT_API.md`](../backend/AGENT_API.md).
 
 `attach_authenticated` exige que el trabajador haya verificado previamente la
-prueba v1/DTLS/HMAC. Esta biblioteca **no implementa ese autenticador**. Tampoco
-guarda intentos o credenciales: la persistencia protegida y su bloqueo tras
-reinicio siguen pendientes. Crear una instancia nueva no es un mecanismo para
+prueba v1/DTLS/HMAC. El autenticador está en `agent-auth`; el núcleo no lo sustituye.
+El laboratorio conserva el diario entre conexiones y reinicios; siguen
+pendientes el almacén y la migración de credenciales del paquete final. Crear una instancia nueva no es un mecanismo para
 eludir revocación: el servicio deberá validar el alta/configuración y la API.
 
 El actor del broker debe consumir `poll()` puntualmente, no bloquear en las
@@ -53,8 +54,10 @@ operaciones y garantizar que `Session::close` libera entrada y termina captura
 y transporte, sin bloquear. Su watchdog y los mecanismos de muerte del padre
 deben cortar el trabajador incluso si el broker falla o queda suspendido. Una
 biblioteca llamada solo al recibir entrada no corta por sí sola un vídeo P2P
-inactivo. Faltan esos adaptadores, WebRTC, IPC autenticado, contextos protegidos,
-instaladores y controladores finales. No se ha marcado completa la tarea 3.4.
+inactivo. La integración optativa de laboratorio ya conecta WebRTC, API y
+watchdogs; faltan IPC/almacenes finales, contextos protegidos completos,
+instaladores y controladores finales. La tarea 3.4 se aceptó con la integración y evidencia del 26/10; los
+adaptadores/servicios finales y la matriz multiplataforma siguen pendientes.
 
 ## Desarrollo y comprobaciones
 
@@ -92,7 +95,8 @@ proceso de red irrecuperable. Cerrar/parar impide procesar respuestas nuevas.
 Producción exige un origen HTTPS de configuración protegida, sin credenciales,
 ruta, consulta o fragmento. El cliente solo consulta
 `/api/host-agent/remote-requests` con una credencial `acg_` válida en memoria.
-No implementa login, alta, cambios de cuenta, respuestas SDP ni ICE todavía.
+No implementa login, alta o cambios de cuenta. Su carril separado de
+señalización implementa respuestas SDP/ICE y rechazo ocupado.
 Rechaza redirecciones, proxies de entorno, cookies y compresión. Conserva
 verificación TLS/raíces de rustls, límites de conexión (2 s), petición (4 s) y
 cuerpo (8 MiB + 64 KiB), y esquemas cerrados: duración 1–30 s, campos tipados,
@@ -396,3 +400,13 @@ Referencias:
 [reloj continuo de Apple](https://developer.apple.com/documentation/kernel/1646199-mach_continuous_time),
 [reloj Windows](https://learn.microsoft.com/en-us/windows/win32/api/realtimeapiset/nf-realtimeapiset-queryinterrupttimeprecise).
 El SDK de Apple confirma además que `mach_continuous_time` avanza durante el sueño.
+
+## Broker persistente y diagnóstico local
+
+El crate `agent-broker` incorpora admisión de un trabajador y registro de eventos
+con campos cerrados, rotación a 64 registros y reapertura tras reiniciar. Su
+variante `linux-broker-lab` ejecuta el transporte ya verificado bajo una unidad
+del sistema, conserva los intentos y corta al perder progreso del broker. Los
+archivos, límites, retirada y comando de extracción sin secretos están en
+[`linux-lab/README.md`](linux-lab/README.md). El paquete de producción y las
+transiciones/entrada generales siguen pendientes.

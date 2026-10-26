@@ -24,6 +24,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "absor-agent-broker"
+version = "0.1.0"
+dependencies = [
+ "absor-agent-api",
+ "absor-agent-core",
+ "absor-agent-supervisor",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "absor-agent-core"
 version = "0.1.0"
 
