@@ -121,6 +121,33 @@ parada explícita/cgroup. No sustituye al broker persistente ni a systemd de
 sistema de D1; faltan entrada sostenida/liberación tras caída, IPC/almacén
 protegidos y contextos LightDM. No cambia la revisión pendiente del agente Mac.
 
+La variante posterior `linux-broker-lab` añade broker persistente y unidad del
+sistema exclusivamente en la VM. El proceso es UID 1000, sin capacidades; los
+binarios son de root y la configuración llega por `LoadCredential`. Mientras
+el transporte está activo, solo ese transporte consulta/renueva la API: el
+broker vuelve a consultar al terminar y exige una respuesta nueva para otro
+trabajador. El UUID elegido se fija en su configuración local. No se serializa
+un permiso de captura ni se conserva autorización al reiniciar el proceso.
+Los intentos y una marca de revocación permanecen en `StateDirectory`.
+
+El actor del broker envía pulsos por un pipe anónimo heredado. El supervisor
+corta al perder progreso/EOF/repetición, y systemd vigila al broker. Una salida
+anómala del supervisor fuerza recuperar la unidad completa, con limpieza del
+cgroup antes de admitir otro trabajador. La parada administrativa no se
+reactiva sola; revocación/configuración inválida impiden reinicio automático.
+El arranque idle en LightDM no autoriza captura allí. Faltan identidad separada
+del escritorio/IPC protegido, trabajador general, transiciones, guardian de
+entrada, paquete final y matriz física. Continúa la revisión Mac.
+
+`agent-broker::audit` ofrece diagnóstico común con un enum de eventos sin
+texto libre, 64 registros y 16 KiB como máximo. Persiste una secuencia,
+rechaza esquemas/campos/eventos ajenos y escribe con creación exclusiva,
+sincronización y rename. Una escritura fallida inhabilita la instancia. El
+informe solo contiene esquema, secuencia y eventos: nunca usuario, UUID de
+solicitud, red, SDP, contraseña, K, token o teclas. El broker lo conecta a inicio,
+fin, denegación, fallo, caducidad y revocación. La extracción documentada lee
+solo `audit.json`, no archivos de configuración o el diario de intentos.
+
 ### D4. Secretos, IPC y traspaso transaccional
 
 El diagnóstico `agent-webrtc-lab` enlaza verificador, renovación y trabajador
@@ -139,8 +166,8 @@ cada 50 ms. La variante supervisada añade vigilancia independiente en dos
 procesos sin privilegios, con pulsos de vida de dos segundos y corte sin
 destructores C++ al perder al supervisor. Solo su actor de autorización
 completa los pulsos del trabajador; el lector de pipes no los sustituye.
-No implementa todavía supervisor de servicio, IPC autenticado ni liberación
-de entrada del SO tras morir el proceso. Su prueba no certifica el
+La variante Mac no implementa todavía supervisor de servicio, IPC autenticado
+ni liberación de entrada del SO tras morir el proceso. Su prueba no certifica el
 servicio, captura/entrada ni la matriz de plataformas de D1/D2.
 
 Implementación parcial de autenticación: `agent-auth` es un componente Rust

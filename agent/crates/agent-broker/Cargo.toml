@@ -1,0 +1,22 @@
+[package]
+name = "absor-agent-broker"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[features]
+# Solo VM propia: K pública, ventana propia y API loopback. No distribuir.
+linux-broker-lab = ["absor-agent-api/lab-http"]
+
+[dependencies]
+absor-agent-api = { path = "../agent-api" }
+absor-agent-core = { path = "../agent-core" }
+absor-agent-supervisor = { path = "../agent-supervisor" }
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = "=1.0.154"
+
+[[bin]]
+name = "absor-linux-broker-lab"
+path = "src/main.rs"
+required-features = ["linux-broker-lab"]

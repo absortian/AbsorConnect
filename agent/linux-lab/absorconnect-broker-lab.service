@@ -1,0 +1,50 @@
+# Solo la VM propia del laboratorio, UID 1000. K pública y ventana propia.
+[Unit]
+Description=AbsorConnect persistent broker laboratory (not production)
+After=network.target
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=notify
+User=absorlab
+Group=absorlab
+UMask=0077
+ExecStart=/opt/absorconnect-broker-lab/absor-linux-broker-lab
+LoadCredential=agent.json:/etc/absorconnect-broker-lab/agent.json
+StateDirectory=absorconnect-broker-lab
+StateDirectoryMode=0700
+RuntimeDirectory=absorconnect-broker-lab
+RuntimeDirectoryMode=0700
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/absorlab/.Xauthority
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
+WatchdogSec=5s
+NotifyAccess=main
+Restart=on-failure
+RestartSec=1s
+SuccessExitStatus=77
+RestartPreventExitStatus=77 78
+TimeoutStartSec=10s
+TimeoutStopSec=3s
+KillMode=control-group
+LimitCORE=0
+LimitFSIZE=2097152
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+MemoryMax=768M
+TasksMax=96
+
+[Install]
+WantedBy=multi-user.target

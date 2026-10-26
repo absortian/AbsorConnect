@@ -35,14 +35,31 @@ mod teardown {
 fn main() {
     synthetic::start();
     let started = Instant::now();
+    let config = std::env::args_os().last().map(std::path::PathBuf::from);
     let mode = std::env::args_os()
         .last()
         .and_then(|v| std::fs::read_to_string(v).ok())
         .unwrap_or_default();
+    let broker_fixture = mode.starts_with('{')
+        && std::env::var_os("ABSOR_LAB_BROKER_WATCH").as_deref() == Some(std::ffi::OsStr::new("1"));
     loop {
         synthetic::before_poll();
         synthetic::pulse(1);
-        println!("fixture-alive");
+        if broker_fixture {
+            if config
+                .as_ref()
+                .and_then(|v| v.parent())
+                .is_some_and(|v| v.join("finish-artificial-session").is_file())
+            {
+                println!(
+                    "{}",
+                    serde_json::json!({"authenticated":false,"apiCutCode":0,"fixtureOnly":true})
+                );
+                return;
+            }
+        } else {
+            println!("fixture-alive");
+        }
         if ["normal-eof", "fault-eof"].contains(&mode.as_str())
             && started.elapsed() > Duration::from_millis(300)
         {

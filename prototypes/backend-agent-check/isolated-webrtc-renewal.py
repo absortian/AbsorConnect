@@ -26,7 +26,9 @@ def main():
     parser.add_argument('--node', default='node')
     parser.add_argument('--x11-worker-vm', type=Path)
     parser.add_argument('--linux-webrtc-vm', type=Path)
+    parser.add_argument('--linux-broker', action='store_true')
     args = parser.parse_args()
+    assert not args.linux_broker or args.linux_webrtc_vm, 'broker_requires_linux_vm'
     lab = args.lab.resolve()
     identifier = uuid.uuid4().hex
     database = 'absor_agent_lab_'+identifier
@@ -80,7 +82,8 @@ def main():
         run = subprocess.run(['python3', '-B', str(Path(__file__).with_name('webrtc-renewal.py')),
                               str(lab), '--node', args.node, '--api-base', 'http://127.0.0.1:'+str(port)]
                              + (['--x11-worker-vm', str(args.x11_worker_vm)] if args.x11_worker_vm else [])
-                             + (['--linux-webrtc-vm', str(args.linux_webrtc_vm)] if args.linux_webrtc_vm else []),
+                             + (['--linux-webrtc-vm', str(args.linux_webrtc_vm)] if args.linux_webrtc_vm else [])
+                             + (['--linux-broker'] if args.linux_broker else []),
                              cwd=ROOT, capture_output=True, timeout=240)
         log = private/'matrix.log'
         log.write_bytes(run.stdout+run.stderr)

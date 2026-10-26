@@ -72,21 +72,33 @@ fn run() -> Result<i32, ()> {
     )?;
     let mut pipe = child.0.stdin.take().ok_or(())?;
     let events = read_events(child.0.stderr.take().ok_or(())?, true);
-    let (commands, incoming) = mpsc::sync_channel(1);
-    // Solo cuatro fallos enumerados desde el lanzador local. Nunca shell/RPC de red.
-    thread::spawn(move || {
-        for byte in std::io::BufReader::new(std::io::stdin()).bytes() {
-            let Ok(byte) = byte else {
-                break;
-            };
-            if byte == b'\n' {
-                continue;
+    let broker_mode =
+        std::env::var_os("ABSOR_LAB_BROKER_WATCH").as_deref() == Some(std::ffi::OsStr::new("1"));
+    let broker_events = broker_mode.then(|| read_events(std::io::stdin(), false));
+    let mut broker_watch = broker_mode
+        .then(|| PeerWatch::new(BootClock, Duration::from_secs(2)))
+        .transpose()
+        .map_err(|_| ())?;
+    let incoming = if !broker_mode {
+        let (commands, incoming) = mpsc::sync_channel(1);
+        // Solo cuatro fallos enumerados desde el lanzador local. Nunca RPC de red.
+        thread::spawn(move || {
+            for byte in std::io::BufReader::new(std::io::stdin()).bytes() {
+                let Ok(byte) = byte else {
+                    break;
+                };
+                if byte == b'\n' {
+                    continue;
+                }
+                if commands.try_send(byte).is_err() {
+                    return;
+                }
             }
-            if commands.try_send(byte).is_err() {
-                return;
-            }
-        }
-    });
+        });
+        Some(incoming)
+    } else {
+        None
+    };
     let mut watch = PeerWatch::new(BootClock, Duration::from_secs(5)).map_err(|_| ())?;
     STAGE.store(4, Ordering::Relaxed);
     let mut sequence = 0_u64;
@@ -100,25 +112,37 @@ fn run() -> Result<i32, ()> {
             )?;
             return Ok(status.code().unwrap_or(70));
         }
-        match incoming.try_recv() {
-            Ok(command) => {
-                fault_started = Some(BootClock.now().map_err(|_| ())?);
-                record(
-                    &mut report,
-                    json!({"event":"fault", "command":char::from(command).to_string()}),
-                )?;
-                match command {
-                    b'S' => pipe.write_all(b"S\n").map_err(|_| ())?,
-                    b'K' => {
-                        child.0.kill().map_err(|_| ())?;
-                    }
-                    b'B' => thread::sleep(Duration::from_secs(5)),
-                    b'X' => std::process::exit(73),
-                    _ => return Err(()),
+        if let (Some(events), Some(watch)) = (&broker_events, &mut broker_watch) {
+            loop {
+                match events.try_recv() {
+                    Ok(Ok(Event::Pulse(pulse))) => watch.receive(pulse).map_err(|_| ())?,
+                    Ok(_) | Err(mpsc::TryRecvError::Disconnected) => return Err(()),
+                    Err(mpsc::TryRecvError::Empty) => break,
                 }
             }
-            Err(mpsc::TryRecvError::Disconnected) => return Err(()),
-            Err(mpsc::TryRecvError::Empty) => (),
+            watch.poll().map_err(|_| ())?;
+        }
+        if let Some(incoming) = &incoming {
+            match incoming.try_recv() {
+                Ok(command) => {
+                    fault_started = Some(BootClock.now().map_err(|_| ())?);
+                    record(
+                        &mut report,
+                        json!({"event":"fault", "command":char::from(command).to_string()}),
+                    )?;
+                    match command {
+                        b'S' => pipe.write_all(b"S\n").map_err(|_| ())?,
+                        b'K' => {
+                            child.0.kill().map_err(|_| ())?;
+                        }
+                        b'B' => thread::sleep(Duration::from_secs(5)),
+                        b'X' => std::process::exit(73),
+                        _ => return Err(()),
+                    }
+                }
+                Err(mpsc::TryRecvError::Disconnected) => return Err(()),
+                Err(mpsc::TryRecvError::Empty) => (),
+            }
         }
         let result = (|| {
             loop {

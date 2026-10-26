@@ -9,6 +9,7 @@ const binary = process.argv.find((arg) => arg.startsWith('--lab-binary='))?.slic
 const agentBridge = process.argv.includes('--lab-agent-bridge')
 const agentManifest = agentBridge ? JSON.parse(fs.readFileSync(path.join(work, 'agent-manifest.json'), 'utf8')) : null
 const supervisor = process.argv.find((arg) => arg.startsWith('--lab-supervisor='))?.slice(17)
+const linuxBroker = process.argv.includes('--lab-linux-broker')
 const linuxVm = process.argv.find((arg) => arg.startsWith('--lab-linux-vm='))?.slice(15)
 const linuxLauncher = process.argv.find((arg) => arg.startsWith('--lab-linux-launcher='))?.slice(21)
 const failureCommands = { 'worker-stall': 'S', 'worker-crash': 'K', 'supervisor-stall': 'B', 'supervisor-crash': 'X' }
@@ -85,7 +86,7 @@ ipcMain.handle('lab-offer', async (event, name, offer) => {
     fs.writeFileSync(path.join(stateDirectory, 'absor-webrtc-lab'), 'synthetic-only', { mode: 0o600, flag: 'wx' })
     fs.writeFileSync(path.join(stateDirectory, 'attempts.json'), JSON.stringify({ schema: 1, failures: [], locked_until: null, last_seen: 0 }), { mode: 0o600, flag: 'wx' })
     agentPath = path.join(directory, 'agent-config.json')
-    fs.writeFileSync(agentPath, JSON.stringify({ origin: entry.origin, credential: entry.credential, stateDirectory, apiSignaling: Boolean(entry.apiSignaling), ...(linuxVm && name === 'linux-locked' ? { lockedFixture:true } : {}) }), { mode: 0o600, flag: 'wx' })
+    fs.writeFileSync(agentPath, JSON.stringify({ origin: entry.origin, credential: entry.credential, stateDirectory, apiSignaling: Boolean(entry.apiSignaling), ...(linuxVm && name === 'linux-locked' ? { lockedFixture:true } : {}), ...(linuxBroker ? { brokerFixture:true } : {}) }), { mode: 0o600, flag: 'wx' })
   }
   let signalUrl
   if (agentManifest?.[name]?.apiSignaling) {
@@ -184,7 +185,7 @@ ipcMain.handle('lab-result', async (event, name, controller) => {
 ipcMain.handle('lab-done', (event, result) => {
   if (event.sender !== window?.webContents) throw new Error('Emisor inválido')
   const report = { ...result, electron: process.versions.electron, chromium: process.versions.chrome,
-    videoTested: Boolean(linuxVm) && result.ok, fixtureOnly: Boolean(linuxVm), nativeWorkerConnected: Boolean(linuxVm) && result.ok, systemdUserServiceTested: Boolean(linuxVm) && result.ok, rustAuthenticationTested: agentBridge, apiRenewalTested: agentBridge && result.ok, apiSignalingTested: Boolean(agentManifest?.correct?.apiSignaling) && result.ok, supervisorTested: Boolean(supervisor) && result.ok, syntheticVideoTested: syntheticVideo && !linuxVm, turnTested: relayOnly && result.ok, relayPolicy: relayOnly ? (relayController ? 'controller' : 'both') : 'none', mobileTested: false, readyForUnattended: false }
+    videoTested: Boolean(linuxVm) && result.ok, fixtureOnly: Boolean(linuxVm), nativeWorkerConnected: Boolean(linuxVm) && result.ok, systemdUserServiceTested: Boolean(linuxVm) && !linuxBroker && result.ok, systemdSystemServiceTested: linuxBroker && result.ok, rustAuthenticationTested: agentBridge, apiRenewalTested: agentBridge && result.ok, apiSignalingTested: Boolean(agentManifest?.correct?.apiSignaling) && result.ok, supervisorTested: Boolean(supervisor) && result.ok, syntheticVideoTested: syntheticVideo && !linuxVm, turnTested: relayOnly && result.ok, relayPolicy: relayOnly ? (relayController ? 'controller' : 'both') : 'none', mobileTested: false, readyForUnattended: false }
   fs.writeFileSync(path.join(work, 'interop-results.json'), JSON.stringify(report, null, 2) + '\n', { mode: 0o600 })
   console.log(JSON.stringify(report))
   setImmediate(() => { cleanup(); app.exit(result.ok ? 0 : 1) })

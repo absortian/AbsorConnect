@@ -8,6 +8,7 @@ use std::{collections::VecDeque, time::Duration};
 
 pub(crate) struct ApiSignaling {
     lane: SignalingLane,
+    requested: Option<String>,
     selected: Option<PendingRequest>,
     ice: Option<IceConfiguration>,
     ice_started: Option<Duration>,
@@ -20,9 +21,10 @@ pub(crate) struct ApiSignaling {
     busy_inflight: Option<String>,
 }
 impl ApiSignaling {
-    pub(crate) fn new(lane: SignalingLane) -> Self {
+    pub(crate) fn new(lane: SignalingLane, requested: Option<String>) -> Self {
         Self {
             lane,
+            requested,
             selected: None,
             ice: None,
             ice_started: None,
@@ -72,7 +74,9 @@ impl ApiSignaling {
             return Ok(());
         }
         for request in requests {
-            if self.selected.is_none() {
+            if self.selected.is_none()
+                && self.requested.as_ref().map_or(true, |id| id == &request.id)
+            {
                 self.selected = Some(request);
             } else if self.selected.as_ref().is_some_and(|v| v.id == request.id)
                 || self.busy.contains(&request.id)
@@ -183,7 +187,7 @@ mod tests {
     #[test]
     fn offer_is_consumed_once_and_answer_confirmation_precedes_authentication() {
         let calls = Arc::new(AtomicU64::new(0));
-        let mut state = ApiSignaling::new(SignalingLane::new(Source(calls.clone())));
+        let mut state = ApiSignaling::new(SignalingLane::new(Source(calls.clone())), None);
         state.poll(vec![request(1), request(2)], true).unwrap();
         assert!(state.answer("early".into()).is_err());
         let deadline = Instant::now() + Duration::from_secs(2);
@@ -206,5 +210,14 @@ mod tests {
             thread::sleep(Duration::from_millis(1));
         }
         assert_eq!(calls.load(Ordering::SeqCst), 11);
+    }
+    #[test]
+    fn pinned_request_never_selects_another_offer() {
+        let calls = Arc::new(AtomicU64::new(0));
+        let mut state = ApiSignaling::new(SignalingLane::new(Source(calls)), Some(request(2).id));
+        state.poll(vec![request(1)], true).unwrap();
+        assert!(state.selected.is_none());
+        state.poll(vec![request(1), request(2)], true).unwrap();
+        assert_eq!(state.selected.as_ref().unwrap().offer, "offer-2");
     }
 }

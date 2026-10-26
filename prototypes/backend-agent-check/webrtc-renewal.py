@@ -29,7 +29,9 @@ def main():
     parser.add_argument('--api-base', default=BASE)
     parser.add_argument('--x11-worker-vm', type=Path)
     parser.add_argument('--linux-webrtc-vm', type=Path)
+    parser.add_argument('--linux-broker', action='store_true')
     args = parser.parse_args()
+    assert not args.linux_broker or args.linux_webrtc_vm, 'broker_requires_linux_vm'
     assert not (args.x11_worker_vm and args.linux_webrtc_vm), 'choose_separate_or_joined_worker'
     uri = urlsplit(args.api_base)
     assert uri.scheme == 'http' and uri.hostname == '127.0.0.1' and uri.port and 1024 <= uri.port <= 65535 and not (uri.username or uri.password or uri.query or uri.fragment) and uri.path in ['', '/'], 'api_must_be_local_loopback'
@@ -190,7 +192,8 @@ def main():
         try:
             child = subprocess.Popen([args.node, str(ROOT/'prototypes/remote-desktop/webrtc-check/run-interop.cjs'),
                                       str(lab), '--agent-config', str(manifest_path)]
-                                     + (['--linux-vm', str(args.linux_webrtc_vm)] if args.linux_webrtc_vm else ['--supervised']), cwd=ROOT,
+                                     + (['--linux-vm', str(args.linux_webrtc_vm)] if args.linux_webrtc_vm else ['--supervised'])
+                                     + (['--linux-broker'] if args.linux_broker else []), cwd=ROOT,
                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
             try:
                 stdout, stderr = child.communicate(timeout=170)
