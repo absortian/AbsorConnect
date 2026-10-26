@@ -1,0 +1,44 @@
+[Unit]
+Description=AbsorConnect unprivileged IPC protocol worker laboratory
+Requires=absorconnect-secure-lab.socket
+After=absorconnect-secure-lab.socket
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=exec
+User=absorlab
+Group=absorlab
+UMask=0077
+ExecStart=/opt/absorconnect-secure-lab/absor-ipc-worker-lab
+RuntimeDirectory=absorconnect-ipc-worker-lab
+RuntimeDirectoryMode=0700
+# Mantener el informe hasta que lo recupere el lanzador; retirada explícita al terminar.
+RuntimeDirectoryPreserve=yes
+Restart=on-failure
+RestartSec=1s
+SuccessExitStatus=77
+RestartPreventExitStatus=77 78
+TimeoutStopSec=3s
+KillMode=control-group
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+RestrictAddressFamilies=AF_UNIX
+IPAddressDeny=any
+LimitCORE=0
+LimitFSIZE=2097152
+MemoryMax=96M
+TasksMax=16
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,130 @@
+{
+  "schema": 1,
+  "cases": [
+    {
+      "case": "failed-local-seal-retires-native-enrollment-and-removes-partial-storage",
+      "passed": true
+    },
+    {
+      "case": "native-one-use-enrollment-encrypted-storage",
+      "passed": true,
+      "brokerUidDifferentFromWorker": true,
+      "accountTokenSentToService": false
+    },
+    {
+      "case": "worker-cannot-read-secret-files-proc-or-replace-root-socket",
+      "passed": true
+    },
+    {
+      "case": "foreign-uid-and-unregistered-same-uid-pid-denied",
+      "passed": true
+    },
+    {
+      "case": "unique-key-proof-required-and-proof-replay-closes-diagnostic-session",
+      "passed": true
+    },
+    {
+      "case": "frame-sequence-replay-and-worker-restart-do-not-revive-session",
+      "passed": true
+    },
+    {
+      "case": "broker-crash-drops-authority-and-recovery-requires-new-proof",
+      "passed": true
+    },
+    {
+      "case": "api-expiry-and-restoration-require-new-proof",
+      "passed": true,
+      "denialObservedMilliseconds": 30111,
+      "observationIncludesSshRoundTrips": true
+    },
+    {
+      "case": "lockout-survives-service-and-worker-restart-without-state-reset",
+      "passed": true
+    },
+    {
+      "case": "tampered-encrypted-configuration-fails-closed-without-erasing-lockout",
+      "passed": true
+    },
+    {
+      "case": "missing-corrupt-attempt-store-and-wrong-wrapping-key-never-reset-state",
+      "passed": true
+    },
+    {
+      "case": "worker-and-audit-contain-no-host-key-agent-token-or-account-token",
+      "passed": true
+    },
+    {
+      "case": "real-api-revocation-is-terminal-across-service-restart",
+      "passed": true
+    },
+    {
+      "case": "reversible-removal-of-service-account-socket-state-and-secrets",
+      "passed": true,
+      "lightdmModified": false
+    }
+  ],
+  "productionTested": false,
+  "captureTested": false,
+  "inputTested": false,
+  "realDtlsBindingTested": false,
+  "physicalMachinesTested": false,
+  "credentialsGeneratedUniquely": true,
+  "accountRemoved": true,
+  "matrixPassed": true,
+  "serviceRemoved": true,
+  "artifactHashes": {
+    "absor-secure-broker-lab": "7637a098dacb946a6fc979eb6e1bffd97fb6d4c0fdc7c6664be63c088b56ce45",
+    "absor-secret-provision-lab": "846d86158267a0836f366e5ec14841c92e170e58831fccb4ff91a260cfd93297",
+    "absor-ipc-worker-lab": "a1b19f92c23338d0c0590d4dc23d79adb9c2b0a6a783031d7f3ec78c1c98be1a",
+    "absorconnect-secure-lab.service": "e003badc8619e6ae3f202344df47825ca1306c9b08809b0f346a467773f650c0",
+    "absorconnect-ipc-worker-lab.service": "984cbe35e072e0890eb8a05fa1a63767137040b399710b2da9b869f4eca8273c",
+    "absorconnect-secure-lab.socket": "a36677cff3914a8d3f3973e82d8b6ae8a4f66138fe2c0dd5df42885849653bad"
+  },
+  "date": "2026-10-27",
+  "scope": "Linux VM protocol diagnostic; separate from native WebRTC worker",
+  "acceptedTasks": 10,
+  "totalTasks": 57,
+  "acceptedPercent": 18,
+  "phpRuntime": "8.5.12",
+  "apiIsolated": true,
+  "physicalPilotDeferred": true,
+  "regressions": {
+    "linuxNativeP2PCases": 6,
+    "macSyntheticP2PCases": 9,
+    "allPassed": true,
+    "newProtectedIpcUsedForP2P": false
+  },
+  "localChecks": {
+    "typecheck": true,
+    "vitestPassed": 276,
+    "vitestSkipped": 5,
+    "phpunitTests": 162,
+    "phpunitAssertions": 1077,
+    "rustMacDefaultTests": 54,
+    "rustMacAllFeatureTests": 76,
+    "rustLinuxDefaultTests": 59,
+    "rustLinuxAllFeatureTests": 84,
+    "rustFmtClippyDefaultAndAllFeatureRelease": true
+  },
+  "sourceSha256": {
+    "agent/crates/agent-api/src/enrollment.rs": "5c469b21b8c47852ef6e2fbb22277fd78c4357a3ecba38f006a5ee26900f306f",
+    "agent/crates/agent-api/src/http.rs": "7b86304bc1c7af59bf82ee5feb274f0c2ad06c9112e74531b8d564ab0bfd5a5e",
+    "agent/crates/agent-api/src/lib.rs": "5b04e2b13116bb130f92362fbca180f47b37bb6e98c408703b1fd5fe14f21d29",
+    "agent/crates/agent-broker/src/secure_linux.rs": "4dc4eeb6bad254553f58fa12cc65ec76d9269da7755d7de0da6b2f9f15756a1d",
+    "agent/crates/agent-broker/src/secure_main.rs": "74447f372eff770587953cb066f62edc9860899db41c472808b3e3aca99cbe9f",
+    "agent/crates/agent-security/Cargo.toml": "80a12bcc3184964e39ef322fe93af8b673d39ae31c82dba06d3c0fc911c845a0",
+    "agent/crates/agent-security/src/lib.rs": "0516fda38f2535ad95b38863842fbeb0f3d25d3d67737411341131cee2278b3a",
+    "agent/crates/agent-security/src/linux.rs": "f2affd0cec881a5c3ef0e1b354a44f3651c9480068a9ed1c7d43d290e7c8b7e4",
+    "agent/crates/agent-security/src/provision.rs": "c81e312b6fc3a093d9923f3ad66e765454a5ff7fea560acac97fcebce2667f9d",
+    "agent/crates/agent-security/src/secrets.rs": "f7e61489110439d9d1d116c26e565b8c9079b0219669c1be538eab65ce9f1b2a",
+    "agent/crates/agent-security/src/wire.rs": "03e9097293841f9b174ecb5f8da91b1788119f62220aac5dfe4ec5e71aa0c878",
+    "agent/crates/agent-security/src/worker.rs": "580e671b5c61c958fa099be48ca586aeaf5ce0d7cf4df31c1a730e9e8d742f38",
+    "agent/linux-secure-lab/README.md": "08a232d42103b7e188a9986970a96ce02ba00f23b483061ec7239970a9b1354c",
+    "agent/linux-secure-lab/absorconnect-ipc-worker-lab.service": "984cbe35e072e0890eb8a05fa1a63767137040b399710b2da9b869f4eca8273c",
+    "agent/linux-secure-lab/absorconnect-secure-lab.service": "e003badc8619e6ae3f202344df47825ca1306c9b08809b0f346a467773f650c0",
+    "agent/linux-secure-lab/absorconnect-secure-lab.socket": "a36677cff3914a8d3f3973e82d8b6ae8a4f66138fe2c0dd5df42885849653bad",
+    "agent/linux-secure-lab/install-vm.py": "146558fcfbe24ebb40111df5de94a5cd06035a82b400836806f991bdafa6742c",
+    "prototypes/backend-agent-check/isolated-webrtc-renewal.py": "c69b601fa0ab886236954349f86994bedf53d8f9c15e4c1b3f24419a9ddc04b4",
+    "prototypes/backend-agent-check/secure-ipc-check.py": "3a0665d118dfcb6cdf32d6a553af07538f7f3c7a423706f5746e68ffa54ac947"
+  }
+}

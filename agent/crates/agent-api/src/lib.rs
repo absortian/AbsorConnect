@@ -1,5 +1,6 @@
 //! Renovación asíncrona respecto al actor del broker, con una sola consulta en vuelo.
 #![forbid(unsafe_code)]
+pub mod enrollment;
 pub mod http;
 pub mod signaling;
 use absor_agent_core::clock::Clock;
@@ -21,6 +22,7 @@ pub struct RenewingAgent<C: Clock + Clone, S: Session> {
     responses: Receiver<Result<Authorization, ApiError>>,
     pending: Option<ValidationTicket>,
     next_request: Duration,
+    terminal_error: Option<ApiError>,
 }
 
 impl<C: Clock + Clone, S: Session> RenewingAgent<C, S> {
@@ -43,6 +45,7 @@ impl<C: Clock + Clone, S: Session> RenewingAgent<C, S> {
             responses,
             pending: None,
             next_request: Duration::ZERO,
+            terminal_error: None,
         }
     }
 
@@ -76,6 +79,7 @@ impl<C: Clock + Clone, S: Session> RenewingAgent<C, S> {
                         self.next_request = now.saturating_add(POLL_INTERVAL);
                     }
                     Err(ApiError::Revoked) => {
+                        self.terminal_error = Some(ApiError::Revoked);
                         self.gate.revoke();
                         return Err(Denied::Stopped);
                     }
@@ -111,6 +115,10 @@ impl<C: Clock + Clone, S: Session> RenewingAgent<C, S> {
         }
         progress.next_wake = wait;
         Ok(progress)
+    }
+
+    pub fn terminal_error(&self) -> Option<ApiError> {
+        self.terminal_error
     }
 
     pub fn check_authorization(&mut self) -> Result<(), Denied> {

@@ -28,7 +28,9 @@ name = "absor-agent-broker"
 version = "0.1.0"
 dependencies = [
  "absor-agent-api",
+ "absor-agent-auth",
  "absor-agent-core",
+ "absor-agent-security",
  "absor-agent-supervisor",
  "serde",
  "serde_json",
@@ -37,6 +39,20 @@ dependencies = [
 [[package]]
 name = "absor-agent-core"
 version = "0.1.0"
+
+[[package]]
+name = "absor-agent-security"
+version = "0.1.0"
+dependencies = [
+ "absor-agent-api",
+ "absor-agent-auth",
+ "absor-agent-core",
+ "base64",
+ "libc",
+ "ring",
+ "serde",
+ "serde_json",
+]
 
 [[package]]
 name = "absor-agent-supervisor"

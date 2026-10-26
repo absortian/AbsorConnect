@@ -130,6 +130,7 @@ fn revoked_backend_response_cuts_current_session_immediately() {
         assert!(Instant::now() < deadline);
         std::thread::sleep(Duration::from_millis(1));
     }
+    assert_eq!(agent.terminal_error(), Some(ApiError::Revoked));
     assert_eq!(*closed.lock().unwrap(), [CloseReason::Revoked]);
     assert_eq!(agent.with_session(&handle, |_| ()), Err(Denied::Stopped));
 }

@@ -24,6 +24,11 @@ pub enum ApiError {
 
 pub struct Credential(String);
 impl Credential {
+    /// Consumo explícito para el almacén cifrado del instalador; nunca RPC/logs.
+    pub fn into_provisioning_secret(self) -> String {
+        self.0
+    }
+
     pub fn new(value: String) -> Result<Self, ApiError> {
         if value.len() != 47
             || !value.starts_with("acg_")
@@ -75,7 +80,7 @@ struct WireResponse {
 }
 
 // La fecha es metadato de API; nunca se usa como reloj de autorización local.
-fn utc_timestamp(value: &str) -> bool {
+pub(crate) fn utc_timestamp(value: &str) -> bool {
     let b = value.as_bytes();
     (b.len() == 20 && b[19] == b'Z' || b.len() == 25 && &b[19..] == b"+00:00")
         && b[..19].iter().enumerate().all(|(i, byte)| match i {
@@ -137,6 +142,36 @@ pub struct AgentApi {
     origin: Url,
 }
 
+pub(crate) fn configured_client(origin: &str, lab: bool) -> Result<(ureq::Agent, Url), ApiError> {
+    let url = Url::parse(origin).map_err(|_| ApiError::InvalidConfiguration)?;
+    let local = lab
+        && origin.starts_with("http://127.0.0.1:")
+        && url.host_str() == Some("127.0.0.1")
+        && url.port().is_some();
+    if lab && !local
+        || origin.len() > 2048
+        || (!local && !origin.starts_with("https://"))
+        || url.host_str().is_none()
+        || !url.username().is_empty()
+        || url.password().is_some()
+        || url.path() != "/"
+        || url.query().is_some()
+        || url.fragment().is_some()
+    {
+        return Err(ApiError::InvalidConfiguration);
+    }
+    let client = ureq::AgentBuilder::new()
+        .https_only(!local)
+        .redirects(0)
+        .try_proxy_from_env(false)
+        .timeout_connect(Duration::from_secs(2))
+        .timeout(REQUEST_TIMEOUT)
+        .max_idle_connections(0)
+        .user_agent("AbsorConnectAgent/0.1.0")
+        .build();
+    Ok((client, url))
+}
+
 impl AgentApi {
     /// El origen viene de configuración protegida del instalador, no del controlador.
     pub fn new(origin: &str, credential: Credential) -> Result<Self, ApiError> {
@@ -149,37 +184,21 @@ impl AgentApi {
         Self::create(origin, credential, true)
     }
 
-    fn create(origin: &str, credential: Credential, lab: bool) -> Result<Self, ApiError> {
-        let url = Url::parse(origin).map_err(|_| ApiError::InvalidConfiguration)?;
-        let local = lab
-            && origin.starts_with("http://127.0.0.1:")
-            && url.host_str() == Some("127.0.0.1")
-            && url.port().is_some();
-        if lab && !local
-            || origin.len() > 2048
-            || (!local && !origin.starts_with("https://"))
-            || url.host_str().is_none()
-            || !url.username().is_empty()
-            || url.password().is_some()
-            || url.path() != "/"
-            || url.query().is_some()
-            || url.fragment().is_some()
-        {
-            return Err(ApiError::InvalidConfiguration);
+    /// Baja limitada al UUID propio; destinada a revertir un alta local fallida.
+    pub fn retire_enrolled_host(&mut self, id: &str) -> Result<(), ApiError> {
+        if !uuid(id) {
+            return Err(ApiError::InvalidRequest);
         }
+        self.signal_request("DELETE", &format!("api/devices/{id}/agent"), None)
+            .map(|_| ())
+    }
+
+    fn create(origin: &str, credential: Credential, lab: bool) -> Result<Self, ApiError> {
+        let (client, url) = configured_client(origin, lab)?;
         let endpoint = url
             .join("api/host-agent/remote-requests")
             .map_err(|_| ApiError::InvalidConfiguration)?
             .to_string();
-        let client = ureq::AgentBuilder::new()
-            .https_only(!local)
-            .redirects(0)
-            .try_proxy_from_env(false)
-            .timeout_connect(Duration::from_secs(2))
-            .timeout(REQUEST_TIMEOUT)
-            .max_idle_connections(0)
-            .user_agent("AbsorConnectAgent/0.1.0")
-            .build();
         Ok(Self {
             client,
             endpoint,
@@ -238,7 +257,7 @@ impl AgentApi {
                         .unwrap_or(3),
                 )))
             }
-            204 if method == "PUT" => return Ok(vec![]),
+            204 if method == "PUT" || method == "DELETE" => return Ok(vec![]),
             200 if method == "GET" => (),
             _ => return Err(ApiError::Unavailable),
         }

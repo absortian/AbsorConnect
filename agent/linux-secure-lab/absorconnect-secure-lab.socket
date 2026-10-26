@@ -1,0 +1,17 @@
+[Unit]
+Description=AbsorConnect protected IPC laboratory socket
+PartOf=absorconnect-secure-lab.service
+
+[Socket]
+ListenStream=/run/absorconnect-secure-lab/control.sock
+SocketUser=absorconnect-lab
+SocketGroup=absorlab
+SocketMode=0660
+DirectoryMode=0755
+RemoveOnStop=yes
+Accept=no
+Service=absorconnect-secure-lab.service
+Backlog=8
+
+[Install]
+WantedBy=sockets.target

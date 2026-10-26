@@ -2391,3 +2391,60 @@ La revisión Mac no cambia. Producción continúa **0.4.1**, sin release ni agen
 final desplegados. Se retiraron cuentas, contenedores/BD, archivos de entorno,
 servicios, marcador y credenciales; la VM volvió al escritorio. Resultados y
 hashes de fuentes/artefactos/evidencia en `linux-broker-results.json`.
+
+### 27/10/2026 — credenciales únicas e IPC protegido, sonda Linux en VM
+
+Se añade el crate `agent-security` y los binarios optativos
+`absor-secret-provision-lab`, `absor-secure-broker-lab` y
+`absor-ipc-worker-lab`, compilados solo con `protected-ipc-lab`. No se
+incluyen en la app/release. La API normal conserva HTTPS obligatorio; la
+excepción HTTP sigue limitada explícitamente a loopback del laboratorio.
+
+El instalador nativo canjea `ace_` por una credencial real de la API efímera y
+cifra esa credencial/K única con AES-256-GCM. La cuenta del servicio no es root
+ni el UID del escritorio. Root guarda clave envolvente/configuración; systemd
+entrega copias mediante `LoadCredential`. El trabajador no recibe esos secretos.
+Se comprueban identidad del kernel y PID de la unidad root, permisos de socket,
+esquemas cerrados, secuencia, límites y vencimiento de mensajes parciales.
+No se confía en identificadores declarados por el emisor.
+
+El lanzador usa Symfony/Postgres aislados, cuenta/host únicos y clave privada
+exclusiva de la VM propia. Retira cuenta API, sistema/cuenta/socket/estado/secretos
+y contenedor/BD. No modifica LightDM, PAM, Xauthority, polkit o SSH y no reinicia
+el Mac anfitrión. La colisión de escritura posterior al canje provoca una baja
+real en backend y retirada del almacenamiento parcial. Red caída o muerte del
+instalador siguen necesitando reconciliación del propietario en la migración
+final, que no se da por terminada.
+
+Casos de la matriz: alta única; compensación; lecturas de secretos y `/proc`
+denegadas con NNP; sustitución de socket denegada; UID ajeno/PID ajeno del mismo
+UID rechazados; prueba correcta/incorrecta/repetida; secuencia repetida;
+reinicio del trabajador sin resucitar sesión; pérdida/recuperación de API;
+bloqueo persistente entre reinicios; blob manipulado; clave envolvente errónea;
+registro de intentos ausente/corrupto; ausencia de secretos en trabajador y
+auditoría; revocación terminal entre reinicios y retirada reversible. El número
+de casos agrupados y sus resultados están en `protected-ipc-results.json`.
+La observación de caducidad incluye viajes SSH; no se usa ese tiempo observado
+como una nueva certificación de corte de captura/entrada ≤30 segundos.
+
+**Límite de aceptación:** esta sonda solo incrementa un contador y mantiene
+`os_operations_enabled=false`. Usa huellas fijas de diagnóstico, no una
+PeerConnection real. La integración P2P/X11 anterior sigue separada y conserva
+su clave pública de pruebas. Aún hay que unir el IPC al trabajador nativo,
+conservar la identidad DTLS, conectar el corte independiente, implementar
+migración/instaladores finales y las protecciones Windows/Mac. No se cierra
+3.2, 6.4 o 7.2; se conserva **10/57 (18%)**. Producción continúa en 0.4.1 y
+el piloto físico sigue al final. No se certifican administración general,
+iOS/Android, TURN, prearranque ni nuevas versiones de Mac con esta prueba.
+
+Resultado final: **14/14 casos IPC** con retirada comprobada; **6/6 regresiones
+P2P Linux** de ventana propia y **9/9 Mac** de vídeo artificial. Typecheck,
+Vitest (276, 5 omitidas), PHPUnit (162/1077), rustfmt/clippy, pruebas Rust
+Mac (54 por omisión/76 con características) y Linux (59/84), y compilaciones
+release por omisión/con características correctos. La primera regresión Linux
+se detuvo antes del vídeo al no obtener autorización API; se retiró un marcador
+de laboratorio residual y se repitió desde sesión VM preparada. El lanzador
+nuevo conserva un marcador previo válido y elimina el suyo en la retirada.
+Los informes privados se congelan fuera del repo en
+`AbsorConnectLab/protected-ipc-evidence-20261027/`; el resumen público contiene
+hashes de artefactos/fuentes y deja explícita la separación entre IPC y P2P.
