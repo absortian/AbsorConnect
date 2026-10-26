@@ -2235,3 +2235,84 @@ procesos/IPC protegidos, captura general, contexto continuo, liberación tras
 muerte, servicios e instaladores de plataforma y aceptación física/móvil.
 La revisión Mac sigue vigente. **8/57 tareas aceptadas (14 %)**, sin cierre
 prematuro de 3.1/3.2/3.4/3.5/6.2.
+
+
+## 26/10/2026: trabajador Linux por WebRTC y gestión systemd en VM
+
+La variante optativa `native-fixture` une autorización API, v1/huellas DTLS,
+trabajador X11, VP8 y el canal `input` en el mismo recorrido Linux ARM/Electron.
+Son seis casos con backend real aislado: correcto, HMAC incorrecto, huella
+incorrecta, revocación, pérdida de API y Cinnamon bloqueado. Cada caso utiliza
+un proceso nuevo y las cinco cuentas efímeras existentes; no usa cuentas reales.
+El transporte fue directo `host`/`prflx`, sin TURN ni archivos SDP. El visor
+no recibió credenciales ni pudo leer rutas privadas/archivos locales.
+
+La prueba positiva decodificó la ventana roja de 320×180, envió por DataChannel
+botón izquierdo/KeyA con sus liberaciones y decodificó verde. Los cuatro eventos
+se observaron una sola vez; texto, otra tecla, duplicados y entrada previa al
+reto no generaron más operaciones nativas. HMAC/huella rechazados obtuvieron
+cero aperturas X11, capturas, entradas y frames. Con Cinnamon bloqueado se
+completó HMAC válido, se envió entrada y el trabajador terminó por
+`unlocked_cinnamon_required`: cero captura/entrada/frames y canal cerrado.
+El helper restauró automáticamente el escritorio solo de la VM.
+
+Revocación cerró el canal en **1531 ms**; pérdida de API en
+**28558 ms**. Ambos casos confirmaron cierre del trabajador nativo.
+El constructor consume la prueba pero espera `start()` dentro del gate antes
+de abrir X11. Una prueba nueva cancela antes de armarlo y comprueba cero acceso
+gráfico. El actor sigue sin esperar a Xlib; toda respuesta posterior a parada
+se descarta. La secuencia fija de entrada es un subconjunto de v1 de ensayo,
+no control general de teclado/ventanas ni una extensión activada en Flutter.
+
+Compilación: Clang de la revisión fijada en Mac genera ELF Linux ARM64;
+Rust 1.75/lld 18 en la VM usan el mismo sysroot oficial Bullseye ARM64.
+El enlace original detectó versiones glibc incompatibles; se alinearon SDK,
+rutas de biblioteca y linker sin permitir símbolos sin resolver. El sysroot
+conserva el SHA-256 oficial y el informe liga fuentes/artefactos por hash.
+Artefactos y salidas Linux/Mac separados; ABI por omisión ausente, siete
+funciones en la variante Mac y diez en `native-fixture`. El extremo C++ se compila explícitamente; solo el lanzador de la VM marcada
+ejecuta operaciones X11. Las pruebas unitarias/CI no abren acceso gráfico.
+
+Cada conexión se ejecutó bajo una unidad **systemd de usuario transitoria**,
+con supervisor y trabajador sin privilegios, `NoNewPrivileges`, runtime 0700,
+archivo 0600 con credencial efímera en tmpfs, límites de memoria/procesos,
+core dumps desactivados, máximo 65 segundos y `KillMode=control-group`.
+La unidad no reinicia conexiones. Las seis terminaron con código cero, sin
+actividad ni runtime posterior. El token de cuenta permaneció en el proxy del
+Mac; la señalización/API pasó por SSH y vídeo/entrada por WebRTC.
+
+Una prueba separada con procesos artificiales verificó un reinicio tras caída,
+parada explícita que queda detenida, muerte del hijo y retirada del runtime.
+UID 1000, `NoNewPrivs=1` y capacidades efectivas cero comprobados. Esto prueba
+el mecanismo systemd, no recuperación del agente con teclas retenidas.
+
+Los primeros ensayos no se contaron como éxito. El supervisor cortó al recibir
+EOF porque el lanzador cerraba stdin: se conserva esa protección y se mantiene
+abierto el pipe de vida. Se evitó el segundo SIGTERM durante la limpieza.
+El filtro de sockets bloqueaba `getifaddrs` (errno 97); una comprobación bajo
+systemd confirmó fallo sin Netlink y éxito al permitirlo. No se concedió
+CAP_NET_ADMIN ni se cambiaron interfaces/rutas. El supervisor registra solo
+una etapa numérica en fallos tempranos, sin argumentos o configuración.
+
+Rust pasó **43/61 pruebas en Mac** y **43/64 en Linux ARM**, formato, Clippy
+sin advertencias y ambos releases. La regresión Mac conserva nueve casos de
+API/DTLS/vídeo artificial/watchdogs; la anterior sin API pasó tres. TypeScript,
+Vitest **276/5 omitidas**, PHPUnit **162/1077 aserciones**, sintaxis y OpenSpec
+estricto correctos. CI amplía formato/análisis/pruebas/releases a los tres SO;
+no ejecuta captura en esos runners.
+
+Se acepta **3.4** por sus criterios del núcleo común: reloj/red simulados
+(caducidad exacta, RTT descontado, suspensión, respuesta tardía, renovación y
+recuperación con sesión nueva), rechazo sin permiso y corte P2P real ≤30 s con
+trabajador integrado. La señalización no renueva el permiso y una concesión
+nueva no rehabilita el transporte anterior. La prueba Mac también verifica
+que un agente revocado o sin API no crea otra PeerConnection.
+
+**9/57 tareas completas (16 %)**. Siguen abiertas 3.1/3.2/3.5/6.1/6.2: broker
+persistente, IPC/almacén protegidos, servicio de sistema y LightDM, captura/entrada
+generales, transición continua y liberación desde otro proceso tras muerte.
+Sin certificado de agente final, TURN/móviles o piloto físico para esta variante.
+La revisión Mac sigue vigente. Se retiraron cuentas, contenedores/BD/entorno,
+credenciales temporales, unidades y marcador; no cambian límites compartidos.
+No se publica release ni se instala agente en producción, que continúa 0.4.1.
+Evidencia acotada y hashes en `linux-webrtc-service-results.json`.

@@ -1,5 +1,6 @@
 declare_args() {
   absor_rust_bridge = false
+  absor_linux_fixture = false
 }
 
 import("//webrtc.gni")
@@ -48,8 +49,16 @@ if (absor_rust_bridge) {
 rtc_executable("rust_video_channel_check") {
   sources = [ "channel_check.cc", "synthetic_video.h", "absor_bridge.h" ]
   defines = [ "ABSOR_SYNTHETIC_VIDEO", "ABSOR_RUST_BRIDGE" ]
-  libs = [ "//absor_connect_probe/libabsor_agent_webrtc_lab.dylib" ]
-  ldflags = [ "-Wl,-rpath,@executable_path/../../absor_connect_probe" ]
+  if (absor_linux_fixture) {
+    assert(is_linux && current_cpu == "arm64")
+    sources += [ "native_fixture_video.h" ]
+    defines += [ "ABSOR_NATIVE_FIXTURE" ]
+    libs = [ "//absor_connect_probe/libabsor_agent_webrtc_lab.so" ]
+    ldflags = [ "-Wl,-rpath,\$ORIGIN/../../absor_connect_probe" ]
+  } else {
+    libs = [ "//absor_connect_probe/libabsor_agent_webrtc_lab.dylib" ]
+    ldflags = [ "-Wl,-rpath,@executable_path/../../absor_connect_probe" ]
+  }
   deps = [
     "//api/units:time_delta",
     "//api:create_modular_peer_connection_factory",

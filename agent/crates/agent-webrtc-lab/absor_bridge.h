@@ -23,6 +23,14 @@ int32_t absor_bridge_hello(uint64_t id, const uint8_t* offer, size_t offer_lengt
     const uint8_t* answer, size_t answer_length, uint8_t* out, size_t capacity);
 // Una prueba: 1 aceptada y autorizada, 0 incorrecta, negativo error/parado.
 int32_t absor_bridge_auth(uint64_t id, const uint8_t* proof, size_t length);
+// Solo native-fixture: RGB 320x180, capacidad EXACTA 172800. 0 pendiente,
+// 172800 frame propio autenticado/autorizado, negativo denegado o fallo terminal.
+int32_t absor_bridge_native_frame(uint64_t id, uint8_t* out, size_t capacity);
+// Subconjunto fijo del canal input v1, máximo 128 bytes. No acepta texto,
+// teclas arbitrarias o otra ventana. Solo un clic/KeyA completos por sesión.
+int32_t absor_bridge_native_input(uint64_t id, const uint8_t* input, size_t length);
+// Diagnóstico sin píxeles/credenciales; capacidad EXACTA 1024, longitud o error.
+int32_t absor_bridge_native_status(uint64_t id, uint8_t* out, size_t capacity);
 // Cierre idempotente por identificador; no se reutilizan identificadores.
 void absor_bridge_close(uint64_t id);
 #ifdef __cplusplus

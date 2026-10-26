@@ -103,15 +103,30 @@ una ventana propia pública, un clic y tecla fija; no selecciona otro XID ni
 acepta texto/comandos arbitrarios. Exige prueba v1, permiso API y contexto X11
 propio desbloqueado. Un error es terminal y parar marca un flag sin bloquear
 al actor. El driver comprueba caducidad real de API y arranque rechazado con
-Cinnamon activo. No es todavía el trabajador P2P Linux separado de D1 ni un
-servicio systemd; faltan integración del flujo y entrada sostenida/liberación
-por otro proceso tras caída. No cambia la revisión pendiente del agente Mac.
+Cinnamon activo. La variante optativa `native-fixture` conecta ahora esos frames y el pulso fijo
+al trabajador C++/DTLS Linux, bajo el gate renovable de la misma conexión. El
+constructor espera a `start()` dentro del gate antes de abrir X11. La fuente
+convierte RGB a I420/VP8; el canal `input` conserva los tipos v1 y solo admite
+una secuencia izquierda/KeyA completa por sesión. No anuncia entrada general.
+
+Se compila un ELF ARM64 desde Mac con Clang fijado y el sysroot oficial
+Bullseye; Rust/lld en la VM usan la misma base, sin relajar símbolos. Los
+artefactos Linux/Mac y sus hashes son independientes. El lanzador ejecuta una
+unidad transitoria systemd de usuario por conexión, sin privilegios, con
+runtime tmpfs privado, límites y retirada automática. El pipe de vida se
+mantiene abierto; cerrarlo es un fallo terminal, no un reinicio de conexión.
+Netlink se permite para descubrir interfaces, sin capacidades administrativas.
+Una prueba separada de procesos artificiales verifica recuperación limitada y
+parada explícita/cgroup. No sustituye al broker persistente ni a systemd de
+sistema de D1; faltan entrada sostenida/liberación tras caída, IPC/almacén
+protegidos y contextos LightDM. No cambia la revisión pendiente del agente Mac.
 
 ### D4. Secretos, IPC y traspaso transaccional
 
 El diagnóstico `agent-webrtc-lab` enlaza verificador, renovación y trabajador
 C++ con una ABI C optativa ausente en el build por omisión. Solo HTTP loopback,
-credenciales efímeras y K pública del vector; nunca debe instalarse como servicio.
+credenciales efímeras y K pública del vector; no debe distribuirse como servicio final.
+La unidad transitoria de usuario es exclusiva de la VM de laboratorio.
 Un registro acotado de identificadores no reutilizados sustituye punteros de
 instancia en la ABI. `unsafe` se limita a buffers válidos del llamador C++
 compilado; no es una interfaz apta para IPC o entrada directa de red.

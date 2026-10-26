@@ -39,6 +39,9 @@
 // GN también analiza la variante sin medios; este include solo existe en video_channel_check.
 #include "synthetic_video.h"  // nogncheck
 #endif
+#ifdef ABSOR_NATIVE_FIXTURE
+#include "native_fixture_video.h"  // nogncheck
+#endif
 
 namespace {
 using BoolResult = std::shared_ptr<std::promise<bool>>;
@@ -103,6 +106,19 @@ class Answer : public webrtc::CreateSessionDescriptionObserver {
   Result result_;
 };
 
+#ifdef ABSOR_NATIVE_FIXTURE
+class FixtureInput final : public webrtc::DataChannelObserver {
+ public:
+  explicit FixtureInput(std::function<void(std::string)> receive) : receive_(std::move(receive)) {}
+  void OnStateChange() override {}
+  void OnMessage(const webrtc::DataBuffer& buffer) override {
+    if (!buffer.binary && buffer.size() > 0 && buffer.size() <= 128)
+      receive_(std::string(reinterpret_cast<const char*>(buffer.data.data()), buffer.size()));
+  }
+ private:
+  std::function<void(std::string)> receive_;
+};
+#endif
 class Observer final : public webrtc::PeerConnectionObserver, public webrtc::DataChannelObserver {
  public:
   explicit Observer(webrtc::Thread* signaling, bool server_candidates
@@ -160,6 +176,22 @@ class Observer final : public webrtc::PeerConnectionObserver, public webrtc::Dat
     }
   }
   void OnDataChannel(webrtc::scoped_refptr<webrtc::DataChannelInterface> incoming) override {
+#ifdef ABSOR_NATIVE_FIXTURE
+    if (incoming->label() == "input" && !input_channel_) {
+      input_channel_ = std::move(incoming);
+      input_observer_ = std::make_unique<FixtureInput>([this](std::string text) {
+        // Comprobar también al recibir: una entrada previa al reto no se encola
+        // para ejecutarse después de autenticar.
+        if (!authenticated || detached_) return;
+        signaling_->PostTask([this, text = std::move(text)] {
+          if (!authenticated || detached_) return;
+          absor_bridge_native_input(bridge_, reinterpret_cast<const uint8_t*>(text.data()), text.size());
+        });
+      });
+      input_channel_->RegisterObserver(input_observer_.get());
+      return;
+    }
+#endif
     if (channel || incoming->label() != "control") {
       incoming->Close();
       return;
@@ -238,6 +270,14 @@ class Observer final : public webrtc::PeerConnectionObserver, public webrtc::Dat
   }
 
   void Detach() {
+#ifdef ABSOR_NATIVE_FIXTURE
+    if (input_channel_) {
+      input_channel_->UnregisterObserver();
+      input_channel_->Close();
+      input_channel_ = nullptr;
+    }
+    input_observer_ = nullptr;
+#endif
 #ifdef ABSOR_RUST_BRIDGE
     detached_ = true;
 #endif
@@ -249,6 +289,10 @@ class Observer final : public webrtc::PeerConnectionObserver, public webrtc::Dat
   }
 
  private:
+#ifdef ABSOR_NATIVE_FIXTURE
+  webrtc::scoped_refptr<webrtc::DataChannelInterface> input_channel_;
+  std::unique_ptr<FixtureInput> input_observer_;
+#endif
   void Send(const Json::Value& value) {
     Json::StreamWriterBuilder builder;
     builder["indentation"] = "";
@@ -380,8 +424,13 @@ int Run(const std::string& offer, const char* answer_path,
   if (!connection_result.ok()) return 4;
   auto connection = connection_result.MoveValue();
 #ifdef ABSOR_SYNTHETIC_VIDEO
+#ifdef ABSOR_NATIVE_FIXTURE
+  absor_lab::NativeFixtureVideo video;
+  observer.on_authenticated = [&] { video.Start(factory.get(), connection.get(), bridge); };
+#else
   absor_lab::SyntheticVideo video;
   observer.on_authenticated = [&] { video.Start(factory.get(), connection.get()); };
+#endif
   int synthetic_frames = 0;
 #endif
 #ifdef ABSOR_RUST_BRIDGE
@@ -415,12 +464,33 @@ int Run(const std::string& offer, const char* answer_path,
   signaling->Stop();
   network->Stop();
   if (!exchanged || !connected) return 5;
+#ifdef ABSOR_NATIVE_FIXTURE
+  std::array<uint8_t, 1024> native_status{};
+  int native_length = absor_bridge_native_status(bridge, native_status.data(), native_status.size());
+  Json::Value native_report;
+  Json::CharReaderBuilder native_parser;
+  std::string native_error;
+  std::istringstream native_json(native_length > 0
+      ? std::string(reinterpret_cast<const char*>(native_status.data()), native_length) : "{}");
+  if (!Json::parseFromStream(native_parser, native_json, &native_report, &native_error)) return 6;
+#endif
   std::cout << "{\"dtlsConnected\":true,\"authenticated\":"
             << (authenticated ? "true" : "false")
+#ifdef ABSOR_NATIVE_FIXTURE
+            << ",\"captureStarted\":" << (synthetic_frames > 0 ? "true" : "false")
+            << ",\"inputEnabled\":" << (native_report["inputs"].asUInt64() > 0 ? "true" : "false")
+            << ",\"nativeFixture\":true,\"native\":" << Json::writeString(Json::StreamWriterBuilder(), native_report)
+            << ",\"relayOnly\":"
+#else
             << ",\"captureStarted\":false,\"inputEnabled\":false,\"relayOnly\":"
+#endif
             << (configuration.type == webrtc::PeerConnectionInterface::kRelay ? "true" : "false")
 #ifdef ABSOR_SYNTHETIC_VIDEO
+#ifdef ABSOR_NATIVE_FIXTURE
+            << ",\"nativeVideoFrames\":" << synthetic_frames
+#else
             << ",\"syntheticVideoFrames\":" << synthetic_frames
+#endif
 #endif
 #ifdef ABSOR_RUST_BRIDGE
             << ",\"rustAuthentication\":true,\"apiSignaling\":" << (api_signaling ? "true" : "false") << ",\"apiCutCode\":" << observer.bridge_cut

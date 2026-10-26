@@ -43,6 +43,7 @@ dependencies = [
  "absor-agent-auth",
  "absor-agent-core",
  "absor-agent-supervisor",
+ "absor-agent-x11-lab",
  "base64",
  "ring",
  "serde",

@@ -193,6 +193,80 @@ pub extern "C" fn absor_bridge_close(id: u64) {
     });
 }
 
+/// # Safety
+/// out es un buffer exclusivo de EXACTAMENTE 172800 bytes, sin retener punteros.
+#[cfg(feature = "native-fixture")]
+#[no_mangle]
+pub unsafe extern "C" fn absor_bridge_native_frame(id: u64, out: *mut u8, cap: usize) -> i32 {
+    if out.is_null() || cap != 172_800 {
+        return -3;
+    }
+    let Ok(mut instances) = instances().lock() else {
+        return -3;
+    };
+    let Some(bridge) = instances.get_mut(&id) else {
+        return -3;
+    };
+    match bridge.native_frame() {
+        Ok(Some(bytes)) if bytes.len() == cap => {
+            // SAFETY: salida exclusiva; frame de tamaño fijo y asignación distinta.
+            unsafe {
+                std::ptr::copy_nonoverlapping(bytes.as_ptr(), out, cap);
+            }
+            cap as i32
+        }
+        Ok(None) => 0,
+        _ => -3,
+    }
+}
+
+/// # Safety
+/// ptr es legible por len bytes durante la llamada, sin modificación concurrente.
+#[cfg(feature = "native-fixture")]
+#[no_mangle]
+pub unsafe extern "C" fn absor_bridge_native_input(id: u64, ptr: *const u8, len: usize) -> i32 {
+    // SAFETY: contrato C, copia acotada a 128 bytes antes de parsear.
+    let Some(raw) = (unsafe { input(ptr, len, 128) }) else {
+        return -3;
+    };
+    let Ok(mut instances) = instances().lock() else {
+        return -3;
+    };
+    let Some(bridge) = instances.get_mut(&id) else {
+        return -3;
+    };
+    if bridge.native_input(&raw).is_ok() {
+        1
+    } else {
+        -3
+    }
+}
+
+/// # Safety
+/// out es exclusivo y válido por EXACTAMENTE 1024 bytes durante la llamada.
+#[cfg(feature = "native-fixture")]
+#[no_mangle]
+pub unsafe extern "C" fn absor_bridge_native_status(id: u64, out: *mut u8, cap: usize) -> i32 {
+    if out.is_null() || cap != 1024 {
+        return -3;
+    }
+    let Ok(instances) = instances().lock() else {
+        return -3;
+    };
+    let Some(bridge) = instances.get(&id) else {
+        return -3;
+    };
+    let bytes = bridge.native_status();
+    if bytes.is_empty() || bytes.len() > cap {
+        return -3;
+    }
+    // SAFETY: salida exclusiva de tamaño comprobado, asignación distinta.
+    unsafe {
+        std::ptr::copy_nonoverlapping(bytes.as_ptr(), out, bytes.len());
+    }
+    bytes.len() as i32
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -237,6 +311,13 @@ mod tests {
         }
         let mut config = serde_json::json!({"origin":"http://127.0.0.1:9", "credential":format!("acg_{}", "a".repeat(43)), "stateDirectory":state});
         let raw = serde_json::to_vec(&config).unwrap();
+        config["nativeFixture"] = serde_json::json!(true);
+        let native_without_api = serde_json::to_vec(&config).unwrap();
+        assert_eq!(
+            unsafe { absor_bridge_create(native_without_api.as_ptr(), native_without_api.len()) },
+            0
+        );
+        config.as_object_mut().unwrap().remove("nativeFixture");
         // SAFETY: buffers vivos y válidos de longitud exacta. No se llama poll
         // hasta cerrar, por lo que esta prueba no envía ninguna petición de red.
         let first = unsafe { absor_bridge_create(raw.as_ptr(), raw.len()) };
@@ -259,6 +340,29 @@ mod tests {
     fn null_oversize_unknown_and_closed_handles_are_rejected() {
         // SAFETY: punteros nulos se rechazan antes de construir vistas.
         unsafe {
+            #[cfg(feature = "native-fixture")]
+            {
+                assert_eq!(
+                    absor_bridge_native_frame(u64::MAX, std::ptr::null_mut(), 172_800),
+                    -3
+                );
+                assert_eq!(
+                    absor_bridge_native_frame(u64::MAX, std::ptr::null_mut(), 172_801),
+                    -3
+                );
+                assert_eq!(absor_bridge_native_input(u64::MAX, std::ptr::null(), 1), -3);
+                assert_eq!(absor_bridge_native_input(u64::MAX, b"x".as_ptr(), 129), -3);
+                assert_eq!(
+                    absor_bridge_native_status(u64::MAX, std::ptr::null_mut(), 1024),
+                    -3
+                );
+                let mut rgb = vec![0_u8; 172_800];
+                assert_eq!(
+                    absor_bridge_native_frame(u64::MAX, rgb.as_mut_ptr(), rgb.len()),
+                    -3
+                );
+                assert!(rgb.iter().all(|v| *v == 0));
+            }
             assert_eq!(absor_bridge_create(std::ptr::null(), 1), 0);
             assert_eq!(absor_bridge_create(b"{}".as_ptr(), 4097), 0);
             assert_eq!(absor_bridge_create(b"{}".as_ptr(), 2), 0);

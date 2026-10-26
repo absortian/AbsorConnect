@@ -1,5 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron')
 contextBridge.exposeInMainWorld('lab', {
+  nativeFixture: process.argv.includes('--lab-native-fixture'),
   apiSignaling: process.argv.includes('--lab-api-signaling'),
   busy: () => ipcRenderer.invoke('lab-busy'),
   supervised: process.argv.includes('--lab-supervised'),

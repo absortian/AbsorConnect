@@ -56,7 +56,7 @@ otra PeerConnection. El visor no recibe credenciales y prueba que no puede leer
 rutas privadas ni archivos locales. Las cuentas y copias de tokens se retiran.
 
 Hay que compilar antes con `webrtc-check/build.py ... --rust-bridge`. La nueva
-ABI/target son solo de laboratorio Mac; no es un agente instalable ni prueba
+ABI/target predeterminados son de laboratorio Mac; no es un agente instalable ni prueba
 captura/entrada/TURN/móvil. Los informes distinguen cada límite. Los logs y los
 archivos de señalización contienen metadatos locales: mantenerlos privados.
 
@@ -81,3 +81,28 @@ captura/entrada y corte de API, valida un arranque bloqueado sin operaciones
 nativas y restaura la sesión de la VM. No instala servicios ni toca el Mac
 anfitrión. No interpreta ese ensayo como vídeo WebRTC Linux; los dos recorridos
 se informan separados. Véase `agent/crates/agent-x11-lab/README.md`.
+
+
+## Unión Linux nativa y ciclo de vida systemd
+
+`--linux-webrtc-vm <directorio-privado>` selecciona seis casos de WebRTC con
+captura de ventana propia y entrada nativa en la VM, usando las mismas cinco
+cuentas efímeras. Es excluyente con `--x11-worker-vm`, que conserva el ensayo
+independiente anterior. Hay que compilar antes con `webrtc-check/build-linux.py`.
+Los resultados quedan en `rust-linux-webrtc-renewal-results.json`; la regresión
+Mac conserva `rust-webrtc-renewal-results.json`.
+
+`linux-webrtc-worker.py` solo acepta configuración privada y la VM fija;
+comprueba hashes de binario/biblioteca/supervisor, crea el marcador root de
+ensayo y entrega la credencial por stdin en SSH. `linux-service-worker.py`,
+dentro de la VM, crea un runtime 0700 y archivo 0600 en tmpfs y lanza una unidad
+systemd de usuario por conexión. No usa el token de cuenta. La unidad dura como
+máximo 65 segundos, no reinicia conexiones y retira automáticamente el runtime.
+La cancelación del lanzador se envía una sola vez para que pueda limpiar su
+unidad y marcador; no se interrumpe dos veces su bloque de limpieza.
+
+`linux-service-check.py` prueba aparte una caída artificial, un reinicio, parada
+explícita que permanece detenida y eliminación de todos los descendientes.
+Registra únicamente estados, UID/capacidades y contadores. No demuestra todavía
+un broker persistente, systemd de sistema, almacenamiento protegido o liberación
+de entrada retenida tras muerte del proceso. No ejecutarlo en una máquina física.

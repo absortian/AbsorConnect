@@ -5,7 +5,8 @@ es una candidata para pruebas; todavía no se adopta como dependencia del agente
 Las fuentes, herramientas y artefactos grandes quedan fuera del repositorio y
 de los instaladores de Electron. La compilación y las pruebas directas no usan
 cuentas; el ensayo TURN opcional usa exclusivamente credenciales temporales del
-relé. No se instala un servicio.
+relé. Los comandos básicos no instalan servicios; la variante Linux usa una
+unidad transitoria de usuario exclusivamente en su VM.
 
 ```bash
 python3 prototypes/remote-desktop/webrtc-check/sync.py /ruta/externa/laboratorio
@@ -30,7 +31,7 @@ no intercambia candidatos ni publica el SDP. Todavía no establece DTLS ni verif
 comunicación con otro cliente. Los binarios exitosos
 emiten su SHA-256 para identificar el artefacto probado.
 
-**Pendiente:** captura real/entrada posteriores a la autenticación y
+**Pendiente:** captura/entrada generales posteriores a la autenticación y
 dispositivos iOS físicos. El simulador iPad ya tiene una prueba de interoperabilidad
 con vídeo artificial, descrita al final. El recorrido TURN del controlador se
 verifica por separado; no equivale a certificar cualquier combinación de NAT.
@@ -298,3 +299,42 @@ siguen procediendo de las descripciones aplicadas en libwebrtc. La prueba
 positiva crea además otra solicitud y exige rechazo `busy` mientras sigue
 recibiendo vídeo. Esta variante usa ICE vacío de la API aislada; no acredita
 TURN o móviles. El modo anterior conserva su intercambio por archivos.
+
+
+## Trabajador nativo Linux por WebRTC, en VM
+
+La variante `native-fixture` une el gate/API/verificador Rust con el trabajador
+X11 y la pista VP8. Captura exclusivamente su ventana pública 320×180. El canal
+`input` v1 admite solo la secuencia fija botón izquierdo/KeyA, con liberaciones,
+una vez por conexión; no implementa entrada general ni modifica Flutter.
+
+```bash
+python3 prototypes/remote-desktop/webrtc-check/sync.py /ruta/laboratorio --linux-target
+python3 prototypes/remote-desktop/webrtc-check/build-linux.py /ruta/laboratorio /ruta/VM-privada
+python3 prototypes/backend-agent-check/isolated-webrtc-renewal.py /ruta/laboratorio --node /ruta/node --linux-webrtc-vm /ruta/VM-privada
+```
+
+`build-linux.py` se ejecuta en Mac y solo reconoce la VM privada existente en
+loopback:22223, usuario `absorlab`. Rust y lld se ejecutan en ella; Clang del
+checkout genera el extremo ELF ARM64 con el mismo sysroot oficial Bullseye.
+Las revisiones y los hashes quedan en `linux-webrtc-build.json`. El linker
+conserva la comprobación de símbolos; no se permite una biblioteca sin resolver.
+El directorio `out/AbsorLinuxProbe`, `.so` y supervisor Linux quedan separados
+de los artefactos Mac. El build no ejecuta captura/entrada ni instala servicios.
+
+El runner comprueba en Electron rojo → entrada por DataChannel → verde,
+entrada anterior al reto ignorada, secuencias arbitrarias/repetidas rechazadas,
+cero captura/entrada con prueba/huella incorrectas, revocación/caducidad y
+rechazo con Cinnamon bloqueado. Solo la señalización/API viaja por el túnel SSH;
+los píxeles y la entrada usan WebRTC/DTLS directo con la VM. Se conserva el
+rechazo de segunda solicitud y la prohibición de leer credenciales en el visor.
+No escribe SDP o imágenes; los informes solo contienen contadores y metadatos.
+
+`linux-service-worker.py` ejecuta el supervisor/trabajador bajo una unidad
+transitoria systemd de usuario, con runtime privado en tmpfs, credencial de
+agente efímera, `NoNewPrivileges`, límites y parada de todo el cgroup. Mantiene
+abierto el pipe del lanzador: cerrarlo es un corte seguro. Netlink se permite
+para `getifaddrs`, conservando cero capacidades administrativas. El caso de
+bloqueo restaura la sesión solo de la VM. No instala unidades permanentes ni
+prueba arranque/greeter, servicio privilegiado, entrada sostenida o liberación
+tras caída. TURN, móviles y Mint físico siguen fuera de esta matriz.

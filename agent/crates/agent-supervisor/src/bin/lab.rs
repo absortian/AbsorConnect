@@ -11,10 +11,15 @@ use std::{
     io::{Read, Write},
     path::PathBuf,
     process::{Child, Command, Stdio},
-    sync::mpsc,
+    sync::{
+        atomic::{AtomicU8, Ordering},
+        mpsc,
+    },
     thread,
     time::Duration,
 };
+// Solo etapa numérica de fallo; nunca argumentos, rutas o configuración.
+static STAGE: AtomicU8 = AtomicU8::new(0);
 
 struct Owned(Child);
 impl Drop for Owned {
@@ -40,6 +45,7 @@ fn run() -> Result<i32, ()> {
     {
         return Err(());
     }
+    STAGE.store(1, Ordering::Relaxed);
     let mut options = OpenOptions::new();
     options.write(true).create_new(true);
     #[cfg(unix)]
@@ -48,6 +54,7 @@ fn run() -> Result<i32, ()> {
         options.mode(0o600);
     }
     let mut report = options.open(&args[0]).map_err(|_| ())?;
+    STAGE.store(2, Ordering::Relaxed);
     let mut child = Owned(
         Command::new(&args[1])
             .args(&args[2..])
@@ -58,6 +65,7 @@ fn run() -> Result<i32, ()> {
             .spawn()
             .map_err(|_| ())?,
     );
+    STAGE.store(3, Ordering::Relaxed);
     record(
         &mut report,
         json!({"event":"spawned", "workerPid":child.0.id(), "supervisorPid":std::process::id(), "syntheticOnly":true}),
@@ -80,6 +88,7 @@ fn run() -> Result<i32, ()> {
         }
     });
     let mut watch = PeerWatch::new(BootClock, Duration::from_secs(5)).map_err(|_| ())?;
+    STAGE.store(4, Ordering::Relaxed);
     let mut sequence = 0_u64;
     let mut next = Duration::ZERO;
     let mut fault_started = None;
@@ -171,5 +180,12 @@ fn run() -> Result<i32, ()> {
     }
 }
 fn main() {
-    std::process::exit(run().unwrap_or(71));
+    let result = run().unwrap_or_else(|_| {
+        eprintln!(
+            "lab_supervisor_failed_stage={}",
+            STAGE.load(Ordering::Relaxed)
+        );
+        71
+    });
+    std::process::exit(result);
 }

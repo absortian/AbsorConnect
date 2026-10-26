@@ -35,8 +35,9 @@ def checkout(path, dependency):
 
 
 def main():
-    if len(sys.argv) != 2:
-        raise RuntimeError("Uso: python3 sync.py <laboratorio-fuera-del-repositorio>")
+    if len(sys.argv) not in (2, 3) or len(sys.argv) == 3 and sys.argv[2] != '--linux-target':
+        raise RuntimeError("Uso: python3 sync.py <laboratorio-fuera-del-repositorio> [--linux-target]")
+    linux_target = len(sys.argv) == 3
     workspace = Path(sys.argv[1]).expanduser().resolve()
     if workspace == REPOSITORY or REPOSITORY in workspace.parents:
         raise RuntimeError("Las dependencias deben quedar fuera del repositorio de la app.")
@@ -55,8 +56,13 @@ def main():
 }]
 target_os = []
 """
-    if client.exists() and client.read_text() != configuration:
+    original = configuration
+    linux_configuration = original.replace('target_os = []', "target_os = ['linux']")
+    previous = client.read_text() if client.exists() else original
+    if previous not in (original, linux_configuration):
         raise RuntimeError("Existe una configuración .gclient diferente; no se sustituye.")
+    if linux_target or previous == linux_configuration:
+        configuration = linux_configuration
     client.write_text(configuration)
     environment = dict(os.environ)
     environment["DEPOT_TOOLS_UPDATE"] = "0"
