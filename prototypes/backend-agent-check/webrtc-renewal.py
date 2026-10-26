@@ -11,6 +11,7 @@ import secrets
 import signal
 import subprocess
 import threading
+import time
 import urllib.error
 import urllib.request
 import uuid
@@ -26,6 +27,7 @@ def main():
     parser.add_argument('lab', type=Path)
     parser.add_argument('--node', default='node')
     parser.add_argument('--api-base', default=BASE)
+    parser.add_argument('--x11-worker-vm', type=Path)
     args = parser.parse_args()
     uri = urlsplit(args.api_base)
     assert uri.scheme == 'http' and uri.hostname == '127.0.0.1' and uri.port and 1024 <= uri.port <= 65535 and not (uri.username or uri.password or uri.query or uri.fragment) and uri.path in ['', '/'], 'api_must_be_local_loopback'
@@ -38,6 +40,7 @@ def main():
     owned = {}
     server = thread = None
     work = None
+    signals = {}
     log_path = lab/'rust-webrtc-renewal.log'
     try:
         for name in NAMES:
@@ -63,29 +66,99 @@ def main():
             def log_message(self, *_):
                 pass
 
-            def do_GET(self):
+            def reply(self, status, body):
+                data = json.dumps(body).encode()
+                self.send_response(status)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Content-Length', str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+
+            def item(self):
                 header = self.headers.get('Authorization', '')
-                item = next((v for v in owned.values() if header == 'Bearer '+v['credential']), None)
-                if self.path != '/api/host-agent/remote-requests' or item is None:
+                return next((v for v in owned.values() if header == 'Bearer '+v['credential']), None)
+
+            def do_GET(self):
+                name = self.path.removeprefix('/signal/')
+                if self.path == '/signal/'+name and name in signals:
+                    item = owned[name]
+                    status, body = request('GET', '/api/remote-requests/'+signals[name]['id'], token=item['owner'])
+                    self.reply(status, body)
+                    return
+                item = self.item()
+                if self.path not in ['/api/host-agent/remote-requests', '/api/host-agent/ice-servers'] or item is None:
                     self.send_error(404)
                     return
                 if item['cut'].is_set():
                     self.close_connection = True
                     return
-                req = urllib.request.Request(args.api_base+self.path, headers={'Authorization': header, 'Accept': 'application/json'})
-                try:
-                    response = urllib.request.urlopen(req, timeout=4)
-                except urllib.error.HTTPError as error:
-                    response = error
-                with response:
-                    data = response.read(9*1024*1024)
-                    self.send_response(response.status)
-                    self.send_header('Content-Type', response.headers.get('Content-Type', 'application/json'))
-                    self.send_header('Content-Length', str(len(data)))
+                status, body = request('GET', self.path, token=item['credential'])
+                if self.path == '/api/host-agent/remote-requests' and status == 200:
+                    item['lastPoll'] = time.monotonic()
+                self.reply(status, body)
+
+            def do_PUT(self):
+                item = self.item()
+                if item is None or not re.fullmatch(r'/api/host-agent/remote-requests/[0-9a-f-]{36}/answer', self.path):
+                    self.send_error(404)
+                    return
+                size = int(self.headers.get('Content-Length', '0'))
+                if not 0 < size <= 400000:
+                    self.send_error(400)
+                    return
+                body = json.loads(self.rfile.read(size))
+                status, result = request('PUT', self.path, body, item['credential'])
+                if status == 204:
+                    self.send_response(204)
                     self.end_headers()
-                    self.wfile.write(data)
+                else:
+                    self.reply(status, result)
 
             def do_POST(self):
+                if self.path == '/fault/native-worker-cut':
+                    owned['correct']['cut'].set()
+                    self.send_response(204)
+                    self.end_headers()
+                    return
+                if self.path == '/signal/correct/busy':
+                    item = owned['correct']
+                    assert not item.get('busyVerified'), 'duplicate_busy_probe'
+                    status, pending = request('POST', item['path']+'/remote-requests', {'offer': signals['correct']['offer']}, item['owner'])
+                    assert status == 201
+                    deadline = time.monotonic()+10
+                    while time.monotonic() < deadline:
+                        status, result = request('GET', '/api/remote-requests/'+pending['id'], token=item['owner'])
+                        if status == 200 and result.get('status') == 'rejected':
+                            assert result['rejection']['reason'] == 'busy'
+                            item['busyVerified'] = True
+                            self.send_response(204)
+                            self.end_headers()
+                            return
+                        time.sleep(0.1)
+                    self.send_error(504)
+                    return
+                name = self.path.removeprefix('/signal/')
+                if self.path == '/signal/'+name and name in owned and name not in signals:
+                    size = int(self.headers.get('Content-Length', '0'))
+                    if not 0 < size <= 400000:
+                        self.send_error(400)
+                        return
+                    body = json.loads(self.rfile.read(size))
+                    if set(body) != {'offer'} or not isinstance(body['offer'], str) or not 0 < len(body['offer'].encode()) <= 65536:
+                        self.send_error(400)
+                        return
+                    item = owned[name]
+                    deadline = time.monotonic()+5
+                    while time.monotonic()-item.get('lastPoll', 0) > 1:
+                        if time.monotonic() > deadline:
+                            self.send_error(504)
+                            return
+                        time.sleep(0.02)
+                    status, result = request('POST', item['path']+'/remote-requests', body, item['owner'])
+                    if status == 201:
+                        signals[name] = {'id': result['id'], 'offer':body['offer']}
+                    self.reply(status, {'created': status == 201})
+                    return
                 name = self.path.removeprefix('/fault/')
                 if self.path != '/fault/'+name or name not in ['api-revoked', 'api-cut']:
                     self.send_error(404)
@@ -104,7 +177,7 @@ def main():
         origin = 'http://127.0.0.1:'+str(server.server_address[1])
         for name in ['worker-stall', 'worker-crash', 'supervisor-stall', 'supervisor-crash']:
             owned[name] = owned['correct']
-        manifest = {name: {'origin': origin, 'credential': item['credential'], 'faultUrl': origin+'/fault/'+name}
+        manifest = {name: {'origin': origin, 'credential': item['credential'], 'faultUrl': origin+'/fault/'+name, 'signalUrl': origin+'/signal/'+name, 'apiSignaling': True}
                     for name, item in owned.items()}
         manifest_path = lab/('rust-agent-manifest-'+uuid.uuid4().hex+'.json')
         descriptor = os.open(manifest_path, os.O_WRONLY|os.O_CREAT|os.O_EXCL, 0o600)
@@ -133,6 +206,9 @@ def main():
             result = json.loads(report_path.read_text())
             assert result['ok'] and result['rustAuthenticationTested'] and result['apiRenewalTested'] and result['rendererCredentialsDenied']
             assert len(result['cases']) == 9 and result['supervisorTested']
+            assert owned['correct'].get('busyVerified'), 'second_controller_not_rejected'
+            assert all(c['native']['apiSignaling'] for c in result['cases'] if 'native' in c)
+            assert not list(work.glob('**/*.sdp')), 'sdp_files_written_in_api_mode'
             # Rechazo ANTES de crear PeerConnection: token revocado y API inaccesible.
             binary = lab/'webrtc-native/src/out/AbsorProbe/rust_video_channel_check'
             for name in ['api-revoked', 'api-cut']:
@@ -142,7 +218,16 @@ def main():
                                         str(directory/'agent-config.json')], capture_output=True, timeout=12)
                 assert check.returncode == 67 and not answer.exists() and not check.stdout, 'peer_started_without_api'
             result.update({'apiRejectedBeforePeerCreation': True, 'productionTested': False,
-                           'osCaptureOrInputTested': False, 'temporaryAccountsRemoved': False})
+                           'osCaptureOrInputTested': False, 'temporaryAccountsRemoved': False,
+                           'apiSignalingTested': True, 'sdpFilesWritten': False, 'secondControllerBusyRejected': True})
+            if args.x11_worker_vm:
+                worker_spec = importlib.util.spec_from_file_location('native_x11_worker', Path(__file__).with_name('native-x11-worker.py'))
+                worker = importlib.util.module_from_spec(worker_spec)
+                worker_spec.loader.exec_module(worker)
+                result['linuxNativeWorker'] = worker.run(args.x11_worker_vm, origin, owned['correct']['credential'])
+                # Nueva validación de API, sin reutilizar trabajador/transporte.
+                owned['correct']['cut'].clear()
+                result['linuxNativeLockedGuard'] = worker.run(args.x11_worker_vm, origin, owned['correct']['credential'], expect_locked=True)
         finally:
             manifest_path.unlink(missing_ok=True)
     finally:

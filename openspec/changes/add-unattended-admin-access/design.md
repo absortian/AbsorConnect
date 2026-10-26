@@ -88,6 +88,25 @@ producción ni las cuentas existentes. No habilitar esa característica en los
 paquetes del servicio. El ejemplo aún simula la frontera de autenticación y
 su hijo carece de captura/entrada. Sus pruebas no certifican plataformas.
 
+El cliente incluye ahora otro carril para ICE, respuesta SDP y rechazo ocupado,
+con un trabajo/respuesta en vuelo. Sus respuestas no renuevan autorización;
+TLS, origen protegido, límites y ausencia de redirecciones se mantienen. El ID
+de la oferta seleccionada no sale de Rust hacia el adaptador. La oferta se
+consume una vez y el reto se emite tras confirmar su respuesta por API. El TTL
+ICE se cuenta desde el inicio del trabajo. La señalización de laboratorio
+ya no necesita archivos SDP; queda pendiente el bucle de servicio/estado del
+host y la integración de sus trabajadores del SO.
+
+El ensayo `agent-x11-lab` desarrolla una base nativa de captura/entrada dentro
+de un proceso exclusivo de VM, con hilo Xlib y cola de capacidad uno. Solo usa
+una ventana propia pública, un clic y tecla fija; no selecciona otro XID ni
+acepta texto/comandos arbitrarios. Exige prueba v1, permiso API y contexto X11
+propio desbloqueado. Un error es terminal y parar marca un flag sin bloquear
+al actor. El driver comprueba caducidad real de API y arranque rechazado con
+Cinnamon activo. No es todavía el trabajador P2P Linux separado de D1 ni un
+servicio systemd; faltan integración del flujo y entrada sostenida/liberación
+por otro proceso tras caída. No cambia la revisión pendiente del agente Mac.
+
 ### D4. Secretos, IPC y traspaso transaccional
 
 El diagnóstico `agent-webrtc-lab` enlaza verificador, renovación y trabajador

@@ -24,6 +24,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('lab', type=Path)
     parser.add_argument('--node', default='node')
+    parser.add_argument('--x11-worker-vm', type=Path)
     args = parser.parse_args()
     lab = args.lab.resolve()
     identifier = uuid.uuid4().hex
@@ -49,7 +50,8 @@ def main():
     value = {'DATABASE_URL': urlunsplit(uri._replace(path='/'+database)), 'APP_ENV': 'dev',
              'APP_SECRET': secrets.token_hex(32), 'CONNECTIONS_KEY': base64.b64encode(secrets.token_bytes(32)).decode(),
              'CONNECTIONS_KEY_PREVIOUS': '', 'SERVER_NAME': ':80', 'DEFAULT_URI': 'http://127.0.0.1:'+str(port),
-             'FRANKENPHP_WORKER_CONFIG': 'num 1', 'XDEBUG_MODE': 'off', 'REMOTE_ENABLED': '1'}
+             'FRANKENPHP_WORKER_CONFIG': 'num 1', 'XDEBUG_MODE': 'off', 'REMOTE_ENABLED': '1',
+             'STUN_URLS': '', 'TURN_URLS': '', 'TURN_SECRET': ''}
     descriptor = os.open(env_file, os.O_WRONLY|os.O_CREAT|os.O_EXCL, 0o600)
     with os.fdopen(descriptor, 'w') as file:
         file.write(''.join(k+'='+v+'\n' for k, v in value.items()))
@@ -75,7 +77,8 @@ def main():
             time.sleep(0.5)
         php_version = command(['docker', 'exec', container, 'php', '-r', 'echo PHP_VERSION;']).decode().strip()
         run = subprocess.run(['python3', '-B', str(Path(__file__).with_name('webrtc-renewal.py')),
-                              str(lab), '--node', args.node, '--api-base', 'http://127.0.0.1:'+str(port)],
+                              str(lab), '--node', args.node, '--api-base', 'http://127.0.0.1:'+str(port)]
+                             + (['--x11-worker-vm', str(args.x11_worker_vm)] if args.x11_worker_vm else []),
                              cwd=ROOT, capture_output=True, timeout=240)
         log = private/'matrix.log'
         log.write_bytes(run.stdout+run.stderr)

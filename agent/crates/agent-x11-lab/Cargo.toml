@@ -1,0 +1,24 @@
+[package]
+name = "absor-agent-x11-lab"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[features]
+# Exclusivamente la ventana propia de la VM. No ejecuta nada al compilar/probar.
+x11-lab = ["dep:absor-agent-api", "absor-agent-api/lab-http"]
+
+[dependencies]
+absor-agent-core = { path = "../agent-core" }
+absor-agent-auth = { path = "../agent-auth" }
+absor-agent-api = { path = "../agent-api", optional = true }
+
+[dev-dependencies]
+base64 = "=0.22.1"
+ring = "=0.17.14"
+serde_json = "=1.0.154"
+
+[[example]]
+name = "x11-worker-smoke"
+required-features = ["x11-lab"]

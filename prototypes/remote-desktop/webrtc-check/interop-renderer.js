@@ -121,6 +121,7 @@ async function runCase(name) {
       }
       if (expected && (!syntheticColorVerified || decodedFrames < 2)) throw new Error('No se recibió vídeo artificial válido')
     }
+    if (window.lab.apiSignaling && name === 'correct') await window.lab.busy()
     const stats = await pc.getStats()
     const transport = [...stats.values()].find((item) => item.type === 'transport' && item.selectedCandidatePairId)
     const pair = transport && stats.get(transport.selectedCandidatePairId)

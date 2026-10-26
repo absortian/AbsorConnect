@@ -280,3 +280,21 @@ Las pruebas Cargo de procesos usan exactamente el mismo supervisor y guardia
 del hijo, con un ejecutable artificial sin WebRTC. La matriz CI de tres SO
 verifica este ciclo de vida; el ensayo WebRTC sigue siendo Mac/Electron.
 Nada se instala como servicio y no cambia los permisos TCC, UAC o LightDM.
+
+
+## Ofertas, respuestas e ICE por API
+
+El manifiesto privado del lanzador aislado selecciona `apiSignaling`. El
+controlador crea la solicitud con su sesión de cuenta a través de main; el
+nativo recoge la oferta con su credencial limitada y publica la respuesta
+para el ID retenido por Rust. Main consulta el resultado por API. No se
+escriben `.sdp`, y el renderer continúa sin recibir tokens o archivos privados.
+
+El carril de señalización es independiente de la renovación, acotado a un
+trabajo. Sus resultados no amplían la autorización. ICE conserva el TTL desde
+el inicio de la consulta; una configuración caducada no inicia un peer nuevo.
+No se emite el reto hasta confirmar la respuesta de la solicitud; las huellas
+siguen procediendo de las descripciones aplicadas en libwebrtc. La prueba
+positiva crea además otra solicitud y exige rechazo `busy` mientras sigue
+recibiendo vídeo. Esta variante usa ICE vacío de la API aislada; no acredita
+TURN o móviles. El modo anterior conserva su intercambio por archivos.

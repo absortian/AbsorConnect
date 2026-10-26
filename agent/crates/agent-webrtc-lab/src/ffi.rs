@@ -71,6 +71,56 @@ pub extern "C" fn absor_bridge_poll(id: u64) -> i32 {
 }
 
 /// # Safety
+/// out es exclusivo y válido por cap bytes; no se conserva tras la llamada.
+#[no_mangle]
+pub unsafe extern "C" fn absor_bridge_offer(id: u64, out: *mut u8, cap: usize) -> i32 {
+    if out.is_null() || cap != 262_144 {
+        return -3;
+    }
+    let Ok(mut instances) = instances().lock() else {
+        return -3;
+    };
+    let Some(bridge) = instances.get_mut(&id) else {
+        return -3;
+    };
+    match bridge.offer() {
+        Ok(Some(bytes)) if bytes.len() <= cap => {
+            // SAFETY: salida exclusiva del llamador, longitud comprobada.
+            unsafe {
+                std::ptr::copy_nonoverlapping(bytes.as_ptr(), out, bytes.len());
+            }
+            bytes.len() as i32
+        }
+        Ok(None) => 0,
+        _ => -3,
+    }
+}
+
+/// # Safety
+/// answer es legible por len bytes durante la llamada; copia propia acotada.
+#[no_mangle]
+pub unsafe extern "C" fn absor_bridge_answer(id: u64, answer: *const u8, len: usize) -> i32 {
+    // SAFETY: contrato C, límite de SDP de 64 KiB antes de construir la vista.
+    let Some(bytes) = (unsafe { input(answer, len, 65_536) }) else {
+        return -3;
+    };
+    let Ok(answer) = String::from_utf8(bytes) else {
+        return -3;
+    };
+    let Ok(mut instances) = instances().lock() else {
+        return -3;
+    };
+    let Some(bridge) = instances.get_mut(&id) else {
+        return -3;
+    };
+    if bridge.answer(answer).is_ok() {
+        1
+    } else {
+        -3
+    }
+}
+
+/// # Safety
 /// offer/answer son buffers legibles y out tiene cap bytes escribibles exclusivos.
 /// No retener punteros ni reutilizar el identificador para otra PeerConnection.
 #[no_mangle]
@@ -102,8 +152,10 @@ pub unsafe extern "C" fn absor_bridge_hello(
         let Some(bridge) = instances.get_mut(&id) else {
             return -3;
         };
-        let Ok(bytes) = bridge.hello(offer, answer) else {
-            return -3;
+        let bytes = match bridge.hello(offer, answer) {
+            Ok(Some(bytes)) => bytes,
+            Ok(None) => return 0,
+            Err(_) => return -3,
         };
         if bytes.len() > cap {
             return -3;
@@ -211,6 +263,12 @@ mod tests {
             assert_eq!(absor_bridge_create(b"{}".as_ptr(), 4097), 0);
             assert_eq!(absor_bridge_create(b"{}".as_ptr(), 2), 0);
             assert_eq!(absor_bridge_auth(u64::MAX, std::ptr::null(), 1), -3);
+            assert_eq!(
+                absor_bridge_offer(u64::MAX, std::ptr::null_mut(), 262_144),
+                -3
+            );
+            assert_eq!(absor_bridge_answer(u64::MAX, std::ptr::null(), 1), -3);
+            assert_eq!(absor_bridge_answer(u64::MAX, b"x".as_ptr(), 65_537), -3);
             assert_eq!(
                 absor_bridge_hello(
                     u64::MAX,

@@ -1,0 +1,458 @@
+{
+  "schema": 1,
+  "date": "2026-10-26",
+  "scope": "API real + P2P Mac artificial; trabajador X11 nativo en ventana propia, recorridos separados",
+  "rust": {
+    "mac": {
+      "version": "1.99.1",
+      "defaultTests": 43,
+      "allFeatureTests": 58,
+      "fmt": true,
+      "clippyWarnings": 0,
+      "releaseDefault": true,
+      "releaseAllFeatures": true
+    },
+    "linuxVmArm64": {
+      "version": "rustc 1.75.0 (82e1608df 2023-12-21) (built from a source tarball)",
+      "defaultTests": 43,
+      "allFeatureTests": 60,
+      "fmt": true,
+      "clippyWarnings": 0,
+      "releaseDefault": true,
+      "releaseAllFeatures": true
+    }
+  },
+  "build": {
+    "webrtcRevision": "5d27ce25e244b90d09de3429dd3e702fd70f400b",
+    "rustCompiler": "rustc 1.100.0-nightly (1edd55dcf 2026-09-09) (1edd55dcfcd573872c727fa3e086369a71661ee0-1125-llvmorg-24-init-7747-g62397f8b chromium)",
+    "rustLibrarySha256": "a583202a1a0ccd33bd366ee5f2b411c7654970562db7c9d7e5f50e1358608d90",
+    "supervisorSha256": "bfcdfd250258fdabe838a6339b9dd81d2345d410b0fbfa90f2a9699ae936db53"
+  },
+  "testedRebuildArtifactsIdentical": true,
+  "abi": {
+    "defaultExports": [],
+    "labExports": [
+      "_absor_bridge_answer",
+      "_absor_bridge_auth",
+      "_absor_bridge_close",
+      "_absor_bridge_create",
+      "_absor_bridge_hello",
+      "_absor_bridge_offer",
+      "_absor_bridge_poll"
+    ]
+  },
+  "linuxWorkerBinarySha256": "cfceab59a948bfd63a16623d40f057d94f2e8342026d2762aa160d6b980ea862",
+  "linuxSourceFilesMatched": 40,
+  "interop": {
+    "ok": true,
+    "cases": [
+      {
+        "name": "correct",
+        "native": {
+          "dtlsConnected": true,
+          "authenticated": true,
+          "captureStarted": false,
+          "inputEnabled": false,
+          "relayOnly": false,
+          "syntheticVideoFrames": 23,
+          "rustAuthentication": true,
+          "apiSignaling": true,
+          "apiCutCode": 0
+        },
+        "controller": {
+          "authenticated": true,
+          "connected": true,
+          "helloCount": 1,
+          "candidateTypes": [
+            "host",
+            "host"
+          ],
+          "relayProtocol": null,
+          "channelClosedAfterFault": false,
+          "decodedFrames": 2,
+          "syntheticColorVerified": true
+        },
+        "supervised": true
+      },
+      {
+        "name": "wrong-proof",
+        "native": {
+          "dtlsConnected": true,
+          "authenticated": false,
+          "captureStarted": false,
+          "inputEnabled": false,
+          "relayOnly": false,
+          "syntheticVideoFrames": 0,
+          "rustAuthentication": true,
+          "apiSignaling": true,
+          "apiCutCode": 0
+        },
+        "controller": {
+          "authenticated": false,
+          "connected": true,
+          "helloCount": 1,
+          "candidateTypes": [
+            "host",
+            "host"
+          ],
+          "relayProtocol": null,
+          "channelClosedAfterFault": false,
+          "decodedFrames": 0,
+          "syntheticColorVerified": false
+        },
+        "supervised": true
+      },
+      {
+        "name": "fingerprint-mismatch",
+        "native": {
+          "dtlsConnected": true,
+          "authenticated": false,
+          "captureStarted": false,
+          "inputEnabled": false,
+          "relayOnly": false,
+          "syntheticVideoFrames": 0,
+          "rustAuthentication": true,
+          "apiSignaling": true,
+          "apiCutCode": 0
+        },
+        "controller": {
+          "authenticated": false,
+          "connected": true,
+          "helloCount": 1,
+          "candidateTypes": [
+            "host",
+            "host"
+          ],
+          "relayProtocol": null,
+          "channelClosedAfterFault": false,
+          "decodedFrames": 0,
+          "syntheticColorVerified": false
+        },
+        "supervised": true
+      },
+      {
+        "name": "api-revoked",
+        "native": {
+          "dtlsConnected": true,
+          "authenticated": true,
+          "captureStarted": false,
+          "inputEnabled": false,
+          "relayOnly": false,
+          "syntheticVideoFrames": 23,
+          "rustAuthentication": true,
+          "apiSignaling": true,
+          "apiCutCode": -2
+        },
+        "controller": {
+          "authenticated": true,
+          "connected": true,
+          "helloCount": 1,
+          "candidateTypes": [
+            "host",
+            "host"
+          ],
+          "relayProtocol": null,
+          "channelClosedAfterFault": true,
+          "cutAfterFaultMilliseconds": 2299,
+          "decodedFrames": 2,
+          "syntheticColorVerified": true
+        },
+        "supervised": true
+      },
+      {
+        "name": "api-cut",
+        "native": {
+          "dtlsConnected": true,
+          "authenticated": true,
+          "captureStarted": false,
+          "inputEnabled": false,
+          "relayOnly": false,
+          "syntheticVideoFrames": 278,
+          "rustAuthentication": true,
+          "apiSignaling": true,
+          "apiCutCode": -1
+        },
+        "controller": {
+          "authenticated": true,
+          "connected": true,
+          "helloCount": 1,
+          "candidateTypes": [
+            "host",
+            "host"
+          ],
+          "relayProtocol": null,
+          "channelClosedAfterFault": true,
+          "cutAfterFaultMilliseconds": 29163,
+          "decodedFrames": 2,
+          "syntheticColorVerified": true
+        },
+        "supervised": true
+      },
+      {
+        "name": "worker-stall",
+        "supervisor": {
+          "events": [
+            {
+              "event": "spawned",
+              "syntheticOnly": true
+            },
+            {
+              "command": "S",
+              "event": "fault"
+            },
+            {
+              "event": "cut",
+              "reason": "Timeout",
+              "workerCode": null,
+              "workerPipeClosedAfterFaultMilliseconds": 2007,
+              "workerReaped": true
+            }
+          ],
+          "exitCode": 70,
+          "processCutMilliseconds": 2016,
+          "processOutputClosed": true
+        },
+        "controller": {
+          "authenticated": true,
+          "connected": true,
+          "helloCount": 1,
+          "candidateTypes": [
+            "host",
+            "host"
+          ],
+          "relayProtocol": null,
+          "channelClosedAfterFault": false,
+          "framesStoppedAfterFault": true,
+          "decodedFrames": 2,
+          "syntheticColorVerified": true
+        }
+      },
+      {
+        "name": "worker-crash",
+        "supervisor": {
+          "events": [
+            {
+              "event": "spawned",
+              "syntheticOnly": true
+            },
+            {
+              "command": "K",
+              "event": "fault"
+            },
+            {
+              "event": "exited",
+              "workerCode": null
+            }
+          ],
+          "exitCode": 70,
+          "processCutMilliseconds": 51,
+          "processOutputClosed": true
+        },
+        "controller": {
+          "authenticated": true,
+          "connected": true,
+          "helloCount": 1,
+          "candidateTypes": [
+            "host",
+            "host"
+          ],
+          "relayProtocol": null,
+          "channelClosedAfterFault": false,
+          "framesStoppedAfterFault": true,
+          "decodedFrames": 2,
+          "syntheticColorVerified": true
+        }
+      },
+      {
+        "name": "supervisor-stall",
+        "supervisor": {
+          "events": [
+            {
+              "event": "spawned",
+              "syntheticOnly": true
+            },
+            {
+              "command": "B",
+              "event": "fault"
+            },
+            {
+              "event": "cut",
+              "reason": "Protocol",
+              "workerCode": 72,
+              "workerPipeClosedAfterFaultMilliseconds": 1984,
+              "workerReaped": true
+            }
+          ],
+          "exitCode": 70,
+          "processCutMilliseconds": 5038,
+          "processOutputClosed": true
+        },
+        "controller": {
+          "authenticated": true,
+          "connected": true,
+          "helloCount": 1,
+          "candidateTypes": [
+            "host",
+            "host"
+          ],
+          "relayProtocol": null,
+          "channelClosedAfterFault": false,
+          "framesStoppedAfterFault": true,
+          "decodedFrames": 2,
+          "syntheticColorVerified": true
+        }
+      },
+      {
+        "name": "supervisor-crash",
+        "supervisor": {
+          "events": [
+            {
+              "event": "spawned",
+              "syntheticOnly": true
+            },
+            {
+              "command": "X",
+              "event": "fault"
+            }
+          ],
+          "exitCode": 73,
+          "processCutMilliseconds": 24,
+          "processOutputClosed": true
+        },
+        "controller": {
+          "authenticated": true,
+          "connected": true,
+          "helloCount": 1,
+          "candidateTypes": [
+            "host",
+            "host"
+          ],
+          "relayProtocol": null,
+          "channelClosedAfterFault": false,
+          "framesStoppedAfterFault": true,
+          "decodedFrames": 2,
+          "syntheticColorVerified": true
+        }
+      }
+    ],
+    "rendererCredentialsDenied": true,
+    "electron": "39.8.5",
+    "chromium": "142.0.7444.265",
+    "videoTested": false,
+    "rustAuthenticationTested": true,
+    "apiRenewalTested": true,
+    "apiSignalingTested": true,
+    "supervisorTested": true,
+    "syntheticVideoTested": true,
+    "turnTested": false,
+    "relayPolicy": "none",
+    "mobileTested": false,
+    "readyForUnattended": false,
+    "apiRejectedBeforePeerCreation": true,
+    "productionTested": false,
+    "osCaptureOrInputTested": false,
+    "temporaryAccountsRemoved": true,
+    "sdpFilesWritten": false,
+    "secondControllerBusyRejected": true,
+    "linuxNativeWorker": {
+      "apiCutMilliseconds": 29668,
+      "captureAndInputRejectedAfterCut": true,
+      "fixtureOnly": true,
+      "greenFrameCaptured": true,
+      "keyDown": 1,
+      "keyUp": 1,
+      "mouseDown": 1,
+      "mouseUp": 1,
+      "nativeAttemptsBeforeAuthentication": 0,
+      "p2pTested": false,
+      "platform": "linux",
+      "readyForUnattended": false,
+      "redFrameCaptured": true,
+      "status": "native_worker_ok",
+      "workerClosed": true,
+      "wrongProofRejected": true
+    },
+    "linuxNativeLockedGuard": {
+      "nativeCaptureAttempts": 0,
+      "nativeInputAttempts": 0,
+      "readyForUnattended": false,
+      "status": "locked_context_denied",
+      "workerClosed": true
+    }
+  },
+  "legacySyntheticVideoCases": 3,
+  "cleanup": {
+    "isolatedApiRemoved": true,
+    "isolatedDatabaseRemoved": true,
+    "developmentRateLimitsNotReset": true,
+    "rateLimitConfigurationChanged": false,
+    "productionTested": false,
+    "phpRuntime": "8.5.12",
+    "vmMarkerRemoved": true,
+    "vmDesktopRestored": true
+  },
+  "regression": {
+    "typecheckExitCode": 0,
+    "vitestPassed": 276,
+    "vitestSkipped": 5,
+    "phpunitTests": 162,
+    "phpunitAssertions": 1077,
+    "syntaxExitCode": 0,
+    "openspecStrictExitCode": 0
+  },
+  "limitations": [
+    "Solo vídeo artificial en la prueba P2P Mac/Electron",
+    "El trabajador X11 captura solo ventana propia; sin P2P Linux aún",
+    "Huellas/K públicas y almacén en memoria en el ejemplo nativo",
+    "Sin servicios, IPC/almacén protegidos o liberación de entrada tras muerte desde otro proceso",
+    "Sin captura general, transiciones continuas, TURN/móviles o piloto físico de esta variante",
+    "Mac final pendiente de revisión de arquitectura/firma"
+  ],
+  "acceptedTasks": {
+    "done": 8,
+    "total": 57,
+    "percentRounded": 14
+  },
+  "productionVersion": "0.4.1",
+  "productionDeployed": false,
+  "sourceSha256": {
+    "agent/Cargo.lock": "2ec5c2305c062914f4e12ed6582247df62dcc6850bbba193a9d3113d7a219d6e",
+    "agent/Cargo.toml": "b950f456ee5291b8cf4db5b0942ca269caf574a0284d397b98b6b1cddfe5d67d",
+    "agent/README.md": "dd34b078cde9de9a5b29eec5a28ef56fd23ca3db661c3ecdc92468355f701592",
+    "agent/crates/agent-api/src/http.rs": "569ca59a977bd3931a7bdfdb8c7b5a9cd09c0fec40453793294cf5a33835edf9",
+    "agent/crates/agent-api/src/lib.rs": "d4d8ac6d9409a1ab9e767abf827f2eddd2f687ac14bc55822f3f9edb02bdfdb3",
+    "agent/crates/agent-api/src/signaling.rs": "58799805b9a6085fbfc72122d9b8a66f2a2791cc61e7ebda1049c6b28dc3cce5",
+    "agent/crates/agent-api/tests/signaling.rs": "aac76aaa380a17fe7f2b1a8b83699123b05d0c064473b87939564a2a3f699455",
+    "agent/crates/agent-webrtc-lab/absor_bridge.h": "48f13e359eabce9ad85469fa2237976dc69923bdd9ce83d61f26b6ae79c66044",
+    "agent/crates/agent-webrtc-lab/src/bridge.rs": "1024339ea9acfedb8e3c255b607855493ab3eabe3ef082f120f1673fccaa0a61",
+    "agent/crates/agent-webrtc-lab/src/ffi.rs": "d78464083016a2dd8c0c3089c284526b1f45452a21380af43dc11ecd82e8a0bd",
+    "agent/crates/agent-webrtc-lab/src/lib.rs": "10ee5cda2eac7c6e82eb381c282b73b8a61d6dc9e085a3b3ee586735d51d5a1a",
+    "agent/crates/agent-webrtc-lab/src/signaling.rs": "a426d15e606c42e420c6a166ae8b7743e1a9728cc89795145d67572361bebf58",
+    "agent/crates/agent-x11-lab/Cargo.toml": "fc4e3fb4d95bf5ea57c895b01dc1893f2885049b0824002518b417a71a7129c5",
+    "agent/crates/agent-x11-lab/README.md": "6126559e17ef95f8f57160ee954d8f973076d4270f647d887792b99f78ed6898",
+    "agent/crates/agent-x11-lab/examples/x11-worker-smoke.rs": "88e187fe75bf63b3424e27a53ae35c1de02c5baacbdd98ea0c1ece15c64755a3",
+    "agent/crates/agent-x11-lab/src/lib.rs": "87788bada9b48f7889cbffc35f7d4a705d6f6a7576d55dc03528df1865080eea",
+    "agent/crates/agent-x11-lab/src/worker.rs": "a5cf3142718481aceb616fddd75b50e65108ca06eda6a4626a570962685cb06a",
+    "agent/crates/agent-x11-lab/src/x11.rs": "7fea4759b6d9fcdb377657e2f695d8115ac6cc487c443bf3608e91cb6afbb74b",
+    "openspec/changes/add-unattended-admin-access/design.md": "4dfec23ff93e755a5d0b09654fa8e6d39ac556e8c1567657e4f4c5dd359ac8db",
+    "openspec/changes/add-unattended-admin-access/tasks.md": "a2e219b99fd605b50dbb4e78a5b45a2c86c56300167b181e9a83c45c1819248d",
+    "openspec/changes/add-unattended-admin-access/verification.md": "58d7d6f25295731c550597f8eb08eea657080cf0f361de6aee4e6df72c56d5c5",
+    "prototypes/backend-agent-check/README.md": "e918909d12c309a158c7c794f279184fe9508cccc0d009df22099c7d28140704",
+    "prototypes/backend-agent-check/isolated-webrtc-renewal.py": "588b64310f79fc6c96b62faddc0d1df5c35486051a6ecddbf8600b528a41ad95",
+    "prototypes/backend-agent-check/native-x11-worker.py": "59ec29ec6e69db71491280cde8a3ea554172444e9b584c47189ce5052c4ab8c8",
+    "prototypes/backend-agent-check/webrtc-renewal.py": "55405e480739cca1e636ee72781bbea2efdb8795f22c033de9b7537f8c9a368c",
+    "prototypes/remote-desktop/webrtc-check/README.md": "cfaefe450daee92980adf9797704d862fe518c94b5b79c5a54a693d0102845b8",
+    "prototypes/remote-desktop/webrtc-check/channel_check.cc": "2a941b01af2df9e4a8ab169ceb3d6cbbefdf3a4cc60624e0e817f1923ca1edc0",
+    "prototypes/remote-desktop/webrtc-check/interop-main.cjs": "33ac97150ba1bb3ed89b7cee721c231dfc050821651b4c7b840a63491b6afb97",
+    "prototypes/remote-desktop/webrtc-check/interop-preload.cjs": "cf2b10f15aa3d1c5dfe79ce7b8dd16779cb7800bd58fefb0fe4afc4d3174c605",
+    "prototypes/remote-desktop/webrtc-check/interop-renderer.js": "ced5fbda6160413baf28d038deec671841295f8ba5b91d8f4a7286cce586e2e8"
+  },
+  "privateEvidenceSha256": {
+    "mac": "40577694a006852c1bcf08d5b4a8986f119f2e8c9747e27d399ed764c02d26ac",
+    "linux": "dc35bbf0dff261cc3fd7e8d5a8c607c1be2f048042de14f5e20ebcc378e46a53",
+    "nativeBuild": "b2ce50b2b151c1c6803d4ce7a5851b13eb0d4d94fab3c6f7f30ebfc5f63789ca",
+    "interop": "3f0956bbba42a44f0e8731d5c5701a5e3d70736cde6af3a14eb260040c4a359e",
+    "legacy": "1f820645f5194a7532d9032117316233dbbe6d96462589213d9220339e5e6378",
+    "nativeMetadata": "e8f4a01d4daf3159e8e67ccebad2ac9210990e6a6fad910b934ffabe8c7b1d0e"
+  }
+}
