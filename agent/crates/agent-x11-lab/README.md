@@ -24,6 +24,9 @@ su UID y Display, el mismo identificador de sesión y `GetActive=false` de
 Cinnamon. `LockedHint` no sustituye esa señal. La comprobación de foco tampoco
 basta si un salvapantallas mantiene un agarre del teclado/puntero. Un error
 inhabilita al trabajador; desbloquear no rehabilita la instancia anterior.
+Antes del pulso se eleva solo la ventana propia y se vuelve a comprobar
+contexto, foco y destino real del puntero. Un destino distinto cancela la
+operación sin reintentar el clic; el diagnóstico solo registra dos booleanos.
 
 La prueba positiva comprueba cero operaciones nativas antes de autenticar,
 una captura roja, un clic/tecla recibidos con sus liberaciones, captura verde,

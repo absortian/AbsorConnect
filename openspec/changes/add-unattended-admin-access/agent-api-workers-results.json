@@ -6,7 +6,7 @@
     "mac": {
       "version": "1.99.1",
       "defaultTests": 43,
-      "allFeatureTests": 58,
+      "allFeatureTests": 60,
       "fmt": true,
       "clippyWarnings": 0,
       "releaseDefault": true,
@@ -15,7 +15,7 @@
     "linuxVmArm64": {
       "version": "rustc 1.75.0 (82e1608df 2023-12-21) (built from a source tarball)",
       "defaultTests": 43,
-      "allFeatureTests": 60,
+      "allFeatureTests": 62,
       "fmt": true,
       "clippyWarnings": 0,
       "releaseDefault": true,
@@ -26,9 +26,8 @@
     "webrtcRevision": "5d27ce25e244b90d09de3429dd3e702fd70f400b",
     "rustCompiler": "rustc 1.100.0-nightly (1edd55dcf 2026-09-09) (1edd55dcfcd573872c727fa3e086369a71661ee0-1125-llvmorg-24-init-7747-g62397f8b chromium)",
     "rustLibrarySha256": "a583202a1a0ccd33bd366ee5f2b411c7654970562db7c9d7e5f50e1358608d90",
-    "supervisorSha256": "bfcdfd250258fdabe838a6339b9dd81d2345d410b0fbfa90f2a9699ae936db53"
+    "supervisorSha256": "61852b20cef6fb8bb5cb19256d75215d68401a1f6b92bfbf3503826cd0dc115d"
   },
-  "testedRebuildArtifactsIdentical": true,
   "abi": {
     "defaultExports": [],
     "labExports": [
@@ -41,7 +40,7 @@
       "_absor_bridge_poll"
     ]
   },
-  "linuxWorkerBinarySha256": "cfceab59a948bfd63a16623d40f057d94f2e8342026d2762aa160d6b980ea862",
+  "linuxWorkerBinarySha256": "f43e771f350726089677605214072af01da73cfb3cd91c70f842371b8fb53eef",
   "linuxSourceFilesMatched": 40,
   "interop": {
     "ok": true,
@@ -54,7 +53,7 @@
           "captureStarted": false,
           "inputEnabled": false,
           "relayOnly": false,
-          "syntheticVideoFrames": 23,
+          "syntheticVideoFrames": 25,
           "rustAuthentication": true,
           "apiSignaling": true,
           "apiCutCode": 0
@@ -153,7 +152,7 @@
           ],
           "relayProtocol": null,
           "channelClosedAfterFault": true,
-          "cutAfterFaultMilliseconds": 2299,
+          "cutAfterFaultMilliseconds": 2174,
           "decodedFrames": 2,
           "syntheticColorVerified": true
         },
@@ -167,7 +166,7 @@
           "captureStarted": false,
           "inputEnabled": false,
           "relayOnly": false,
-          "syntheticVideoFrames": 278,
+          "syntheticVideoFrames": 287,
           "rustAuthentication": true,
           "apiSignaling": true,
           "apiCutCode": -1
@@ -182,7 +181,7 @@
           ],
           "relayProtocol": null,
           "channelClosedAfterFault": true,
-          "cutAfterFaultMilliseconds": 29163,
+          "cutAfterFaultMilliseconds": 29285,
           "decodedFrames": 2,
           "syntheticColorVerified": true
         },
@@ -204,12 +203,12 @@
               "event": "cut",
               "reason": "Timeout",
               "workerCode": null,
-              "workerPipeClosedAfterFaultMilliseconds": 2007,
+              "workerPipeClosedAfterFaultMilliseconds": 1977,
               "workerReaped": true
             }
           ],
           "exitCode": 70,
-          "processCutMilliseconds": 2016,
+          "processCutMilliseconds": 2004,
           "processOutputClosed": true
         },
         "controller": {
@@ -245,7 +244,7 @@
             }
           ],
           "exitCode": 70,
-          "processCutMilliseconds": 51,
+          "processCutMilliseconds": 34,
           "processOutputClosed": true
         },
         "controller": {
@@ -279,12 +278,12 @@
               "event": "cut",
               "reason": "Protocol",
               "workerCode": 72,
-              "workerPipeClosedAfterFaultMilliseconds": 1984,
+              "workerPipeClosedAfterFaultMilliseconds": 1912,
               "workerReaped": true
             }
           ],
           "exitCode": 70,
-          "processCutMilliseconds": 5038,
+          "processCutMilliseconds": 5017,
           "processOutputClosed": true
         },
         "controller": {
@@ -316,7 +315,7 @@
             }
           ],
           "exitCode": 73,
-          "processCutMilliseconds": 24,
+          "processCutMilliseconds": 22,
           "processOutputClosed": true
         },
         "controller": {
@@ -355,7 +354,7 @@
     "sdpFilesWritten": false,
     "secondControllerBusyRejected": true,
     "linuxNativeWorker": {
-      "apiCutMilliseconds": 29668,
+      "apiCutMilliseconds": 29665,
       "captureAndInputRejectedAfterCut": true,
       "fixtureOnly": true,
       "greenFrameCaptured": true,
@@ -418,25 +417,28 @@
   "sourceSha256": {
     "agent/Cargo.lock": "2ec5c2305c062914f4e12ed6582247df62dcc6850bbba193a9d3113d7a219d6e",
     "agent/Cargo.toml": "b950f456ee5291b8cf4db5b0942ca269caf574a0284d397b98b6b1cddfe5d67d",
-    "agent/README.md": "dd34b078cde9de9a5b29eec5a28ef56fd23ca3db661c3ecdc92468355f701592",
+    "agent/README.md": "827d78425c68b7d296fe25de9ad367e69ad69cbb53589ea67982e79268975fd1",
     "agent/crates/agent-api/src/http.rs": "569ca59a977bd3931a7bdfdb8c7b5a9cd09c0fec40453793294cf5a33835edf9",
     "agent/crates/agent-api/src/lib.rs": "d4d8ac6d9409a1ab9e767abf827f2eddd2f687ac14bc55822f3f9edb02bdfdb3",
     "agent/crates/agent-api/src/signaling.rs": "58799805b9a6085fbfc72122d9b8a66f2a2791cc61e7ebda1049c6b28dc3cce5",
     "agent/crates/agent-api/tests/signaling.rs": "aac76aaa380a17fe7f2b1a8b83699123b05d0c064473b87939564a2a3f699455",
+    "agent/crates/agent-supervisor/src/bin/fixture.rs": "67e2ff29772643d48a3327f54e139b46267190aec70739075e4457b82b4f40af",
+    "agent/crates/agent-supervisor/src/bin/lab.rs": "4e2c4ac0e249dad0704b6d7469cae9a675ef77e60ded2ffed6cb06f207ec9d12",
+    "agent/crates/agent-supervisor/tests/processes.rs": "80aa690a35caa9fa4a1471f9703edabd7a01aa65a2f197d7633a6d71caac3c38",
     "agent/crates/agent-webrtc-lab/absor_bridge.h": "48f13e359eabce9ad85469fa2237976dc69923bdd9ce83d61f26b6ae79c66044",
     "agent/crates/agent-webrtc-lab/src/bridge.rs": "1024339ea9acfedb8e3c255b607855493ab3eabe3ef082f120f1673fccaa0a61",
     "agent/crates/agent-webrtc-lab/src/ffi.rs": "d78464083016a2dd8c0c3089c284526b1f45452a21380af43dc11ecd82e8a0bd",
     "agent/crates/agent-webrtc-lab/src/lib.rs": "10ee5cda2eac7c6e82eb381c282b73b8a61d6dc9e085a3b3ee586735d51d5a1a",
     "agent/crates/agent-webrtc-lab/src/signaling.rs": "a426d15e606c42e420c6a166ae8b7743e1a9728cc89795145d67572361bebf58",
     "agent/crates/agent-x11-lab/Cargo.toml": "fc4e3fb4d95bf5ea57c895b01dc1893f2885049b0824002518b417a71a7129c5",
-    "agent/crates/agent-x11-lab/README.md": "6126559e17ef95f8f57160ee954d8f973076d4270f647d887792b99f78ed6898",
+    "agent/crates/agent-x11-lab/README.md": "943fa6689dc7858cf4788b51f2e6b2267fbb69b1282cb8a467afd6100176fd01",
     "agent/crates/agent-x11-lab/examples/x11-worker-smoke.rs": "88e187fe75bf63b3424e27a53ae35c1de02c5baacbdd98ea0c1ece15c64755a3",
     "agent/crates/agent-x11-lab/src/lib.rs": "87788bada9b48f7889cbffc35f7d4a705d6f6a7576d55dc03528df1865080eea",
     "agent/crates/agent-x11-lab/src/worker.rs": "a5cf3142718481aceb616fddd75b50e65108ca06eda6a4626a570962685cb06a",
-    "agent/crates/agent-x11-lab/src/x11.rs": "7fea4759b6d9fcdb377657e2f695d8115ac6cc487c443bf3608e91cb6afbb74b",
+    "agent/crates/agent-x11-lab/src/x11.rs": "637d3675a19e60ed721871e42e5e1bf4eef36608c87e03875eb2f328b64dc101",
     "openspec/changes/add-unattended-admin-access/design.md": "4dfec23ff93e755a5d0b09654fa8e6d39ac556e8c1567657e4f4c5dd359ac8db",
     "openspec/changes/add-unattended-admin-access/tasks.md": "a2e219b99fd605b50dbb4e78a5b45a2c86c56300167b181e9a83c45c1819248d",
-    "openspec/changes/add-unattended-admin-access/verification.md": "58d7d6f25295731c550597f8eb08eea657080cf0f361de6aee4e6df72c56d5c5",
+    "openspec/changes/add-unattended-admin-access/verification.md": "431f70ef5ab743b476e56609b0f8d1513975015f65e8839b9e26770572c0af95",
     "prototypes/backend-agent-check/README.md": "e918909d12c309a158c7c794f279184fe9508cccc0d009df22099c7d28140704",
     "prototypes/backend-agent-check/isolated-webrtc-renewal.py": "588b64310f79fc6c96b62faddc0d1df5c35486051a6ecddbf8600b528a41ad95",
     "prototypes/backend-agent-check/native-x11-worker.py": "59ec29ec6e69db71491280cde8a3ea554172444e9b584c47189ce5052c4ab8c8",
@@ -448,11 +450,28 @@
     "prototypes/remote-desktop/webrtc-check/interop-renderer.js": "ced5fbda6160413baf28d038deec671841295f8ba5b91d8f4a7286cce586e2e8"
   },
   "privateEvidenceSha256": {
-    "mac": "40577694a006852c1bcf08d5b4a8986f119f2e8c9747e27d399ed764c02d26ac",
-    "linux": "dc35bbf0dff261cc3fd7e8d5a8c607c1be2f048042de14f5e20ebcc378e46a53",
-    "nativeBuild": "b2ce50b2b151c1c6803d4ce7a5851b13eb0d4d94fab3c6f7f30ebfc5f63789ca",
-    "interop": "3f0956bbba42a44f0e8731d5c5701a5e3d70736cde6af3a14eb260040c4a359e",
+    "mac": "0ba8a652256c93b636639f759b7253ee49e1ccf5491e84d35ebd87ede8c52582",
+    "linux": "55ff605f1a9e05df95cd1465c124f1c44c0f6eec5655cfd083d5935ba526c523",
+    "nativeBuild": "e8abf61eab6f5dea606e868e7d90c5e64cee44dac3e4c6cedabf04af5aac6b5f",
+    "interop": "008f311e05889719bd3bdbfa3cc2d21f98657ae32c443a0cf237125d49511e8b",
     "legacy": "1f820645f5194a7532d9032117316233dbbe6d96462589213d9220339e5e6378",
-    "nativeMetadata": "e8f4a01d4daf3159e8e67ccebad2ac9210990e6a6fad910b934ffabe8c7b1d0e"
+    "nativeMetadata": "bf848ca901658b692573f5f8f33ecc81415a589dcd3957b93a58e7867b7792a1",
+    "guardDiagnostic1": "0ed2fb61ad01b8d6b3e6e341d90f9ec0be68873a4c3ed5d3f56538b787c70457",
+    "guardDiagnostic2": "76998d8efb4968a9f2599b8ed2872c27d9b346bc1b7f8df4ad6186f81dc79642",
+    "guardDiagnostic3": "f1275eca43bead72a72362e8653ce45f9f10263af7ea183d58e9ee547cca98a9"
+  },
+  "testedArtifactsMatchBuildHashes": true,
+  "supervisorEofRegression": {
+    "graceMilliseconds": 250,
+    "heartbeatsDuringGrace": false,
+    "authorizationRenewedDuringGrace": false,
+    "cleanEofExitTested": true,
+    "liveWorkerAfterEofTerminatedTested": true
+  },
+  "nativeGuardDiagnosticRepetitions": {
+    "count": 3,
+    "allPassed": true,
+    "apiLeaseSeconds": 5,
+    "realBackendTested": false
   }
 }

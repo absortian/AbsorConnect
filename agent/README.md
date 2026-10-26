@@ -260,6 +260,12 @@ corta todos los hilos de vídeo y sockets; liberar teclas/botones físicos al
 morir un trabajador queda pendiente del adaptador del SO. No se reinicia ni
 se rehabilita una PeerConnection anterior después de ningún fallo.
 
+Si el pipe se cierra antes de que el SO publique la salida del hijo, el
+supervisor espera como máximo 250 ms a recoger su estado final. Durante esa
+espera no envía más pulsos ni concede otra autorización. Un hijo que mantiene
+el proceso vivo tras cerrar el pipe se termina y recoge; dos pruebas de
+proceso fuerzan ambos órdenes, incluido el cierre anticipado en Windows.
+
 ```bash
 cargo test --manifest-path agent/Cargo.toml --locked --all-features
 # Compila supervisor y dylib con el mismo Rust fijado del checkout:
@@ -299,6 +305,8 @@ La ventana es de 320×180, RGB/TrueColor24, sin decoraciones del gestor; captura
 XGetImage y comprueba eventos XTest de un clic izquierdo y la tecla fija A.
 Comprueba sesión/asiento/usuario X11 y Cinnamon desbloqueado, identidad de la
 sesión, foco propio, destino del puntero y entrada libre. No lee texto de eventos.
+Eleva solo su ventana antes del pulso y revalida contexto, foco y destino
+antes del clic; nunca reintenta la entrada si la comprobación falla.
 Restaura el puntero y libera los pulsos enviados; un error del trabajador es
 terminal. `Session::close` solo marca parada, sin bloquear al actor con Xlib.
 

@@ -480,10 +480,18 @@ impl Surface {
             {
                 return Err("own_coordinates_failed");
             }
+            // Cinnamon puede elevar su escritorio durante el primer inicio.
+            // Elevar solo nuestra ventana antes de comprobar el destino; nunca
+            // reintentar el clic ni forzar foco si otra ventana lo ha recibido.
+            (self.x.raise)(self.display, self.window);
+            (self.x.sync)(self.display, 0);
             self.original_pointer = Some((x, y));
             (self.motion)(self.display, self.screen, tx, ty, 0);
             (self.x.sync)(self.display, 0);
             thread::sleep(Duration::from_millis(40));
+            if context()? != self.session {
+                return Err("session_changed");
+            }
             let (mut observed_x, mut observed_y) = (0, 0);
             if (self.x.pointer)(
                 self.display,
@@ -499,7 +507,16 @@ impl Surface {
                 || (observed_x, observed_y) != (tx, ty)
                 || child != self.window
             {
+                eprintln!(
+                    "native_pointer_guard coordinates_match={} own_child={}",
+                    (observed_x, observed_y) == (tx, ty),
+                    child == self.window
+                );
                 return Err("own_pointer_target_required");
+            }
+            (self.x.get_focus)(self.display, &mut focus, &mut revert);
+            if !alive.load(Ordering::Acquire) || focus != self.window || mask & 0x1ffd != 0 {
+                return Err("context_changed_before_button");
             }
             if (self.button)(self.display, 1, 1, 0) == 0 {
                 return Err("button_failed");

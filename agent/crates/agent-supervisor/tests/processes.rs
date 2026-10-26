@@ -16,6 +16,9 @@ impl Drop for Scratch {
     }
 }
 fn run(fault: Option<u8>) -> (i32, String, Duration) {
+    run_case(fault, if fault.is_none() { "normal" } else { "fault" })
+}
+fn run_case(fault: Option<u8>, mode: &str) -> (i32, String, Duration) {
     let candidate = std::env::temp_dir().join(format!(
         "absor-supervisor-{}-{}-{}",
         std::process::id(),
@@ -34,7 +37,7 @@ fn run(fault: Option<u8>) -> (i32, String, Duration) {
     ));
     fs::copy(env!("CARGO_BIN_EXE_absor-lab-worker-fixture"), &worker).unwrap();
     let config = scratch.0.join("config.json");
-    fs::write(&config, if fault.is_none() { "normal" } else { "fault" }).unwrap();
+    fs::write(&config, mode).unwrap();
     let report = scratch.0.join("events.jsonl");
     let mut child = Command::new(env!("CARGO_BIN_EXE_absor-lab-supervisor"))
         .args([
@@ -98,6 +101,21 @@ fn run(fault: Option<u8>) -> (i32, String, Duration) {
         fs::read_to_string(&report).unwrap(),
         started.elapsed(),
     )
+}
+#[test]
+fn pipe_eof_before_normal_process_exit_is_not_a_crash() {
+    let (code, report, elapsed) = run_case(None, "normal-eof");
+    assert_eq!(code, 0);
+    assert!(report.contains("\"eofBeforeExit\":true"));
+    assert!(elapsed < Duration::from_secs(2));
+}
+#[test]
+fn closing_the_pipe_cannot_keep_a_worker_alive() {
+    let (code, report, elapsed) = run_case(None, "fault-eof");
+    assert_eq!(code, 70);
+    assert!(report.contains("\"workerReaped\":true"));
+    assert!(report.contains("Closed"));
+    assert!(elapsed < Duration::from_secs(2));
 }
 #[test]
 fn normal_exit_is_reaped_without_restart() {

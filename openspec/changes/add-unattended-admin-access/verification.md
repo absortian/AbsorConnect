@@ -2166,11 +2166,11 @@ proxy del entorno, token de cuenta en el trabajador o credencial en el visor.
 Pasaron los nueve casos Mac ARM/Electron anteriores usando esa API, con **cero
 archivos SDP**. La prueba positiva recibió otra solicitud mientras seguía el
 vídeo y la rechazó como `busy`. HMAC/huellas incorrectos generaron y recibieron
-cero imágenes. Revocación cortó el canal en **2299 ms**, pérdida de API en
-**29163 ms**. El trabajador bloqueado terminó en **2016 ms**; se mantuvieron
+cero imágenes. Revocación cortó el canal en **2174 ms**, pérdida de API en
+**29285 ms**. El trabajador bloqueado terminó en **2004 ms**; se mantuvieron
 las comprobaciones de caída/bloqueo de supervisor y ausencia de nuevos frames.
-La recompilación final produjo los mismos hashes de extremo, dylib y supervisor
-que se habían ejecutado. La ABI sigue ausente por omisión; el build optativo
+El lanzador comprobó los hashes de extremo, dylib y supervisor antes de
+ejecutarlos. La ABI sigue ausente por omisión; el build optativo
 exporta ahora siete funciones, con oferta/respuesta adicionales acotadas.
 
 `agent-x11-lab` añade un trabajador inicial nativo, ejecutado sin privilegios
@@ -2188,7 +2188,7 @@ No lee texto de eventos y no guarda/transmite píxeles por red.
 El ensayo real con el backend confirmó **cero operaciones nativas antes de
 autenticar**, prueba HMAC incorrecta rechazada, captura roja, un clic/tecla
 recibidos con sus liberaciones y captura verde posterior. Al cortar API cerró
-el trabajador en **29668 ms**, rechazó captura/entrada posteriores y no hubo
+el trabajador en **29665 ms**, rechazó captura/entrada posteriores y no hubo
 más operaciones nativas. Otro arranque con Cinnamon activo terminó con **cero
 intentos de captura y entrada**. El helper restituyó el escritorio de la VM,
 retiró el marcador y cerró su túnel loopback. Credencial por stdin en SSH,
@@ -2203,8 +2203,22 @@ hilos y sus bibliotecas del SO permanecen mapeadas por sus callbacks TLS.
 Una comprobación previa con API simulada de cinco segundos se usó solo para
 diagnóstico; los resultados anteriores corresponden al backend real aislado.
 
-Mac/Rust 1.99.1 pasó **43 pruebas por omisión y 58 con todas las features**;
-la VM Linux ARM/Rust 1.75 pasó **43 y 60**, con dos pruebas Linux adicionales
+CI detectó en Windows que EOF podía preceder al estado final del proceso:
+una salida correcta se clasificaba como fallo. El supervisor ahora recoge el
+estado durante una espera acotada de 250 ms sin emitir más pulsos ni renovar
+autorización. Si el hijo sigue vivo, lo termina y recoge. Dos pruebas de
+proceso fuerzan EOF antes de una salida correcta y EOF con un hijo que sigue
+vivo. Pasan en Mac y Linux; CI verifica además la variante Windows.
+
+Una repetición nativa se detuvo antes del clic al no coincidir el destino
+real del puntero con la ventana propia. Se conserva esa denegación y se eleva
+solo nuestra ventana antes de la comprobación, con contexto/foco/entrada libre
+revalidados antes del clic. Se registran únicamente booleanos del fallo, sin
+IDs o contenido de ventanas. Tres repeticiones con API simulada de cinco
+segundos pasaron; se mantienen separadas del ensayo con backend real.
+
+Mac/Rust 1.99.1 pasó **43 pruebas por omisión y 60 con todas las features**;
+la VM Linux ARM/Rust 1.75 pasó **43 y 62**, con dos pruebas Linux adicionales
 sin interfaz (propiedad exclusiva y fallo terminal). Formato, Clippy sin
 advertencias y release en ambos modos correctos. El ejemplo nativo se compiló
 y ejecutó en la VM; la variante C++ anterior pasó sus tres casos. TypeScript,
