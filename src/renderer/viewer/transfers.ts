@@ -61,7 +61,10 @@ export class ViewerTransfers {
   private readonly receiving = new Set<number>()
   private readonly lastEmit = new Map<number, number>()
   private uploads: Promise<void> = Promise.resolve()
-  private readonly assembler = new ClipboardAssembler()
+  private assembler = new ClipboardAssembler()
+  private sensitiveAllowed = true
+  private contentEpoch = 0
+  private clipboardEpoch = 0
   private clipboardId = 0
   private clipboardEnabled = false
   private paused = false
@@ -77,6 +80,9 @@ export class ViewerTransfers {
 
   /** Se perdió la conexión: lo que estaba en marcha falla (al reconectar no se reanuda). */
   detach(): void {
+    this.contentEpoch++
+    this.clipboardEpoch++
+    this.assembler = new ClipboardAssembler()
     this.channel = null
     for (const view of this.views.values()) {
       if (view.status === 'waiting' || view.status === 'running') {
@@ -89,12 +95,29 @@ export class ViewerTransfers {
     this.waiters.clear()
   }
 
+  /** Cambiar de usuario/contexto invalida también esperas y lecturas ya iniciadas. */
+  setSensitiveAllowed(allowed: boolean, boundary = false): void {
+    this.sensitiveAllowed = allowed
+    if (!allowed || boundary) {
+      const channel = this.channel
+      this.detach()
+      this.views.clear()
+      this.lastEmit.clear()
+      this.channel = channel
+    }
+    void this.options.bridge.clipboardWatch(allowed && this.clipboardEnabled && !this.paused)
+  }
+
   // --- Portapapeles ------------------------------------------------------------------------
 
   /** El PC permite (o no) el portapapeles en esta sesión. */
   setClipboardEnabled(enabled: boolean): void {
     this.clipboardEnabled = enabled
-    void this.options.bridge.clipboardWatch(enabled && !this.paused)
+    if (!enabled) {
+      this.clipboardEpoch++
+      this.assembler = new ClipboardAssembler()
+    }
+    void this.options.bridge.clipboardWatch(this.sensitiveAllowed && enabled && !this.paused)
   }
 
   get clipboardPaused(): boolean {
@@ -103,12 +126,18 @@ export class ViewerTransfers {
 
   setClipboardPaused(paused: boolean): void {
     this.paused = paused
-    void this.options.bridge.clipboardWatch(this.clipboardEnabled && !paused)
+    if (paused) {
+      this.clipboardEpoch++
+      this.assembler = new ClipboardAssembler()
+    }
+    void this.options.bridge.clipboardWatch(
+      this.sensitiveAllowed && this.clipboardEnabled && !paused
+    )
   }
 
   /** Trozo del portapapeles del PC (canal `control`). */
   onClipboardPiece(piece: ClipboardPiece): void {
-    if (!this.clipboardEnabled || this.paused) return
+    if (!this.sensitiveAllowed || !this.clipboardEnabled || this.paused) return
     const content = this.assembler.add(piece)
     if (content) this.options.bridge.clipboardWrite(content)
   }
@@ -116,10 +145,25 @@ export class ViewerTransfers {
   /** Lo copiado en este equipo: al PC, en trozos. */
   async sendClipboard(content: ClipboardContent): Promise<void> {
     const control = this.options.control()
-    if (!control || !this.clipboardEnabled || this.paused) return
+    if (!control || !this.sensitiveAllowed || !this.clipboardEnabled || this.paused) return
+    const epoch = this.clipboardEpoch
     for (const piece of splitClipboard(++this.clipboardId, content)) {
-      await room(control)
-      if (control.readyState !== 'open') return
+      await room(
+        control,
+        () =>
+          epoch === this.clipboardEpoch &&
+          this.sensitiveAllowed &&
+          this.clipboardEnabled &&
+          !this.paused
+      )
+      if (
+        epoch !== this.clipboardEpoch ||
+        !this.sensitiveAllowed ||
+        !this.clipboardEnabled ||
+        this.paused ||
+        control.readyState !== 'open'
+      )
+        return
       control.send(JSON.stringify(piece))
     }
   }
@@ -128,6 +172,7 @@ export class ViewerTransfers {
 
   /** Envía ficheros al PC, uno detrás de otro. */
   upload(files: File[]): void {
+    if (!this.sensitiveAllowed) return
     for (const file of files) {
       const view = this.add('up', file.name || 'fichero', file.size)
       this.uploads = this.uploads.then(() => this.sendFile(view, file))
@@ -136,6 +181,7 @@ export class ViewerTransfers {
 
   /** Descarga un fichero del PC (antes pregunta dónde guardarlo). */
   download(path: string, name: string, size: number): void {
+    if (!this.sensitiveAllowed) return
     void this.receiveFile(this.add('down', name, size), path)
   }
 
@@ -153,22 +199,25 @@ export class ViewerTransfers {
 
   /** Contenido de una carpeta del PC ('' es la carpeta del usuario); null si se perdió la conexión. */
   async list(path: string): Promise<FsListing | null> {
+    if (!this.sensitiveAllowed) return null
+    const epoch = this.contentEpoch
     const id = this.nextId++
     this.send({ type: 'fs-list', id, path })
     const reply = await this.wait(id, ['fs-entries'])
-    if (!reply || reply.type !== 'fs-entries') return null
+    if (epoch !== this.contentEpoch || !reply || reply.type !== 'fs-entries') return null
     const { path: listed, parent, entries, truncated, error } = reply
     return { path: listed, parent, entries, truncated, error }
   }
 
   private async sendFile(view: TransferView, file: File): Promise<void> {
     const channel = this.channel
-    if (view.status === 'cancelled') return
+    if (!this.sensitiveAllowed || !['waiting'].includes(view.status)) return
+    const epoch = this.contentEpoch
     if (!channel) return this.update(view, { status: 'failed', error: 'connection_lost' }, true)
     this.update(view, { status: 'running' }, true)
     this.send({ type: 'file-offer', id: view.id, name: view.name.slice(0, 255), size: view.size })
     const reply = await this.wait(view.id, ['file-accept', 'file-reject'])
-    if (!reply) return
+    if (epoch !== this.contentEpoch || !reply) return
     if (reply.type === 'file-reject')
       return this.update(view, { status: 'failed', error: reply.reason }, true)
 
@@ -182,7 +231,9 @@ export class ViewerTransfers {
           if (view.status !== 'running') return
           const part = value.subarray(offset, offset + CHUNK_BYTES)
           hash.update(part)
-          await room(channel)
+          await room(channel, () => epoch === this.contentEpoch && this.sensitiveAllowed)
+          if (epoch !== this.contentEpoch || !this.sensitiveAllowed || view.status !== 'running')
+            return
           if (channel.readyState !== 'open' || this.channel !== channel) {
             return this.update(view, { status: 'failed', error: 'connection_lost' }, true)
           }
@@ -191,14 +242,16 @@ export class ViewerTransfers {
         }
       }
     } catch {
+      if (epoch !== this.contentEpoch) return
       this.send({ type: 'file-cancel', id: view.id })
       return this.update(view, { status: 'failed', error: 'read' }, true)
     } finally {
       void reader.cancel().catch(() => undefined)
     }
+    if (epoch !== this.contentEpoch || !this.sensitiveAllowed || view.status !== 'running') return
     this.send({ type: 'file-end', id: view.id, sha256: hash.hex() })
     const result = await this.wait(view.id, ['file-done', 'file-error'])
-    if (!result) return
+    if (epoch !== this.contentEpoch || !result) return
     if (result.type === 'file-done')
       this.update(view, { status: 'done', result: result.name }, true)
     else if (result.type === 'file-error')
@@ -207,7 +260,12 @@ export class ViewerTransfers {
 
   private async receiveFile(view: TransferView, path: string): Promise<void> {
     const { bridge } = this.options
+    const epoch = this.contentEpoch
     const begin = await bridge.saveBegin(view.id, view.name, view.size)
+    if (epoch !== this.contentEpoch || !this.sensitiveAllowed || view.status !== 'waiting') {
+      if (begin.ok) bridge.saveCancel(view.id)
+      return
+    }
     if (!begin.ok) {
       // Cancelado en el diálogo: no se pide nada al PC
       return this.update(
@@ -216,12 +274,11 @@ export class ViewerTransfers {
         true
       )
     }
-    if (view.status === 'cancelled') return bridge.saveCancel(view.id)
     this.receiving.add(view.id)
     this.update(view, { status: 'running' }, true)
     this.send({ type: 'file-request', id: view.id, path })
     const start = await this.wait(view.id, ['file-start', 'file-reject'])
-    if (!start) return
+    if (epoch !== this.contentEpoch || !start) return
     if (start.type === 'file-reject' || (start.type === 'file-start' && start.size !== view.size)) {
       this.receiving.delete(view.id)
       bridge.saveCancel(view.id)
@@ -234,8 +291,9 @@ export class ViewerTransfers {
     }
     const end = await this.wait(view.id, ['file-end'])
     this.receiving.delete(view.id)
-    if (!end || end.type !== 'file-end') return
+    if (epoch !== this.contentEpoch || !end || end.type !== 'file-end') return
     const result = await bridge.saveFinish(view.id, end.sha256)
+    if (epoch !== this.contentEpoch) return
     this.update(
       view,
       result.ok
@@ -270,7 +328,8 @@ export class ViewerTransfers {
   }
 
   private send(message: TransferMessage): void {
-    if (this.channel?.readyState === 'open') this.channel.send(JSON.stringify(message))
+    if (this.sensitiveAllowed && this.channel?.readyState === 'open')
+      this.channel.send(JSON.stringify(message))
   }
 
   private wait(id: number, types: TransferMessage['type'][]): Promise<TransferMessage | null> {
@@ -286,6 +345,7 @@ export class ViewerTransfers {
   }
 
   private onMessage(data: unknown): void {
+    if (!this.sensitiveAllowed) return
     if (typeof data === 'string') {
       const message = parseTransferMessage(data)
       const waiter = message ? this.waiters.get(message.id) : undefined

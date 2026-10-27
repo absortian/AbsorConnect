@@ -2644,3 +2644,39 @@ físicos, ni el backup de entorno o los cambios iOS anteriores del propietario.
 El avance aceptado es **16/57 (28 %)**. Falta captura/entrada generales y
 transiciones, agentes/instaladores finales, integración de controladores y
 piloto físico. La matriz de servicio completo certificado continúa vacía.
+
+
+## 28/10/2026 — contexto protegido del visor de escritorio
+
+PR #52 integrada con cinco jobs correctos: Rust Windows/Mac/Linux (150/152/167
+pruebas, cuatro pruebas Python y dos releases por SO), APK release con firma
+verificada y Runner iOS sin firma. Logs completos/annotations revisados mediante
+Code Review y conector GitHub. Solo avisos preexistentes de runners, Node de
+acciones y Java 8; sin fallo. Evidencia histórica con SHA 0428e49 y hashes de CI.
+
+Se acepta **9.4**: el visor real negocia después de autenticar, espera capacidades
+y contexto, ignora secuencias antiguas y aplica retirada posterior de capacidad.
+Oculta la imagen anterior sin imagen actual/transición y espera un frame nuevo
+antes de mostrarla. La entrada protegida exige capacidad correspondiente.
+Libera entrada y desactiva audio/portapapeles/ficheros; borra nombres/rutas de la
+UI, invalida colas/esperas y no reanuda una descarga por un diálogo tardío.
+Las esperas de backpressure despiertan incluso sin evento de buffer.
+Tras cualquier cambio observado, el contenido sensible exige reconectar para
+no atribuir trozos antiguos a otro usuario/contexto. Los hosts legados conservan
+su flujo e historial de transferencias; no reciben negociación nueva.
+
+La prueba `viewer-context-check` empaqueta HTML/CSS/main.ts de producción, con
+puente API artificial y dos peers WebRTC locales, desafío v1/huellas aplicadas
+y vídeo de canvas público. Verifica escritorio → transición → entrada → vuelta,
+secuencia antigua, controles/sonido/portapapeles suspendidos y no renegociación.
+Tres capturas ficticias revisadas visualmente; no se captura este Mac ni una
+pantalla protegida. La baja exacta/cancelada/cuenta cambiada conserva la evidencia
+de PR #50/#51 y las pruebas de regresión, sin nuevas mutaciones del backend.
+
+Typecheck/build, Vitest **311 correctas/6 omitidas sin API**, ESLint tocado y
+PHPUnit **162/1077** correctos. Once pruebas nuevas: política/retirada de
+capacidades, integración de sesión y carreras de transferencia/portapapeles.
+No se cambia el protocolo v1 ni móviles, ni configuración iOS anterior.
+La responsabilidad del host de aislar fuente, entrada y colas sigue en 3.5;
+los contextos físicos/servicios finales y controles Flutter siguen pendientes.
+Avance aceptado **17/57 (30 %)**, todavía por debajo del 50 % solicitado.

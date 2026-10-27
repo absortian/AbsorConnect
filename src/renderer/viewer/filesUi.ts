@@ -34,6 +34,8 @@ export interface FilesUi {
   setFeatures(features: { clipboard: boolean; files: boolean }): void
   /** Sin sesión (cerrada o fallida): se ocultan los botones y se deja de vigilar el portapapeles. */
   disable(): void
+  /** Borra nombres/rutas del contexto anterior, incluido el historial visible. */
+  clearContext(): void
   /** El explorador está abierto: el teclado no va al PC. */
   readonly browsing: boolean
 }
@@ -147,6 +149,7 @@ export function setupFilesUi(options: {
     browserMessage.textContent = t.loading
     browserMessage.classList.remove('error')
     const listing = await transfers.list(path)
+    if (!filesAllowed || browser.hidden) return
     if (!listing) {
       browserMessage.textContent = t.transferError('connection_lost')
       browserMessage.classList.add('error')
@@ -255,6 +258,19 @@ export function setupFilesUi(options: {
       clipboardButton.hidden = !features.clipboard
       transfers.setClipboardEnabled(features.clipboard)
       renderClipboard()
+    },
+    clearContext() {
+      browser.hidden = true
+      drop.hidden = true
+      browserList.replaceChildren()
+      browserPath.value = ''
+      browserMessage.textContent = ''
+      fileInput.value = ''
+      currentPath = ''
+      parentPath = null
+      rows.clear()
+      list.replaceChildren()
+      panel.hidden = true
     },
     disable() {
       filesAllowed = false

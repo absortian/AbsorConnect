@@ -4,8 +4,8 @@ Contrato de la tarea 8.2 de `add-unattended-admin-access`, compartido por
 `agentProtocol.ts` y `mobile/lib/src/remote/agent_protocol.dart`. Los vectores
 `agent-protocol-vectors.json` se ejecutan en ambos lenguajes. El crate Rust `absor-agent-control` implementa la negociación, secuencias y
 deduplicación del host. El trabajador IPC de ventana propia de la VM lo conecta
-al canal WebRTC y anuncia cero acciones del SO. Esto no certifica un equipo. Los analizadores del modo de usuario siguen
-ignorando estos mensajes. No cambia la autenticación v1 ni `auth-vectors.json`.
+al canal WebRTC y anuncia cero acciones del SO. Esto no certifica un equipo. El host de usuario sigue ignorando estos mensajes. El visor de escritorio ya
+negocia y aplica la política de contexto; todavía no ofrece acciones del SO. No cambia la autenticación v1 ni `auth-vectors.json`.
 
 ## Negociación obligatoria antes de integrar
 
@@ -16,9 +16,9 @@ ignorando estos mensajes. No cambia la autenticación v1 ni `auth-vectors.json`.
 4. Solo después de ambos pasos el host envía capacidades/contexto y atiende las
    operaciones anunciadas. Un mensaje analizable por sí solo nunca autoriza nada.
 
-El anuncio es opcional. Los hosts y controladores actuales no negocian la
-extensión ni ejecutan sus operaciones. El laboratorio IPC nativo ya negocia esta revisión; la app y el móvil todavía
-no habilitan los controles administrativos finales. Esa integración pertenece
+El anuncio es opcional. Los hosts de usuario anteriores no negocian la
+extensión. El laboratorio IPC nativo y el visor de escritorio negocian esta
+revisión. La app y el móvil todavía no habilitan las operaciones administrativas finales. Esa integración pertenece
 a 7–10; no se da por hecha al completar los analizadores o el núcleo.
 
 ## Forma y límites
@@ -81,3 +81,20 @@ Las credenciales del sistema solo son entrada hacia su pantalla, nunca campos de
 estos mensajes, parámetros de operaciones ni datos para la API. El agente aún
 debe validar sus mensajes en origen y hacer cumplir el límite de revocación de
 30 segundos con reloj monotónico.
+
+## Política actual del visor de escritorio
+
+Antes de recibir capacidades y contexto, el visor mantiene oculto el vídeo
+anterior y suspende funciones sensibles. Ignora secuencias repetidas/antiguas;
+una retirada de capacidades se aplica también al contexto actual. Sin imagen
+o durante transición/no disponible, no envía entrada. En login/bloqueo exige
+`login` y en autorización exige `administration`. El aviso es estado declarado,
+no certificación. No habilita aún ninguna operación administrativa.
+
+Cada cambio invalida las esperas/colas del controlador y borra el contenido
+visible del explorador. Después de cualquier cambio de contexto observado,
+audio, ficheros y portapapeles requieren una PeerConnection nueva autenticada;
+v1 no permite atribuir con seguridad trozos pendientes a un contexto. El visor
+espera un frame posterior a la notificación antes de mostrar vídeo de nuevo.
+El host sigue obligado a cambiar/aislar la fuente y descartar sus propias colas;
+no se delega al visor la protección entre usuarios de la tarea 3.5.

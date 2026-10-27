@@ -188,3 +188,88 @@ describe('ViewerTransfers', () => {
     })
   })
 })
+
+describe('contenido descartado al cambiar de contexto', () => {
+  it('no solicita una descarga al volver un diálogo abierto en el contexto anterior', async () => {
+    const channel = channelWithPc(() => undefined)
+    const { b, transfers, last } = setup(channel)
+    let finish!: (result: { ok: true }) => void
+    b.saveBegin.mockReturnValueOnce(
+      new Promise((resolve) => {
+        finish = resolve
+      })
+    )
+    transfers.download('/dato-ficticio', 'anterior.txt', 1)
+    transfers.setSensitiveAllowed(false)
+    transfers.setSensitiveAllowed(true)
+    finish({ ok: true })
+    await tick()
+    expect(b.saveCancel).toHaveBeenCalledWith(1)
+    expect(channel.sent).toEqual([])
+    expect(last(1)?.status).toBe('failed')
+  })
+
+  it('invalida envíos de portapapeles con backpressure y su ensamblaje parcial', async () => {
+    const { b, control, transfers } = setup(channelWithPc(() => undefined))
+    transfers.setClipboardEnabled(true)
+    const parts = splitClipboard(10, { kind: 'text', text: 'x'.repeat(100_000) })
+    expect(parts.length).toBeGreaterThan(1)
+    transfers.onClipboardPiece(parts[0])
+    Object.defineProperty(control, 'bufferedAmount', { value: 2_000_000 })
+    const pending = transfers.sendClipboard({ kind: 'text', text: 'contenido ficticio anterior' })
+    expect(control.onbufferedamountlow).not.toBeNull()
+    transfers.setSensitiveAllowed(false)
+    expect(b.clipboardWatch).toHaveBeenLastCalledWith(false)
+    transfers.setSensitiveAllowed(true)
+    for (const piece of parts.slice(1)) transfers.onClipboardPiece(piece)
+    control.onbufferedamountlow?.({} as Event)
+    await pending
+    expect(control.sent).toEqual([])
+    expect(b.clipboardWrite).not.toHaveBeenCalled()
+    transfers.setSensitiveAllowed(false)
+    await transfers.sendClipboard({ kind: 'text', text: 'también descartado' })
+    expect(control.sent).toEqual([])
+  })
+
+  it('corta el fichero con backpressure y la cola, sin trozos tardíos al recuperar el canal', async () => {
+    const channel = channelWithPc((message, reply) => {
+      if (!(message instanceof Uint8Array) && message.type === 'file-offer')
+        reply(JSON.stringify({ type: 'file-accept', id: message.id }))
+    })
+    Object.defineProperty(channel, 'bufferedAmount', { value: 2_000_000 })
+    const { transfers, last } = setup(channel)
+    transfers.upload([new File(['dato ficticio'], 'a.txt'), new File(['otro'], 'b.txt')])
+    await vi.waitFor(() => expect(channel.onbufferedamountlow).not.toBeNull())
+    transfers.setSensitiveAllowed(false)
+    transfers.setSensitiveAllowed(true)
+    channel.onbufferedamountlow?.({} as Event)
+    await tick(20)
+    expect(channel.sent).toHaveLength(1)
+    expect(last(1)?.status).toBe('failed')
+    expect(last(2)?.status).toBe('failed')
+  })
+
+  it('descarta la carpeta pendiente y no consulta carpetas ni abre diálogos en contexto protegido', async () => {
+    const channel = channelWithPc(() => undefined)
+    const { b, transfers } = setup(channel)
+    const pending = transfers.list('/anterior')
+    transfers.setSensitiveAllowed(false)
+    expect(await pending).toBeNull()
+    expect(await transfers.list('/nuevo')).toBeNull()
+    transfers.download('/nuevo', 'x', 1)
+    transfers.upload([new File(['x'], 'x')])
+    expect(channel.sent).toHaveLength(1)
+    expect(b.saveBegin).not.toHaveBeenCalled()
+  })
+})
+
+it('despierta la espera de buffer al invalidar contexto aunque no llegue bufferedamountlow', async () => {
+  const { control, transfers } = setup(channelWithPc(() => undefined))
+  transfers.setClipboardEnabled(true)
+  Object.defineProperty(control, 'bufferedAmount', { value: 2_000_000 })
+  const pending = transfers.sendClipboard({ kind: 'text', text: 'dato artificial' })
+  transfers.setSensitiveAllowed(false)
+  await pending
+  expect(control.sent).toEqual([])
+  expect(control.onbufferedamountlow).toBeNull()
+})

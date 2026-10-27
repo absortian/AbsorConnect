@@ -12,7 +12,7 @@ siguen pendientes API completa, autenticador, trabajador P2P y watchdog del
 servicio. La tarea 3.4 no se cierra solo con el proceso de prueba; su aceptación posterior
 añade el gate/API/DTLS y trabajador nativo conectados, con la evidencia del 26/10.
 
-Avance cerrado: **16/57 tareas (28 %)**. Es proporción de tareas aceptadas, no
+Avance cerrado: **17/57 tareas (30 %)**. Es proporción de tareas aceptadas, no
 porcentaje del tiempo restante. La tarea 3.2 se acepta como protocolo común:
 vectores compartidos, HMAC/huellas aplicadas, intentos durables/reinicio, sesión
 única y denegación de captura/entrada antes de autenticar, con integración IPC
@@ -99,6 +99,16 @@ La matriz y sus límites están en `native-mobile-input-results.json`. No acepta
 contextos protegidos, servicios finales, firma Mac ni piloto físico. El avance
 pasa a **16/57 (28 %)** y continúa por debajo del 50 % solicitado.
 
+El bloque del 28/10 acepta **9.4** para el controlador de escritorio: negociación
+postautenticación, contexto/secuencia, ocultación de imagen anterior, retirada
+de capacidades y cancelación de funciones/esperas sensibles; integra la baja
+exacta verificada en los bloques anteriores. Se prueba con el visor de producción
+y WebRTC local artificial, más carreras de buffer/guardar/carpeta y pruebas de
+propiedad/baja. No acepta el aislamiento de captura/entrada del host (3.5),
+transiciones físicas ni Flutter (10.2). Tras un cambio, contenido sensible exige
+reconectar por la ausencia de etiquetas de contexto en v1. Evidencia:
+`viewer-context-results.json`. El avance pasa a **17/57 (30 %)**; el 50 % sigue pendiente.
+
 ## 1. Viabilidad y configuraciones objetivo
 
 - [ ] 1.1 Registrar versiones, arquitecturas, cifrado de arranque y opciones de conectividad de los Windows/Mac del propietario y confirmar Mint Cinnamon/X11/LightDM; verificar un inventario privado sin secretos y una matriz pública de configuraciones objetivo sin IPs personales.
@@ -165,7 +175,7 @@ pasa a **16/57 (28 %)** y continúa por debajo del 50 % solicitado.
 - [ ] 9.1 Añadir Ajustes de acceso desatendido con instalación, elección explícita sobre confirmación local, permisos y estado del agente; verificar recorridos de instalación cancelada, servicio averiado y configuración «requiere intervención».
 - [ ] 9.2 Incorporar estado de preparación para viajes, capacidades certificadas y aviso sobre salir de la app; verificar que un equipo sin pruebas no aparece como preparado y que el modo de usuario conserva sus límites.
 - [ ] 9.3 Añadir acciones administrativas con confirmación, resultados y espera de reinicio; verificar host anterior sin comandos, rechazo/cancelación, autenticación nueva, vencimiento/cancelación de espera y que no se generan solicitudes mientras está fuera de línea.
-- [ ] 9.4 Añadir contexto protegido y revocación desde Equipos; verificar cancelación de funciones sensibles, fotograma desactualizado identificado y revocación del equipo correcto. Añadir textos `es.json`/`en.json` y documentar el uso del visor con capturas de datos de prueba.
+- [x] 9.4 Añadir contexto protegido y revocación desde Equipos; verificar cancelación de funciones sensibles, fotograma desactualizado identificado y revocación del equipo correcto. Añadir textos `es.json`/`en.json` y documentar el uso del visor con capturas de datos de prueba.
 
 ## 10. Flutter: controlador móvil
 

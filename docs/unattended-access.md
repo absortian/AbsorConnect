@@ -76,6 +76,33 @@ conexiones S3/SSH, no desinstala binarios ni cambia la contraseña del sistema.
 El modelo/API móvil ya reconoce capacidades y la baja del equipo; su control
 visual y las pruebas nativas completas siguen pendientes.
 
+### Contexto protegido en el visor de escritorio
+
+Con un host que anuncie la extensión después de autenticar, el visor muestra
+escritorio, bloqueo, entrada, autorización, transición o no disponible. Espera
+capacidades y contexto válidos; ignora secuencias antiguas. Si no hay imagen
+actual, oculta la anterior y lo indica. Al haber imagen, espera un fotograma
+posterior a la notificación antes de volver a mostrarla. El host sigue siendo
+responsable de aislar la fuente de captura; esto no certifica pantallas del SO.
+La entrada en bloqueo/inicio requiere `login`; en autorización, `administration`.
+Sin esa capacidad, el visor indica que no admite entrada en ese contexto.
+
+Al cambiar de contexto, suelta entrada, suspende audio/portapapeles/archivos y
+borra nombres/rutas visibles del contexto anterior. Cancela esperas de buffer,
+colas y descargas pendientes: un diálogo de guardar que vuelva después no
+reanuda la descarga. Los mensajes antiguos de contexto tampoco las reactivan.
+Como v1 no etiqueta cada trozo de contenido por contexto, estas funciones
+sensibles **permanecen suspendidas hasta reconectar**, incluso tras volver al
+escritorio. La nueva conexión exige autenticación y estado nuevos. Un host
+legado conserva su comportamiento y no recibe negociación administrativa.
+
+![Transición en el visor con vídeo artificial de laboratorio](images/unattended-context-transition.png)
+
+El aviso se probó con el visor de producción y dos peers WebRTC locales de
+laboratorio. No es una captura real de UAC o inicio de sesión. La integración
+visual equivalente del móvil y el aislamiento general en cada host siguen
+pendientes de sus propias tareas.
+
 Cuando la API responde `device_agent_owned`, Electron corta su host de usuario,
 conserva el identificador, deja de consultar/registrar y guarda el modo de usuario
 desactivado. Ajustes no permite modificar esa configuración. Si no puede guardar
