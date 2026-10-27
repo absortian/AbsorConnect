@@ -1,6 +1,7 @@
 // Puente entre el proceso principal y las ventanas de visor (add-remote-desktop D11, tarea 4.9).
 // El visor hace el WebRTC y deriva K; las llamadas a la API las hace el proceso principal, para que
 // el token de la cuenta no llegue nunca a un renderer.
+import type { AgentCapabilities } from './agentProtocol'
 import type { IceServer } from './hostBridge'
 import type { ClipboardContent, TransferErrorReason } from './transfer'
 
@@ -76,7 +77,13 @@ export interface AccountDevice {
   appVersion: string
   online: boolean
   lastSeenAt: string
-  remote: { state: string; features: { clipboard: boolean; files: boolean; audio: boolean } }
+  remote: {
+    state: string
+    features: { clipboard: boolean; files: boolean; audio: boolean }
+    mode?: 'agent'
+    agentVersion?: string
+    capabilities?: AgentCapabilities
+  }
   /** Es este mismo PC: se marca y no se puede conectar. */
   self: boolean
 }

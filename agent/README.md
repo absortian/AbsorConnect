@@ -36,6 +36,24 @@ FFI está limitada a `clock.rs`; el resto del núcleo prohíbe `unsafe`. El crat
 offline. El CI usa toolchain fijo 1.85.0 en Linux, Mac y Windows. No confundir
 compilar el reloj con certificar suspensión/reanudación real de cada equipo.
 
+## Protocolo administrativo común
+
+`absor-agent-control` analiza mensajes de hasta 2048 bytes con campos cerrados,
+UUID v4 y enums; rechaza JSON duplicado, argumentos y versiones desconocidas.
+Tras autenticar v1 y verificar la autorización, el host anuncia
+`features.unattendedControl: true`; el controlador debe responder
+`agent-control-enable` antes de recibir capacidades/contexto/resultados.
+Una instancia pertenece a una PeerConnection y conserva 64 IDs sin desalojarlos:
+repetir ID/acción devuelve el resultado original, cambiar de acción se rechaza y
+saturar la caché responde `busy`. Nunca se encola una orden para otra conexión.
+
+El adaptador recibe únicamente acción y contexto; `accepted` confirma aceptación
+del mecanismo del SO, sin demostrar que el reinicio ya acabó. El laboratorio IPC
+nativo usa `NoOperations`, declara capacidades falsas y ninguna acción. La prueba
+de reinicio deduplicado utiliza un contador artificial, no reinicia el equipo.
+Los controles administrativos de los clientes y adaptadores finales siguen
+pendientes. Véase [`agentProtocol.md`](../src/shared/remote/agentProtocol.md).
+
 ## Fronteras que faltan por conectar
 
 `accept_validation` solo puede llamarse desde el cliente confiable de API tras

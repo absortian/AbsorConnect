@@ -7,6 +7,7 @@ import 'dart:math';
 
 import 'package:absor_connect/src/api.dart';
 import 'package:absor_connect/src/remote/remote_api.dart';
+import 'package:absor_connect/src/remote/agent_device.dart';
 import 'package:absor_connect/src/session.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -35,44 +36,147 @@ void main() {
 
   /// El móvil y un PC nuevo de la misma cuenta, con su propia sesión y su clave.
   Future<(RemoteApi, _FakePc)> setUpAccount() async {
-    final login = await ApiClient(baseUrl: apiUrl).request('POST', '/api/auth/login', body: {'email': email, 'password': password, 'deviceName': 'Sobremesa'}) as Map;
+    final login = await ApiClient(baseUrl: apiUrl).request(
+      'POST',
+      '/api/auth/login',
+      body: {'email': email, 'password': password, 'deviceName': 'Sobremesa'},
+    ) as Map;
     final pc = _FakePc(apiUrl!, login['token'] as String);
     await pc.register('Sobremesa de prueba');
     return (mobile, pc);
   }
 
-  test('Equipos: el PC aparece en línea y disponible, y los servidores ICE llegan', () async {
+  test(
+    'Equipos: el PC aparece en línea y disponible, y los servidores ICE llegan',
+    () async {
+      final (api, pc) = await setUpAccount();
+      final devices = await api.devices();
+      final device = devices.singleWhere((d) => d.id == pc.id);
+      expect(
+        (device.name, device.platform, device.state, device.available),
+        ('Sobremesa de prueba', 'linux', 'available', true),
+      );
+      expect(await api.iceServers(), isNotEmpty, reason: 'al menos el STUN');
+    },
+    skip: skip,
+  );
+
+  test(
+    'solicitud de sesión: el PC la ve, responde y el móvil recibe la respuesta',
+    () async {
+      final (api, pc) = await setUpAccount();
+      final requestId = await api.createRequest(pc.id, 'v=0 oferta del móvil');
+      expect(await api.poll(requestId), isA<RequestPending>());
+
+      final pending = await pc.poll();
+      expect(pending.map((r) => (r['id'], r['offer'])), [
+        (requestId, 'v=0 oferta del móvil'),
+      ]);
+      expect(
+        pending.single['controllerName'],
+        startsWith(Platform.operatingSystem),
+        reason:
+            'el nombre del dispositivo del móvil (en las pruebas, el sistema)',
+      );
+      await pc.answer(requestId, {'answer': 'v=0 respuesta del PC'});
+
+      expect(
+        await api.poll(requestId),
+        isA<RequestAnswered>().having(
+          (a) => a.answer,
+          'answer',
+          'v=0 respuesta del PC',
+        ),
+      );
+    },
+    skip: skip,
+  );
+
+  test(
+    'rechazos y errores con su código: bloqueado, desactivado y PC inexistente',
+    () async {
+      final (api, pc) = await setUpAccount();
+      final requestId = await api.createRequest(pc.id, 'v=0 oferta');
+      await pc.poll();
+      await pc.answer(requestId, {
+        'rejected': {'reason': 'locked', 'retryAfter': 840},
+      });
+      expect(
+        await api.poll(requestId),
+        isA<RequestRejected>().having(
+          (r) => (r.reason, r.retryAfter),
+          'rechazo',
+          ('locked', 840),
+        ),
+      );
+
+      await pc.register('Sobremesa de prueba', state: 'disabled');
+      expect(
+        (await api.devices()).singleWhere((d) => d.id == pc.id).state,
+        'disabled',
+      );
+      await expectLater(
+        api.createRequest(pc.id, 'v=0'),
+        throwsA(
+          isA<ApiError>().having((e) => e.code, 'code', 'remote_disabled'),
+        ),
+      );
+      await expectLater(
+        api.createRequest(_uuid(), 'v=0'),
+        throwsA(
+          isA<ApiError>().having((e) => e.code, 'code', 'device_not_found'),
+        ),
+      );
+    },
+    skip: skip,
+  );
+  test('host nativo: conserva capacidades, revoca el equipo exacto y respeta el legado', () async {
     final (api, pc) = await setUpAccount();
-    final devices = await api.devices();
-    final device = devices.singleWhere((d) => d.id == pc.id);
-    expect((device.name, device.platform, device.state, device.available), ('Sobremesa de prueba', 'linux', 'available', true));
-    expect(await api.iceServers(), isNotEmpty, reason: 'al menos el STUN');
-  }, skip: skip);
-
-  test('solicitud de sesión: el PC la ve, responde y el móvil recibe la respuesta', () async {
-    final (api, pc) = await setUpAccount();
-    final requestId = await api.createRequest(pc.id, 'v=0 oferta del móvil');
-    expect(await api.poll(requestId), isA<RequestPending>());
-
-    final pending = await pc.poll();
-    expect(pending.map((r) => (r['id'], r['offer'])), [(requestId, 'v=0 oferta del móvil')]);
-    expect(pending.single['controllerName'], startsWith(Platform.operatingSystem), reason: 'el nombre del dispositivo del móvil (en las pruebas, el sistema)');
-    await pc.answer(requestId, {'answer': 'v=0 respuesta del PC'});
-
-    expect(await api.poll(requestId), isA<RequestAnswered>().having((a) => a.answer, 'answer', 'v=0 respuesta del PC'));
-  }, skip: skip);
-
-  test('rechazos y errores con su código: bloqueado, desactivado y PC inexistente', () async {
-    final (api, pc) = await setUpAccount();
-    final requestId = await api.createRequest(pc.id, 'v=0 oferta');
-    await pc.poll();
-    await pc.answer(requestId, {'rejected': {'reason': 'locked', 'retryAfter': 840}});
-    expect(await api.poll(requestId), isA<RequestRejected>().having((r) => (r.reason, r.retryAfter), 'rechazo', ('locked', 840)));
-
-    await pc.register('Sobremesa de prueba', state: 'disabled');
-    expect((await api.devices()).singleWhere((d) => d.id == pc.id).state, 'disabled');
-    await expectLater(api.createRequest(pc.id, 'v=0'), throwsA(isA<ApiError>().having((e) => e.code, 'code', 'remote_disabled')));
-    await expectLater(api.createRequest(_uuid(), 'v=0'), throwsA(isA<ApiError>().having((e) => e.code, 'code', 'device_not_found')));
+    final legacy = _FakePc(apiUrl!, pc.token);
+    await legacy.register('Legado preservado');
+    final before = await mobile.session.request('GET', '/api/connections');
+    const caps = {
+      'administration': false,
+      'login': false,
+      'secureAttention': false,
+      'restart': false,
+    };
+    final grant = await pc._call(
+      'POST',
+      '/api/devices/${pc.id}/agent-enrollments',
+    ) as Map;
+    final enrolledResponse = await http.post(
+      Uri.parse('$apiUrl/api/host-agent/enroll'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'enrollmentToken': grant['enrollmentToken'],
+        'agentVersion': '0.1.0+mobile-test',
+        'capabilities': caps,
+      }),
+    );
+    expect(enrolledResponse.statusCode, 201);
+    final agentToken =
+        (jsonDecode(enrolledResponse.body) as Map)['token'] as String;
+    final device = (await api.devices()).singleWhere((d) => d.id == pc.id);
+    expect(device.agent.mode, HostMode.agent);
+    expect(device.agent.capabilities!.toJson(), caps);
+    await api.revokeAgent(pc.id);
+    final denied = await http.get(
+      Uri.parse('$apiUrl/api/host-agent/remote-requests'),
+      headers: {'Authorization': 'Bearer $agentToken'},
+    );
+    expect(denied.statusCode, 401);
+    expect(
+      (await api.devices()).singleWhere((d) => d.id == legacy.id).agent.mode,
+      HostMode.legacy,
+    );
+    expect(await mobile.session.request('GET', '/api/connections'), before);
+    await expectLater(
+      api.revokeAgent(_uuid()),
+      throwsA(
+        isA<ApiError>().having((e) => e.code, 'code', 'device_not_found'),
+      ),
+    );
   }, skip: skip);
 }
 
@@ -83,28 +187,45 @@ class _FakePc {
   final String apiUrl;
   final String token;
   final String id = _uuid();
-  final String key = base64Url.encode(List<int>.generate(32, (_) => Random.secure().nextInt(256))).replaceAll('=', '');
+  final String key = base64Url
+      .encode(List<int>.generate(32, (_) => Random.secure().nextInt(256)))
+      .replaceAll('=', '');
 
   Future<Object?> _call(String method, String path, [Object? body]) async {
     final request = http.Request(method, Uri.parse('$apiUrl$path'))
-      ..headers.addAll({'Authorization': 'Bearer $token', 'X-Device-Key': key, 'Accept': 'application/json', if (body != null) 'Content-Type': 'application/json'});
+      ..headers.addAll({
+        'Authorization': 'Bearer $token',
+        'X-Device-Key': key,
+        'Accept': 'application/json',
+        if (body != null) 'Content-Type': 'application/json',
+      });
     if (body != null) request.body = jsonEncode(body);
     final response = await http.Response.fromStream(await request.send());
-    if (response.statusCode >= 400) throw StateError('${response.statusCode} ${response.body}');
+    if (response.statusCode >= 400) {
+      throw StateError('${response.statusCode} ${response.body}');
+    }
     return response.body.isEmpty ? null : jsonDecode(response.body);
   }
 
-  Future<void> register(String name, {String state = 'available'}) => _call('PUT', '/api/devices/$id', {
+  Future<void> register(String name, {String state = 'available'}) =>
+      _call('PUT', '/api/devices/$id', {
         'name': name,
         'platform': 'linux',
         'appVersion': '0.4.0',
-        'remote': {'state': state, 'features': {'clipboard': true, 'files': true, 'audio': true}},
+        'remote': {
+          'state': state,
+          'features': {'clipboard': true, 'files': true, 'audio': true},
+        },
       });
 
   Future<List<Map<String, dynamic>>> poll() async =>
-      ((await _call('GET', '/api/devices/$id/remote-requests') as Map)['requests'] as List).cast<Map<String, dynamic>>();
+      ((await _call('GET', '/api/devices/$id/remote-requests')
+                  as Map)['requests']
+              as List)
+          .cast<Map<String, dynamic>>();
 
-  Future<void> answer(String requestId, Map<String, Object> body) => _call('PUT', '/api/remote-requests/$requestId/answer', body);
+  Future<void> answer(String requestId, Map<String, Object> body) =>
+      _call('PUT', '/api/remote-requests/$requestId/answer', body);
 }
 
 String _uuid() {

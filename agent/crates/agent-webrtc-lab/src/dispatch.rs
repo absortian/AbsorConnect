@@ -73,6 +73,20 @@ impl Bridge {
         }
     }
 
+    pub(crate) fn control(&mut self, raw: &[u8]) -> Result<Vec<u8>, ()> {
+        match self {
+            Self::Legacy(_) => {
+                let _ = raw;
+                Ok(b"[]".to_vec())
+            }
+            #[cfg(all(
+                feature = "protected-ipc-fixture",
+                target_os = "linux",
+                target_pointer_width = "64"
+            ))]
+            Self::Protected(b) => b.control(raw),
+        }
+    }
     pub(crate) fn authenticate(&mut self, raw: &[u8]) -> i32 {
         match self {
             Self::Legacy(b) => b.authenticate(raw),

@@ -1,14 +1,16 @@
 import '../api.dart';
 import '../session.dart';
+import 'agent_device.dart';
 
 /// Un PC de la cuenta (add-remote-desktop D4), como lo ve la sección Equipos del escritorio.
 class RemoteDevice {
   RemoteDevice.fromJson(Map<String, dynamic> json)
-      : id = json['id'] as String,
-        name = json['name'] as String? ?? '',
-        platform = json['platform'] as String? ?? '',
-        online = json['online'] == true,
-        remoteState = (json['remote'] as Map?)?['state'] as String? ?? 'disabled';
+    : id = json['id'] as String,
+      name = json['name'] as String? ?? '',
+      platform = json['platform'] as String? ?? '',
+      online = json['online'] == true,
+      remoteState = (json['remote'] as Map?)?['state'] as String? ?? 'disabled',
+      agent = AgentDeviceInfo.fromRemote(json['remote']);
 
   final String id;
   final String name;
@@ -17,6 +19,7 @@ class RemoteDevice {
   final String platform;
   final bool online;
   final String remoteState;
+  final AgentDeviceInfo agent;
 
   /// `available`, `busy`, `disabled`, `missing_permissions`, `unsupported` u `offline`: sin
   /// conexión manda sobre lo último que publicó el PC.
@@ -56,18 +59,29 @@ class RemoteApi {
   final Session session;
 
   Future<List<RemoteDevice>> devices() async {
-    final data = await session.request('GET', '/api/devices') as Map<String, dynamic>?;
+    final data =
+        await session.request('GET', '/api/devices') as Map<String, dynamic>?;
     return [
       for (final item in (data?['devices'] as List? ?? const []))
         if (item is Map<String, dynamic>) RemoteDevice.fromJson(item),
     ];
   }
 
+  /// Revocar solo el equipo indicado, tras la confirmación del usuario en la UI.
+  /// No reintenta en segundo plano ni borra conexiones S3/SSH.
+  Future<void> revokeAgent(String deviceId) async {
+    if (!isRemoteDeviceId(deviceId)) throw ApiError('device_not_found', 404);
+    await session.request('DELETE', '/api/devices/$deviceId/agent');
+  }
+
   /// STUN y TURN para `RTCPeerConnection`. Sin ellos (fallo del servicio) solo se prueban los
   /// candidatos locales, igual que en el escritorio.
   Future<List<Map<String, dynamic>>> iceServers() async {
     try {
-      final data = await session.request('GET', '/api/remote/ice-servers') as Map<String, dynamic>?;
+      final data = await session.request(
+        'GET',
+        '/api/remote/ice-servers',
+      ) as Map<String, dynamic>?;
       return [
         for (final server in (data?['iceServers'] as List? ?? const []))
           if (server is Map<String, dynamic>) server,
@@ -80,17 +94,29 @@ class RemoteApi {
 
   /// Publica la oferta completa (vanilla ICE) y devuelve el id de la solicitud.
   Future<String> createRequest(String deviceId, String offer) async {
-    final data = await session.request('POST', '/api/devices/$deviceId/remote-requests', body: {'offer': offer}) as Map<String, dynamic>;
+    final data = await session.request(
+      'POST',
+      '/api/devices/$deviceId/remote-requests',
+      body: {'offer': offer},
+    ) as Map<String, dynamic>;
     return data['id'] as String;
   }
 
   Future<RequestStatus> poll(String requestId) async {
-    final data = await session.request('GET', '/api/remote-requests/$requestId') as Map<String, dynamic>;
+    final data = await session.request(
+      'GET',
+      '/api/remote-requests/$requestId',
+    ) as Map<String, dynamic>;
     final status = data['status'];
-    if (status == 'answered' && data['answer'] is String) return RequestAnswered(data['answer'] as String);
+    if (status == 'answered' && data['answer'] is String) {
+      return RequestAnswered(data['answer'] as String);
+    }
     final rejection = data['rejection'];
     if (status == 'rejected' && rejection is Map) {
-      return RequestRejected(rejection['reason'] as String? ?? 'declined', (rejection['retryAfter'] as num?)?.toInt());
+      return RequestRejected(
+        rejection['reason'] as String? ?? 'declined',
+        (rejection['retryAfter'] as num?)?.toInt(),
+      );
     }
     return const RequestPending();
   }

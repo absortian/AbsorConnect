@@ -12,7 +12,7 @@ siguen pendientes API completa, autenticador, trabajador P2P y watchdog del
 servicio. La tarea 3.4 no se cierra solo con el proceso de prueba; su aceptación posterior
 añade el gate/API/DTLS y trabajador nativo conectados, con la evidencia del 26/10.
 
-Avance cerrado: **11/57 tareas (19 %)**. Es proporción de tareas aceptadas, no
+Avance cerrado: **15/57 tareas (26 %)**. Es proporción de tareas aceptadas, no
 porcentaje del tiempo restante. La tarea 3.2 se acepta como protocolo común:
 vectores compartidos, HMAC/huellas aplicadas, intentos durables/reinicio, sesión
 única y denegación de captura/entrada antes de autenticar, con integración IPC
@@ -76,6 +76,19 @@ procesos. Junto a vectores/repetición/bloqueo persistente y denegaciones IPC,
 se acepta **3.2 para el núcleo común**. El 19% no anuncia acceso completo a tres
 SO; el resto de agentes, instalación, migración y piloto sigue pendiente.
 
+El siguiente bloque del 27/10 acepta **3.3, 7.5, 10.1 y 11.6**. Añade protocolo
+Rust negociado y caché acotada sin desalojos; ocho pruebas comunes, incluidos
+revocación/plazo y dos reinicios con un solo efecto artificial, más diez casos
+WebRTC de ventana propia. El host de VM declara cero acciones y las rechaza:
+no certifica reinicios administrativos del SO. El móvil reconoce agentes y su
+baja contra la API real conservando los demás equipos/conexiones. La guía de
+viajes, el contexto de OpenSpec y los diagnósticos distinguen lo declarado de lo
+certificado. Evidencia: `negotiated-control-results.json` y `verification.md`.
+La preparación visual y la revocación de Equipos son avances parciales de 9.2/9.4;
+salud/reconexión por equipo y contexto protegido completo siguen pendientes.
+El objetivo solicitado de 50 % **todavía no se ha alcanzado**; no se modifica el
+denominador ni se cierran tareas de sistemas/paquetes/piloto por estas pruebas.
+
 ## 1. Viabilidad y configuraciones objetivo
 
 - [ ] 1.1 Registrar versiones, arquitecturas, cifrado de arranque y opciones de conectividad de los Windows/Mac del propietario y confirmar Mint Cinnamon/X11/LightDM; verificar un inventario privado sin secretos y una matriz pública de configuraciones objetivo sin IPs personales.
@@ -98,7 +111,7 @@ SO; el resto de agentes, instalación, migración y piloto sigue pendiente.
 
 - [ ] 3.1 Crear `agent/` con broker Rust, trabajador y adaptador libwebrtc fijados; verificar compilación de los componentes separados en los sistemas objetivo y documentar sus comandos de desarrollo.
 - [x] 3.2 Implementar el desafío compatible v1, PBKDF2/HMAC/huellas DTLS, persistencia de intentos y una sesión por equipo; verificar vectores compartidos, prueba repetida, fallo de contraseña, bloqueo después de reiniciar y cero captura/entrada antes de autenticar.
-- [ ] 3.3 Implementar las extensiones negociadas de capacidades/contexto/operación/resultado y deduplicación; verificar mensajes malformados, límites de tamaño, comando no anunciado y dos entregas del mismo reinicio con una sola ejecución.
+- [x] 3.3 Implementar las extensiones negociadas de capacidades/contexto/operación/resultado y deduplicación; verificar mensajes malformados, límites de tamaño, comando no anunciado y dos entregas del mismo reinicio con una sola ejecución.
 - [x] 3.4 Añadir renovación de autorización y reloj monotónico; verificar con reloj/red simulados que una sesión P2P termina ≤30 segundos tras perder validación, sin aceptar otra sesión hasta recuperar autorización.
 - [ ] 3.5 Implementar transición de contexto, liberación de entrada y descarte de portapapeles/transferencias/audio; verificar que el siguiente usuario no recibe contenido del anterior ni imagen presentada como actual durante una transición.
 - [x] 3.6 Añadir registro local acotado y diagnóstico sin contraseñas ni teclas; verificar eventos de inicio/fin/revocación/fallo y documentar cómo extraer un informe sin secretos.
@@ -130,7 +143,7 @@ SO; el resto de agentes, instalación, migración y piloto sigue pendiente.
 - [ ] 7.2 Implementar alta y migración transaccional de identidad, K, opciones y bloqueo con recuperación; verificar fallos en cada fase, preservación de identidad/contraseña y que el token de cuenta nunca llega al servicio.
 - [ ] 7.3 Integrar cambio de contraseña, logout, cuenta distinta, revocación local y desinstalación; verificar corte inmediato local, alta nueva obligatoria y conservación de conexiones S3/SSH.
 - [ ] 7.4 Adaptar bandeja y actualizador para separar salir de la interfaz de detener el host; verificar modo legado sin cambios y modo desatendido con estado real, parada explícita y actualizaciones pospuestas durante sesiones.
-- [ ] 7.5 Documentar en `AGENTS.md` la propiedad del host y el protocolo local; verificar que los comandos de diagnóstico descritos funcionan en desarrollo y no imprimen secretos.
+- [x] 7.5 Documentar en `AGENTS.md` la propiedad del host y el protocolo local; verificar que los comandos de diagnóstico descritos funcionan en desarrollo y no imprimen secretos.
 
 ## 8. Preload y tipos compartidos
 
@@ -146,7 +159,7 @@ SO; el resto de agentes, instalación, migración y piloto sigue pendiente.
 
 ## 10. Flutter: controlador móvil
 
-- [ ] 10.1 Extender API/modelos/analizadores de control para capacidades y revocación; verificar `remote_api_test.dart`, `remote_protocol_test.dart` y vectores de autenticación con host legado y nativo.
+- [x] 10.1 Extender API/modelos/analizadores de control para capacidades y revocación; verificar `remote_api_test.dart`, `remote_protocol_test.dart` y vectores de autenticación con host legado y nativo.
 - [ ] 10.2 Añadir controles administrativos, resultados, contexto protegido y entrada de credenciales; verificar desde Android e iOS UAC, diálogo Mac y LightDM sin portapapeles/ficheros/audio en pantallas protegidas.
 - [ ] 10.3 Añadir espera tras reinicio y autenticación nueva manteniendo el límite de segundo plano; verificar vuelta a los 10 segundos, cierre después de 30 segundos y espera/cancelación de 5 minutos en primer plano. Documentar los flujos en `mobile/README.md` con textos en ambos idiomas.
 
@@ -157,7 +170,7 @@ SO; el resto de agentes, instalación, migración y piloto sigue pendiente.
 - [ ] 11.3 Producir `.deb` del agente en Linux con unidad e integración LightDM reversibles; verificar instalación, actualización y desinstalación en Mint sin alterar archivos ajenos ni ejecutar una AppImage como root.
 - [ ] 11.4 Incorporar manifiestos firmados y actualización transaccional compatible de app/agente; verificar paquete manipulado, enlaces/rutas maliciosos, fallo de salud, rollback y credencial revocada que no revive tras restaurar binarios.
 - [ ] 11.5 Ampliar CI para binarios nativos y excluir fuentes/herramientas `agent/` de `app.asar`, empaquetando solo los componentes necesarios; verificar contenido de los paquetes, dependencias/licencias y los builds existentes de escritorio/móvil.
-- [ ] 11.6 Actualizar README, instrucciones de viaje, límites por sistema y contexto factual de OpenSpec; verificar que distinguen sesión del sistema/cuenta/interfaz, versiones certificadas, desbloqueo previo al arranque y recuperación por acceso alternativo.
+- [x] 11.6 Actualizar README, instrucciones de viaje, límites por sistema y contexto factual de OpenSpec; verificar que distinguen sesión del sistema/cuenta/interfaz, versiones certificadas, desbloqueo previo al arranque y recuperación por acceso alternativo.
 - [x] 11.7 Preparar el despliegue aditivo y rollback del backend por Jenkins; verificar antes/después `/api/health`, clientes anteriores y migraciones, conservando los Dockerfiles PHP y `--pull` exigidos. No activar agentes existentes por el despliegue.
 
 ## 12. Verificación integrada y piloto

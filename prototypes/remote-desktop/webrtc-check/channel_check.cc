@@ -155,6 +155,7 @@ class Observer final : public webrtc::PeerConnectionObserver, public webrtc::Dat
       if (!acknowledged_) { acknowledged_ = true; acknowledged.set_value(true); }
       return;
     }
+    if (authenticated) Control("");
     signaling_->PostDelayedTask([this] { Poll(); }, webrtc::TimeDelta::Millis(50));
   }
 #endif
@@ -234,7 +235,7 @@ class Observer final : public webrtc::PeerConnectionObserver, public webrtc::Dat
     });
   }
   void OnMessage(const webrtc::DataBuffer& buffer) override {
-    if (buffer.binary || buffer.size() > 512) return;
+    if (buffer.binary || buffer.size() > 2048) return;
     std::string text(reinterpret_cast<const char*>(buffer.data.data()), buffer.size());
     signaling_->PostTask([this, text = std::move(text)] {
       Json::Value message;
@@ -251,6 +252,12 @@ class Observer final : public webrtc::PeerConnectionObserver, public webrtc::Dat
         acknowledged.set_value(true);
         return;
       }
+#ifdef ABSOR_RUST_BRIDGE
+      if (authenticated && message.isMember("extension")) {
+        Control(text);
+        return;
+      }
+#endif
       if (message["type"] != "auth" || attempted || !hello_sent_ ||
           !message["proof"].isString() || message["proof"].asString().size() > 256) return;
       attempted = true;
@@ -289,6 +296,20 @@ class Observer final : public webrtc::PeerConnectionObserver, public webrtc::Dat
   }
 
  private:
+#ifdef ABSOR_RUST_BRIDGE
+  void Control(const std::string& text) {
+    if (!authenticated || detached_ || !channel || channel->state() != webrtc::DataChannelInterface::kOpen) return;
+    std::array<uint8_t, 8192> output{};
+    const int length = absor_bridge_control(bridge_, reinterpret_cast<const uint8_t*>(text.data()), text.size(), output.data(), output.size());
+    if (length < 0 || static_cast<size_t>(length) > output.size()) return;
+    Json::Value messages;
+    Json::CharReaderBuilder parser;
+    std::string errors;
+    std::istringstream input(std::string(reinterpret_cast<const char*>(output.data()), length));
+    if (!Json::parseFromStream(parser, input, &messages, &errors) || !messages.isArray() || messages.size() > 3) return;
+    for (const auto& message : messages) Send(message);
+  }
+#endif
 #ifdef ABSOR_NATIVE_FIXTURE
   webrtc::scoped_refptr<webrtc::DataChannelInterface> input_channel_;
   std::unique_ptr<FixtureInput> input_observer_;

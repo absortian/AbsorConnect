@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Loader2, Monitor, X } from 'lucide-react'
+import { DeviceReadiness } from './DeviceReadiness'
+import { parseAgentDeviceInfo } from '../../../shared/remote/agentDevice'
 import type { AccountDevice } from '../../../shared/remote/viewerBridge'
 
 // Equipos de la cuenta (add-remote-desktop, remote-desktop-viewer): estado de cada PC y conexión.
@@ -25,6 +27,8 @@ function stateKey(device: AccountDevice): string {
 export default function DevicesPanel({ onClose }: DevicesPanelProps): React.JSX.Element {
   const { t } = useTranslation()
   const [devices, setDevices] = useState<AccountDevice[] | null>(null)
+  const [revoking, setRevoking] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -62,6 +66,7 @@ export default function DevicesPanel({ onClose }: DevicesPanelProps): React.JSX.
         </div>
         <div className="settings-section">
           <p className="settings-row-hint">{t('devices.hint')}</p>
+          {notice && <p role="status">{notice}</p>}
           {error && (
             <p className="devices-error">
               {t(`devices.errors.${error}`, t('devices.errors.generic'))}
@@ -71,8 +76,13 @@ export default function DevicesPanel({ onClose }: DevicesPanelProps): React.JSX.
           {devices?.length === 0 && <p className="settings-row-hint">{t('devices.empty')}</p>}
           {sorted.map((device) => {
             const state = stateKey(device)
+            const agent = parseAgentDeviceInfo(device.remote)
             return (
-              <div className="settings-row" key={device.id}>
+              <div
+                className="settings-row"
+                key={device.id}
+                style={{ flexDirection: 'column', alignItems: 'stretch', gap: 8 }}
+              >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
                   <Monitor size={20} />
                   <div style={{ minWidth: 0 }}>
@@ -86,17 +96,43 @@ export default function DevicesPanel({ onClose }: DevicesPanelProps): React.JSX.
                         {t(`devices.state.${state}`)}
                       </span>
                     </div>
+                    <DeviceReadiness device={device} />
                   </div>
                 </div>
-                {!device.self && (
-                  <button
-                    className="settings-btn"
-                    disabled={state !== 'available'}
-                    onClick={() => void window.api.openViewer(device.id, device.name)}
-                  >
-                    {t('devices.connect')}
-                  </button>
-                )}
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {agent.mode === 'agent' && (
+                    <button
+                      className="settings-btn"
+                      disabled={revoking !== null}
+                      onClick={() => {
+                        setRevoking(device.id)
+                        setNotice(null)
+                        void window.api
+                          .revokeRemoteAgent(device.id)
+                          .then(async (result) => {
+                            if (result.ok) {
+                              setNotice(t('devices.agent.revoked'))
+                              const refreshed = await window.api.remoteDevices()
+                              if (refreshed.ok) setDevices(refreshed.devices)
+                            } else if (result.code !== 'cancelled') setError(result.code)
+                          })
+                          .catch(() => setError('network_error'))
+                          .finally(() => setRevoking(null))
+                      }}
+                    >
+                      {t('devices.agent.revoke')}
+                    </button>
+                  )}
+                  {!device.self && (
+                    <button
+                      className="settings-btn"
+                      disabled={state !== 'available'}
+                      onClick={() => void window.api.openViewer(device.id, device.name)}
+                    >
+                      {t('devices.connect')}
+                    </button>
+                  )}
+                </div>
               </div>
             )
           })}

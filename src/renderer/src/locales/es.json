@@ -264,6 +264,20 @@
       "generic": "No se ha podido cargar la lista de equipos.",
       "network_error": "Sin conexión con el servicio.",
       "remote_unavailable": "El control remoto no está disponible ahora mismo en el servicio."
+    },
+    "agent": {
+      "revoke": "Revocar acceso desatendido",
+      "revokeTitle": "Revocar acceso desatendido de este equipo",
+      "revokeDetail": "Se cortarán sus conexiones en un máximo de 30 segundos. Tendrás que dar de alta el agente de nuevo para reactivarlo. Las conexiones S3 y SSH se conservan.",
+      "cancel": "Cancelar",
+      "revoked": "Acceso desatendido revocado.",
+      "declared": "Capacidades declaradas por el agente; pendientes de certificación.",
+      "readiness": {
+        "legacy_session": "Modo de usuario: necesita la app y una sesión del sistema abierta. Salir de la app detiene el host.",
+        "not_certified": "Acceso desatendido aún no certificado para viajes.",
+        "unknown": "No se puede verificar el modo de este equipo.",
+        "offline": "Sin conexión: comprueba el equipo y un acceso alternativo antes de viajar."
+      }
     }
   },
   "background": {

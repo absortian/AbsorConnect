@@ -126,3 +126,20 @@ recibido y tiempo medio del búfer de vídeo durante el último intervalo. El RT
 y el búfer no miden el tiempo entre una pulsación y su resultado visible.
 Un dato ausente se omite. Son estadísticas locales en memoria, sin telemetría.
 Un host anterior conserva su funcionamiento y no muestra el selector.
+
+## Agentes desatendidos: contrato en desarrollo
+
+`RemoteDevice.agent` distingue host de usuario, declaración de agente válida y
+metadatos desconocidos. Las capacidades declaradas no certifican un equipo ni
+permiten ejecutar operaciones: hacen falta la autenticación y la negociación del
+canal control. Los analizadores de `agent_protocol.dart` comparten los vectores
+con TypeScript y Rust. `RemoteApi.revokeAgent(id)` valida el ID y da de baja solo
+ese equipo; no reintenta en segundo plano ni borra conexiones S3/SSH. La UI móvil
+de esa operación y los controles administrativos aún están pendientes.
+
+No hay una configuración final certificada para viajes. Android/iOS son
+controladores, no hosts. La guía de
+[preparación y recuperación](../docs/unattended-access.md) recoge las diferencias
+entre sesión de cuenta, sistema e interfaz y el desbloqueo previo al arranque.
+Las pruebas de API móvil incluyen host legado, capacidades nativas, revocación de
+la credencial y conservación de los demás equipos/conexiones.

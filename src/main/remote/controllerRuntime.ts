@@ -16,6 +16,10 @@ import { promises as fs } from 'fs'
 import { basename, dirname, join } from 'path'
 import { is } from '@electron-toolkit/utils'
 import { ApiError, apiRequest } from '../cloud/apiClient'
+import { getMainWindow } from '../background'
+import { revokeAccountAgent } from './agentRevocation'
+import es from '../../renderer/src/locales/es.json'
+import en from '../../renderer/src/locales/en.json'
 import { currentSession } from '../cloud/session'
 import { getLanguage, getTheme } from '../store'
 import {
@@ -291,6 +295,7 @@ export async function openViewer(deviceId: unknown, deviceName: unknown): Promis
   return true
 }
 
+const revoking = new Set<string>()
 let ready = false
 
 /** Canales del controlador: los de la ventana principal y los de los visores. */
@@ -298,6 +303,54 @@ export function setupControllerIpc(): void {
   if (ready) return
   ready = true
   ipcMain.handle('remote-devices', () => accountDevices())
+  ipcMain.handle('remote-revoke-agent', async (event, deviceId: unknown) => {
+    const main = getMainWindow()
+    if (
+      !main ||
+      main.isDestroyed() ||
+      event.sender !== main.webContents ||
+      event.senderFrame !== main.webContents.mainFrame
+    )
+      return { ok: false, code: 'forbidden' }
+    if (typeof deviceId !== 'string' || revoking.has(deviceId)) return { ok: false, code: 'busy' }
+    revoking.add(deviceId)
+    try {
+      return await revokeAccountAgent(deviceId, {
+        account: currentSession,
+        devices: async () => {
+          const result = await accountDevices()
+          if (!result.ok) throw new Error(result.code)
+          return result.devices
+        },
+        confirm: async (device) => {
+          const t = (await getLanguage()) === 'es' ? es.devices.agent : en.devices.agent
+          const choice = await dialog.showMessageBox(main, {
+            type: 'warning',
+            title: t.revokeTitle,
+            message: device.name,
+            detail: t.revokeDetail,
+            buttons: [t.cancel, t.revoke],
+            defaultId: 0,
+            cancelId: 0,
+            noLink: true
+          })
+          return choice.response === 1
+        },
+        revoke: async (id) => {
+          await apiRequest('DELETE', `/api/devices/${id}/agent`, { token: token() })
+        },
+        closeViewers: (id) => {
+          for (const viewer of viewers.values()) {
+            if (viewer.deviceId === id && !viewer.window.isDestroyed()) viewer.window.close()
+          }
+        }
+      })
+    } catch (error) {
+      return { ok: false, code: codeOf(error) }
+    } finally {
+      revoking.delete(deviceId)
+    }
+  })
   ipcMain.handle('remote-open-viewer', (_event, deviceId, deviceName) =>
     openViewer(deviceId, deviceName)
   )

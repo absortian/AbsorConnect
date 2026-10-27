@@ -31,6 +31,9 @@ int32_t absor_bridge_native_frame(uint64_t id, uint8_t* out, size_t capacity);
 int32_t absor_bridge_native_input(uint64_t id, const uint8_t* input, size_t length);
 // Diagnóstico sin píxeles/credenciales; capacidad EXACTA 1024, longitud o error.
 int32_t absor_bridge_native_status(uint64_t id, uint8_t* out, size_t capacity);
+// Extensión solo en fixture IPC: salida JSON array <=8192. null/0 recoge contexto.
+// Entrada <=2048; exige autenticación/plazo vigentes. No ejecuta acciones del SO.
+int32_t absor_bridge_control(uint64_t id, const uint8_t* raw, size_t length, uint8_t* out, size_t capacity);
 // Cierre idempotente por identificador; no se reutilizan identificadores.
 void absor_bridge_close(uint64_t id);
 #ifdef __cplusplus

@@ -2498,3 +2498,50 @@ informes/logs fuera del repo en `AbsorConnectLab/protected-native-evidence-20261
 No se ha realizado escaneo de memoria: la separación de secretos se verifica
 por flujo de datos, identidades/ACL y pruebas de acceso denegado. El resumen
 público registra también esa limitación y los hashes de los artefactos probados.
+
+
+## 27/10/2026 — protocolo negociado, baja del controlador y guía de viajes
+
+Se aceptan 3.3, 7.5, 10.1 y 11.6: **15/57 (26 %)**. El objetivo solicitado de
+50 % sigue pendiente. `negotiated-control-results.json` contiene resultados,
+hashes de fuentes/artefactos y límites. La evidencia privada está en el
+laboratorio `negotiated-control-evidence-20261027`, con informes/logs modo 0600.
+
+- El crate Rust `absor-agent-control` exige negociación después de autenticar,
+  2048 bytes, UUID/enums/campos cerrados, capacidades consistentes y secuencia de
+  contexto. Conserva 64 IDs sin desalojarlos. Dos entregas del mismo reinicio
+  ejecutan una sola operación en el adaptador artificial; cambiar su acción,
+  saturar la caché, cerrar/revocar/caducar o no anunciarla impide otra ejecución.
+- Diez casos P2P en la VM pasan con la extensión unida al IPC protegido. El
+  anuncio `features` solo sale después de autenticar y con plazo vigente. El
+  laboratorio anuncia todas las capacidades falsas y ninguna acción: no responde
+  antes de negociar, ignora la orden malformada y devuelve dos rechazos idénticos
+  para dos entregas de reinicio. Hay reconexión con nonce nuevo/mismo broker,
+  rechazo de clave/huellas, revocación, caducidad y fallos de procesos. Se retiran
+  servicios, secretos y cuentas temporales al terminar. No hay reinicio del SO.
+- `RemoteDevice.agent` distingue legado/agente/metadatos desconocidos. La prueba
+  API móvil da de alta un host nativo con `ace_`, reconoce sus capacidades, revoca
+  el ID exacto y verifica 401 del token `acg_`, preservando otro host legado y las
+  conexiones S3/SSH. Flutter: **164 pruebas**, sin saltar las de API/SSH/S3, y
+  `flutter analyze` sin incidencias. No prueba aún Flutter ↔ P2P nativo/TURN.
+- Equipos permite revocar tras diálogo de main con nombre obtenido de la API,
+  ID validado, remitente/ventana principal y cuenta revalidada después del diálogo.
+  Cancelación, destino ajeno y cambio de cuenta no envían DELETE. Token solo en
+  main; un fallo no se muestra como éxito. Solo se cierran los visores de ese ID.
+  No se acepta todavía toda 9.4: contexto protegido y otras funciones pendientes.
+- Preparación visual fail-closed: incluso una declaración completa de capacidades
+  se muestra como no certificada. Legado explica sesión/app y offline indica
+  acceso alternativo. React SSR verifica español/inglés, datos incompletos y todas
+  las capacidades; capturas reales de su propio panel Electron a 1000/430 px,
+  con datos ficticios, revisadas visualmente. No acepta toda 9.2 sin salud/prueba
+  de reconexión verificadas por equipo. Captura ilustrativa en la guía de viajes.
+- `AGENTS.md`, README, guía de viajes, README móvil y contexto OpenSpec explican
+  propiedad exclusiva, IPC de laboratorio, modos de cuenta/sistema/interfaz,
+  matriz vacía de agentes certificados, FileVault/BitLocker/cifrado previo al
+  arranque, recuperación y límites publicados. Los diagnósticos usan lista
+  permitida, no texto libre/secretos. Self-test y resumen del informe real pasan.
+- Comprobaciones: typecheck y build escritorio; Vitest **293 correctas/5 omitidas**;
+  ESLint de TS tocado sin errores; PHPUnit **162/1077**; Rust Mac **66 default +
+  86 all-features**, Linux **167 combinadas**, fmt/clippy y ambos release builds.
+  Se conserva PHP 8.5.12, --pull y upload_progress=0. No se toca la configuración
+  iOS preexistente ni el backup de entorno. No se publica una release del agente.

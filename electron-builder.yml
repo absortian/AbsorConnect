@@ -10,7 +10,7 @@ files:
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
   # Backend, app móvil, despliegue, specs y herramientas de desarrollo: viven en el mismo repo pero no van en app.asar
-  - '!{agent,backend,bin,docker,kube,openspec,mobile,prototypes,.claude,.docker,.node-home}/**'
+  - '!{agent,backend,bin,docker,docs,kube,openspec,mobile,prototypes,.claude,.docker,.node-home}/**'
   - '!{Jenkinsfile,compose.yaml,compose.override.yaml,AGENTS.md,CLAUDE.md,*.tsbuildinfo}'
 asarUnpack:
   - resources/**
