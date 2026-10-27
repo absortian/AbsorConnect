@@ -6,6 +6,7 @@ rust-version.workspace = true
 publish.workspace = true
 
 [features]
+protected-ipc-fixture = ["x11-lab", "dep:absor-agent-security"]
 # Exclusivamente la ventana propia de la VM. No ejecuta nada al compilar/probar.
 x11-lab = ["dep:absor-agent-api", "absor-agent-api/lab-http"]
 
@@ -22,3 +23,6 @@ serde_json = "=1.0.154"
 [[example]]
 name = "x11-worker-smoke"
 required-features = ["x11-lab"]
+
+[target.'cfg(target_os = "linux")'.dependencies]
+absor-agent-security = { path = "../agent-security", features = ["protected-ipc-lab"], optional = true }

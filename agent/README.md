@@ -416,6 +416,7 @@ transiciones/entrada generales siguen pendientes.
 
 `agent-security` y la característica `protected-ipc-lab` añaden alta nativa,
 almacenamiento AES-256-GCM, registro protegido y socket activado por systemd
-con `SO_PEERCRED`/PID de unidad. La sonda no captura ni envía entrada; aún debe
-unirse al trabajador WebRTC/X11. Archivos, identidades, límites, reproducción
+con `SO_PEERCRED`/PID de unidad. La sonda de contador no captura ni envía entrada. La variante optativa
+`protected-ipc-fixture` ya une ese canal a un trabajador WebRTC/X11 de ventana
+propia, con secretos separados, huellas aplicadas y watchdog independiente. Archivos, identidades, límites, reproducción
 y retirada: [`linux-secure-lab/README.md`](linux-secure-lab/README.md).

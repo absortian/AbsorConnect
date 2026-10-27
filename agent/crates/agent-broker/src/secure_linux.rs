@@ -1,4 +1,4 @@
-use absor_agent_api::{http::ApiError, RenewingAgent};
+use absor_agent_api::{http::ApiError, session_signaling::ApiSignaling, RenewingAgent};
 use absor_agent_auth::{AuthError, DtlsBinding, Verifier};
 use absor_agent_broker::audit::{AuditLog, Event};
 use absor_agent_core::{
@@ -68,8 +68,23 @@ fn credentials(name: &str, limit: u64) -> Result<Vec<u8>, ()> {
     }
     Ok(bytes)
 }
-fn expected_worker() -> Result<u32, ()> {
-    let path = Path::new("/etc/systemd/system/absorconnect-ipc-worker-lab.service");
+fn native_mode() -> Result<bool, ()> {
+    let path = Path::new("/etc/systemd/system/absorconnect-protected-worker-lab.service");
+    match fs::symlink_metadata(path) {
+        Ok(m) if m.is_file() && !m.is_symlink() && m.uid() == 0 && m.mode() & 0o022 == 0 => {
+            Ok(true)
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        _ => Err(()),
+    }
+}
+fn expected_worker(native: bool) -> Result<u32, ()> {
+    let unit = if native {
+        "absorconnect-protected-worker-lab.service"
+    } else {
+        "absorconnect-ipc-worker-lab.service"
+    };
+    let path = Path::new("/etc/systemd/system").join(unit);
     let m = fs::symlink_metadata(path).map_err(|_| ())?;
     if !m.is_file() || m.is_symlink() || m.uid() != 0 || m.mode() & 0o022 != 0 {
         return Err(());
@@ -79,7 +94,7 @@ fn expected_worker() -> Result<u32, ()> {
             "1s",
             "/usr/bin/systemctl",
             "show",
-            "absorconnect-ipc-worker-lab.service",
+            unit,
             "-p",
             "MainPID",
             "--value",
@@ -127,6 +142,7 @@ struct Authority {
     operations: Arc<AtomicU64>,
     terminal: Option<(Duration, i32)>,
     audit: AuditLog,
+    signaling: Option<ApiSignaling>,
 }
 impl Authority {
     fn disconnect(&mut self) {
@@ -134,6 +150,12 @@ impl Authority {
             let _ = self.agent.disconnect(&h);
         }
         self.verifier.cancel();
+    }
+    fn end_connection(&mut self) {
+        self.disconnect();
+        if let Some(s) = self.signaling.as_mut() {
+            s.reset();
+        }
     }
     fn state(&mut self) -> State {
         if let Some((_, code)) = self.terminal {
@@ -172,7 +194,7 @@ impl Authority {
             return Ok(self.status());
         }
         if matches!(request, Command::Disconnect { .. }) {
-            self.disconnect();
+            self.end_connection();
             self.flag.store(0, Ordering::SeqCst);
             self.audit.append(Event::WorkerEnded).map_err(|_| ())?;
             return Ok(self.status());
@@ -183,11 +205,47 @@ impl Authority {
                 retry_after: 0,
             });
         }
+        if matches!(request, Command::Lease { .. }) {
+            let state = self.state();
+            let deadline = match self.agent.authorization_deadline() {
+                Ok(value) => value,
+                Err(_) => {
+                    return Ok(Reply::Denied {
+                        state: self.state(),
+                        retry_after: 0,
+                    })
+                }
+            };
+            return Ok(Reply::Lease {
+                state,
+                deadline_boottime_millis: u64::try_from(deadline.as_millis()).map_err(|_| ())?,
+            });
+        }
         match request {
+            Command::Offer {} => {
+                let signaling = self.signaling.as_mut().ok_or(())?;
+                match signaling.offer().map_err(|_| ())? {
+                    Some(payload) => Ok(Reply::Offer {
+                        payload: String::from_utf8(payload).map_err(|_| ())?,
+                    }),
+                    None => Ok(Reply::Pending {}),
+                }
+            }
+            Command::Answer { payload } => {
+                self.signaling
+                    .as_mut()
+                    .ok_or(())?
+                    .answer(payload)
+                    .map_err(|_| ())?;
+                Ok(Reply::Accepted {})
+            }
             Command::Challenge {
                 offer_fingerprint,
                 answer_fingerprint,
             } => {
+                if self.signaling.as_ref().is_some_and(|s| !s.ready_for_auth()) {
+                    return Ok(Reply::Pending {});
+                }
                 if self.handle.is_some() && self.flag.load(Ordering::SeqCst) == 0 {
                     return Ok(Reply::Denied {
                         state: State::Invalid,
@@ -215,7 +273,7 @@ impl Authority {
             }
             Command::Authenticate { message } => {
                 if self.handle.is_some() {
-                    self.disconnect();
+                    self.end_connection();
                     return Ok(Reply::Denied {
                         state: State::Invalid,
                         retry_after: 0,
@@ -297,6 +355,8 @@ pub fn run() -> Result<i32, ()> {
             WallClock,
         )
         .map_err(|_| ())?;
+    let native = native_mode()?;
+    let signaling = native.then(|| ApiSignaling::new(api.signaling(), None));
     let mut authority = Authority {
         agent: RenewingAgent::new(BootClock, api),
         verifier,
@@ -304,6 +364,7 @@ pub fn run() -> Result<i32, ()> {
         flag: Arc::new(AtomicU8::new(0)),
         operations: Arc::new(AtomicU64::new(0)),
         terminal: None,
+        signaling,
         audit: AuditLog::open(&directory.join("audit.json")).map_err(|_| ())?,
     };
     authority
@@ -318,8 +379,32 @@ pub fn run() -> Result<i32, ()> {
         let now = BootClock.now().map_err(|_| ())?;
         linux::notify(b"WATCHDOG=1").map_err(|_| ())?;
         if authority.terminal.is_none() {
-            if authority.agent.tick().is_err() {
-                let revoked = authority.agent.terminal_error() == Some(ApiError::Revoked);
+            let progress = authority.agent.tick();
+            let mut failed = progress.is_err();
+            let mut signaling_revoked = false;
+            let mut signaling_failed = false;
+            if let (Ok(progress), Some(signaling)) = (progress, authority.signaling.as_mut()) {
+                let authorized = authority.agent.check_authorization().is_ok();
+                if let Err(error) = signaling.poll(progress.requests, authorized) {
+                    signaling_revoked = error == ApiError::Revoked;
+                    if signaling_revoked {
+                        failed = true;
+                    } else {
+                        signaling_failed = true;
+                    }
+                }
+            }
+            if signaling_failed {
+                authority.end_connection();
+                authority.flag.store(3, Ordering::SeqCst);
+                authority
+                    .audit
+                    .append(Event::WorkerFailed)
+                    .map_err(|_| ())?;
+            }
+            if failed {
+                let revoked = signaling_revoked
+                    || authority.agent.terminal_error() == Some(ApiError::Revoked);
                 authority.verifier.stop();
                 authority
                     .audit
@@ -354,7 +439,7 @@ pub fn run() -> Result<i32, ()> {
             match listener.accept() {
                 Ok((stream, _)) => {
                     let cred = linux::peer_credentials(&stream).map_err(|_| ())?;
-                    if cred.uid == 1000 && cred.pid == expected_worker().unwrap_or(0) {
+                    if cred.uid == 1000 && cred.pid == expected_worker(native).unwrap_or(0) {
                         peer = Some(FramedPeer::new(stream).map_err(|_| ())?);
                         last_sequence = 0;
                         last_message = now;
@@ -404,7 +489,13 @@ pub fn run() -> Result<i32, ()> {
             }
         }
         if lost {
-            authority.disconnect();
+            if authority.handle.is_some() && authority.flag.load(Ordering::SeqCst) == 0 {
+                authority
+                    .audit
+                    .append(Event::WorkerFailed)
+                    .map_err(|_| ())?;
+            }
+            authority.end_connection();
             peer.take();
         }
         thread::sleep(Duration::from_millis(20));

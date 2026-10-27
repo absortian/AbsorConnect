@@ -45,8 +45,15 @@ impl FixtureWorker {
         let _binding = verified.into_binding();
         Self::waiting()
     }
+    #[cfg(feature = "protected-ipc-fixture")]
+    pub fn authenticated_ipc(permit: absor_agent_security::client::AuthorizedWorker) -> Self {
+        let (_binding, alive) = permit.into_parts();
+        Self::waiting_with_alive(alive)
+    }
     fn waiting() -> Self {
-        let alive = Arc::new(AtomicBool::new(true));
+        Self::waiting_with_alive(Arc::new(AtomicBool::new(true)))
+    }
+    fn waiting_with_alive(alive: Arc<AtomicBool>) -> Self {
         let armed = Arc::new(AtomicBool::new(false));
         let closed = Arc::new(AtomicBool::new(false));
         let flag = alive.clone();

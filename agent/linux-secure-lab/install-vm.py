@@ -43,7 +43,7 @@ def cleanup():
     call('systemctl', 'daemon-reload')
     subprocess.run(['systemctl', 'reset-failed', *UNITS], capture_output=True)
     call('userdel', ACCOUNT)
-    for directory in [CONFIG, STATE, Path('/run')/NAME, Path('/run/absorconnect-ipc-worker-lab'), OPT]:
+    for directory in [CONFIG, STATE, Path('/run')/NAME, Path('/run/absorconnect-ipc-worker-lab'), Path('/var/lib/absorconnect-protected-worker-lab'), OPT]:
         if directory.exists():
             shutil.rmtree(directory)
     runtime=Path('/run/absorconnect-ipc-worker-lab')
@@ -52,6 +52,8 @@ def cleanup():
 
 
 def install():
+    if 'absor-protected-channel-lab' in BINS:
+        assert not Path('/var/lib/absorconnect-protected-worker-lab').exists(), 'existing_worker_state'
     assert not any(p.exists() for p in [OPT, CONFIG, STATE]), 'existing_destination'
     for unit in UNITS:
         assert not (Path('/etc/systemd/system')/unit).exists(), 'existing_unit'
@@ -85,6 +87,10 @@ def install():
         assert account.pw_uid not in (0, 1000)
         for name in BINS:
             write(OPT/name, artifacts[name], 0o755)
+        if 'absor-protected-channel-lab' in BINS:
+            worker_state=Path('/var/lib/absorconnect-protected-worker-lab');worker_state.mkdir(mode=0o700);os.chown(worker_state,1000,1000)
+            write(worker_state/'result.json',b'',0o600);os.chown(worker_state/'result.json',1000,1000)
+            write(OPT/'worker.json',b'{"protectedIpc":true,"apiSignaling":true,"nativeFixture":true}',0o644)
         result = subprocess.run([str(OPT/BINS[1])], input=json.dumps(config['enrollment']).encode(),
                                 capture_output=True, timeout=15)
         assert result.returncode == 0, 'native_enrollment_or_seal_failed'
@@ -107,19 +113,24 @@ def install():
             (Path('/etc/systemd/system')/unit).unlink(missing_ok=True)
         subprocess.run(['systemctl', 'daemon-reload'], capture_output=True)
         subprocess.run(['userdel', ACCOUNT], capture_output=True)
-        for directory in [CONFIG, STATE, Path('/run')/NAME, Path('/run/absorconnect-ipc-worker-lab'), OPT]:
+        for directory in [CONFIG, STATE, Path('/run')/NAME, Path('/run/absorconnect-ipc-worker-lab'), Path('/var/lib/absorconnect-protected-worker-lab'), OPT]:
             if directory.exists():
                 shutil.rmtree(directory)
         raise
 
 
 def main():
-    assert os.getuid() == 0 and len(sys.argv) == 2 and sys.argv[1] in ('install', 'remove')
+    global UNITS, BINS
+    assert os.getuid() == 0 and len(sys.argv) == 2 and sys.argv[1] in ('install', 'remove', 'install-native', 'remove-native')
+    native=sys.argv[1].endswith('-native')
+    if native:
+        UNITS=[UNITS[0],UNITS[1],'absorconnect-protected-worker-lab.service']
+        BINS=['absor-secure-broker-lab','absor-secret-provision-lab','absor-protected-channel-lab','libabsor_agent_webrtc_lab.so']
     marker=Path('/run/absorconnect-owned-vm-lab');meta=marker.lstat()
     assert stat.S_ISREG(meta.st_mode) and meta.st_uid==0 and stat.S_IMODE(meta.st_mode)==0o444
     assert marker.read_bytes() == b'absorconnect-native-window-fixture-v1\n'
     assert pwd.getpwnam('absorlab').pw_uid == 1000
-    if sys.argv[1] == 'install':
+    if sys.argv[1].startswith('install'):
         install()
     else:
         cleanup()

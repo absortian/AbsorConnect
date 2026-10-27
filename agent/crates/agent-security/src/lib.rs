@@ -5,3 +5,6 @@
 pub mod linux;
 pub mod secrets;
 pub mod wire;
+
+#[cfg(all(target_os = "linux", feature = "protected-ipc-lab"))]
+pub mod client;

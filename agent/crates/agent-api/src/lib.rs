@@ -2,6 +2,7 @@
 #![forbid(unsafe_code)]
 pub mod enrollment;
 pub mod http;
+pub mod session_signaling;
 pub mod signaling;
 use absor_agent_core::clock::Clock;
 use absor_agent_core::{AuthorizationGate, Denied, Session, SessionHandle, ValidationTicket};
@@ -123,6 +124,10 @@ impl<C: Clock + Clone, S: Session> RenewingAgent<C, S> {
 
     pub fn check_authorization(&mut self) -> Result<(), Denied> {
         self.gate.check_authorization()
+    }
+
+    pub fn authorization_deadline(&mut self) -> Result<Duration, Denied> {
+        self.gate.authorization_deadline()
     }
 
     // No sustituye la autenticación v1 del trabajador; frontera confiable del broker.

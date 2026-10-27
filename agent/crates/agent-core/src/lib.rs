@@ -195,6 +195,13 @@ impl<C: Clock, S: Session> AuthorizationGate<C, S> {
         self.authorized()
     }
 
+    /// Plazo local validado: solo lectura, para un IPC autenticado del mismo SO.
+    /// No serializar handles/tickets ni aceptar este dato desde la red.
+    pub fn authorization_deadline(&mut self) -> Result<Duration, Denied> {
+        self.authorized()?;
+        self.deadline.ok_or(Denied::NoAuthorization)
+    }
+
     /// Frontera de confianza: el trabajador ya verificó v1/DTLS/HMAC. Esta API
     /// NO prueba una contraseña ni sustituye ese protocolo todavía pendiente.
     pub fn attach_authenticated(&mut self, mut session: S) -> Result<SessionHandle, Denied> {

@@ -1,7 +1,8 @@
 //! Protocolo LOCAL distinto de WebRTC v1. No acepta rutas, shell, credenciales
-//! ni operaciones administrativas; la única operación actual es diagnóstica.
+//! ni operaciones administrativas. Añade señalización y plazos para el trabajador fijo.
 use serde::{Deserialize, Serialize};
-pub const MAX_FRAME: usize = 4096;
+// SDP/ICE acotados; el protocolo no permite rutas, shell ni configuración.
+pub const MAX_FRAME: usize = 1_048_576;
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Request {
@@ -13,6 +14,11 @@ pub struct Request {
 #[serde(tag = "op", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Command {
     Status {},
+    Lease {},
+    Offer {},
+    Answer {
+        payload: String,
+    },
     Challenge {
         offer_fingerprint: String,
         answer_fingerprint: String,
@@ -52,6 +58,15 @@ pub enum Reply {
         operation_count: u64,
         os_operations_enabled: bool,
     },
+    Lease {
+        state: State,
+        deadline_boottime_millis: u64,
+    },
+    Offer {
+        payload: String,
+    },
+    Pending {},
+    Accepted {},
     Hello {
         payload: String,
     },
@@ -69,6 +84,11 @@ pub fn decode_request(raw: &[u8]) -> Result<Request, ProtocolError> {
     let request: Request = serde_json::from_slice(raw).map_err(|_| ProtocolError)?;
     if request.v != 1 || request.sequence == 0 {
         return Err(ProtocolError);
+    }
+    if let Command::Answer { payload } = &request.command {
+        if payload.is_empty() || payload.len() > 65_536 {
+            return Err(ProtocolError);
+        }
     }
     if let Command::Authenticate { message } = &request.command {
         if message.len() > 512 {

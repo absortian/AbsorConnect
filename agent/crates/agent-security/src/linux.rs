@@ -183,7 +183,7 @@ impl FramedPeer {
             return Err(IpcError::Timeout);
         }
         for _ in 0..9 {
-            let mut bytes = [0; 512];
+            let mut bytes = [0; 16_384];
             match self.stream.read(&mut bytes) {
                 Ok(0) => return Err(IpcError::Closed),
                 Ok(n) => {
@@ -388,7 +388,8 @@ mod tests {
         );
         let (a, mut b) = UnixStream::pair().unwrap();
         let mut p = FramedPeer::new(a).unwrap();
-        b.write_all(&4097_u32.to_be_bytes()).unwrap();
+        b.write_all(&((MAX_FRAME + 1) as u32).to_be_bytes())
+            .unwrap();
         assert_eq!(p.poll(Duration::ZERO).unwrap_err(), IpcError::Protocol);
     }
     #[test]

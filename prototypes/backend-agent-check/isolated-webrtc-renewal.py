@@ -28,8 +28,10 @@ def main():
     parser.add_argument('--linux-webrtc-vm', type=Path)
     parser.add_argument('--linux-broker', action='store_true')
     parser.add_argument('--secure-ipc-vm', type=Path)
+    parser.add_argument('--protected-p2p-vm', type=Path)
     args = parser.parse_args()
     assert not args.linux_broker or args.linux_webrtc_vm, 'broker_requires_linux_vm'
+    assert not args.protected_p2p_vm or not (args.secure_ipc_vm or args.linux_broker or args.linux_webrtc_vm or args.x11_worker_vm), 'choose_one_matrix'
     assert not args.secure_ipc_vm or not (args.linux_broker or args.linux_webrtc_vm or args.x11_worker_vm), 'choose_one_matrix'
     lab = args.lab.resolve()
     identifier = uuid.uuid4().hex
@@ -81,7 +83,9 @@ def main():
             assert time.monotonic() < deadline, 'isolated_api_readiness_timeout'
             time.sleep(0.5)
         php_version = command(['docker', 'exec', container, 'php', '-r', 'echo PHP_VERSION;']).decode().strip()
-        if args.secure_ipc_vm:
+        if args.protected_p2p_vm:
+            child_args=['python3','-B',str(Path(__file__).with_name('protected-webrtc.py')),str(lab),str(args.protected_p2p_vm),'--api-base','http://127.0.0.1:'+str(port),'--node',args.node]
+        elif args.secure_ipc_vm:
             child_args = ['python3', '-B', str(Path(__file__).with_name('secure-ipc-check.py')),
                           str(lab), str(args.secure_ipc_vm), '--api-base', 'http://127.0.0.1:'+str(port)]
         else:
