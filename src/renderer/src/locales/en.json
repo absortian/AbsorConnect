@@ -360,5 +360,21 @@
     "smooth": "Smooth",
     "native": "Original resolution",
     "buffer": "Video buffer"
+  },
+  "viewerAgent": {
+    "waiting": "Waiting for a new frame from the current context. The previous image is hidden.",
+    "missing": "The host has no current image. The previous image is hidden.",
+    "protectedHint": "Protected context: clipboard, files and sound are suspended.",
+    "states": {
+      "user_desktop": "User desktop",
+      "locked": "Device locked",
+      "login": "Sign in",
+      "secure_prompt": "System authorization",
+      "transition": "Changing context",
+      "unavailable": "Context unavailable"
+    },
+    "reconnectHint": "Files, clipboard and sound remain suspended until you reconnect.",
+    "soundSuspended": "Sound suspended",
+    "inputUnavailable": "The host does not support input in this context. Clipboard, files and sound are suspended."
   }
 }

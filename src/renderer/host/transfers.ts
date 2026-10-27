@@ -46,13 +46,13 @@ export interface HostTransfersOptions {
 }
 
 /** Espera a que el canal tenga sitio (o se cierre). */
-export function room(channel: ChannelLike): Promise<void> {
-  if (channel.bufferedAmount <= BUFFER_HIGH_BYTES || channel.readyState !== 'open') {
+export function room(channel: ChannelLike, current: () => boolean = () => true): Promise<void> {
+  if (!current() || channel.bufferedAmount <= BUFFER_HIGH_BYTES || channel.readyState !== 'open') {
     return Promise.resolve()
   }
   return new Promise((resolve) => {
     const check = setInterval(() => {
-      if (channel.readyState !== 'open') done()
+      if (!current() || channel.readyState !== 'open') done()
     }, 500)
     const done = (): void => {
       clearInterval(check)

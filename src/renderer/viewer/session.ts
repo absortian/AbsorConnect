@@ -2,6 +2,7 @@
 // con transceptores recvonly y los canales, la publica a través del proceso principal y espera la
 // respuesta; luego responde al `hello` con la prueba de la contraseña. K (nunca la contraseña) se
 // queda en memoria mientras dure la ventana, para reconectar sin volver a pedirla.
+import { AgentViewerState, type AgentViewerStatus } from '../../shared/remote/agentViewerState'
 import { computeProof, sdpFingerprint } from '../../shared/remote/auth'
 import type { AbsorViewerApi } from '../../shared/remote/viewerBridge'
 import {
@@ -34,6 +35,7 @@ export interface SessionEvents {
   displays(displays: DisplayInfo[], current: string): void
   features(features: Omit<FeaturesMessage, 'v' | 'type'>): void
   quality?(profile: StreamProfile): void
+  agentContext?(status: AgentViewerStatus): void
   stats(stats: Stats): void
   /** Canal de ficheros de la conexión en marcha, o null cuando se cierra (D9). */
   fileChannel(channel: RTCDataChannel | null): void
@@ -109,6 +111,10 @@ export class ViewerSession {
   private readonly statsSampler = new VideoStatsSampler()
   private readonly statsPending = new Set<RTCPeerConnection>()
   private qualitySupported = false
+  private authenticated = false
+  private agentState = new AgentViewerState()
+  private declaredFeatures = { clipboard: false, files: false, audio: false, streamQuality: false }
+  private readonly audioTracks = new Set<MediaStreamTrack>()
   private desiredProfile: StreamProfile | null = null
 
   constructor(
@@ -146,13 +152,23 @@ export class ViewerSession {
   }
 
   sendInput(message: Record<string, unknown>): void {
-    if (this.input?.readyState === 'open') {
+    if (
+      !this.closed &&
+      this.authenticated &&
+      this.agentState.status.inputAllowed &&
+      this.input?.readyState === 'open'
+    ) {
       this.input.send(JSON.stringify({ v: PROTOCOL_VERSION, ...message }))
     }
   }
 
   sendPointer(x: number, y: number): void {
-    if (this.pointer?.readyState === 'open') {
+    if (
+      !this.closed &&
+      this.authenticated &&
+      this.agentState.status.inputAllowed &&
+      this.pointer?.readyState === 'open'
+    ) {
       this.pointer.send(JSON.stringify({ v: PROTOCOL_VERSION, type: 'move', x, y }))
     }
   }
@@ -169,6 +185,7 @@ export class ViewerSession {
 
   /** Cierra la sesión (Desconectar o cerrar la ventana): se despide del PC. */
   close(): void {
+    this.releaseInput()
     this.closed = true
     this.sendControl({ v: PROTOCOL_VERSION, type: 'bye', reason: 'closed' })
     setTimeout(() => this.teardown(), 200)
@@ -200,9 +217,15 @@ export class ViewerSession {
     // Ficheros: fiable y ordenado, mensajes y trozos binarios por el mismo canal (D9)
     this.file = pc.createDataChannel(CHANNELS.file)
     pc.ontrack = ({ track, streams }) => {
+      if (pc !== this.pc || this.closed) return
       const stream = streams[0] ?? new MediaStream([track])
       if (track.kind === 'video') this.events.video(stream)
-      else this.events.audio(stream)
+      else {
+        if (pc !== this.pc) return
+        this.audioTracks.add(track)
+        track.enabled = this.agentState.status.sensitiveAllowed && this.declaredFeatures.audio
+        this.events.audio(stream)
+      }
     }
 
     await pc.setLocalDescription(await pc.createOffer())
@@ -305,6 +328,7 @@ export class ViewerSession {
 
   /** Con la sesión en marcha: mensajes del PC, caídas de la red y estadísticas. */
   private watch(pc: RTCPeerConnection, control: RTCDataChannel): void {
+    this.authenticated = true
     control.onmessage = (event) => {
       if (pc !== this.pc || this.closed) return
       let message: Record<string, unknown>
@@ -313,16 +337,31 @@ export class ViewerSession {
       } catch {
         return
       }
+      if (!message || typeof message !== 'object' || Array.isArray(message)) return
+      if (message.extension === 1) {
+        if (this.agentState.accept(String(event.data))) {
+          this.releaseInput()
+          this.events.agentContext?.(this.agentState.status)
+          this.publishFeatures()
+        }
+        return
+      }
       if (message.type === 'displays' && Array.isArray(message.displays)) {
         this.events.displays(message.displays as DisplayInfo[], String(message.current))
       } else if (message.type === 'features') {
         this.qualitySupported = message.v === 1 && message.streamQuality === true
-        this.events.features({
-          clipboard: message.clipboard === true,
-          files: message.files === true,
-          audio: message.audio === true,
+        this.declaredFeatures = {
+          clipboard: message.v === 1 && message.clipboard === true,
+          files: message.v === 1 && message.files === true,
+          audio: message.v === 1 && message.audio === true,
           streamQuality: this.qualitySupported
-        })
+        }
+        if (this.agentState.announce(message.v, message.unattendedControl)) {
+          this.releaseInput()
+          this.events.agentContext?.(this.agentState.status)
+          this.sendControl({ v: 1, extension: 1, type: 'agent-control-enable' })
+        }
+        this.publishFeatures()
         if (this.qualitySupported && this.desiredProfile) {
           this.sendControl({ v: 1, type: 'set-stream-quality', profile: this.desiredProfile })
         }
@@ -333,7 +372,11 @@ export class ViewerSession {
         isStreamProfile(message.profile)
       ) {
         this.events.quality?.(message.profile)
-      } else if (message.type === 'clipboard') {
+      } else if (
+        message.type === 'clipboard' &&
+        this.agentState.status.sensitiveAllowed &&
+        this.declaredFeatures.clipboard
+      ) {
         const piece = parseClipboardPiece(message)
         if (piece) this.events.clipboard(piece)
       } else if (message.type === 'bye') {
@@ -408,7 +451,30 @@ export class ViewerSession {
     }
   }
 
+  private releaseInput(): void {
+    if (this.authenticated && this.input?.readyState === 'open')
+      this.input.send(JSON.stringify({ v: 1, type: 'release-all' }))
+  }
+
+  private publishFeatures(): void {
+    const sensitive = this.agentState.status.sensitiveAllowed
+    for (const track of this.audioTracks) track.enabled = sensitive && this.declaredFeatures.audio
+    this.events.features({
+      ...this.declaredFeatures,
+      clipboard: sensitive && this.declaredFeatures.clipboard,
+      files: sensitive && this.declaredFeatures.files,
+      audio: sensitive && this.declaredFeatures.audio
+    })
+  }
+
   private teardown(): void {
+    this.releaseInput()
+    this.authenticated = false
+    this.agentState = new AgentViewerState()
+    for (const track of this.audioTracks) track.enabled = false
+    this.audioTracks.clear()
+    this.declaredFeatures = { clipboard: false, files: false, audio: false, streamQuality: false }
+    this.events.agentContext?.(this.agentState.status)
     if (this.statsTimer) clearInterval(this.statsTimer)
     this.statsTimer = null
     if (this.disconnectedTimer) clearTimeout(this.disconnectedTimer)

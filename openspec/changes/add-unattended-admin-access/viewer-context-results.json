@@ -1,0 +1,119 @@
+{
+  "schema": 1,
+  "date": "2026-10-28",
+  "scope": "Contexto y descarte de contenido en controlador de escritorio; host/Flutter conservan sus tareas pendientes.",
+  "acceptedTasks": [
+    "9.4"
+  ],
+  "acceptedTotal": 17,
+  "totalTasks": 57,
+  "percent": 30,
+  "checks": {
+    "typecheck": "passed",
+    "desktopBuild": "passed",
+    "vitestPassed": 311,
+    "vitestSkippedWithoutApi": 6,
+    "newUnitCases": 11,
+    "touchedEslint": "passed",
+    "phpunitTests": 162,
+    "phpunitAssertions": 1077,
+    "productionViewerLocalWebRtc": {
+      "ok": true,
+      "productionViewerUsed": true,
+      "realLocalWebRtc": true,
+      "syntheticVideoOnly": true,
+      "desktop": {
+        "authenticated": true,
+        "enableCount": 1,
+        "clipboardWatch": true,
+        "videoHidden": false,
+        "state": "Escritorio del usuario",
+        "hint": "",
+        "filesHidden": false,
+        "clipboardHidden": false,
+        "soundHidden": false,
+        "shortcutsDisabled": false
+      },
+      "transition": {
+        "authenticated": true,
+        "enableCount": 1,
+        "clipboardWatch": false,
+        "videoHidden": true,
+        "state": "Cambiando de contexto",
+        "hint": "El host no tiene una imagen actual. La imagen anterior está oculta.",
+        "filesHidden": true,
+        "clipboardHidden": true,
+        "soundHidden": true,
+        "shortcutsDisabled": true
+      },
+      "login": {
+        "authenticated": true,
+        "enableCount": 1,
+        "clipboardWatch": false,
+        "videoHidden": false,
+        "state": "Inicio de sesión",
+        "hint": "Contexto protegido: portapapeles, archivos y sonido suspendidos.",
+        "filesHidden": true,
+        "clipboardHidden": true,
+        "soundHidden": true,
+        "shortcutsDisabled": false
+      },
+      "returned": {
+        "authenticated": true,
+        "enableCount": 1,
+        "clipboardWatch": false,
+        "videoHidden": true,
+        "state": "Escritorio del usuario",
+        "hint": "Esperando una imagen nueva del contexto actual. La imagen anterior está oculta.",
+        "filesHidden": true,
+        "clipboardHidden": true,
+        "soundHidden": true,
+        "shortcutsDisabled": true
+      },
+      "physicalHostTested": false,
+      "protectedScreenCaptured": false
+    }
+  },
+  "sourceSha256": {
+    "prototypes/remote-desktop/viewer-context-check/README.md": "81271fd4bee94d684f2b6897d951819377d01ef710bcc541556c17eb02dafa10",
+    "prototypes/remote-desktop/viewer-context-check/fixture.ts": "3f1664ef0cfd6cc4d62640b7c30458b7b1b740d6dd936e002e55ed481818456f",
+    "prototypes/remote-desktop/viewer-context-check/main.cjs": "fad59cad9c7e066f5a09d2f859a7b4adf46b5bd9c7cac05e229fe645b85b6ed8",
+    "prototypes/remote-desktop/viewer-context-check/run.cjs": "c4a192680181264e34fa31f8eb4e1853a73c3d0d57812d75ba6656fb6695b46f",
+    "src/renderer/host/transfers.ts": "b27add86c69bf590d037671f7fdb9b3183e7f7a24046baa783e1004bc5e99f84",
+    "src/renderer/src/locales/en.json": "4e3b4cb65ea574807ae074964939368f988923b64ba2f597d33f0ed41a9fafd1",
+    "src/renderer/src/locales/es.json": "d5aaffd8f39ec8f9291dfd5829391e5b9d2d58d14f0ab84da29cf7722b2a77be",
+    "src/renderer/viewer.html": "11189988c8d0c2dd97caf5033c4d57d91c0797e26f75eda2fcb20354b07a224f",
+    "src/renderer/viewer/__tests__/session.test.ts": "eb41878aa42c415c0da23dc5f365aa9b9103aa4b6bd75ccde8084348b1b3e5a9",
+    "src/renderer/viewer/__tests__/transfers.test.ts": "009aed5845856e43928369d563ec6005134503b41f915f569969627728a6b75c",
+    "src/renderer/viewer/filesUi.ts": "5af6f1bb24ca8623006224d8bc66aca2e7739ba1f4cc62dc2abc1fed82672e9b",
+    "src/renderer/viewer/main.ts": "f2351fec8b53515a4d414b510e7508d8939ab4fe1dd96e5793b948ce729bc4f3",
+    "src/renderer/viewer/session.ts": "8c495995542e8aac23041e3af89cdb0584eec0a995847254311f054c7744a1a6",
+    "src/renderer/viewer/texts.ts": "e30d9f03c11c0b126da5400a59109aef4f72f6e6f2d9015cf722ccd8132c29a3",
+    "src/renderer/viewer/transfers.ts": "cb7d1785d9be1de68616c73158425a61ac2b341b156a2aa1a976131455c95a2b",
+    "src/renderer/viewer/viewer.css": "200e4ef45c83eef196023620b5887b36f1392c585aed4ed8d3b5fa0736852129",
+    "src/shared/remote/__tests__/agentViewerState.test.ts": "e97d4bd27e949ff1a59b6d1eec5ab7e968d1c0a4995fddb00ced872083a67a85",
+    "src/shared/remote/agentProtocol.md": "8f6d07ad1d18239396b30784d706c916ac3ae036b1e382f2cabb912d414b8662",
+    "src/shared/remote/agentViewerState.ts": "c9bebe48fcfdf81db1922f02696f21527fdc432cd4381c63ba2d08636a2cca5f"
+  },
+  "evidenceSha256": {
+    "absor-viewer-context-build.log": "cf05b8e54ae6b4516dddae5039a8614d71f5ebf8bc41686a1760255337a36bf5",
+    "absor-viewer-context-eslint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "absor-viewer-context-format.log": "39cc3a317e22fafbcf75f5cb4b3d1b51bdc44b5d24bb83b4033bd2c9cace8a0b",
+    "absor-viewer-context-phpunit.log": "be2a909d2220b78451865e0944f8e0251994e5054b9b432464b386cd58a542c5",
+    "absor-viewer-context-tests.log": "cea13c7b689b02f18d7ccb25f229a1608bf63edc66a16fbfb7f1971edbdd1374",
+    "absor-viewer-context-typecheck.log": "eb06aafaa08b67d7b2ddc2113a11b4f8dc5f8f8c59af33cc2bf49397787f5c74",
+    "absor-viewer-context-ui.log": "6ea558ca4b249346d3f8ec6991e1b66123165841ce7d06bd742c77882919c976",
+    "absor-viewer-context-vitest.log": "38e410e238ff6f89eafb8ae8796902f2ad41ccc53cb7ac710d8cdc18559fdd31",
+    "desktop.png": "a0147ec9a07c90c0506561c1f41a8806d15ba56a1b833d1c649379b2828919e8",
+    "login.png": "7f38760f6c72ce5e4b694b49f9815a5fc3c6530ee1fed9f72b2caccf15e40476",
+    "report.json": "6a0fb4ac301e0144194836709be0f0e456150292b17347bb83d6e5bcbcd7e82e",
+    "transition.png": "826ec43c24279567335f71c6c0beb462fe02a2350247391eb0837bb731e020e3"
+  },
+  "limitations": [
+    "Host artificial de la UI, sin capturar/injectar en pantallas protegidas reales.",
+    "El aislamiento de fuentes/colas del host permanece pendiente en 3.5 y sus adaptadores.",
+    "Contenido sensible solo se reactiva con una conexión nueva tras un cambio observado.",
+    "El móvil todavía no integra este recorrido visual; 10.2 permanece pendiente.",
+    "No publica servicio final ni certifica preparación para viajes; el 50% no se alcanza."
+  ]
+}

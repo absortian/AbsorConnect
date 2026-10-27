@@ -360,5 +360,21 @@
     "smooth": "Fluido",
     "native": "Resolución original",
     "buffer": "Búfer de vídeo"
+  },
+  "viewerAgent": {
+    "waiting": "Esperando una imagen nueva del contexto actual. La imagen anterior está oculta.",
+    "missing": "El host no tiene una imagen actual. La imagen anterior está oculta.",
+    "protectedHint": "Contexto protegido: portapapeles, archivos y sonido suspendidos.",
+    "states": {
+      "user_desktop": "Escritorio del usuario",
+      "locked": "Equipo bloqueado",
+      "login": "Inicio de sesión",
+      "secure_prompt": "Autorización del sistema",
+      "transition": "Cambiando de contexto",
+      "unavailable": "Contexto no disponible"
+    },
+    "reconnectHint": "Archivos, portapapeles y sonido permanecen suspendidos hasta reconectar.",
+    "soundSuspended": "Sonido suspendido",
+    "inputUnavailable": "El host no admite entrada en este contexto. Portapapeles, archivos y sonido suspendidos."
   }
 }

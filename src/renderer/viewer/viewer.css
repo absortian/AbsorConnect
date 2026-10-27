@@ -423,3 +423,17 @@ video {
 #transfer-list li.failed .fill {
   background: var(--danger);
 }
+
+#agent-context {
+  padding: 8px 12px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+}
+#agent-context strong {
+  color: var(--text);
+  margin-right: 8px;
+}
+#agent-context[hidden] {
+  display: none;
+}

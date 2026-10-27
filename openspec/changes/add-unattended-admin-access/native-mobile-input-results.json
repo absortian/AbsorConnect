@@ -459,5 +459,27 @@
     "absor-native-mobile-vitest.log": "010292be61b8b706a09dd9b9b5020c92c85bdeb2af65146f97c58e2fdff02481",
     "api-workers-linux-final.log": "5ad0bacb782696c9dc886daae3e32558f794e6c5c40d1d4caa5cb7305f43dee9",
     "flutter-isolated-suite.log": "1bac5dd20c63724dd5e4ac7ceb08056eb79ded485e48f0b7d28e92de27f0e31d"
+  },
+  "sourceRevision": "0428e49a5fd29d5e00d8ec01ad27d7abaf95ea56",
+  "mergedByPr": 52,
+  "ci": {
+    "head": "0428e49a5fd29d5e00d8ec01ad27d7abaf95ea56",
+    "allChecksPassed": true,
+    "fullLogsReviewed": true,
+    "rustTests": {
+      "linux": 167,
+      "macos": 152,
+      "windows": 150
+    },
+    "rustReleaseBuildsPerOs": 2,
+    "android": "APK release construido y firma verificada",
+    "ios": "Runner.app sin firma construido",
+    "logsSha256": {
+      "ci-122517902880.log": "defe38084c83db825dfb35fee9b6d361d3f00dc356fe9e6f650f0d09f19a99d9",
+      "ci-122517902993.log": "3b5cc5b589479e30fb14220bea8346186072e3cd43516df5175ac683dc463921",
+      "ci-122517903182.log": "60e4c1889da8be36f72f741aed2a3dd1c5465a89ebb5aeb187853e9680e81ee9",
+      "ci-122517903335.log": "04eb09a98924b03b203856494f92074f45dedc3d452a1f55626d9216a31cf115",
+      "ci-122517903423.log": "67cb968554977b0e13d6f470d3747875e90922cf0d39bf92014a5804329016f0"
+    }
   }
 }

@@ -2,6 +2,7 @@
 // muestra su pantalla con el teclado, el ratón, las pantallas, el sonido y el estado de la conexión.
 // Una ventana por PC; cerrarla termina la sesión.
 import './viewer.css'
+import type { AgentViewerStatus } from '../../shared/remote/agentViewerState'
 import { STREAM_PROFILES, type StreamProfile, type DisplayInfo } from '../../shared/remote/protocol'
 import { emptyVideoStats } from './videoStats'
 import { FilesUi, setupFilesUi } from './filesUi'
@@ -59,6 +60,9 @@ async function main(): Promise<void> {
       return option
     })
   )
+  let currentContext: AgentViewerStatus | null = null
+  let currentFrameReady = true
+  let frameCallback: number | null = null
   let files: FilesUi | null = null
   let renderTransfer: (view: TransferView) => void = () => undefined
 
@@ -90,8 +94,13 @@ async function main(): Promise<void> {
         qualitySelect.hidden = !features.streamQuality
         muteButton.hidden = !features.audio
         noAudio.hidden = features.audio
+        noAudio.textContent =
+          currentContext?.enabled && !currentContext.sensitiveAllowed
+            ? t.agent.soundSuspended
+            : t.noAudio
         files?.setFeatures(features)
       },
+      agentContext: renderAgentContext,
       quality: (profile) => {
         confirmedProfile = profile
         qualitySelect.value = profile
@@ -117,8 +126,12 @@ async function main(): Promise<void> {
   renderTransfer = filesUi.render
 
   const sink: InputSink = {
-    pointer: (x, y) => session.sendPointer(x, y),
-    input: (m) => session.sendInput(m)
+    pointer: (x, y) => {
+      if (currentFrameReady) session.sendPointer(x, y)
+    },
+    input: (m) => {
+      if (currentFrameReady) session.sendInput(m)
+    }
   }
   // El teclado va al PC salvo mientras se usa el selector de pantallas o el explorador de carpetas
   attachInput(
@@ -126,11 +139,59 @@ async function main(): Promise<void> {
     sink,
     () =>
       phase === 'connected' &&
+      currentFrameReady &&
+      currentContext?.inputAllowed !== false &&
       overlay.hidden &&
       !files?.browsing &&
       document.activeElement?.tagName !== 'SELECT' &&
       document.activeElement?.tagName !== 'INPUT'
   )
+
+  function contextHint(next: AgentViewerStatus): string {
+    if (!next.imageAvailable) return t.agent.missing
+    if (!currentFrameReady) return t.agent.waiting
+    if (!next.inputAllowed) return t.agent.inputUnavailable
+    if (next.sensitiveAllowed) return ''
+    return next.state === 'user_desktop' ? t.agent.reconnectHint : t.agent.protectedHint
+  }
+
+  function renderAgentContext(next: AgentViewerStatus): void {
+    const boundary =
+      next.enabled && (!currentContext?.enabled || next.sequence !== currentContext.sequence)
+    currentContext = next
+    transfers.setSensitiveAllowed(next.sensitiveAllowed, boundary)
+    if (boundary) {
+      files?.clearContext()
+      files?.setFeatures({ clipboard: false, files: false })
+    }
+    if (frameCallback !== null) video.cancelVideoFrameCallback(frameCallback)
+    frameCallback = null
+    if (!next.enabled) {
+      currentFrameReady = true
+      video.style.visibility = ''
+      $('agent-context').hidden = true
+      combosButton.disabled = false
+      return
+    }
+    if (boundary || !next.imageAvailable) currentFrameReady = false
+    video.style.visibility = currentFrameReady ? '' : 'hidden'
+    $('agent-context').hidden = false
+    $('agent-context-state').textContent = t.agent.states[next.state]
+    $('agent-context-hint').textContent = contextHint(next)
+    combosButton.disabled = !next.inputAllowed || !currentFrameReady
+    comboList.hidden = true
+    if (next.imageAvailable && !currentFrameReady) {
+      // Espera un fotograma posterior a la notificación; el host garantiza el aislamiento de origen.
+      frameCallback = video.requestVideoFrameCallback(() => {
+        frameCallback = null
+        if (currentContext !== next || !next.imageAvailable) return
+        currentFrameReady = true
+        video.style.visibility = ''
+        combosButton.disabled = !next.inputAllowed
+        $('agent-context-hint').textContent = contextHint(next)
+      })
+    }
+  }
 
   function renderStatus(): void {
     if (phase !== 'connected') return
