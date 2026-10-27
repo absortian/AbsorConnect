@@ -1,7 +1,8 @@
 # Viabilidad nativa de WebRTC
 
-Parte inicial de las tareas 1.5 y 1.6 de `add-unattended-admin-access`. La revisión
-es una candidata para pruebas; todavía no se adopta como dependencia del agente.
+Pruebas de las tareas 1.5 y 1.6 de `add-unattended-admin-access`. La matriz de
+interoperabilidad del 27/10 permite continuar con esta revisión fijada; todavía
+no es una dependencia distribuida ni certifica los servicios finales.
 Las fuentes, herramientas y artefactos grandes quedan fuera del repositorio y
 de los instaladores de Electron. La compilación y las pruebas directas no usan
 cuentas; el ensayo TURN opcional usa exclusivamente credenciales temporales del
@@ -35,7 +36,8 @@ emiten su SHA-256 para identificar el artefacto probado.
 dispositivos iOS físicos. El simulador iPad ya tiene una prueba de interoperabilidad
 con vídeo artificial, descrita al final. El recorrido TURN del controlador se
 verifica por separado; no equivale a certificar cualquier combinación de NAT.
-Ninguna de estas pruebas iniciales completa la tarea 1.5 por sí sola.
+Estas pruebas históricas por separado no completan 1.5; la matriz posterior
+añade entrada nativa y los tres controladores en directo/TURN.
 
 ## Controlador Flutter en el simulador de iPad
 
@@ -338,3 +340,79 @@ para `getifaddrs`, conservando cero capacidades administrativas. El caso de
 bloqueo restaura la sesión solo de la VM. No instala unidades permanentes ni
 prueba arranque/greeter, servicio privilegiado, entrada sostenida o liberación
 tras caída. TURN, móviles y Mint físico siguen fuera de esta matriz.
+
+## Plugin móvil real contra el trabajador IPC de la VM
+
+`mobile-protected-interop-test.dart` ejecuta los codificadores de autenticación e
+input de producción y el plugin `flutter_webrtc` real contra la ventana X11 propia
+(320×180) del laboratorio Linux. Exige `v:1` también en input; el subconjunto del
+trabajador solo admite un clic izquierdo y KeyA completos. No acepta texto,
+combinaciones arbitrarias, rueda u otras ventanas. No es el host final.
+
+Desde el Mac de laboratorio, con la VM propia ya preparada y una copia aislada
+Flutter inicializada en `<lab>/mobile-simulator`:
+
+```bash
+python3 -B prototypes/backend-agent-check/isolated-webrtc-renewal.py <lab> \
+  --protected-p2p-vm <vm-lab> --mobile-device <uuid-del-simulador-ios>
+# Android: únicamente el AVD propio absorconnect en emulator-5554.
+python3 -B prototypes/backend-agent-check/isolated-webrtc-renewal.py <lab> \
+  --protected-p2p-vm <vm-lab> --mobile-device emulator-5554
+```
+
+El lanzador copia solo cinco fuentes del protocolo y la prueba en esa copia,
+nunca la configuración iOS del proyecto principal. Crea una API/base efímeras,
+alta de un uso y claves por host: en este ensayo K se deriva de la contraseña
+pública del laboratorio con una sal aleatoria y 600000 iteraciones. El controlador
+no recibe el token de cuenta ni `acg_`. La captura/entrada permanece limitada a
+la ventana de la VM. Se retiran unidades, secretos y cuentas al terminar.
+
+Casos: conexión, reconexión con el mismo broker/nonce nuevo, contraseña incorrecta
+y huellas alteradas. Se comprueba cero vídeo antes de autenticar; se envía input
+antes de autenticar para verificar su descarte, luego mensajes reales `RemoteInput`
+y se validan los cuatro eventos del SO en la ventana. La extensión administrativa
+negocia capacidades falsas y ninguna acción. El clic/KeyA de este ensayo no
+certifica control de pantallas protegidas ni el resto de teclas.
+
+Para TURN, añade `--turn-config <json-temporal>`; el archivo debe ser propio,
+regular, sin symlink y modo 0600. Debe usar credenciales efímeras y **separar** STUN
+sin credenciales de TURN con credenciales, como la API real:
+
+```json
+{"iceServers":[
+  {"urls":["turns:relay.example.invalid:443?transport=tcp"],"username":"temporal","credential":"efimera"},
+  {"urls":["stun:relay.example.invalid:3478"]}
+]}
+```
+
+El controlador fuerza `iceTransportPolicy: relay` y comprueba el candidato real;
+no cuenta un fallback directo como prueba TURN. La misma configuración sirve
+para el controlador Electron del laboratorio IPC protegido. No se elimina la
+validación del agente para aceptar configuraciones malformadas. Los informes
+públicos conservan tipos de candidato/transporte y hashes, sin direcciones
+personales, contraseñas ni tokens. Ejecuta las matrices de VM **en serie**.
+
+Para el enlace directo AVD ↔ QEMU se dispone de `--android-mapped-direct`: las
+redes virtuales aisladas reutilizan direcciones privadas y, sin una ruta común,
+no garantizan conexión directa ni siquiera con STUN. Este modo publica únicamente
+puertos UDP efímeros de la VM sobre loopback mediante QMP y anuncia al AVD su
+puerta de enlace del host; no modifica el router, interfaces del Mac, certificados
+DTLS ni la autenticación. Valida todo el SDP antes de abrir puertos, conserva sus
+huellas y retira los mapeos al finalizar cada caso y al limpiar el ensayo. Los
+informes lo identifican como **directo con NAT local de laboratorio**; no prueba
+traversal automático de NAT de redes reales. `--stun-config` permite observar
+por separado un intento directo con STUN, sin contar un relé como éxito.
+
+Las pruebas unitarias Flutter pueden usar la misma API/base aislada sin tocar
+los límites de desarrollo. Conserva el entorno SSH/S3 de `mobile/tool/test_env.sh`
+ya preparado y ejecuta desde la raíz:
+
+```bash
+python3 -B prototypes/backend-agent-check/isolated-webrtc-renewal.py <lab> --flutter-tests
+```
+
+Este modo declara un STUN ficticio de `.invalid` únicamente para comprobar el
+contrato de la API; no abre conexiones WebRTC ni contacta ese dominio. La API,
+la base y las cuentas temporales desaparecen al terminar; los servidores SSH/S3
+de pruebas existentes no se modifican. No ejecutes el preparador del entorno
+contra una base que quieras conservar: su script histórico vacía los límites.

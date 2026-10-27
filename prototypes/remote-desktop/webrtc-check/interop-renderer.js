@@ -44,8 +44,8 @@ async function runCase(name) {
   const channel = pc.createDataChannel(CHANNELS.control)
   const input = window.lab.nativeFixture ? pc.createDataChannel(CHANNELS.input) : null
   const fixedInput = [
-    { type:'button', button:0, down:true }, { type:'button', button:0, down:false },
-    { type:'key', code:'KeyA', down:true }, { type:'key', code:'KeyA', down:false }
+    { v:1,type:'button', button:0, down:true }, { v:1,type:'button', button:0, down:false },
+    { v:1,type:'key', code:'KeyA', down:true }, { v:1,type:'key', code:'KeyA', down:false }
   ]
   let preAuthInputSent = false
   let lockedInputSent = false
@@ -202,7 +202,7 @@ async function runCase(name) {
       if (expectedVideo && (!syntheticColorVerified || decodedFrames < 2)) throw new Error('No se recibió vídeo válido')
     }
     if (input && expectedVideo) {
-      for (const event of [{ type:'text', text:'rejected' }, { type:'key', code:'KeyZ', down:true }, ...fixedInput]) input.send(JSON.stringify(event))
+      for (const event of [{ type:'text', text:'rejected' }, { v:1,type:'key', code:'KeyZ', down:true }, ...fixedInput]) input.send(JSON.stringify(event))
       const deadline = Date.now() + 10000
       const canvas = document.createElement('canvas')
       canvas.width = 1; canvas.height = 1

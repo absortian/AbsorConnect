@@ -203,6 +203,8 @@ class ViewerSession extends ChangeNotifier {
   }
 
   Future<void> _attempt(String? password) async {
+    // Antes de crear texturas/fábrica: los logs informativos nativos pueden incluir credenciales ICE.
+    await WebRTC.initialize(options: {'logSeverity': 'error'});
     await _teardown();
     if (!_rendererReady) {
       await renderer.initialize();

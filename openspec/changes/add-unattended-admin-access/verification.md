@@ -2585,3 +2585,62 @@ El siguiente bloque mejora parcialmente 7.1/7.4/9.1; **no cierra tareas nuevas**
 
 El porcentaje permanece **15/57 (26 %)**. Falta el cliente local protegido final,
 traspaso transaccional completo y matriz de servicios; no se alcanza aún el 50 %.
+
+
+## 27/10/2026 — viabilidad nativa con los tres controladores
+
+Se acepta **1.5** para continuar con libwebrtc fijado, no como agente distribuido.
+Evidencia pública: `native-mobile-input-results.json`; informes y logs originales
+privados identificados por SHA-256. Se conservan los fallos previos y sus límites.
+
+| Controlador | Directo | TURN UDP | TURN TLS |
+|---|---:|---:|---:|
+| Electron | 10/10 | 10/10 | 10/10 |
+| iPad simulado, plugin Flutter real | 4/4 | 4/4 | 4/4 |
+| Android AVD, plugin Flutter real | 4/4 con NAT local de VM | 4/4 | 4/4 |
+
+Los 54 casos unen API real efímera, broker con cuenta separada y secretos
+cifrados, IPC protegido, huellas aplicadas DTLS/HMAC y ventana X11 propia
+320×180. Prueba correcta/reconexión muestran vídeo y un clic/KeyA completos;
+prueba o huellas incorrectas generan cero captura y entrada. Se envía entrada
+antes de autenticar para comprobar su descarte. El mismo broker atiende dos
+conexiones con nonce distinto. La extensión negocia cero acciones del SO.
+Electron añade revocación/caducidad, bloqueo y fallos de procesos en cada ruta.
+
+Se corrige una incompatibilidad del subconjunto de entrada del trabajador:
+exige ahora `v:1`, que los codificadores reales TS/Dart ya enviaban, y rechaza
+ausencia, versión distinta y duplicación. No amplía las teclas, ventanas o
+autoridad del prototipo. Los clientes móviles de laboratorio usan cinco fuentes
+de protocolo de producción y el plugin real en una copia aislada de Flutter.
+
+El AVD y QEMU tienen redes NAT aisladas con direcciones solapadas. El enlace
+directo natural, también con STUN, falló. El modo explícito de laboratorio crea
+mapeos UDP temporales de la VM solo sobre loopback, conserva exactamente sus
+huellas y los retira por caso y al terminar. Cuatro pruebas de seguridad cubren
+destino/puerto permitidos, validación antes de efectos y fallo de retirada.
+No se presenta como traversal automático de NAT ni prueba desde otra red.
+TURN fuerza relay y valida candidato/protocolo seleccionado; STUN y TURN se
+configuran por separado, sin debilitar el validador Rust.
+
+Los logs informativos del plugin pueden incluir credenciales ICE efímeras.
+El visor móvil de producción inicializa WebRTC con `logSeverity:error` antes
+de crear texturas/fábrica; una prueba verifica el orden y que no crea peer si
+falla la API. No cambia codecs, permisos o el flujo de audio. Los logs previos
+quedan privados; los informes públicos solo contienen contadores/hashes.
+
+Verificación local: typecheck; Vitest 300 correctas/6 omitidas sin API; PHPUnit
+162/1077; Flutter analyze y 165 pruebas con SSH/S3 y API/base aisladas; Rust Mac
+66+86 y Linux 167, fmt/clippy y dos builds release por SO; Python 4, diagnóstico
+y validación estricta OpenSpec. La primera suite Flutter contra desarrollo
+encontró el límite 429: se repite en base/API efímeras sin vaciar límites ni
+cambiar cuotas de desarrollo. El STUN ficticio `.invalid` del modo unitario solo
+comprueba el contrato de la API y no se contacta.
+
+Se retiran las unidades, cuenta de servicio, secretos, staging, marcador y NAT
+temporal. Se dejan apagados solo el iPad simulado y AVD que se arrancaron para
+estas pruebas. La VM Linux sigue disponible. No se toca el Mac base ni equipos
+físicos, ni el backup de entorno o los cambios iOS anteriores del propietario.
+
+El avance aceptado es **16/57 (28 %)**. Falta captura/entrada generales y
+transiciones, agentes/instaladores finales, integración de controladores y
+piloto físico. La matriz de servicio completo certificado continúa vacía.
