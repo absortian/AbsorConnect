@@ -2545,3 +2545,43 @@ laboratorio `negotiated-control-evidence-20261027`, con informes/logs modo 0600.
   86 all-features**, Linux **167 combinadas**, fmt/clippy y ambos release builds.
   Se conserva PHP 8.5.12, --pull y upload_progress=0. No se toca la configuración
   iOS preexistente ni el backup de entorno. No se publica una release del agente.
+
+
+### Integración y protección de propiedad posterior — 27/10
+
+PR #50 integrada en `main` tras ocho jobs correctos: núcleo Rust Windows/Mac/Linux,
+paquetes de escritorio para los tres sistemas y APK Android/Runner iOS sin firma.
+Logs completos revisados; el proveedor de Code Review devolvió 502 para los logs
+de empaquetado/móvil, recuperados mediante el conector GitHub, sin usar CLI de CI.
+Hay avisos preexistentes de runners/acciones Node y dependencias móviles, sin fallo.
+Regresiones posteriores Mac 9/Linux 6 y retirada de archivos/cuenta de VM correctas.
+La evidencia histórica `negotiated-control-results.json` identifica ahora su SHA
+c33ef8d y CI; sus hashes de fuentes siguen perteneciendo a esa revisión.
+
+El siguiente bloque mejora parcialmente 7.1/7.4/9.1; **no cierra tareas nuevas**:
+
+- Un 409 `device_agent_owned` en registro, consulta, respuesta o rechazo corta la
+  sesión de usuario, incluida la aún no asociada. No cambia el ID ni encola otro
+  intento; deja de consultar hasta recrear el runtime. El callback de Electron
+  persiste `enabled=false`. Una escritura tardía de Ajustes no lo reactiva.
+- La API real verifica traspaso con sesión de usuario activa, corte, recreación
+  del runtime con el mismo perfil, un solo ID y credencial `acg_` aún válida tras
+  cerrar el host de usuario; la baja explícita posterior la invalida. No prueba
+  aún un proceso Electron unido al servicio por su cliente local final.
+- Ajustes muestra propiedad confirmada por API y bloquea mutaciones del host de
+  usuario. No la presenta como salud o certificación del servicio. Un error de
+  persistencia se indica y mantiene el corte en memoria. La bandeja conserva el
+  estado «agente; sin verificar» incluso al cerrar el runtime de usuario.
+- Se pospone instalar/reiniciar y `autoInstallOnAppQuit` al conocer propiedad de
+  agente sin estado de salud. El modo legado conserva su comportamiento; tres
+  pruebas del actualizador cubren ambos modos y el cambio posterior al arranque.
+  No hay todavía parada local del servicio ni actualización transaccional final.
+- Vitest: 300 correctas/6 omitidas sin API; ejecución independiente con API real:
+  seis correctas, incluidos los cinco flujos anteriores. Typecheck, build,
+  ESLint tocado y PHPUnit 162/1077 correctos. Aviso propio de Ajustes revisado con
+  datos ficticios en Electron a 1000/430 px. No cambia permisos/servicios del Mac ni repite pruebas físicas de contextos protegidos.
+- El lector de diagnóstico rechaza directorios, symlinks y FIFO sin bloquear ni
+  imprimir contenido; conserva el resumen por lista permitida.
+
+El porcentaje permanece **15/57 (26 %)**. Falta el cliente local protegido final,
+traspaso transaccional completo y matriz de servicios; no se alcanza aún el 50 %.

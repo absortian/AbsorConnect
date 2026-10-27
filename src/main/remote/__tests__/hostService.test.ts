@@ -102,6 +102,8 @@ function setup(): {
     lock: number
     support: RemoteSupport
     signedIn: boolean
+    ownershipWrites: number
+    ownershipWriteFails: boolean
   }
   logs: RemoteLogEntry[]
   statuses: string[]
@@ -117,7 +119,9 @@ function setup(): {
     preventSleep: false,
     lock: 0,
     support: { state: 'available' } as RemoteSupport,
-    signedIn: true
+    signedIn: true,
+    ownershipWrites: 0,
+    ownershipWriteFails: false
   }
   const logs: RemoteLogEntry[] = []
   const statuses: string[] = []
@@ -154,6 +158,11 @@ function setup(): {
       const session = fakeSession()
       sessions.push(session)
       return session.session
+    },
+    onAgentOwned: async () => {
+      state.ownershipWrites++
+      if (state.ownershipWriteFails) throw new Error('storage_unavailable')
+      state.enabled = false
     },
     setKeepAwake: (on) => keepAwake.push(on),
     setStatus: (status, controller) =>
@@ -239,6 +248,85 @@ describe('HostService — registro y consulta', () => {
     service.start()
     await flush()
     expect(api.registrations.map((r) => r.id)).toEqual(['equipo-2'])
+    await service.stop()
+  })
+
+  it('propiedad nativa al registrarse: no cambia ID, no consulta ni intenta recuperar el host', async () => {
+    const { api, state, service, sessions, keepAwake } = setup()
+    state.preventSleep = true
+    api.registerErrors.push(new ApiError('device_agent_owned', 409))
+    service.start()
+    await flush()
+    expect(service.isAgentOwned()).toBe(true)
+    expect(api.registrations).toEqual([])
+    expect(api.polls).toBe(0)
+    expect(sessions).toEqual([])
+    expect(state.enabled).toBe(false)
+    expect(state.ownershipWrites).toBe(1)
+    expect(keepAwake.at(-1)).toBe(false)
+    service.refresh()
+    service.resume()
+    await flush(5 * 60_000)
+    expect(api.registrations).toEqual([])
+    expect(api.polls).toBe(0)
+    const identity = await service.suspend()
+    expect(identity.id).toBe('equipo-1')
+    await service.stop()
+  })
+
+  it('traspaso detectado al consultar corta la sesión de usuario y libera mantener despierto', async () => {
+    const { api, state, service, sessions, keepAwake, statuses } = setup()
+    state.preventSleep = true
+    api.pending.push(request('r1'))
+    service.start()
+    await flush()
+    sessions[0].start()
+    await flush(10)
+    expect(service.isActive()).toBe(true)
+    api.pollErrors.push(new ApiError('device_agent_owned', 409))
+    await flush(POLL_INTERVAL_MS)
+    expect(service.isAgentOwned()).toBe(true)
+    expect(sessions[0].session.closedWith).toBe('stopped')
+    expect(service.isActive()).toBe(false)
+    expect(keepAwake.at(-1)).toBe(false)
+    expect(statuses.at(-1)).toBe('agent')
+    const polls = api.polls
+    service.refresh()
+    await flush(60_000)
+    expect(api.polls).toBe(polls)
+    await service.stop()
+  })
+
+  it('propiedad cambiada al responder no deja abierta una sesión aún no asociada', async () => {
+    const { api, state, service, sessions } = setup()
+    api.pending.push(request('r1'), request('r2'))
+    api.answerErrors.push(new ApiError('device_agent_owned', 409))
+    service.start()
+    await flush()
+    expect(service.isAgentOwned()).toBe(true)
+    expect(state.enabled).toBe(false)
+    expect(sessions).toHaveLength(1)
+    expect(sessions[0].session.closedWith).toBeDefined()
+    expect(api.answers).toEqual([])
+    expect(service.isActive()).toBe(false)
+    await service.stop()
+  })
+
+  it('un error al persistir no reactiva sesiones ni deja una promesa rechazada', async () => {
+    const { api, state, service } = setup()
+    state.ownershipWriteFails = true
+    api.registerErrors.push(new ApiError('device_agent_owned', 409))
+    service.start()
+    await flush()
+    expect(service.isAgentOwned()).toBe(true)
+    expect(service.didOwnershipPersistenceFail()).toBe(true)
+    expect(api.polls).toBe(0)
+    state.ownershipWriteFails = false
+    // Una escritura antigua de Ajustes no puede reactivar el host después del 409.
+    state.enabled = true
+    await service.settingsChanged()
+    expect(state.enabled).toBe(false)
+    expect(service.didOwnershipPersistenceFail()).toBe(false)
     await service.stop()
   })
 

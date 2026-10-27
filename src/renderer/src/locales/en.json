@@ -19,7 +19,7 @@
     "downloading": "Downloading… {{percent}}%",
     "downloaded": "Update downloaded. Restart to apply.",
     "restartAndUpdate": "Restart and update",
-    "installBlockedBySession": "Another device is controlling this PC right now, so it won't restart. The update will be installed when you quit the app, or press again once the session ends.",
+    "installBlockedBySession": "Installation is deferred because a remote session is active or the agent status has not been verified. Check that the device can be updated without interrupting access, then try again.",
     "downloadFromGitHub": "Download from GitHub",
     "retry": "Retry",
     "errorCheckUpdates": "Could not check for updates.",
@@ -348,8 +348,11 @@
       "password_too_short": "The password must be at least 8 characters long.",
       "unsupported": "This system doesn't allow controlling the PC.",
       "not_signed_in": "Sign in to your account to turn it on.",
-      "device_name_invalid": "The name must be between 1 and 100 characters."
-    }
+      "device_name_invalid": "The name must be between 1 and 100 characters.",
+      "device_agent_owned": "The API has assigned this device to an agent. User-host settings are disabled to preserve its identity and prevent a second session. You can revoke access from Devices. This does not verify service health or readiness."
+    },
+    "agentOwned": "The API has assigned this device to an agent. User-host settings are disabled to preserve its identity and prevent a second session. You can revoke access from Devices. This does not verify service health or readiness.",
+    "agentPersistenceFailed": "The local disabled setting could not be saved. The user host is stopped for this run; check alternative access before quitting or restarting the app."
   },
   "remoteStream": {
     "quality": "Video quality",

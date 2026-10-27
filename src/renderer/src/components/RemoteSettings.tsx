@@ -234,6 +234,17 @@ function RemoteAccess(props: RemoteAccessProps): React.JSX.Element {
     else setName(remote.deviceName)
   }
 
+  if (remote.agentOwned) {
+    return (
+      <div className="settings-warning" role="status" style={{ display: 'block' }}>
+        {t('remoteAccess.agentOwned')}
+        {remote.agentOwnershipPersistenceFailed && (
+          <p>{t('remoteAccess.agentPersistenceFailed')}</p>
+        )}
+      </div>
+    )
+  }
+
   return (
     <>
       {wayland && (

@@ -40,6 +40,9 @@ export interface RemoteSettingsState {
   accessibilityRenamed: boolean
   /** Alguien controla este PC ahora. */
   active: boolean
+  /** Propiedad confirmada por la API; no describe salud ni certificación del servicio. */
+  agentOwned?: boolean
+  agentOwnershipPersistenceFailed?: boolean
   log: RemoteLogInfo[]
 }
 

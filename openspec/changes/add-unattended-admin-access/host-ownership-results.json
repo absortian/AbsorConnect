@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "scope": "Protección del host de usuario frente a propiedad nativa confirmada por API. Avance parcial, sin cliente IPC local final.",
+  "acceptedTotal": 15,
+  "totalTasks": 57,
+  "percent": 26,
+  "newTasksAccepted": [],
+  "checks": {
+    "vitestPassed": 300,
+    "vitestSkippedWithoutApi": 6,
+    "actualApiTestsPassed": 6,
+    "newOwnershipUnitCases": 4,
+    "newUpdaterCases": 3,
+    "typecheck": "passed",
+    "build": "passed",
+    "touchedEslint": "passed",
+    "phpunitTests": 162,
+    "phpunitAssertions": 1077,
+    "visualPreviewWidths": [
+      1000,
+      430
+    ],
+    "diagnosticInvalidFilesRejected": 3
+  },
+  "artifactsSha256": {
+    "ownership-narrow.png": "6d056d9368008ca7d9f166c5181dd7c1ece2e31fe967cfa1463b461028713ac5",
+    "absor-ownership-phpunit.log": "e00c6289ad9e5dfaabf2d154a0fc54fb485843ad2bdb58eaf542cf90f0bcecf2",
+    "absor-ownership-vitest.log": "9286bb73dd2e5b6bfccacd87be9535dc4adb5fe876de41ee303f0178e43adb0b",
+    "absor-ownership-api.log": "07b5aed1a54053908fde07368bda0dd9ded0cdf1922fcae6bb8216b2fa17f0da",
+    "absor-ownership-tests.log": "8cb6eaa042b2c8d11fc38c8b1eab3bc4d26d36d57882cdd10ed2104e13ad9223",
+    "absor-ownership-typecheck.log": "eb06aafaa08b67d7b2ddc2113a11b4f8dc5f8f8c59af33cc2bf49397787f5c74",
+    "ownership.png": "32a72431d523b63479528a6f572c48bf7019785e6b916653c84f446798faf0f0",
+    "absor-ownership-eslint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "absor-ownership-build.log": "fab8130e5da935d66996a520371ff3a4d93b3e4f13c16dfff87b33e0cd4d86e1"
+  },
+  "sourceSha256": {
+    "agent/tools/diagnose.py": "8710026f0512e637d1df4c742b02e580c3da75e0ac6606b15059db1f410ea29b",
+    "docs/unattended-access.md": "6d2bb1cd0eb072cf1dc73fea0d13628e692a52479f737d003968e91ad9e41f99",
+    "src/main/__tests__/updaterOwnership.test.ts": "ccf35db3f45093c4e22c37a02bce782aca610acab810946bbee3288aa5e30b7c",
+    "src/main/background.ts": "ded5a2062a51c905352c9609b1e4682c8b3691dd22813166c618b0a5dec41855",
+    "src/main/remote/__tests__/hostService.dev.test.ts": "d0058f98daa13ae2f16fc56111b98513211b8fac804da8986c369e518e8fed10",
+    "src/main/remote/__tests__/hostService.test.ts": "2e41c991735097d4b3c5c452b4ca6cb0599869f8c33bc3c8238ba5f03ecf59fa",
+    "src/main/remote/hostRuntime.ts": "1e8ff007502d41bbdbd05f76abcb3268fbc05e330d7b3e298b95e9f3430a1fdb",
+    "src/main/remote/hostService.ts": "cc915b48f262d001240b90fc528456bb966e5384e6488950200a56a0fa12fce0",
+    "src/main/remote/remoteSettings.ts": "178b570b687b02e872c8a9410c73784fdcfce0871de669905d3d687e22c3a6fb",
+    "src/main/updater.ts": "0910a16d7f47783ce956b463fe2871f8f437619cd9691792ddb0ef4492815488",
+    "src/renderer/src/components/RemoteSettings.tsx": "694ce0e34fae1bd279ef5c28b5b56e34d67fe0f4ebfeb4d6fd8bc9a76237ff19",
+    "src/renderer/src/locales/en.json": "7dfd90651e168b5de23a804fa88f1f39b55904e18d2cb2ebdcc0a1ae24ff4213",
+    "src/renderer/src/locales/es.json": "e4f9e2952726c262c527d91c7c2f920ec9cef3f786b157698fa644ea551095de",
+    "src/shared/remote/settings.ts": "ec0ee3c570015e8e67a00b13fd34ce3a48de775ad350f18ec33605eb15e4d7c2"
+  },
+  "limitations": [
+    "No reemplaza el cliente local protegido, el traspaso de K/identidad/opciones/bloqueo ni la parada administrativa del servicio.",
+    "La API confirma propiedad; salud/sesión activa del servicio siguen sin verificar.",
+    "No prueba una ventana Electron unida al servicio final ni contextos generales de SO.",
+    "Persistencia fallida corta en memoria e indica intervención; no promete recuperación automática.",
+    "No se publica una release ni se alcanza aún el 50%."
+  ]
+}
