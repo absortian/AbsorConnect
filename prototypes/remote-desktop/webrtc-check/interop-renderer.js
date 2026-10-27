@@ -4,7 +4,7 @@ import { CHANNELS, PROTOCOL_VERSION } from '../../../src/shared/remote/protocol'
 import vectors from '../../../src/shared/remote/auth-vectors.json'
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
-const failureNames = ['worker-stall', 'worker-crash', 'supervisor-stall', 'supervisor-crash']
+const failureNames = window.lab.protectedIpc ? ['worker-stall','broker-stall','broker-crash'] : ['worker-stall', 'worker-crash', 'supervisor-stall', 'supervisor-crash']
 const testVector = vectors.vectors.find((vector) => vector.password)
 
 async function deriveKey(hello) {
@@ -72,18 +72,21 @@ async function runCase(name) {
           preAuthInputSent = true
           await delay(200)
         }
-        const key = await deriveKey(message)
+        const key = window.lab.protectedIpc ? null : await deriveKey(message)
         if (syntheticVideo) {
           const stats = await pc.getStats()
           if ([...stats.values()].some((item) => item.type === 'inbound-rtp' && item.kind === 'video' && item.framesDecoded > 0)) {
             throw new Error('Vídeo recibido antes de autenticar')
           }
         }
-        let proof = await computeProof(key, {
+        const binding = {
           nonce: message.nonce,
           offerFingerprint: (name === 'fingerprint-mismatch' ? 'changed ' : '') + sdpFingerprint(offer),
           answerFingerprint: sdpFingerprint(answer)
-        })
+        }
+        let proof = window.lab.protectedIpc
+          ? await window.lab.proof(name, message, binding.offerFingerprint, binding.answerFingerprint)
+          : await computeProof(key, binding)
         if (name === 'wrong-proof') proof = 'A'.repeat(44)
         channel.send(JSON.stringify({ v: 1, type: 'auth', proof }))
       } else if (message.type === 'auth-result') {
@@ -182,11 +185,11 @@ async function runCase(name) {
         await Promise.race([new Promise((resolve) => channel.addEventListener('close', resolve, { once:true })), new Promise((_, reject) => { timeout = setTimeout(() => reject(new Error('El contexto bloqueado no cortó el canal')), 3000) })]).finally(() => clearTimeout(timeout))
       }
       channelClosedAfterFault = true
-    } else if (window.lab.supervised && failureNames.includes(name)) {
+    } else if ((window.lab.supervised || window.lab.protectedIpc) && failureNames.includes(name)) {
       await window.lab.fault(name)
       // UDP no envía un cierre DTLS al morir abruptamente. Comprobar proceso y
       // ausencia de nuevos fotogramas, sin confundirlo con cierre del canal remoto.
-      await delay(500)
+      await delay(window.lab.protectedIpc ? 2500 : 500)
       const frames = async () => [...(await pc.getStats()).values()].find((item) => item.type === 'inbound-rtp' && item.kind === 'video')?.framesDecoded ?? 0
       const before = await frames()
       await delay(1200)
@@ -225,7 +228,7 @@ try {
     rendererCredentialsDenied = true
   }
   const results = []
-  for (const name of (window.lab.agentBridge ? ['correct', 'wrong-proof', 'fingerprint-mismatch', 'api-revoked', 'api-cut', ...(window.lab.nativeFixture ? ['linux-locked'] : []), ...(window.lab.supervised ? failureNames : [])] : ['correct', 'wrong-proof', 'fingerprint-mismatch'])) results.push(await runCase(name))
+  for (const name of (window.lab.agentBridge ? ['correct', ...(window.lab.protectedIpc ? ['correct-reconnect'] : []), 'wrong-proof', 'fingerprint-mismatch', 'api-revoked', 'api-cut', ...(window.lab.nativeFixture ? ['linux-locked'] : []), ...((window.lab.supervised || window.lab.protectedIpc) ? failureNames : [])] : ['correct', 'wrong-proof', 'fingerprint-mismatch'])) results.push(await runCase(name))
   await window.lab.done({ ok: true, cases: results, ...(window.lab.agentBridge ? { rendererCredentialsDenied } : {}) })
 } catch (error) {
   await window.lab.done({ ok: false, error: String(error) })

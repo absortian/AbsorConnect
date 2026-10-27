@@ -9,11 +9,12 @@ const binary = process.argv.find((arg) => arg.startsWith('--lab-binary='))?.slic
 const agentBridge = process.argv.includes('--lab-agent-bridge')
 const agentManifest = agentBridge ? JSON.parse(fs.readFileSync(path.join(work, 'agent-manifest.json'), 'utf8')) : null
 const supervisor = process.argv.find((arg) => arg.startsWith('--lab-supervisor='))?.slice(17)
+const protectedIpc = process.argv.includes('--lab-protected-ipc')
 const linuxBroker = process.argv.includes('--lab-linux-broker')
 const linuxVm = process.argv.find((arg) => arg.startsWith('--lab-linux-vm='))?.slice(15)
 const linuxLauncher = process.argv.find((arg) => arg.startsWith('--lab-linux-launcher='))?.slice(21)
 const failureCommands = { 'worker-stall': 'S', 'worker-crash': 'K', 'supervisor-stall': 'B', 'supervisor-crash': 'X' }
-const caseNames = agentBridge ? ['correct', 'wrong-proof', 'fingerprint-mismatch', 'api-revoked', 'api-cut', ...(linuxVm ? ['linux-locked'] : []), ...(supervisor ? Object.keys(failureCommands) : [])] : ['correct', 'wrong-proof', 'fingerprint-mismatch']
+const caseNames = agentBridge ? ['correct', ...(protectedIpc ? ['correct-reconnect'] : []), 'wrong-proof', 'fingerprint-mismatch', 'api-revoked', 'api-cut', ...(linuxVm ? ['linux-locked'] : []), ...(supervisor ? Object.keys(failureCommands) : []), ...(protectedIpc ? ['worker-stall','broker-stall','broker-crash'] : [])] : ['correct', 'wrong-proof', 'fingerprint-mismatch']
 if (agentBridge) protocol.registerSchemesAsPrivileged([{ scheme: 'absor-agent-lab', privileges: { standard: true, secure: true, supportFetchAPI: true } }])
 const syntheticVideo = process.argv.includes('--lab-synthetic-video')
 if (!work || !binary) process.exit(64)
@@ -59,11 +60,25 @@ ipcMain.handle('lab-fault', async (event, name) => {
     return
   }
   const entry = agentManifest?.[name]
-  if (!entry || !['api-revoked', 'api-cut'].includes(name)) throw new Error('Fallo no permitido')
+  if (!entry || !['api-revoked', 'api-cut', ...(protectedIpc ? ['worker-stall','broker-stall','broker-crash'] : [])].includes(name)) throw new Error('Fallo no permitido')
   const url = new URL(entry.faultUrl)
   if (url.hostname !== '127.0.0.1' || url.protocol !== 'http:' || !url.port || url.pathname !== `/fault/${name}` || url.search || url.hash || url.username || url.password) throw new Error('Destino no local')
   const response = await fetch(url, { method: 'POST', redirect: 'error', signal: AbortSignal.timeout(6000) })
   if (response.status !== 204) throw new Error('No se pudo aplicar el fallo local')
+})
+
+// La clave del controlador de prueba permanece en el lanzador Python; solo HMAC vuelve al visor.
+ipcMain.handle('lab-proof',async(event,name,hello,offerFingerprint,answerFingerprint)=>{
+  validate(event,name)
+  if (!protectedIpc || !hello || hello.iterations !== 600000 || typeof hello.nonce !== 'string' || hello.nonce.length !== 44 || typeof hello.salt !== 'string' || hello.salt.length !== 24 ||
+      [offerFingerprint,answerFingerprint].some(v=>typeof v!=='string'||v.length>128)) throw new Error('Prueba fuera del laboratorio')
+  const origin = new URL(agentManifest[name].origin)
+  if(origin.protocol!=='http:' || origin.hostname!=='127.0.0.1' || !origin.port || origin.username || origin.password || origin.pathname!=='/' || origin.search || origin.hash)throw new Error('Origen no local')
+  const response=await fetch(new URL(`/proof/${name}`,origin),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nonce:hello.nonce,salt:hello.salt,iterations:hello.iterations,offerFingerprint,answerFingerprint}),redirect:'error',signal:AbortSignal.timeout(6000)})
+  if(response.status!==200)throw new Error('Prueba no disponible')
+  const value=await response.json()
+  if(typeof value.proof!=='string'||value.proof.length!==44)throw new Error('Prueba inválida')
+  return value.proof
 })
 
 ipcMain.handle('lab-offer', async (event, name, offer) => {
@@ -86,7 +101,7 @@ ipcMain.handle('lab-offer', async (event, name, offer) => {
     fs.writeFileSync(path.join(stateDirectory, 'absor-webrtc-lab'), 'synthetic-only', { mode: 0o600, flag: 'wx' })
     fs.writeFileSync(path.join(stateDirectory, 'attempts.json'), JSON.stringify({ schema: 1, failures: [], locked_until: null, last_seen: 0 }), { mode: 0o600, flag: 'wx' })
     agentPath = path.join(directory, 'agent-config.json')
-    fs.writeFileSync(agentPath, JSON.stringify({ origin: entry.origin, credential: entry.credential, stateDirectory, apiSignaling: Boolean(entry.apiSignaling), ...(linuxVm && name === 'linux-locked' ? { lockedFixture:true } : {}), ...(linuxBroker ? { brokerFixture:true } : {}) }), { mode: 0o600, flag: 'wx' })
+    fs.writeFileSync(agentPath, JSON.stringify({ origin: entry.origin, credential: entry.credential, stateDirectory, apiSignaling: Boolean(entry.apiSignaling), ...(linuxVm && name === 'linux-locked' ? { lockedFixture:true } : {}), ...(linuxBroker ? { brokerFixture:true } : {}), ...(protectedIpc ? { protectedFixture:true, caseName:name } : {}) }), { mode: 0o600, flag: 'wx' })
   }
   let signalUrl
   if (agentManifest?.[name]?.apiSignaling) {
@@ -151,6 +166,11 @@ ipcMain.handle('lab-result', async (event, name, controller) => {
   if (!state) throw new Error('Caso inexistente')
   await state.done
   const supervision = supervisor ? fs.readFileSync(state.reportPath, 'utf8').trim().split('\n').map((line) => JSON.parse(line)) : null
+  if (protectedIpc && ['worker-stall','broker-stall','broker-crash'].includes(name)) {
+    const fault=state.summary?.fault
+    if(state.code!==0 || !fault || fault.name!==name || fault.processCutMilliseconds>4000 || !controller.authenticated || !controller.connected || !controller.nativeGreenVerified || controller.decodedFrames<2 || !controller.framesStoppedAfterFault) throw new Error('El fallo no cortó el trabajador IPC')
+    return {name,fault,controller}
+  }
   if (supervisor && Object.hasOwn(failureCommands, name)) {
     const ended = supervision.some((item) => item.event === 'cut' && item.workerReaped)
     const lostParent = name === 'supervisor-crash' && state.code === 73
@@ -185,7 +205,7 @@ ipcMain.handle('lab-result', async (event, name, controller) => {
 ipcMain.handle('lab-done', (event, result) => {
   if (event.sender !== window?.webContents) throw new Error('Emisor inválido')
   const report = { ...result, electron: process.versions.electron, chromium: process.versions.chrome,
-    videoTested: Boolean(linuxVm) && result.ok, fixtureOnly: Boolean(linuxVm), nativeWorkerConnected: Boolean(linuxVm) && result.ok, systemdUserServiceTested: Boolean(linuxVm) && !linuxBroker && result.ok, systemdSystemServiceTested: linuxBroker && result.ok, rustAuthenticationTested: agentBridge, apiRenewalTested: agentBridge && result.ok, apiSignalingTested: Boolean(agentManifest?.correct?.apiSignaling) && result.ok, supervisorTested: Boolean(supervisor) && result.ok, syntheticVideoTested: syntheticVideo && !linuxVm, turnTested: relayOnly && result.ok, relayPolicy: relayOnly ? (relayController ? 'controller' : 'both') : 'none', mobileTested: false, readyForUnattended: false }
+    videoTested: Boolean(linuxVm) && result.ok, fixtureOnly: Boolean(linuxVm), nativeWorkerConnected: Boolean(linuxVm) && result.ok, systemdUserServiceTested: Boolean(linuxVm) && !linuxBroker && !protectedIpc && result.ok, systemdSystemServiceTested: (linuxBroker || protectedIpc) && result.ok, protectedIpcTested:protectedIpc && result.ok, rustAuthenticationTested: agentBridge, apiRenewalTested: agentBridge && result.ok, apiSignalingTested: Boolean(agentManifest?.correct?.apiSignaling) && result.ok, supervisorTested: Boolean(supervisor) && result.ok, syntheticVideoTested: syntheticVideo && !linuxVm, turnTested: relayOnly && result.ok, relayPolicy: relayOnly ? (relayController ? 'controller' : 'both') : 'none', mobileTested: false, readyForUnattended: false }
   fs.writeFileSync(path.join(work, 'interop-results.json'), JSON.stringify(report, null, 2) + '\n', { mode: 0o600 })
   console.log(JSON.stringify(report))
   setImmediate(() => { cleanup(); app.exit(result.ok ? 0 : 1) })
@@ -213,7 +233,7 @@ app.whenReady().then(async () => {
     preload: path.join(__dirname, 'interop-preload.cjs'), contextIsolation: true,
     nodeIntegration: false, sandbox: true, backgroundThrottling: false,
     autoplayPolicy: 'no-user-gesture-required',
-    additionalArguments: [...(linuxVm ? ['--lab-native-fixture'] : []), ...(agentManifest?.correct?.apiSignaling ? ['--lab-api-signaling'] : []), ...(supervisor ? ['--lab-supervised'] : []), ...(agentBridge ? ['--lab-agent-bridge'] : []), ...(syntheticVideo ? ['--lab-synthetic-video'] : []), ...(relayOnly ? ['--lab-relay-only'] : []), ...(relayController ? ['--lab-relay-controller'] : [])]
+    additionalArguments: [...(protectedIpc ? ['--lab-protected-ipc'] : []),...(linuxVm ? ['--lab-native-fixture'] : []), ...(agentManifest?.correct?.apiSignaling ? ['--lab-api-signaling'] : []), ...(supervisor ? ['--lab-supervised'] : []), ...(agentBridge ? ['--lab-agent-bridge'] : []), ...(syntheticVideo ? ['--lab-synthetic-video'] : []), ...(relayOnly ? ['--lab-relay-only'] : []), ...(relayController ? ['--lab-relay-controller'] : [])]
   } })
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
   if (agentBridge) {
@@ -221,4 +241,4 @@ app.whenReady().then(async () => {
     await window.loadURL('absor-agent-lab://probe/index.html')
   } else await window.loadFile(path.join(work, 'index.html'))
 })
-setTimeout(() => { cleanup(); app.exit(2) }, 150000).unref()
+setTimeout(() => { cleanup(); app.exit(2) }, protectedIpc ? 240000 : 150000).unref()

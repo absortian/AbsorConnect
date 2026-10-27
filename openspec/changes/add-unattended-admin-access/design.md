@@ -25,7 +25,7 @@ Las specs vigentes excluyen UAC, aplicaciones elevadas y pantallas de entrada; t
 
 ### D1. Agente nativo con privilegios separados
 
-Proponer un nuevo árbol `agent/`: supervisor/broker mínimo en Rust y trabajador de conexión/captura separado. El broker solo administra el ciclo de vida, crea trabajadores para la sesión y escritorio autorizados y ejecuta comandos enumerados. El trabajador termina DTLS y verifica el desafío de contraseña; el broker concede captura/entrada únicamente tras esa autenticación. No existe RPC de shell, ruta arbitraria de ejecutable, escritura arbitraria de archivos o carga de DLL indicada por el controlador.
+Proponer un nuevo árbol `agent/`: supervisor/broker mínimo en Rust y trabajador de conexión/captura separado. El broker solo administra el ciclo de vida, crea trabajadores para la sesión y escritorio autorizados y ejecuta comandos enumerados. El trabajador termina DTLS y obtiene las huellas de sus descripciones realmente aplicadas. En la variante IPC Linux, el broker conserva K y verifica la prueba HMAC v1 por el canal autenticado; devuelve una capacidad consumible para esa conexión. El trabajador comprueba esa capacidad y el plazo del broker antes de habilitar captura/entrada. Así K no se copia al trabajador. No existe RPC de shell, ruta arbitraria de ejecutable, escritura arbitraria de archivos o carga de DLL indicada por el controlador.
 
 | Plataforma | Supervisor y captura/entrada propuestos |
 |---|---|
@@ -275,3 +275,31 @@ Condiciones específicas: UAC con credenciales y atención segura en Windows; pe
 - [Apple: SMAppService](https://developer.apple.com/documentation/servicemanagement/smappservice) y [ScreenCaptureKit](https://developer.apple.com/documentation/screencapturekit). Documentan helpers/captura; no demuestran por sí solos captura de `loginwindow` por esta arquitectura.
 - [Apple: desbloquear FileVault por SSH en configuraciones compatibles](https://support.apple.com/es-es/guide/security/sec8447f5049/web). Requiere conectividad independiente disponible antes del agente; no implica que el TURN de AbsorConnect alcance el equipo en prearranque.
 - [systemd.service](https://www.freedesktop.org/software/systemd/man/systemd.service.html) y [configuración LightDM](https://wiki.freedesktop.org/www/Software/LightDM/CommonConfiguration/).
+
+
+### D4 — unión protegida al trabajador Linux, 27/10/2026
+
+`protected-ipc-fixture` concreta la separación de D1: un broker no root con UID
+propio y credencial/K cifradas; un trabajador libwebrtc/X11 con UID de usuario,
+seleccionado por una unidad root fija. El canal `SO_PEERCRED`/PID no acepta
+identidades declaradas. La huella del trabajador procede de las descripciones
+aplicadas en libwebrtc; el broker valida HMAC y el trabajador consume una
+capacidad ligada a ese desafío. No se acepta un booleano externo de autorización.
+Señalización y heartbeat ocurren en carriles distintos del broker; el trabajador
+solo recibe SDP/ICE, desafío/prueba y el plazo absoluto del mismo BootClock.
+
+El límite de trama local pasa a 1 MiB para SDP/ICE con serialización JSON; el
+SDP de respuesta sigue limitado a 64 KiB y la prueba a 512 bytes. Hay una sola
+solicitud/respuesta pendiente, secuencia estricta y plazo de lectura/escritura.
+El trabajador usa ese plazo antes/después de obtener píxeles y antes de aceptar
+entrada; el proceso se corta al perder IPC/progreso del actor. Systemd vigila
+además al trabajador con watchdog y SIGKILL, incluso si está en SIGSTOP.
+El broker reinicia el estado de señalización por conexión, desecha la respuesta
+anterior pendiente y conserva un único hilo HTTP. Una reconexión exige nonce y
+prueba nuevos; el contador de intentos y la revocación no se restablecen.
+
+El alcance nativo sigue limitado a una ventana propia 320×180, clic/KeyA
+completos y denegación en bloqueo. No se adopta todavía como paquete de agente
+ni anuncia administración, escritorio general, otras sesiones, greeter, TURN o
+controladores móviles certificados. Almacenes/IPC Windows y Mac, migración,
+actualización y piloto físico conservan sus tareas específicas pendientes.

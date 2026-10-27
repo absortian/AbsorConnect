@@ -1,10 +1,15 @@
 # Credenciales e IPC de laboratorio
 
-Prototipo optativo `protected-ipc-lab`. No se distribuye, no captura, no inyecta
-entrada y no ejecuta acciones administrativas. El trabajador es una sonda de
-protocolo con una operación que incrementa un contador. Sus huellas son datos
-fijos de diagnóstico: **no demuestra todavía el enlace a una PeerConnection**.
-El trabajador WebRTC/X11 de `linux-lab/` continúa siendo una integración distinta.
+Dos modos optativos de la VM propia, ausentes del paquete de producción:
+
+- `protected-ipc-lab`: sonda de contador y huellas fijas, sin captura/entrada.
+- `protected-ipc-fixture`: conexión API → broker con secretos → IPC → trabajador
+  libwebrtc/X11. Captura una ventana propia de 320×180 y admite un clic/KeyA
+  completos exclusivamente en ella. Usa las huellas de las descripciones
+  realmente aplicadas de esa PeerConnection; no usa K pública compartida.
+
+El trabajador P2P anterior de `linux-lab/` se conserva como regresión separada.
+Estos modos no ofrecen escritorio general, administración o soporte de greeter.
 
 ## Alta y secretos
 
@@ -37,19 +42,21 @@ No se reusa automáticamente un permiso consumido.
 
 | Ruta | Propietario/permisos | Uso |
 |---|---|---|
-| `/opt/absorconnect-secure-lab/` | root, 0755; marcador 0600 | Tres ejecutables verificados por SHA-256 y marcador de instalación propia |
+| `/opt/absorconnect-secure-lab/` | root, 0755; marcador 0600 | Ejecutables/biblioteca y configuración pública verificados por SHA-256 y marcador de instalación propia |
 | `/etc/absorconnect-secure-lab/` | root, 0700 | `wrapping.key` y `host.sealed.json`, ambos 0600; marcador 0600 |
 | `/run/credentials/absorconnect-secure-lab.service/` | systemd, archivos root:root 0440 + ACL del servicio | Copias de `LoadCredential`, ajenas al trabajador |
 | `/var/lib/absorconnect-secure-lab/` | cuenta dedicada, 0700 | Intentos 0600, exclusión `flock`, auditoría acotada y marcador terminal |
 | `/run/absorconnect-secure-lab/` | root, 0755 | Socket 0660 de cuenta dedicada:grupo gráfico |
 | `/run/absorconnect-ipc-worker-lab/` | absorlab, 0700 | Buzón de órdenes/respuestas de la sonda, sin secretos; retirada explícita |
-| `/etc/systemd/system/absorconnect-{secure-lab.socket,secure-lab.service,ipc-worker-lab.service}` | root, 0644 | Unidades exclusivas del ensayo |
+| `/var/lib/absorconnect-protected-worker-lab/` | usuario del trabajador, 0700 | Resultado JSON propio del ensayo P2P, sin píxeles o secretos |
+| `/etc/systemd/system/absorconnect-{secure-lab.socket,secure-lab.service,ipc-worker-lab.service,protected-worker-lab.service}` | root, 0644 | Unidades exclusivas del ensayo |
 
 La cuenta `absorconnect-lab` es de sistema, sin login ni home; su UID difiere de
 root y del escritorio (1000). No se reutiliza una cuenta existente. El servicio
 no tiene capacidades, usa `NoNewPrivileges`, sistema de archivos protegido,
-core dumps deshabilitados y límites de memoria/procesos. El trabajador solo
-permite AF_UNIX, sin credenciales ni acceso IP. Ambos deshabilitan dumpability
+core dumps deshabilitados y límites de memoria/procesos. La sonda solo
+permite AF_UNIX. La unidad P2P admite también IP/Netlink para WebRTC, sin
+credencial de API ni K; usa Xauthority de su usuario en lectura. Ambos deshabilitan dumpability
 para que otro proceso del mismo usuario no lea entorno/descriptores/memoria
 mediante `/proc` o ptrace ordinario. Root sigue siendo parte de la base confiable.
 
@@ -71,19 +78,32 @@ Otro PID del mismo usuario no basta. El trabajador verifica el socket y las
 credenciales del creador del listener: UID 0/PID 1 por activación de systemd.
 No se confía en un UID, nombre de ejecutable o PID declarado en JSON.
 
-Los mensajes tienen longitud prefijada (máximo 4096 bytes), versión y esquema
+Los mensajes tienen longitud prefijada (máximo 1 MiB para transportar SDP/ICE, sin superar 64 KiB de respuesta SDP), versión y esquema
 cerrados, secuencia estricta y una respuesta pendiente como máximo. Las lecturas
 son no bloqueantes; los mensajes parciales y escrituras pendientes caducan a
 los dos segundos. Se corta al repetir secuencia o desconectar. No existen RPC
 para shell, rutas, configuración, instalación o administración. El buzón de
-archivos pertenece **solo a la sonda** y debe desaparecer al unir el trabajador
-nativo: no es un canal del producto ni otorga autoridad del sistema.
+archivos pertenece **solo a la sonda** y no existe en la variante P2P: no es un canal del producto ni otorga autoridad del sistema.
 
 El broker consulta API en un carril asíncrono separado. El IPC nunca renueva el
 permiso. La operación diagnóstica exige autorización vigente y prueba HMAC v1
 correcta; una nueva prueba sobre una sesión activa cierra esa sesión. Al perder
 API, el permiso caduca por BootClock; recuperar API exige un desafío nuevo.
-No se certifican con esta sonda captura/entrada ni liberación de teclas del SO.
+La variante P2P recibe un plazo absoluto validado del mismo `CLOCK_BOOTTIME`;
+consultarlo nunca lo renueva. El trabajador lo comprueba antes/después de
+obtener píxeles y antes de aceptar entrada. Una capacidad consumible vincula
+la autenticación IPC/HMAC con la misma conexión; el trabajador X11 comparte
+su bandera de corte. Un observador independiente del mutex/actor corta el
+proceso al perder IPC (2 s) o progreso del actor (3 s). La unidad P2P añade
+watchdog externo de 3 s con SIGKILL: cubre también SIGSTOP del proceso entero.
+El cierre normal envía Disconnect; perder un trabajador activo deja un evento
+worker_failed. El broker no puede escribir un evento después de SIGKILL: para
+ese fallo se usa también el estado de systemd.
+
+No se certifican con estas ventanas la liberación general de entrada del SO,
+otros escritorios, monitores, escalados o usuarios. La observación `closed` de
+la sonda puede preceder al cierre de su hilo; la retirada comprueba el fin del
+proceso/cgroup y todas las pulsaciones admitidas son completas.
 
 ## Reproducción y retirada
 
@@ -91,6 +111,10 @@ No se certifican con esta sonda captura/entrada ni liberación de teclas del SO.
 cargo build --manifest-path agent/Cargo.toml --locked --release --all-features
 python3 -B prototypes/backend-agent-check/isolated-webrtc-renewal.py /ruta/lab \
   --secure-ipc-vm /ruta/vm-lab
+# Compilar además libwebrtc con el toolchain/sysroot fijados del laboratorio:
+python3 prototypes/remote-desktop/webrtc-check/build-linux.py /ruta/lab /ruta/vm-lab
+python3 -B prototypes/backend-agent-check/isolated-webrtc-renewal.py /ruta/lab \
+  --protected-p2p-vm /ruta/vm-lab --node /ruta/node
 ```
 
 Requiere la VM propia de Ubuntu ARM con `absorlab` UID 1000, acceso SSH por
@@ -103,7 +127,7 @@ LightDM, PAM, políticas polkit, Xauthority o SSH. El puerto de proxy solo se
 escucha en loopback, sin router abierto. La prueba de usuario sin privilegios
 usa `setpriv --no-new-privs`; no aprovecha el sudo de la cuenta de laboratorio.
 
-`install-vm.py remove` exige root, el marcador de VM propia y el marcador de
+`install-vm.py remove`/`remove-native` exige root, el marcador de VM propia y el marcador de
 instalación. Para uso del lanzador se transmite el código revisado por SSH;
 los artefactos se validan con hashes antes de copiarlos a archivos root. Los
 hashes proceden del operador del laboratorio; **no son un manifiesto firmado
@@ -120,7 +144,27 @@ acotado durante un ensayo activo:
 sudo cat /var/lib/absorconnect-secure-lab/audit.json
 ```
 
-Pendientes: enlace IPC ↔ DTLS/WebRTC/captura/entrada, migración de identidad y
+Pendientes: trabajadores/contextos generales, migración de identidad y
 K desde Electron, instalador final/recuperación transaccional, credenciales
 Windows/Mac, contextos protegidos, compilación y piloto de configuraciones
-finales. Estas pruebas parciales no cierran por sí solas 3.2, 6.4 o 7.2.
+finales. Estas pruebas no certifican los adaptadores finales de los tres SO, ni cierran
+6.4 o 7.2. La aceptación del protocolo común 3.2 se evalúa en OpenSpec.
+
+
+La matriz P2P usa cinco cuentas efímeras y nueve hosts con claves distintas, con diez conexiones
+(dos consecutivas al mismo host/broker, con nonce nuevo).
+La clave del controlador solo permanece en memoria del lanzador Python; el
+main de Electron pide HMAC a su endpoint loopback efímero y el renderer recibe
+solo la prueba. Ese endpoint es exclusivo del ensayo y se retira al terminar;
+no es una ruta de producción. El trabajador recibe únicamente configuración
+pública fija, ofertas/ICE, desafíos/pruebas y plazos; no recibe contraseñas,
+K ni tokens de agente/cuenta. No se escriben archivos SDP ni se guardan píxeles.
+La instalación Native añade su unidad, ejecutable/biblioteca y resultado JSON;
+`remove-native` retira también esos archivos y su directorio. No altera LightDM.
+
+Al cerrar una conexión, la máquina de señalización descarta respuestas en vuelo,
+rechaza solicitudes pendientes de la conexión anterior y vuelve a ofrecer ICE
+para la siguiente. Reutiliza un único carril/hilo HTTP; no crea hilos nuevos
+por reconexión. Un fallo de señalización cierra esa conexión; únicamente la
+revocación o un fallo terminal del núcleo inhabilita el alta. La matriz verifica
+un PID de broker idéntico en las dos primeras conexiones y nonce distinto.

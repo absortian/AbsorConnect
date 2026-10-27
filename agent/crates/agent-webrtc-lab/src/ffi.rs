@@ -1,6 +1,6 @@
 //! Única frontera unsafe: buffers C válidos del adaptador compilado de laboratorio.
 //! Los identificadores no son direcciones ni se aceptan desde WebRTC/IPC.
-use super::bridge::Bridge;
+use super::dispatch::Bridge;
 use absor_agent_supervisor::synthetic as supervision;
 use std::collections::HashMap;
 use std::sync::{

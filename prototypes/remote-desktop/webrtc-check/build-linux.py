@@ -61,7 +61,7 @@ def main():
     flags = f'-L native={base}/usr/lib/aarch64-linux-gnu -L native={base}/lib/aarch64-linux-gnu -C link-arg=--sysroot={base} -C link-arg=-B{base}/usr/lib/aarch64-linux-gnu/ -C link-arg=-fuse-ld=lld'
     # --target deja las herramientas de compilación en el host de la VM; solo
     # los artefactos objetivo usan la ABI de Bullseye. lld conserva el sysroot.
-    result = subprocess.run(vm.SSH+['cd /home/absorlab/AbsorConnectLab/api-workers && RUSTFLAGS="'+flags+'" cargo build --target aarch64-unknown-linux-gnu --manifest-path agent/Cargo.toml --offline --locked --release -p absor-agent-webrtc-lab -p absor-agent-supervisor -p absor-agent-broker --features native-fixture,synthetic-lab,linux-broker-lab'], capture_output=True, timeout=180)
+    result = subprocess.run(vm.SSH+['cd /home/absorlab/AbsorConnectLab/api-workers && RUSTFLAGS="'+flags+'" cargo build --target aarch64-unknown-linux-gnu --manifest-path agent/Cargo.toml --offline --locked --release -p absor-agent-webrtc-lab -p absor-agent-supervisor -p absor-agent-broker --features native-fixture,synthetic-lab,linux-broker-lab,protected-ipc-fixture'], capture_output=True, timeout=180)
     log = directory/'linux-webrtc-rust-build.log'
     log.write_bytes(result.stdout+result.stderr)
     log.chmod(0o600)

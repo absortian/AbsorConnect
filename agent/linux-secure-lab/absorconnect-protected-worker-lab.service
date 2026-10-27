@@ -1,0 +1,45 @@
+[Unit]
+Description=AbsorConnect protected IPC WebRTC own-window laboratory worker
+Requires=absorconnect-secure-lab.socket
+After=absorconnect-secure-lab.socket
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=notify
+WatchdogSec=3s
+WatchdogSignal=SIGKILL
+NotifyAccess=main
+TimeoutStartSec=10s
+User=absorlab
+Group=absorlab
+UMask=0077
+ExecStart=/opt/absorconnect-secure-lab/absor-protected-channel-lab /dev/null /dev/null /opt/absorconnect-secure-lab/worker.json
+Environment=LD_LIBRARY_PATH=/opt/absorconnect-secure-lab
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/absorlab/.Xauthority
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
+StandardOutput=append:/var/lib/absorconnect-protected-worker-lab/result.json
+StandardError=journal
+StateDirectory=absorconnect-protected-worker-lab
+StateDirectoryMode=0700
+Restart=no
+TimeoutStopSec=3s
+KillMode=control-group
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+LimitCORE=0
+LimitFSIZE=2097152
+MemoryMax=768M
+TasksMax=96

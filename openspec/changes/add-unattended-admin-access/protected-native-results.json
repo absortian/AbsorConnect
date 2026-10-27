@@ -1,0 +1,599 @@
+{
+  "ok": true,
+  "cases": [
+    {
+      "name": "correct",
+      "native": {
+        "dtlsConnected": true,
+        "authenticated": true,
+        "captureStarted": true,
+        "inputEnabled": true,
+        "nativeFixture": true,
+        "native": {
+          "captures": 9,
+          "closed": false,
+          "errorCode": null,
+          "hostSecretsInWorker": false,
+          "inputs": 1,
+          "keyDown": 1,
+          "keyUp": 1,
+          "mouseDown": 1,
+          "mouseUp": 1,
+          "opens": 1,
+          "protectedIpc": true
+        },
+        "relayOnly": false,
+        "nativeVideoFrames": 7,
+        "rustAuthentication": true,
+        "apiSignaling": true,
+        "apiCutCode": 0,
+        "systemd": {
+          "systemService": true,
+          "exitCode": 0,
+          "activeAfterExit": false,
+          "runtimeRemoved": true,
+          "restart": "no",
+          "privileged": false,
+          "workerSupervised": true,
+          "brokerWatchdog": true
+        },
+        "protectedIpc": true
+      },
+      "controller": {
+        "authenticated": true,
+        "connected": true,
+        "helloCount": 1,
+        "candidateTypes": [
+          "host",
+          "prflx"
+        ],
+        "relayProtocol": null,
+        "channelClosedAfterFault": false,
+        "decodedFrames": 2,
+        "syntheticColorVerified": true,
+        "preAuthInputSent": true,
+        "nativeGreenVerified": true,
+        "lockedInputSent": false
+      }
+    },
+    {
+      "name": "correct-reconnect",
+      "native": {
+        "dtlsConnected": true,
+        "authenticated": true,
+        "captureStarted": true,
+        "inputEnabled": true,
+        "nativeFixture": true,
+        "native": {
+          "captures": 7,
+          "closed": false,
+          "errorCode": null,
+          "hostSecretsInWorker": false,
+          "inputs": 1,
+          "keyDown": 1,
+          "keyUp": 1,
+          "mouseDown": 1,
+          "mouseUp": 1,
+          "opens": 1,
+          "protectedIpc": true
+        },
+        "relayOnly": false,
+        "nativeVideoFrames": 5,
+        "rustAuthentication": true,
+        "apiSignaling": true,
+        "apiCutCode": 0,
+        "systemd": {
+          "systemService": true,
+          "exitCode": 0,
+          "activeAfterExit": false,
+          "runtimeRemoved": true,
+          "restart": "no",
+          "privileged": false,
+          "workerSupervised": true,
+          "brokerWatchdog": true
+        },
+        "protectedIpc": true
+      },
+      "controller": {
+        "authenticated": true,
+        "connected": true,
+        "helloCount": 1,
+        "candidateTypes": [
+          "host",
+          "prflx"
+        ],
+        "relayProtocol": null,
+        "channelClosedAfterFault": false,
+        "decodedFrames": 2,
+        "syntheticColorVerified": true,
+        "preAuthInputSent": true,
+        "nativeGreenVerified": true,
+        "lockedInputSent": false
+      }
+    },
+    {
+      "name": "wrong-proof",
+      "native": {
+        "dtlsConnected": true,
+        "authenticated": false,
+        "captureStarted": false,
+        "inputEnabled": false,
+        "nativeFixture": true,
+        "native": {
+          "captures": 0,
+          "closed": false,
+          "errorCode": null,
+          "hostSecretsInWorker": false,
+          "inputs": 0,
+          "keyDown": 0,
+          "keyUp": 0,
+          "mouseDown": 0,
+          "mouseUp": 0,
+          "opens": 0,
+          "protectedIpc": true
+        },
+        "relayOnly": false,
+        "nativeVideoFrames": 0,
+        "rustAuthentication": true,
+        "apiSignaling": true,
+        "apiCutCode": 0,
+        "systemd": {
+          "systemService": true,
+          "exitCode": 0,
+          "activeAfterExit": false,
+          "runtimeRemoved": true,
+          "restart": "no",
+          "privileged": false,
+          "workerSupervised": true,
+          "brokerWatchdog": true
+        },
+        "protectedIpc": true
+      },
+      "controller": {
+        "authenticated": false,
+        "connected": true,
+        "helloCount": 1,
+        "candidateTypes": [
+          "host",
+          "prflx"
+        ],
+        "relayProtocol": null,
+        "channelClosedAfterFault": false,
+        "decodedFrames": 0,
+        "syntheticColorVerified": false,
+        "preAuthInputSent": true,
+        "nativeGreenVerified": false,
+        "lockedInputSent": false
+      }
+    },
+    {
+      "name": "fingerprint-mismatch",
+      "native": {
+        "dtlsConnected": true,
+        "authenticated": false,
+        "captureStarted": false,
+        "inputEnabled": false,
+        "nativeFixture": true,
+        "native": {
+          "captures": 0,
+          "closed": false,
+          "errorCode": null,
+          "hostSecretsInWorker": false,
+          "inputs": 0,
+          "keyDown": 0,
+          "keyUp": 0,
+          "mouseDown": 0,
+          "mouseUp": 0,
+          "opens": 0,
+          "protectedIpc": true
+        },
+        "relayOnly": false,
+        "nativeVideoFrames": 0,
+        "rustAuthentication": true,
+        "apiSignaling": true,
+        "apiCutCode": 0,
+        "systemd": {
+          "systemService": true,
+          "exitCode": 0,
+          "activeAfterExit": false,
+          "runtimeRemoved": true,
+          "restart": "no",
+          "privileged": false,
+          "workerSupervised": true,
+          "brokerWatchdog": true
+        },
+        "protectedIpc": true
+      },
+      "controller": {
+        "authenticated": false,
+        "connected": true,
+        "helloCount": 1,
+        "candidateTypes": [
+          "host",
+          "prflx"
+        ],
+        "relayProtocol": null,
+        "channelClosedAfterFault": false,
+        "decodedFrames": 0,
+        "syntheticColorVerified": false,
+        "preAuthInputSent": true,
+        "nativeGreenVerified": false,
+        "lockedInputSent": false
+      }
+    },
+    {
+      "name": "api-revoked",
+      "native": {
+        "dtlsConnected": true,
+        "authenticated": true,
+        "captureStarted": true,
+        "inputEnabled": true,
+        "nativeFixture": true,
+        "native": {
+          "captures": 8,
+          "closed": true,
+          "errorCode": null,
+          "hostSecretsInWorker": false,
+          "inputs": 1,
+          "keyDown": 1,
+          "keyUp": 1,
+          "mouseDown": 1,
+          "mouseUp": 1,
+          "opens": 1,
+          "protectedIpc": true
+        },
+        "relayOnly": false,
+        "nativeVideoFrames": 7,
+        "rustAuthentication": true,
+        "apiSignaling": true,
+        "apiCutCode": -2,
+        "systemd": {
+          "systemService": true,
+          "exitCode": 0,
+          "activeAfterExit": false,
+          "runtimeRemoved": true,
+          "restart": "no",
+          "privileged": false,
+          "workerSupervised": true,
+          "brokerWatchdog": true
+        },
+        "protectedIpc": true
+      },
+      "controller": {
+        "authenticated": true,
+        "connected": true,
+        "helloCount": 1,
+        "candidateTypes": [
+          "host",
+          "prflx"
+        ],
+        "relayProtocol": null,
+        "channelClosedAfterFault": true,
+        "cutAfterFaultMilliseconds": 342,
+        "decodedFrames": 2,
+        "syntheticColorVerified": true,
+        "preAuthInputSent": true,
+        "nativeGreenVerified": true,
+        "lockedInputSent": false
+      }
+    },
+    {
+      "name": "api-cut",
+      "native": {
+        "dtlsConnected": true,
+        "authenticated": true,
+        "captureStarted": true,
+        "inputEnabled": true,
+        "nativeFixture": true,
+        "native": {
+          "captures": 230,
+          "closed": false,
+          "errorCode": null,
+          "hostSecretsInWorker": false,
+          "inputs": 1,
+          "keyDown": 1,
+          "keyUp": 1,
+          "mouseDown": 1,
+          "mouseUp": 1,
+          "opens": 1,
+          "protectedIpc": true
+        },
+        "relayOnly": false,
+        "nativeVideoFrames": 228,
+        "rustAuthentication": true,
+        "apiSignaling": true,
+        "apiCutCode": -1,
+        "systemd": {
+          "systemService": true,
+          "exitCode": 0,
+          "activeAfterExit": false,
+          "runtimeRemoved": true,
+          "restart": "no",
+          "privileged": false,
+          "workerSupervised": true,
+          "brokerWatchdog": true
+        },
+        "protectedIpc": true
+      },
+      "controller": {
+        "authenticated": true,
+        "connected": true,
+        "helloCount": 1,
+        "candidateTypes": [
+          "host",
+          "prflx"
+        ],
+        "relayProtocol": null,
+        "channelClosedAfterFault": true,
+        "cutAfterFaultMilliseconds": 27250,
+        "decodedFrames": 2,
+        "syntheticColorVerified": true,
+        "preAuthInputSent": true,
+        "nativeGreenVerified": true,
+        "lockedInputSent": false
+      }
+    },
+    {
+      "name": "linux-locked",
+      "native": {
+        "dtlsConnected": true,
+        "authenticated": true,
+        "captureStarted": false,
+        "inputEnabled": false,
+        "nativeFixture": true,
+        "native": {
+          "captures": 0,
+          "closed": true,
+          "errorCode": "unlocked_cinnamon_required",
+          "hostSecretsInWorker": false,
+          "inputs": 0,
+          "keyDown": 0,
+          "keyUp": 0,
+          "mouseDown": 0,
+          "mouseUp": 0,
+          "opens": 1,
+          "protectedIpc": true
+        },
+        "relayOnly": false,
+        "nativeVideoFrames": 0,
+        "rustAuthentication": true,
+        "apiSignaling": true,
+        "apiCutCode": -3,
+        "systemd": {
+          "systemService": true,
+          "exitCode": 0,
+          "activeAfterExit": false,
+          "runtimeRemoved": true,
+          "restart": "no",
+          "privileged": false,
+          "workerSupervised": true,
+          "brokerWatchdog": true
+        },
+        "protectedIpc": true
+      },
+      "controller": {
+        "authenticated": true,
+        "connected": true,
+        "helloCount": 1,
+        "candidateTypes": [
+          "host",
+          "prflx"
+        ],
+        "relayProtocol": null,
+        "channelClosedAfterFault": true,
+        "decodedFrames": 0,
+        "syntheticColorVerified": false,
+        "preAuthInputSent": true,
+        "nativeGreenVerified": false,
+        "lockedInputSent": true
+      }
+    },
+    {
+      "name": "worker-stall",
+      "fault": {
+        "name": "worker-stall",
+        "workerExitCode": 9,
+        "processCutMilliseconds": 3177
+      },
+      "controller": {
+        "authenticated": true,
+        "connected": true,
+        "helloCount": 1,
+        "candidateTypes": [
+          "host",
+          "prflx"
+        ],
+        "relayProtocol": null,
+        "channelClosedAfterFault": false,
+        "framesStoppedAfterFault": true,
+        "decodedFrames": 2,
+        "syntheticColorVerified": true,
+        "preAuthInputSent": true,
+        "nativeGreenVerified": true,
+        "lockedInputSent": false
+      }
+    },
+    {
+      "name": "broker-stall",
+      "fault": {
+        "name": "broker-stall",
+        "workerExitCode": 0,
+        "processCutMilliseconds": 1592
+      },
+      "controller": {
+        "authenticated": true,
+        "connected": true,
+        "helloCount": 1,
+        "candidateTypes": [
+          "host",
+          "prflx"
+        ],
+        "relayProtocol": null,
+        "channelClosedAfterFault": false,
+        "framesStoppedAfterFault": true,
+        "decodedFrames": 2,
+        "syntheticColorVerified": true,
+        "preAuthInputSent": true,
+        "nativeGreenVerified": true,
+        "lockedInputSent": false
+      }
+    },
+    {
+      "name": "broker-crash",
+      "fault": {
+        "name": "broker-crash",
+        "workerExitCode": 0,
+        "processCutMilliseconds": 169
+      },
+      "controller": {
+        "authenticated": true,
+        "connected": true,
+        "helloCount": 1,
+        "candidateTypes": [
+          "host",
+          "prflx"
+        ],
+        "relayProtocol": null,
+        "channelClosedAfterFault": false,
+        "framesStoppedAfterFault": true,
+        "decodedFrames": 2,
+        "syntheticColorVerified": true,
+        "preAuthInputSent": true,
+        "nativeGreenVerified": true,
+        "lockedInputSent": false
+      }
+    }
+  ],
+  "rendererCredentialsDenied": true,
+  "electron": "39.8.5",
+  "chromium": "142.0.7444.265",
+  "videoTested": true,
+  "fixtureOnly": true,
+  "nativeWorkerConnected": true,
+  "systemdUserServiceTested": false,
+  "systemdSystemServiceTested": true,
+  "protectedIpcTested": true,
+  "rustAuthenticationTested": true,
+  "apiRenewalTested": true,
+  "apiSignalingTested": true,
+  "supervisorTested": false,
+  "syntheticVideoTested": false,
+  "turnTested": false,
+  "relayPolicy": "none",
+  "mobileTested": false,
+  "readyForUnattended": false,
+  "productionTested": false,
+  "physicalMachinesTested": false,
+  "uniqueHostKeys": true,
+  "twoConnectionsSameBroker": true,
+  "secondConnectionUsesNewNonce": true,
+  "apiCredentialsKeptInBroker": true,
+  "temporaryAccountsRemoved": true,
+  "secondControllerBusyRejected": true,
+  "sdpFilesWritten": false,
+  "artifactHashes": {
+    "absor-protected-channel-lab": "410c66fe49a4f884a538890a07d466b8c16ebdda091f8bea6189e606a5fbd627",
+    "libabsor_agent_webrtc_lab.so": "7a9637d17710e8f054715a33204c55b208efb16f3a12ef6f82b65826dd4f4884",
+    "absor-secure-broker-lab": "d93d4806521161e74edacc2b502ad075af2e437a18e25b197bb766c3857f89c1",
+    "absor-secret-provision-lab": "d541eb0d3fce487f464f4c9f6e3d9ec562f32553c092c79bf17d865e1ec33b55",
+    "absorconnect-secure-lab.service": "e003badc8619e6ae3f202344df47825ca1306c9b08809b0f346a467773f650c0",
+    "absorconnect-secure-lab.socket": "a36677cff3914a8d3f3973e82d8b6ae8a4f66138fe2c0dd5df42885849653bad",
+    "absorconnect-protected-worker-lab.service": "2b8139420e60a7175bf3b4a176dbe94b8efd7a96e1b6bf747ee151a20e2d76d2"
+  },
+  "servicesAndSecretsRemoved": true,
+  "schema": 1,
+  "date": "2026-10-27",
+  "scope": "Protected IPC + DTLS + own X11 window in Linux VM; not a production agent",
+  "acceptedTasks": 11,
+  "totalTasks": 57,
+  "acceptedPercent": 19,
+  "acceptedTask": "3.2 common protocol",
+  "generalDesktopCertified": false,
+  "windowsMacHostsCertified": false,
+  "secretMemoryScanPerformed": false,
+  "regressions": {
+    "ipcSecurityCases": 14,
+    "macSyntheticP2PCases": 9,
+    "allPassed": true
+  },
+  "checks": {
+    "typecheck": true,
+    "vitestPassed": 276,
+    "vitestSkipped": 5,
+    "phpunitTests": 162,
+    "phpunitAssertions": 1077,
+    "macRustDefaultTests": 58,
+    "macRustAllFeatureTests": 78,
+    "rustFmtClippyDefaultAndAllFeatureRelease": true
+  },
+  "sourceSha256": {
+    "agent/crates/agent-api/Cargo.toml": "d54a196c0720b2f9c50420525bf9abc2bd2e3b8a0a5365693d081c03e98b0d68",
+    "agent/crates/agent-api/examples/api-smoke.rs": "27f22b7a75f50ac10d7a149c00ee508f841ade4d07f15f096f0753647c4cb63c",
+    "agent/crates/agent-api/src/enrollment.rs": "5c469b21b8c47852ef6e2fbb22277fd78c4357a3ecba38f006a5ee26900f306f",
+    "agent/crates/agent-api/src/http.rs": "7b86304bc1c7af59bf82ee5feb274f0c2ad06c9112e74531b8d564ab0bfd5a5e",
+    "agent/crates/agent-api/src/lib.rs": "b101642ab28a2c1a0141b1e4a0b292d4af81d401d86e92227e2dd8c925e7d65b",
+    "agent/crates/agent-api/src/session_signaling.rs": "47a99b814b89112023c505bc032106031083afc7ac8eefbf1df4b6a73c33fbfa",
+    "agent/crates/agent-api/src/signaling.rs": "58799805b9a6085fbfc72122d9b8a66f2a2791cc61e7ebda1049c6b28dc3cce5",
+    "agent/crates/agent-api/tests/renewal.rs": "e32584b55e061682c4de8c826947af5d4fd0ecec8d5a5e2641b49f781397be6d",
+    "agent/crates/agent-api/tests/signaling.rs": "aac76aaa380a17fe7f2b1a8b83699123b05d0c064473b87939564a2a3f699455",
+    "agent/crates/agent-auth/Cargo.toml": "edb4793eb51f4c436fc753b73fb72dfdd242ed9aaf926493f1ac23b9a5bfc60a",
+    "agent/crates/agent-auth/examples/restart-smoke.rs": "d805edbf57df61ad561d9b07933160ccfb8b2a5d716bb477e0cc873b320ab4bf",
+    "agent/crates/agent-auth/src/lib.rs": "ec0d8185148f23176286b8ef98e4573f49ba31fca7f1f5f05b89e66aebf092ea",
+    "agent/crates/agent-auth/src/vectors.rs": "5031ea3ccf20baee66cf378674a75b905d67f0566dace1838d9dffe32d802019",
+    "agent/crates/agent-auth/tests/authentication.rs": "e41505887ad3cfd289a0fa2fb596a09b4c1c5ca0e64c044f2497054d271ae295",
+    "agent/crates/agent-broker/Cargo.toml": "3d2646d0ca1e57b4c1879c4602015255afe95638d1bd0ea0b8d8a6f1019e2710",
+    "agent/crates/agent-broker/src/audit.rs": "0146d6c11f7e0049df8c5d3562867400b9da0f24bf2a3cd41ff2cb009644a44c",
+    "agent/crates/agent-broker/src/lib.rs": "533e4ecb6adef1af343de34c78b4f1ff418d1f44eb304988840a6d4cf2129de8",
+    "agent/crates/agent-broker/src/linux.rs": "1435059d894a1e431bbed1ee722a6ed9ffdc3874cf37d41efe47467c763435d9",
+    "agent/crates/agent-broker/src/main.rs": "8088212892703484459d60a220fb4d1b825823e5ecf66b8e1fa4e7b6f83a479d",
+    "agent/crates/agent-broker/src/secure_linux.rs": "858aed29bd82a8b89c2ec73d8ee05fa823ab4e5289af01838a8b916f27d72ab3",
+    "agent/crates/agent-broker/src/secure_main.rs": "74447f372eff770587953cb066f62edc9860899db41c472808b3e3aca99cbe9f",
+    "agent/crates/agent-core/Cargo.toml": "dd520c7dc1c7307cfed3f0f8689279dd6f5dd21d5fb4fcce7a6cfae3be03cc23",
+    "agent/crates/agent-core/examples/lease-smoke.rs": "ecfcc4775b35badd5cba2b1c65de1ddcc88de4b7d24b34795bffb7723832ec76",
+    "agent/crates/agent-core/src/clock.rs": "b72c495281e010f5bd9286c2597bd6b53cbebff8e9bdf6c3f22f111f67e84847",
+    "agent/crates/agent-core/src/lib.rs": "7c17f602221d77b0bb5d18beeb6c72c09f70d186cc350254cf56bc21cb84134b",
+    "agent/crates/agent-core/tests/authorization.rs": "fd5c2a7aab2f09410d72ca43d2cb5fd6be899e2f0614f1d65acd4c9635ef8e56",
+    "agent/crates/agent-security/Cargo.toml": "80a12bcc3184964e39ef322fe93af8b673d39ae31c82dba06d3c0fc911c845a0",
+    "agent/crates/agent-security/src/client.rs": "6b519d2e460b63256befe246f24940c4ff01c777b3d55d85a7f75b607cbb0148",
+    "agent/crates/agent-security/src/lib.rs": "adb86603dcd48e3d6ca419280a5b8e41672c8eb608d650b71e3b97580d470f67",
+    "agent/crates/agent-security/src/linux.rs": "84633e06a90cff96d5d1abf99b76c6c92a91acd533804244d1cce27fe674d358",
+    "agent/crates/agent-security/src/provision.rs": "c81e312b6fc3a093d9923f3ad66e765454a5ff7fea560acac97fcebce2667f9d",
+    "agent/crates/agent-security/src/secrets.rs": "f7e61489110439d9d1d116c26e565b8c9079b0219669c1be538eab65ce9f1b2a",
+    "agent/crates/agent-security/src/wire.rs": "42fa038c35a157764ec39ea3c79f24f7126177e868205b2227d4b07c94bd684d",
+    "agent/crates/agent-security/src/worker.rs": "580e671b5c61c958fa099be48ca586aeaf5ce0d7cf4df31c1a730e9e8d742f38",
+    "agent/crates/agent-supervisor/Cargo.toml": "764b28a3caedab793f0cca5e001ba8b6a71271544309a7b8969f1b237a17ab93",
+    "agent/crates/agent-supervisor/src/bin/fixture.rs": "49b1c2c3ebfb03b00a872784c892434fd9079d017e205b78883fcb75936d8c13",
+    "agent/crates/agent-supervisor/src/bin/lab.rs": "d818233fc4f539c5426e4e62c28b5a2f24e069758c1c44267f0a489ddd26c7d0",
+    "agent/crates/agent-supervisor/src/lib.rs": "7d9052507f972e8c95ef74a716bb893ee55c728780838dbe6a9bdf702278f609",
+    "agent/crates/agent-supervisor/src/pipe.rs": "70016e9b6965aa96dcec09a658b6f27e4b5a780236877f9d83a64ff2a8571d5a",
+    "agent/crates/agent-supervisor/src/synthetic.rs": "6bf92678911f65397e659a9582d88809a265011d1d8179c716b136b3f9669d4e",
+    "agent/crates/agent-supervisor/src/terminate.rs": "08c5836f16818e6db9f27d32b2826a8afc1e2ea2d8a933c332305a9f48ac7813",
+    "agent/crates/agent-supervisor/tests/liveness.rs": "14bf5385192c3b2d45a832e4c825af9df3389968397898fb376030da9b264aa5",
+    "agent/crates/agent-supervisor/tests/processes.rs": "43005bba3637486a329739f1daac475bd2b0c2ad0e6526f784f13f430f30a1aa",
+    "agent/crates/agent-webrtc-lab/Cargo.toml": "ea4bcbe038fe629eb06eb73e455bf0fb0bc15e5b085fcc08f058d799c2db5e3f",
+    "agent/crates/agent-webrtc-lab/build.rs": "180ff06664a75da7575fe1947e2d4cb29057ee6af5d222d11fb05048f902959d",
+    "agent/crates/agent-webrtc-lab/src/bridge.rs": "1c251a8444360f15a59fd02b273bf605e65d4019647e5168ce9bd99d2cb0c7e6",
+    "agent/crates/agent-webrtc-lab/src/dispatch.rs": "5d153c36ed625ac01e272d6de76d28765bfbbd32526bda7fb79b1bd51b5ab149",
+    "agent/crates/agent-webrtc-lab/src/ffi.rs": "19f46cc2b8606f402d31ace4bf33643a50ec77209c5a8dd56abe654f6821d00b",
+    "agent/crates/agent-webrtc-lab/src/lib.rs": "0c4ef6e357cb72674aa96502ad8792de36ef8f606c5367c6b4b12b1c8a2f53e2",
+    "agent/crates/agent-webrtc-lab/src/native.rs": "5f5c2e85a9e1131ff81747b910e0ff667140edc5fa483232f397aed9464fe4cb",
+    "agent/crates/agent-webrtc-lab/src/protected.rs": "c38ced174ed62ec7ab8a6cc39ae4cfcf6934f7c25c58db83274f37cc8cdd69db",
+    "agent/crates/agent-webrtc-lab/src/signaling.rs": "24ccb146d8a8df4f5ee731208d5bb5bf710968d351336cec9fe5bf4e6ff3c2d0",
+    "agent/crates/agent-x11-lab/Cargo.toml": "ad9ace157772fdf9a1761b1ab9a589632ec1f62d36d9c0f1c4fd75a5f36e4b5f",
+    "agent/crates/agent-x11-lab/examples/x11-worker-smoke.rs": "0d3a2a5b257d3d374774ed10c969b6505f3271821dfece5e01dac66ea70c63e2",
+    "agent/crates/agent-x11-lab/src/lib.rs": "87788bada9b48f7889cbffc35f7d4a705d6f6a7576d55dc03528df1865080eea",
+    "agent/crates/agent-x11-lab/src/worker.rs": "8011636a29f4fc7c2dd94906600ef974e4a248b71b51a35c6d3bf60c2e616aa7",
+    "agent/crates/agent-x11-lab/src/x11.rs": "b8b7c072230ba32362765d5bded3ffe163e7b98a7044d9334e919c9bb1f809b1",
+    "agent/linux-secure-lab/absorconnect-ipc-worker-lab.service": "984cbe35e072e0890eb8a05fa1a63767137040b399710b2da9b869f4eca8273c",
+    "agent/linux-secure-lab/absorconnect-protected-worker-lab.service": "2b8139420e60a7175bf3b4a176dbe94b8efd7a96e1b6bf747ee151a20e2d76d2",
+    "agent/linux-secure-lab/absorconnect-secure-lab.service": "e003badc8619e6ae3f202344df47825ca1306c9b08809b0f346a467773f650c0",
+    "agent/linux-secure-lab/absorconnect-secure-lab.socket": "a36677cff3914a8d3f3973e82d8b6ae8a4f66138fe2c0dd5df42885849653bad",
+    "agent/linux-secure-lab/install-vm.py": "4dc71316c346902eb225d0554a807b1a130a5d55d7de9caf6f97a3ccc4484000",
+    "prototypes/backend-agent-check/linux-protected-worker.py": "0a9c071a51612e46f59a97a6a665ccd0c2e1e874f7c61c61bcc333faa89085f3",
+    "prototypes/backend-agent-check/protected-webrtc.py": "f188c5fb4680271bf0b21678ea021f0b4b2cff6d274426ff4383cd35da6ee6d1",
+    "prototypes/remote-desktop/webrtc-check/interop-main.cjs": "c4abf0c5a06bb1664a9d74c49c4b85c3762f770bf527a543f95ea762077a8a29",
+    "prototypes/remote-desktop/webrtc-check/interop-preload.cjs": "30bcc7680a738f040e946ef2e5de226103ba7b4358aaaf197ae564ff64eaeddf",
+    "prototypes/remote-desktop/webrtc-check/interop-renderer.js": "0a17c87079b56bea11d61558b55e25a67d8dca0534cc79256638e924351927f4",
+    "prototypes/remote-desktop/webrtc-check/run-interop.cjs": "e3a6bbe4a6cd1aac1870e5dc8d3cf8e39e0005f1cf2bbd3db95890ceb61f4a29"
+  }
+}

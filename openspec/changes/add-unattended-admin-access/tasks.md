@@ -12,11 +12,14 @@ siguen pendientes API completa, autenticador, trabajador P2P y watchdog del
 servicio. La tarea 3.4 no se cierra solo con el proceso de prueba; su aceptación posterior
 añade el gate/API/DTLS y trabajador nativo conectados, con la evidencia del 26/10.
 
-Avance cerrado: **10/57 tareas (18 %)**. Es proporción de tareas aceptadas, no
-porcentaje del tiempo restante. La tarea 3.2 incorpora `agent-auth`: verificación
-v1, contrato de registro de intentos y prueba de reinicio con diario temporal.
-Siguen pendientes el enlace de producción al trabajador DTLS, almacenes protegidos por SO,
-migración real e integración que impida toda captura/entrada antes de autenticar.
+Avance cerrado: **11/57 tareas (19 %)**. Es proporción de tareas aceptadas, no
+porcentaje del tiempo restante. La tarea 3.2 se acepta como protocolo común:
+vectores compartidos, HMAC/huellas aplicadas, intentos durables/reinicio, sesión
+única y denegación de captura/entrada antes de autenticar, con integración IPC
+Linux en VM. No acepta los almacenes/IPC ni trabajadores finales de Windows y
+Mac, la migración de Electron o los contextos generales: conservan sus tareas
+4.4/5.3/7.2/6.2 y el piloto físico pendientes. La aceptación posterior se detalla
+en `protected-native-results.json` y `verification.md`.
 
 El enlace de laboratorio inicial verificó Rust + autorización API + autenticación
 DTLS/HMAC + vídeo artificial con Electron y corte del transporte. No cerró
@@ -65,6 +68,14 @@ está unida al trabajador DTLS/captura/entrada. No cierra 3.2/6.4/7.2, ni cambia
 el 10/57 aceptado. Véanse `protected-ipc-results.json`, `verification.md` y
 `agent/linux-secure-lab/README.md`. Se mantiene el piloto físico para el final.
 
+La siguiente integración del 27/10 une esos componentes con huellas aplicadas
+reales de libwebrtc, claves únicas, captura/entrada de ventana propia y watchdogs
+IPC/systemd. Prueba dos conexiones sucesivas con el mismo broker y nonce nuevo,
+rechazo de credenciales/huellas, cierre por API, contexto bloqueado y fallo de
+procesos. Junto a vectores/repetición/bloqueo persistente y denegaciones IPC,
+se acepta **3.2 para el núcleo común**. El 19% no anuncia acceso completo a tres
+SO; el resto de agentes, instalación, migración y piloto sigue pendiente.
+
 ## 1. Viabilidad y configuraciones objetivo
 
 - [ ] 1.1 Registrar versiones, arquitecturas, cifrado de arranque y opciones de conectividad de los Windows/Mac del propietario y confirmar Mint Cinnamon/X11/LightDM; verificar un inventario privado sin secretos y una matriz pública de configuraciones objetivo sin IPs personales.
@@ -86,7 +97,7 @@ el 10/57 aceptado. Véanse `protected-ipc-results.json`, `verification.md` y
 ## 3. Agente común y protocolo
 
 - [ ] 3.1 Crear `agent/` con broker Rust, trabajador y adaptador libwebrtc fijados; verificar compilación de los componentes separados en los sistemas objetivo y documentar sus comandos de desarrollo.
-- [ ] 3.2 Implementar el desafío compatible v1, PBKDF2/HMAC/huellas DTLS, persistencia de intentos y una sesión por equipo; verificar vectores compartidos, prueba repetida, fallo de contraseña, bloqueo después de reiniciar y cero captura/entrada antes de autenticar.
+- [x] 3.2 Implementar el desafío compatible v1, PBKDF2/HMAC/huellas DTLS, persistencia de intentos y una sesión por equipo; verificar vectores compartidos, prueba repetida, fallo de contraseña, bloqueo después de reiniciar y cero captura/entrada antes de autenticar.
 - [ ] 3.3 Implementar las extensiones negociadas de capacidades/contexto/operación/resultado y deduplicación; verificar mensajes malformados, límites de tamaño, comando no anunciado y dos entregas del mismo reinicio con una sola ejecución.
 - [x] 3.4 Añadir renovación de autorización y reloj monotónico; verificar con reloj/red simulados que una sesión P2P termina ≤30 segundos tras perder validación, sin aceptar otra sesión hasta recuperar autorización.
 - [ ] 3.5 Implementar transición de contexto, liberación de entrada y descarte de portapapeles/transferencias/audio; verificar que el siguiente usuario no recibe contenido del anterior ni imagen presentada como actual durante una transición.

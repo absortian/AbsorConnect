@@ -1,5 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron')
 contextBridge.exposeInMainWorld('lab', {
+  protectedIpc: process.argv.includes('--lab-protected-ipc'),
+  proof: (name, hello, offer, answer) => ipcRenderer.invoke('lab-proof', name, hello, offer, answer),
   nativeFixture: process.argv.includes('--lab-native-fixture'),
   apiSignaling: process.argv.includes('--lab-api-signaling'),
   busy: () => ipcRenderer.invoke('lab-busy'),

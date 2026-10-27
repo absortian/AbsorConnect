@@ -13,3 +13,12 @@ mod ffi;
 mod native;
 #[cfg(feature = "lab-http")]
 mod signaling;
+
+#[cfg(feature = "lab-http")]
+mod dispatch;
+#[cfg(all(
+    feature = "protected-ipc-fixture",
+    target_os = "linux",
+    target_pointer_width = "64"
+))]
+mod protected;

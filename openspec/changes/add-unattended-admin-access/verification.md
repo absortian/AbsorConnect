@@ -2448,3 +2448,53 @@ nuevo conserva un marcador previo válido y elimina el suyo en la retirada.
 Los informes privados se congelan fuera del repo en
 `AbsorConnectLab/protected-ipc-evidence-20261027/`; el resumen público contiene
 hashes de artefactos/fuentes y deja explícita la separación entre IPC y P2P.
+
+
+### 27/10/2026 — IPC protegido unido al trabajador DTLS/X11
+
+La característica `protected-ipc-fixture` utiliza el alta nativa/almacén cifrado
+y otra identidad para el broker. El trabajador fijo termina DTLS y obtiene las
+huellas realmente aplicadas; solicita desafío/verificación por el socket
+validado y consume la capacidad antes de crear su superficie X11. K y los tokens
+de cuenta/agente permanecen fuera del trabajador. El renderer solo recibe una
+prueba HMAC del controlador de laboratorio, sin K o token. Se conservan los
+vectores v1 y el contrato de clientes publicados.
+
+La captura e input se limitan a una ventana propia; las pruebas incorrectas y
+huellas alteradas registran cero aperturas, capturas e inyecciones. Se comprueba
+el estado durable de intentos antes de retirar cada instalación. El broker
+rechaza un segundo controlador por API y reinicia señalización por conexión,
+sin crear carriles HTTP ilimitados ni aplicar respuestas de la conexión previa.
+Dos conexiones al mismo host conservan PID/credencial del broker y exigen nonce
+nuevo. La matriz anterior de 14 denegaciones conserva las pruebas de replay,
+contador bloqueado tras reiniciar y almacenamiento ausente/manipulado.
+
+El plazo del broker se exporta solo en el IPC autenticado del mismo sistema y
+no se renueva por consultarlo. La bandera compartida del trabajador se corta al
+vencer; una observación independiente del actor/mutex corta el proceso si IPC
+no progresa, y systemd mata también al trabajador en SIGSTOP. Las pruebas P2P
+incluyen revocación, API inaccesible, bloqueo de Cinnamon, SIGSTOP del trabajador,
+SIGSTOP y SIGKILL del broker. Los tiempos y los resultados finales se registran
+en `protected-native-results.json`. El indicador de cierre del hilo puede
+muestrearse antes del cierre real; la retirada comprueba el fin del proceso/
+cgroup. No se certifica liberación general de entrada tras caída del SO.
+
+Se acepta **3.2 (núcleo/protocolo común)** con la integración Linux, los vectores
+y las pruebas de persistencia/repetición y gate antes de captura/entrada.
+Esto no acepta servicios finales Windows/Mac, sus almacenes/IPC, migración,
+usuarios/greeter, escritorio completo, TURN, móvil o piloto exterior. Esas
+condiciones conservan sus tareas separadas sin marcar. Avance: **11/57 (19%)**.
+La distribución continúa en 0.4.1, sin nuevo agente instalado en equipos físicos.
+
+Resultado final de la unión: **10/10 conexiones P2P protegidas** con cinco
+cuentas/nueve hosts efímeros; dos conexiones conservan el mismo broker y usan
+nonce distinto. Revocación observada a 342 ms; pérdida de API a 27 250 ms.
+SIGSTOP del trabajador: 3177 ms hasta terminar su proceso; SIGSTOP/SIGKILL del
+broker: 1592/169 ms. Son tiempos de esta VM, no un SLA de producción.
+La matriz de IPC mantiene 14/14 casos, y la de Mac artificial 9/9. Se verifican
+typecheck, Vitest (276, cinco omitidas), PHPUnit (162/1077), Rust/rustfmt/clippy
+y builds release por omisión/con características en Mac y Linux. Se congelan
+informes/logs fuera del repo en `AbsorConnectLab/protected-native-evidence-20261027`.
+No se ha realizado escaneo de memoria: la separación de secretos se verifica
+por flujo de datos, identidades/ACL y pruebas de acceso denegado. El resumen
+público registra también esa limitación y los hashes de los artefactos probados.

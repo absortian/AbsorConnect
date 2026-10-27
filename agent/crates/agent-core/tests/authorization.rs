@@ -315,3 +315,16 @@ fn native_clock_is_monotonic_across_a_short_wait() {
     std::thread::sleep(Duration::from_millis(2));
     assert!(clock.now().unwrap() >= before + Duration::from_millis(1));
 }
+
+#[test]
+fn exporting_the_local_deadline_cannot_refresh_or_revive_authorization() {
+    let clock = TestClock::at(0);
+    let mut gate = authorized(&clock);
+    assert_eq!(gate.authorization_deadline(), Ok(Duration::from_secs(30)));
+    clock.set(29999);
+    assert_eq!(gate.authorization_deadline(), Ok(Duration::from_secs(30)));
+    clock.set(30000);
+    assert_eq!(gate.authorization_deadline(), Err(Denied::NoAuthorization));
+    gate.stop();
+    assert_eq!(gate.authorization_deadline(), Err(Denied::Stopped));
+}

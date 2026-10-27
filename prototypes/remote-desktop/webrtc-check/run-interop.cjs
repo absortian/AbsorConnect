@@ -13,6 +13,7 @@ let supervised = false
 let agentConfig
 let turnConfig
 let linuxBroker = false
+let linuxProtected = false
 let linuxVm
 for (let i = 0; i < options.length; i++) {
   if (options[i] === '--supervised' && !supervised) supervised = true
@@ -20,10 +21,12 @@ for (let i = 0; i < options.length; i++) {
   else if (options[i] === '--synthetic-video' && !syntheticVideo) syntheticVideo = true
   else if (options[i] === '--agent-config' && !agentConfig && options[i + 1]) { agentConfig = options[++i]; syntheticVideo = true }
   else if (options[i] === '--turn-config' && !turnConfig && options[i + 1]) turnConfig = options[++i]
+  else if (options[i] === '--linux-protected' && !linuxProtected) linuxProtected = true
   else if (options[i] === '--linux-broker' && !linuxBroker) linuxBroker = true
   else if (options[i] === '--linux-vm' && !linuxVm && options[i + 1]) linuxVm = fs.realpathSync(options[++i])
   else throw new Error('Opción desconocida o repetida')
 }
+if (linuxProtected && (!linuxVm || linuxBroker)) throw new Error('--linux-protected exige VM y su propio servicio')
 if (linuxBroker && !linuxVm) throw new Error('--linux-broker exige --linux-vm')
 if (supervised && !agentConfig) throw new Error('--supervised exige --agent-config')
 if (linuxVm && (!agentConfig || supervised || turnConfig)) throw new Error('--linux-vm exige API y transporte directo sin el lanzador Mac')
@@ -84,7 +87,7 @@ fs.writeFileSync(path.join(work, 'artifact.json'), JSON.stringify({
   binarySha256,
   sourceRevision: require('./dependencies.json').webrtc.revision
 }, null, 2) + '\n', { mode: 0o600 })
-const child = spawn(require('electron'), [path.join(work, 'interop-main.cjs'), `--lab-work=${work}`, `--lab-binary=${binary}`, ...(linuxVm ? [`--lab-linux-vm=${linuxVm}`, `--lab-linux-launcher=${path.resolve(__dirname, '../../backend-agent-check/linux-webrtc-worker.py')}`] : []), ...(linuxBroker ? ['--lab-linux-broker'] : []), ...(supervised ? [`--lab-supervisor=${supervisor}`] : []), ...(agentConfig ? ['--lab-agent-bridge'] : []), ...(syntheticVideo ? ['--lab-synthetic-video'] : []), ...(relayConfiguration ? ['--lab-relay-only'] : []), ...(relayController ? ['--lab-relay-controller'] : [])], {
+const child = spawn(require('electron'), [path.join(work, 'interop-main.cjs'), `--lab-work=${work}`, `--lab-binary=${binary}`, ...(linuxVm ? [`--lab-linux-vm=${linuxVm}`, `--lab-linux-launcher=${path.resolve(__dirname, linuxProtected ? '../../backend-agent-check/linux-protected-worker.py' : '../../backend-agent-check/linux-webrtc-worker.py')}`] : []), ...(linuxBroker ? ['--lab-linux-broker'] : []), ...(linuxProtected ? ['--lab-protected-ipc'] : []), ...(supervised ? [`--lab-supervisor=${supervisor}`] : []), ...(agentConfig ? ['--lab-agent-bridge'] : []), ...(syntheticVideo ? ['--lab-synthetic-video'] : []), ...(relayConfiguration ? ['--lab-relay-only'] : []), ...(relayController ? ['--lab-relay-controller'] : [])], {
   env: { ...process.env, ELECTRON_RUN_AS_NODE: '' }, stdio: 'inherit'
 })
 child.on('error', (error) => { console.error(error.message); process.exitCode = 1 })

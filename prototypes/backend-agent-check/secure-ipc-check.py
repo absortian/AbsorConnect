@@ -217,6 +217,7 @@ else:raise RuntimeError('worker_reply_timeout')
                 item = tarfile.TarInfo(name); item.size=len(raw); item.mode=0o600
                 archive.addfile(item,io.BytesIO(raw))
             for artifact in (ROOT/'agent/linux-secure-lab').glob('*.service'):
+                if artifact.name=='absorconnect-protected-worker-lab.service': continue
                 raw=artifact.read_bytes(); manifest[artifact.name]=hashlib.sha256(raw).hexdigest()
                 item=tarfile.TarInfo(artifact.name);item.size=len(raw);item.mode=0o600
                 archive.addfile(item,io.BytesIO(raw))
