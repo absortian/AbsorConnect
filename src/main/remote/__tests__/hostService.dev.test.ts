@@ -45,6 +45,8 @@ describe.skipIf(!API)('HostService contra el backend de desarrollo', () => {
   const state = { enabled: true, support: { state: 'available' } as RemoteSupport }
   const sessions: { start: () => void; end: () => void; closedWith?: string }[] = []
   let service: HostService
+  let createService: () => HostService
+  let identityResets = 0
 
   const asController = <T>(method: string, path: string, body?: unknown): Promise<T> =>
     apiRequest<T>(method, path, { token: controllerToken, body })
@@ -78,49 +80,60 @@ describe.skipIf(!API)('HostService contra el backend de desarrollo', () => {
       })
     ).token
 
-    service = new HostService({
-      api: new DeviceApi(() => pcToken),
-      identity: { get: async () => device, reset: async () => device },
-      store: {
-        isEnabled: async () => state.enabled,
-        snapshot: async () => ({
-          enabled: state.enabled,
-          deviceName: 'Sobremesa de prueba',
-          hasPassword: true,
-          features: { clipboard: true, files: false, audio: true },
-          confirmLocal: false,
-          preventSleep: false,
-          encryptionAvailable: true
-        }),
-        lockRemainingSeconds: async () => 0,
-        addLog: async () => undefined
-      },
-      support: () => state.support,
-      signedIn: () => pcToken !== '',
-      platform: 'linux',
-      appVersion: '0.4.0-dev',
-      openSession: async () => {
-        let start!: () => void
-        let end!: () => void
-        const started = new Promise<void>((resolve) => (start = resolve))
-        const ended = new Promise<void>((resolve) => (end = resolve))
-        const entry: { start: () => void; end: () => void; closedWith?: string } = { start, end }
-        sessions.push(entry)
-        const session: HostSession = {
-          answer: 'v=0 respuesta de prueba',
-          started,
-          ended,
-          close: (reason) => {
-            entry.closedWith = reason
-            end()
+    createService = () =>
+      new HostService({
+        api: new DeviceApi(() => pcToken),
+        identity: {
+          get: async () => device,
+          reset: async () => {
+            identityResets++
+            return device
           }
-        }
-        return session
-      },
-      setKeepAwake: () => undefined,
-      setStatus: () => undefined,
-      notify: () => undefined
-    })
+        },
+        store: {
+          isEnabled: async () => state.enabled,
+          snapshot: async () => ({
+            enabled: state.enabled,
+            deviceName: 'Sobremesa de prueba',
+            hasPassword: true,
+            features: { clipboard: true, files: false, audio: true },
+            confirmLocal: false,
+            preventSleep: false,
+            encryptionAvailable: true
+          }),
+          lockRemainingSeconds: async () => 0,
+          addLog: async () => undefined
+        },
+        support: () => state.support,
+        signedIn: () => pcToken !== '',
+        platform: 'linux',
+        appVersion: '0.4.0-dev',
+        openSession: async () => {
+          let start!: () => void
+          let end!: () => void
+          const started = new Promise<void>((resolve) => (start = resolve))
+          const ended = new Promise<void>((resolve) => (end = resolve))
+          const entry: { start: () => void; end: () => void; closedWith?: string } = { start, end }
+          sessions.push(entry)
+          const session: HostSession = {
+            answer: 'v=0 respuesta de prueba',
+            started,
+            ended,
+            close: (reason) => {
+              entry.closedWith = reason
+              end()
+            }
+          }
+          return session
+        },
+        onAgentOwned: async () => {
+          state.enabled = false
+        },
+        setKeepAwake: () => undefined,
+        setStatus: () => undefined,
+        notify: () => undefined
+      })
+    service = createService()
     service.start()
   }, 30_000)
 
@@ -218,5 +231,63 @@ describe.skipIf(!API)('HostService contra el backend de desarrollo', () => {
 
     service.resume()
     expect((await waitFor(listed, (d) => d?.online === true))?.remote.state).toBe('available')
+  }, 60_000)
+
+  it('traspaso real: corta el host de usuario y reiniciarlo no duplica ni revoca al agente', async () => {
+    await waitFor(listed, (d) => d?.remote.state === 'available')
+    const request = await requestSession()
+    await outcome(request.id)
+    const opened = sessions.at(-1)!
+    opened.start()
+    await sleep(500)
+    const grant = await apiRequest<{ enrollmentToken: string }>(
+      'POST',
+      `/api/devices/${device.id}/agent-enrollments`,
+      {
+        token: pcToken,
+        headers: { 'X-Device-Key': device.key }
+      }
+    )
+    const agent = await apiRequest<{ token: string; deviceId: string }>(
+      'POST',
+      '/api/host-agent/enroll',
+      {
+        body: {
+          enrollmentToken: grant.enrollmentToken,
+          agentVersion: '0.1.0+ownership',
+          capabilities: {
+            administration: false,
+            login: false,
+            secureAttention: false,
+            restart: false
+          }
+        }
+      }
+    )
+    try {
+      expect(agent.deviceId).toBe(device.id)
+      expect(await waitFor(async () => service.isAgentOwned(), Boolean)).toBe(true)
+      expect(opened.closedWith).toBe('stopped')
+      expect(state.enabled).toBe(false)
+      await service.stop()
+      // Emula la reapertura del runtime con el mismo perfil, no un alta nueva.
+      service = createService()
+      service.start()
+      expect(await waitFor(async () => service.isAgentOwned(), Boolean)).toBe(true)
+      expect(identityResets).toBe(0)
+      const devices = await asController<{ devices: DeviceListEntry[] }>('GET', '/api/devices')
+      expect(devices.devices.filter((d) => d.id === device.id)).toHaveLength(1)
+      const heartbeat = await apiRequest<{ authorization: { validForSeconds: number } }>(
+        'GET',
+        '/api/host-agent/remote-requests',
+        { token: agent.token }
+      )
+      expect(heartbeat.authorization.validForSeconds).toBe(30)
+    } finally {
+      await asController('DELETE', `/api/devices/${device.id}/agent`)
+    }
+    await expect(
+      apiRequest('GET', '/api/host-agent/remote-requests', { token: agent.token })
+    ).rejects.toMatchObject({ status: 401 })
   }, 60_000)
 })

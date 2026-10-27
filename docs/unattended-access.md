@@ -76,6 +76,19 @@ conexiones S3/SSH, no desinstala binarios ni cambia la contraseña del sistema.
 El modelo/API móvil ya reconoce capacidades y la baja del equipo; su control
 visual y las pruebas nativas completas siguen pendientes.
 
+Cuando la API responde `device_agent_owned`, Electron corta su host de usuario,
+conserva el identificador, deja de consultar/registrar y guarda el modo de usuario
+desactivado. Ajustes no permite modificar esa configuración. Si no puede guardar
+el cambio, indica la necesidad de intervención; el corte en memoria sigue vigente.
+Tras revocar el agente, reinicia la interfaz para volver a comprobar la propiedad;
+el modo de usuario seguirá desactivado y exige activación explícita.
+
+La bandeja distingue «propietario agente, estado sin verificar» de «desactivado».
+Salir de la interfaz no envía una orden de parada al agente. Sin un cliente local
+de salud verificado, la instalación de actualizaciones queda pospuesta también
+al salir: no se interpreta la ausencia de datos como una sesión libre. La parada
+local del servicio y la actualización compatible del paquete final siguen pendientes.
+
 Cambiar la contraseña de la cuenta, borrar la cuenta o cerrar/caducar la sesión
 que originó el alta invalida la credencial del agente. Cerrar otra sesión de la
 cuenta no vinculada al alta no lo revoca. La revocación local inmediata y el

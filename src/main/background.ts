@@ -11,7 +11,7 @@ import trayIconTemplate from '../../resources/trayTemplate.png?asset'
 import { getBackgroundSettings, getLanguage, saveBackgroundSettings } from './store'
 
 /** Estado del control remoto de ESTE PC, para reflejarlo en la bandeja. */
-export type RemoteStatus = 'off' | 'available' | 'active'
+export type RemoteStatus = 'off' | 'available' | 'active' | 'agent'
 
 interface BackgroundDeps {
   /** Crea la ventana principal (la define el proceso principal). */
@@ -36,31 +36,40 @@ let trayUpdate: TrayUpdate | null = null
 interface TrayLabels {
   open: string
   quit: string
+  remoteAgent: string
+  quitInterface: string
   remoteOff: string
   remoteAvailable: string
   remoteActiveFrom: (name: string) => string
   updateAvailable: (version: string) => string
   updateReady: (version: string) => string
+  updateDeferred: (version: string) => string
 }
 
 const LABELS: Record<'es' | 'en', TrayLabels> = {
   es: {
     open: 'Abrir Absor Connect',
     quit: 'Salir',
+    remoteAgent: 'Propietario: agente; estado del servicio sin verificar',
+    quitInterface: 'Salir de la interfaz',
     remoteOff: 'Control remoto: desactivado',
     remoteAvailable: 'Control remoto: disponible',
     remoteActiveFrom: (name) => `Controlado ahora desde ${name}`,
     updateAvailable: (version) => `Descargar la versión ${version}`,
-    updateReady: (version) => `Instalar la versión ${version} al salir`
+    updateReady: (version) => `Instalar la versión ${version} al salir`,
+    updateDeferred: (version) => `Versión ${version} pospuesta: estado del agente sin verificar`
   },
   en: {
     open: 'Open Absor Connect',
     quit: 'Quit',
+    remoteAgent: 'Owner: agent; service status unverified',
+    quitInterface: 'Quit the interface',
     remoteOff: 'Remote control: off',
     remoteAvailable: 'Remote control: available',
     remoteActiveFrom: (name) => `Controlled now from ${name}`,
     updateAvailable: (version) => `Download version ${version}`,
-    updateReady: (version) => `Install version ${version} on quit`
+    updateReady: (version) => `Install version ${version} on quit`,
+    updateDeferred: (version) => `Version ${version} deferred: agent status unverified`
   }
 }
 
@@ -160,9 +169,11 @@ async function rebuildTrayMenu(): Promise<void> {
   const statusLabel =
     remoteStatus === 'active'
       ? t.remoteActiveFrom(activeController ?? '—')
-      : remoteStatus === 'available'
-        ? t.remoteAvailable
-        : t.remoteOff
+      : remoteStatus === 'agent'
+        ? t.remoteAgent
+        : remoteStatus === 'available'
+          ? t.remoteAvailable
+          : t.remoteOff
   const items: Electron.MenuItemConstructorOptions[] = [
     { label: t.open, click: showMainWindow },
     { type: 'separator' },
@@ -171,14 +182,16 @@ async function rebuildTrayMenu(): Promise<void> {
   if (trayUpdate) {
     const label =
       trayUpdate.action === NO_OP
-        ? t.updateReady(trayUpdate.version)
+        ? remoteStatus === 'agent'
+          ? t.updateDeferred(trayUpdate.version)
+          : t.updateReady(trayUpdate.version)
         : t.updateAvailable(trayUpdate.version)
     items.push({ type: 'separator' }, { label, click: () => trayUpdate?.action() })
   }
   items.push(
     { type: 'separator' },
     {
-      label: t.quit,
+      label: remoteStatus === 'agent' ? t.quitInterface : t.quit,
       click: () => {
         beginQuitting()
         app.quit()
@@ -199,6 +212,10 @@ export function setRemoteStatus(status: RemoteStatus, controller: string | null 
 /** Hay una sesión de control remoto en curso en ESTE PC (para no reinstalar durante ella). */
 export function isRemoteControlActive(): boolean {
   return remoteStatus === 'active'
+}
+
+export function isAgentHostOwned(): boolean {
+  return remoteStatus === 'agent'
 }
 
 /** Entrada de la bandeja marcada como "ya descargada, se instala al salir" (sin acción directa). */

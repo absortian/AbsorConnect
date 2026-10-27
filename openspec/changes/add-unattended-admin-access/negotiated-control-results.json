@@ -619,5 +619,41 @@
     "La UI administrativa, transición general de contexto y migración local siguen pendientes.",
     "No verifica Flutter contra el trabajador P2P nativo, TURN ni plataformas físicas.",
     "No publica un agente final ni cambia los permisos/servicios del Mac."
-  ]
+  ],
+  "sourceRevision": "c33ef8d0b751d4405fabf575f2840346313b8d93",
+  "mergedByPr": 50,
+  "ci": {
+    "head": "c33ef8d0b751d4405fabf575f2840346313b8d93",
+    "rustTests": {
+      "macos": 152,
+      "linux": 167,
+      "windows": 150
+    },
+    "rustReleaseBuildsPerOs": 2,
+    "desktopPackages": [
+      "windows-x64-nsis",
+      "macos-arm64-dmg-zip",
+      "macos-x64-dmg-zip",
+      "linux-x64-AppImage-deb-rpm-tar"
+    ],
+    "android": "APK release construido",
+    "ios": "Runner.app sin firma construido",
+    "allChecksPassed": true,
+    "fullLogsReviewed": true,
+    "logsSha256": {
+      "ci-122476396468.log": "379c3fcb5ec8701c0eb2ceafcc8da5aae01dec02c97b0617af2224f506caff51",
+      "ci-122476395710.log": "088a3991513906f3c7db8d6408aabc83694ff0279f7b1a9e70899be77b0a3443",
+      "ci-122476396541.log": "6a7c6493a09a4c2417ed05bdddabe2e4a5afaa716faf61bc1fcf5cf17c1bdbb4",
+      "ci-122476396402.log": "e537d9f021a6f76f24efe85025d4b18837d8519de6690819e125fcb3c011cb4d",
+      "ci-122476396373.log": "de646593d6f26238329266a8c2ff830915db3af289ff9d6cd6a16507c5019311",
+      "ci-122476395912.log": "24df7d04d1768b0092cc7b16bd0719876dd4a4539726473c13182c2b9892fe75",
+      "ci-122476396176.log": "43f8a81fe0c4b74ba73141cd53ad79deeb111ab65a49d1ecc312a83a1d1a0868",
+      "ci-122476396302.log": "5e3d43c2aad96b88e2d0db7cd1f7656d7513c0f6dcfd9bcfe8d4f19610bb5cfb"
+    },
+    "regressions": {
+      "macSyntheticCases": 9,
+      "linuxBrokerCases": 6
+    },
+    "vmCleanupConfirmed": true
+  }
 }

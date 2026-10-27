@@ -35,6 +35,8 @@ async function state(): Promise<RemoteSettingsState | null> {
     accessibilityRenamed:
       process.platform === 'darwin' && accessibilityRenamed(process.getSystemVersion()),
     active: service?.isActive() ?? false,
+    agentOwned: service?.isAgentOwned() ?? false,
+    agentOwnershipPersistenceFailed: service?.didOwnershipPersistenceFail() ?? false,
     log: await store.getLog()
   }
 }
@@ -56,6 +58,8 @@ async function bindToCurrentAccount(): Promise<void> {
 async function setPassword(password: unknown): Promise<RemoteSettingsResult> {
   const { store, service } = remoteHost()
   if (!store) return UNAVAILABLE
+  if (service?.isAgentOwned())
+    return { ok: false, code: 'device_agent_owned', state: (await state())! }
   if (typeof password !== 'string' || password.length < MIN_PC_PASSWORD_LENGTH) {
     return { ok: false, code: 'password_too_short' }
   }
@@ -73,6 +77,8 @@ async function setPassword(password: unknown): Promise<RemoteSettingsResult> {
 async function setEnabled(enabled: unknown): Promise<RemoteSettingsResult> {
   const { store, service, support } = remoteHost()
   if (!store || typeof enabled !== 'boolean') return UNAVAILABLE
+  if (service?.isAgentOwned())
+    return { ok: false, code: 'device_agent_owned', state: (await state())! }
   if (enabled) {
     if (!currentSession()) return { ok: false, code: 'not_signed_in', state: (await state())! }
     if (!(await store.hasPassword()))
@@ -91,6 +97,8 @@ async function setEnabled(enabled: unknown): Promise<RemoteSettingsResult> {
 async function update(changes: unknown): Promise<RemoteSettingsResult> {
   const { store, service } = remoteHost()
   if (!store || typeof changes !== 'object' || changes === null) return UNAVAILABLE
+  if (service?.isAgentOwned())
+    return { ok: false, code: 'device_agent_owned', state: (await state())! }
   const c = changes as RemoteSettingsChanges
   if (c.deviceName !== undefined) {
     const name = typeof c.deviceName === 'string' ? c.deviceName.trim() : ''

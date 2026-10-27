@@ -19,7 +19,7 @@
     "downloading": "Descargando… {{percent}}%",
     "downloaded": "Actualización descargada. Reinicia para aplicar.",
     "restartAndUpdate": "Reiniciar y actualizar",
-    "installBlockedBySession": "Ahora mismo otro equipo controla este PC, así que no se reinicia. La actualización se instalará al salir de la app, o vuelve a pulsar cuando termine la sesión.",
+    "installBlockedBySession": "La instalación se ha pospuesto porque hay una sesión de control remoto o el estado del agente todavía no se ha podido verificar. Comprueba que el equipo puede actualizarse sin interrumpir el acceso y vuelve a intentarlo.",
     "downloadFromGitHub": "Descargar desde GitHub",
     "retry": "Reintentar",
     "errorCheckUpdates": "No se pudo comprobar actualizaciones.",
@@ -348,8 +348,11 @@
       "password_too_short": "La contraseña debe tener al menos 8 caracteres.",
       "unsupported": "Este sistema no permite controlar el PC.",
       "not_signed_in": "Inicia sesión en tu cuenta para activarlo.",
-      "device_name_invalid": "El nombre debe tener entre 1 y 100 caracteres."
-    }
+      "device_name_invalid": "El nombre debe tener entre 1 y 100 caracteres.",
+      "device_agent_owned": "La API ha asignado este equipo a un agente. Los ajustes del host de usuario quedan desactivados para conservar su identidad y evitar una segunda sesión. Puedes revocar su acceso desde Equipos. Esto no verifica la salud ni la preparación del servicio."
+    },
+    "agentOwned": "La API ha asignado este equipo a un agente. Los ajustes del host de usuario quedan desactivados para conservar su identidad y evitar una segunda sesión. Puedes revocar su acceso desde Equipos. Esto no verifica la salud ni la preparación del servicio.",
+    "agentPersistenceFailed": "No se ha podido guardar la desactivación local. El host de usuario está detenido en esta ejecución; revisa el acceso alternativo antes de cerrar o reiniciar la app."
   },
   "remoteStream": {
     "quality": "Calidad de vídeo",

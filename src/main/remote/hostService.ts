@@ -54,7 +54,7 @@ export interface HostSession {
   close(reason: HostCloseReason): void
 }
 
-export type TrayStatus = 'off' | 'available' | 'active'
+export type TrayStatus = 'off' | 'available' | 'active' | 'agent'
 
 export interface HostServiceDeps {
   api: Pick<DeviceApi, 'register' | 'poll' | 'answer' | 'reject'>
@@ -76,6 +76,8 @@ export interface HostServiceDeps {
   setStatus: (status: TrayStatus, controller: string | null) => void
   /** Notificación del sistema al empezar y al terminar cada sesión. */
   notify: (event: 'session-start' | 'session-end', controller: string) => void
+  /** Persistir la desactivación del host de usuario al detectar propietario nativo. */
+  onAgentOwned?: () => Promise<void>
   now?: () => number
 }
 
@@ -87,6 +89,8 @@ interface Current {
 
 export class HostService {
   private running = false
+  private agentOwned = false
+  private ownershipPersistenceFailed = false
   /** Fuera de la cuenta (tarea 4.10): ni registro ni consultas hasta `resume()`. */
   private suspended = false
   private timer: ReturnType<typeof setTimeout> | null = null
@@ -120,7 +124,7 @@ export class HostService {
     this.current?.session.close(reason)
     await this.ticking
     this.setKeepAwake(false)
-    this.setStatus('off', null)
+    this.setStatus(this.agentOwned ? 'agent' : 'off', null)
   }
 
   /**
@@ -157,6 +161,16 @@ export class HostService {
 
   /** Tras cambiar Ajustes. Desactivar el control remoto corta la sesión al momento. */
   async settingsChanged(): Promise<void> {
+    if (this.agentOwned) {
+      // Una escritura de Ajustes iniciada antes del 409 no puede reactivar el host.
+      try {
+        await this.deps.onAgentOwned?.()
+        this.ownershipPersistenceFailed = false
+      } catch {
+        this.ownershipPersistenceFailed = true
+      }
+      return
+    }
     if (!(await this.deps.store.isEnabled())) this.current?.session.close('disabled')
     this.refresh()
   }
@@ -177,8 +191,34 @@ export class HostService {
     return this.current?.startedAt != null
   }
 
+  /** Un 409 de propiedad no es una contraseña incorrecta ni autoriza otra identidad. */
+  isAgentOwned(): boolean {
+    return this.agentOwned
+  }
+
+  didOwnershipPersistenceFail(): boolean {
+    return this.ownershipPersistenceFailed
+  }
+
+  private async transferOwnership(): Promise<void> {
+    if (this.agentOwned) return
+    this.agentOwned = true
+    this.registrationDirty = true
+    this.registered = null
+    if (this.timer) clearTimeout(this.timer)
+    this.timer = null
+    this.current?.session.close('stopped')
+    this.setKeepAwake(false)
+    this.setStatus('agent', null)
+    try {
+      await this.deps.onAgentOwned?.()
+    } catch {
+      this.ownershipPersistenceFailed = true
+    }
+  }
+
   private schedule(delay: number): void {
-    if (!this.running || this.suspended) return
+    if (!this.running || this.suspended || this.agentOwned) return
     if (this.timer) clearTimeout(this.timer)
     this.timer = setTimeout(() => {
       this.timer = null
@@ -211,6 +251,7 @@ export class HostService {
       for (const request of requests) await this.handle(request)
       this.networkFailures = 0
     } catch (error) {
+      if (isCode(error, 'device_agent_owned')) await this.transferOwnership()
       delay = this.retryDelay(error)
     } finally {
       this.schedule(this.wakeRequested ? 0 : delay)
@@ -231,6 +272,10 @@ export class HostService {
   /** Bandeja y "mantener despierto" según el estado; solo avisa cuando cambian. */
   private updateLocal(conditions: HostConditions | null): void {
     void this.applyKeepAwake(conditions)
+    if (this.agentOwned) {
+      this.setStatus('agent', null)
+      return
+    }
     if (this.current?.startedAt != null) {
       this.setStatus('active', this.current.request.controllerName)
       return
@@ -242,7 +287,7 @@ export class HostService {
   private async applyKeepAwake(conditions: HostConditions | null): Promise<void> {
     const on =
       conditions !== null && conditions.enabled && (await this.deps.store.snapshot()).preventSleep
-    this.setKeepAwake(on && this.running)
+    this.setKeepAwake(on && this.running && !this.agentOwned)
   }
 
   private setKeepAwake(on: boolean): void {
@@ -306,6 +351,7 @@ export class HostService {
   }
 
   private async handle(request: PendingRequest): Promise<void> {
+    if (this.agentOwned) return
     const device = await this.deps.identity.get()
     const rejection = earlyRejection(await this.conditions())
     if (rejection) {
@@ -325,9 +371,15 @@ export class HostService {
     }
     try {
       await this.deps.api.answer(device, request.id, session.answer)
-    } catch {
-      // Caducada (más de 60 s) o ya respondida: la conexión no llegará a usarse
+    } catch (error) {
       this.opening = false
+      if (isCode(error, 'device_agent_owned')) {
+        // La sesión aún no está en current: cortarla antes de persistir o esperar.
+        session.close('stopped')
+        await this.transferOwnership()
+        return
+      }
+      // Caducada (más de 60 s) o ya respondida: la conexión no llegará a usarse
       session.close('expired')
       return
     }
@@ -351,13 +403,17 @@ export class HostService {
   ): Promise<void> {
     try {
       await this.deps.api.reject(device, requestId, rejection.reason, rejection.retryAfter)
-    } catch {
+    } catch (error) {
+      if (isCode(error, 'device_agent_owned')) await this.transferOwnership()
       // Ya caducó o la respondió otra instancia: nada que hacer
     }
   }
 
   private onStarted(current: Current): void {
-    if (this.current !== current) return
+    if (this.current !== current || this.agentOwned) {
+      current.session.close('stopped')
+      return
+    }
     current.startedAt = this.now()
     const controller = current.request.controllerName
     this.setStatus('active', controller)

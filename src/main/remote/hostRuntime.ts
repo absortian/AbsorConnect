@@ -6,6 +6,7 @@ import * as os from 'os'
 import { join } from 'path'
 import type { AccountExit } from '../cloud/account'
 import { currentSession, loadSession } from '../cloud/session'
+import { refreshAgentUpdateGuard } from '../updater'
 import { getLanguage } from '../store'
 import { getMainWindow, setRemoteStatus, showMainWindow } from '../background'
 import { DeviceApi, devicePlatform } from './deviceApi'
@@ -93,8 +94,12 @@ async function start(): Promise<void> {
         iceServers: () => api.iceServers(),
         language: getLanguage
       }),
+    onAgentOwned: () => hostStore.setEnabled(false),
     setKeepAwake,
-    setStatus: setRemoteStatus,
+    setStatus: (status, controller) => {
+      setRemoteStatus(status, controller)
+      refreshAgentUpdateGuard()
+    },
     notify: (event, controller) => {
       void getLanguage().then((language) =>
         notifySession(event, controller, language, showMainWindow)

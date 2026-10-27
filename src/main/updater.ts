@@ -1,7 +1,13 @@
 import { autoUpdater, UpdateInfo } from 'electron-updater'
 import { Notification } from 'electron'
 import { RELEASES_URL } from '../shared/constants'
-import { getMainWindow, isRemoteControlActive, setTrayUpdate, showMainWindow } from './background'
+import {
+  getMainWindow,
+  isAgentHostOwned,
+  isRemoteControlActive,
+  setTrayUpdate,
+  showMainWindow
+} from './background'
 
 // Cada cuánto busca actualizaciones la app mientras está en marcha (add-remote-desktop D15).
 const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000
@@ -11,7 +17,7 @@ let notifiedVersion: string | null = null
 
 export function initUpdater(): void {
   autoUpdater.autoDownload = false
-  autoUpdater.autoInstallOnAppQuit = true
+  refreshAgentUpdateGuard()
 
   autoUpdater.on('checking-for-update', () => {
     sendToRenderer('update-status', { status: 'checking' })
@@ -59,6 +65,11 @@ export function initUpdater(): void {
   })
 }
 
+/** Sin un cliente local de salud no se presupone que el agente esté libre. */
+export function refreshAgentUpdateGuard(): void {
+  autoUpdater.autoInstallOnAppQuit = !isAgentHostOwned()
+}
+
 /** Busca al arrancar y cada 6 h mientras la app sigue en marcha (incluso sin ventana). */
 export function startBackgroundUpdateChecks(): void {
   void safeCheck()
@@ -97,7 +108,7 @@ export async function downloadUpdate(): Promise<void> {
  * caso no hace nada y el aviso de la interfaz explica que se instalará al terminar la sesión.
  */
 export function quitAndInstall(): boolean {
-  if (isRemoteControlActive()) return false
+  if (isRemoteControlActive() || isAgentHostOwned()) return false
   // quitAndInstall llama a app.quit(), que dispara 'before-quit' (marca la salida real) antes de
   // cerrar las ventanas, así que "mantener en segundo plano" no bloquea este cierre.
   autoUpdater.quitAndInstall()
