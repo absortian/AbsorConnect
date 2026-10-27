@@ -14,6 +14,7 @@ const api = {
   getSession: () => ipcRenderer.invoke('get-session'),
   // Control remoto: equipos de la cuenta y ventanas de visor (el token se queda en el proceso principal)
   remoteDevices: () => ipcRenderer.invoke('remote-devices'),
+  revokeRemoteAgent: (deviceId: string) => ipcRenderer.invoke('remote-revoke-agent', deviceId),
   openViewer: (deviceId: string, deviceName: string) =>
     ipcRenderer.invoke('remote-open-viewer', deviceId, deviceName),
   // Control remoto de este PC (Ajustes): la contraseña solo viaja una vez, al definirla

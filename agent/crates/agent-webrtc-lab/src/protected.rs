@@ -1,5 +1,6 @@
 //! Trabajador de una PeerConnection: la autoridad y K permanecen en otro UID.
 use super::native::{NativeState, Phase};
+use absor_agent_control::{Capabilities, Context, ControlSession, HostMessage, NoOperations};
 use absor_agent_core::{CloseReason, Session};
 use absor_agent_security::client::WorkerClient;
 use absor_agent_x11_lab::{FixtureWorker, Operation, Reply};
@@ -16,6 +17,9 @@ pub(crate) struct Bridge {
     client: WorkerClient,
     worker: Option<FixtureWorker>,
     native: NativeState,
+    control: ControlSession<NoOperations>,
+    context_updates: Vec<HostMessage>,
+    announced: bool,
 }
 impl Bridge {
     pub(crate) fn new(raw: &[u8]) -> Result<Self, ()> {
@@ -27,10 +31,21 @@ impl Bridge {
             client: WorkerClient::connect().map_err(|_| ())?,
             worker: None,
             native: NativeState::default(),
+            control: ControlSession::new(
+                NoOperations,
+                "0.1.0+fixture".into(),
+                Capabilities::NONE,
+                vec![],
+            )
+            .map_err(|_| ())?,
+            context_updates: vec![],
+            announced: false,
         })
     }
     fn stop(&mut self) {
         self.client.fail();
+        self.control.close(CloseReason::Stopped);
+        self.context_updates.clear();
         if let Some(w) = self.worker.as_mut() {
             w.close(CloseReason::Stopped);
         }
@@ -38,6 +53,8 @@ impl Bridge {
     pub(crate) fn poll(&mut self) -> i32 {
         let state = self.client.poll().unwrap_or(-3);
         if state < 0 {
+            self.control.close(CloseReason::Stopped);
+            self.context_updates.clear();
             if let Some(w) = self.worker.as_mut() {
                 w.close(CloseReason::Stopped);
             }
@@ -93,6 +110,13 @@ impl Bridge {
                             && value.height == 180
                             && value.rgb.len() == 172_800 =>
                     {
+                        let updates = self
+                            .control
+                            .set_context(Context::UserDesktop, true)
+                            .map_err(|_| ())?;
+                        if !updates.is_empty() {
+                            self.context_updates = updates;
+                        }
                         frame = Some(value.rgb);
                     }
                     (Phase::Pulse, Reply::Input(counts)) => self.native.counts = Some(counts),
@@ -132,6 +156,32 @@ impl Bridge {
             self.native.input_queued = true;
         }
         Ok(())
+    }
+    // Comprobar el plazo real en ambos lados. Ningún mensaje renueva autorización.
+    pub(crate) fn control(&mut self, raw: &[u8]) -> Result<Vec<u8>, ()> {
+        if self.client.check_lease().unwrap_or(-3) != 2 {
+            return Err(());
+        }
+        if !self.announced {
+            if !raw.is_empty() {
+                return Ok(b"[]".to_vec());
+            }
+            self.announced = true;
+            return serde_json::to_vec(&serde_json::json!([{"v":1,"type":"features",
+                "clipboard":false,"files":false,"audio":false,"unattendedControl":true}]))
+            .map_err(|_| ());
+        }
+        let mut messages = if raw.is_empty() {
+            vec![]
+        } else {
+            self.control.receive(raw).map_err(|_| ())?
+        };
+        messages.append(&mut self.context_updates);
+        if self.client.check_lease().unwrap_or(-3) != 2 {
+            self.stop();
+            return Err(());
+        }
+        serde_json::to_vec(&messages).map_err(|_| ())
     }
     pub(crate) fn native_status(&self) -> Vec<u8> {
         let (opens, captures, inputs) = absor_agent_x11_lab::native_attempts();

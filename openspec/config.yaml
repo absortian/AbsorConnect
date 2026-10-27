@@ -33,6 +33,15 @@ context: |
     traspaso exclusivo del host y revocación ligada a la sesión de origen. Desplegar
     esa API no instala un agente ni habilita acceso administrativo en clientes actuales.
 
+  - Núcleo Rust en agent/ con gate monotónico, autenticación v1, API, auditoría y
+    protocolo administrativo negociado/deduplicado. Los trabajadores actuales
+    son de laboratorio: vídeo artificial o ventana propia X11 de una VM.
+    No equivalen a los agentes finales SCM/launchd/systemd. El laboratorio IPC
+    separa K/credencial del trabajador y prueba corte por watchdog/fin de plazo.
+  - Preparación para viajes y recuperación: docs/unattended-access.md. La matriz
+    certificada de servicio completo sigue vacía; una declaración de capacidades
+    en la API no demuestra disponibilidad de pantallas protegidas.
+
   ## Arquitectura
   - src/main: proceso principal. index.ts registra los handlers ipcMain.handle;
     s3.ts, ssh.ts, localFs.ts, cloud/ (cuenta y conexiones), remote/ (host y señalización),

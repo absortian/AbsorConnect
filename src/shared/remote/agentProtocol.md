@@ -2,9 +2,9 @@
 
 Contrato de la tarea 8.2 de `add-unattended-admin-access`, compartido por
 `agentProtocol.ts` y `mobile/lib/src/remote/agent_protocol.dart`. Los vectores
-`agent-protocol-vectors.json` se ejecutan en ambos lenguajes. Son analizadores
-preparados para la integración: todavía no conectan un servicio, habilitan
-operaciones ni certifican un equipo. Los analizadores del modo de usuario siguen
+`agent-protocol-vectors.json` se ejecutan en ambos lenguajes. El crate Rust `absor-agent-control` implementa la negociación, secuencias y
+deduplicación del host. El trabajador IPC de ventana propia de la VM lo conecta
+al canal WebRTC y anuncia cero acciones del SO. Esto no certifica un equipo. Los analizadores del modo de usuario siguen
 ignorando estos mensajes. No cambia la autenticación v1 ni `auth-vectors.json`.
 
 ## Negociación obligatoria antes de integrar
@@ -17,8 +17,9 @@ ignorando estos mensajes. No cambia la autenticación v1 ni `auth-vectors.json`.
    operaciones anunciadas. Un mensaje analizable por sí solo nunca autoriza nada.
 
 El anuncio es opcional. Los hosts y controladores actuales no negocian la
-extensión ni ejecutan sus operaciones. Esta integración y sus pruebas de estado
-pertenecen a 3.3, 7–10; no se dan por hechas al completar los analizadores de 8.2.
+extensión ni ejecutan sus operaciones. El laboratorio IPC nativo ya negocia esta revisión; la app y el móvil todavía
+no habilitan los controles administrativos finales. Esa integración pertenece
+a 7–10; no se da por hecha al completar los analizadores o el núcleo.
 
 ## Forma y límites
 
@@ -60,8 +61,13 @@ entrada pendiente y suspende esas funciones, sin delegarlo al controlador.
 que `actions`, sin parámetros. El agente debe comprobar autenticación,
 autorización vigente, negociación y capacidad actual al ejecutar. Debe deduplicar
 por conexión/ID y recordar también la acción: repetir el ID no ejecuta otra vez
-la operación y cambiar de acción con el mismo ID se rechaza. Esto requiere el
-registro y ejecución de 3.3; los analizadores carecen de efectos y no lo implementan.
+la operación y cambiar de acción con el mismo ID se rechaza. El núcleo Rust conserva como máximo 64 IDs por conexión, incluidos los
+rechazos y fallos; al llenarse responde `busy` sin desalojar IDs antiguos.
+El adaptador solo recibe el enum y el contexto observado, sin argumentos de red.
+El gate de autorización se comprueba antes y después de atender el mensaje.
+Las pruebas verifican dos entregas de un reinicio con un solo efecto en un
+adaptador artificial; el laboratorio WebRTC rechaza ese reinicio porque no lo
+anuncia. No se ha reiniciado ningún equipo con esa prueba.
 
 `status`: `accepted`, `rejected`, `failed`. `accepted` no admite `code` y solo
 confirma que el sistema aceptó la solicitud, sin probar que ya reinició o cerró

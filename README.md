@@ -51,6 +51,15 @@ Aplicación de escritorio para gestionar archivos entre el sistema de archivos l
 | Linux | Solo con sesión X11: Wayland no deja capturar la pantalla ni manejar el ratón. El sonido necesita PulseAudio o PipeWire con `pactl` (paquete `pulseaudio-utils`). No se puede manejar la pantalla de bloqueo. | Sí, también con Wayland |
 | Android e iPhone | No | Sí |
 
+### Acceso desatendido y viajes
+
+El servicio nativo sigue en desarrollo; aún no hay una configuración certificada
+para controlar UAC, bloqueo e inicio de sesión en los tres sistemas. La API de
+agentes no cambia por sí sola el soporte publicado. La guía de
+[preparación para viajes y recuperación](docs/unattended-access.md) distingue
+cuenta, sesión del sistema e interfaz, capacidades declaradas y certificadas,
+cifrado de arranque, revocación y acceso alternativo.
+
 ## Stack tecnológico
 
 | Categoría | Tecnología |

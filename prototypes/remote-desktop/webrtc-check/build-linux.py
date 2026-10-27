@@ -45,6 +45,7 @@ def main():
                 if path.suffix in ['.rs', '.toml', '.lock', '.h']:
                     source_hashes[str(relative)] = hashlib.sha256(path.read_bytes()).hexdigest()
         output.add(ROOT/'src/shared/remote/auth-vectors.json', arcname='src/shared/remote/auth-vectors.json')
+        output.add(ROOT/'src/shared/remote/agent-protocol-vectors.json', arcname='src/shared/remote/agent-protocol-vectors.json')
     subprocess.run(vm.SSH+['tar -xf - -C /home/absorlab/AbsorConnectLab/api-workers'], input=archive.getvalue(), capture_output=True, check=True, timeout=30)
     # El mismo sysroot oficial verificado por install-sysroot.py. Evita enlazar
     # Rust contra glibc de Ubuntu y C++ contra otra base sin relajar el linker.

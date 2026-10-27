@@ -76,3 +76,32 @@ docker compose exec php php bin/phpunit
 # Si se toca mobile/ (con el entorno de mobile/tool/test_env.sh)
 (cd mobile && flutter analyze && flutter test)
 ```
+
+## Agente desatendido: propiedad, IPC y diagnóstico
+
+- El propietario del host es exclusivo: legado Electron o agente. `device_agent_owned`
+  no significa clave incorrecta; no regenerar la identidad ni registrar un segundo equipo
+  para sortearlo. Solo la baja autorizada devuelve la propiedad. El traspaso local final
+  continúa pendiente; no activar los servicios de laboratorio en instalaciones reales.
+- Cuenta, sesión del SO e interfaz son distintas. Salir de Electron detiene el host
+  publicado; todavía no certifica un servicio. La matriz certificada y las limitaciones
+  están en `docs/unattended-access.md`. La API declara capacidades, no las certifica.
+- El IPC implementado en Linux es optativo de laboratorio: broker con UID distinto,
+  credenciales cifradas y LoadCredential; socket con metadatos raíz, SO_PEERCRED y PID
+  de la unidad esperada. K/token no van al trabajador. Tramas de hasta 1 MiB para SDP,
+  secuencia estricta y una respuesta pendiente, con plazos/watchdogs independientes.
+  No añadir RPC de shell, rutas arbitrarias o roles administrativos por ser usuario local.
+  `agent/linux-secure-lab/README.md` y `agent/crates/agent-security/src/wire.rs` son el contrato actual;
+  falta la interfaz de configuración/traspaso final de Electron, Windows y Mac.
+- El canal control de red es distinto: `src/shared/remote/agentProtocol.md`, 2048 bytes, negociación tras
+  autenticación, acciones enumeradas y caché de 64 IDs por conexión sin desalojar.
+  El laboratorio solo declara `NoOperations`. Nunca anunciar reinicio/UAC/inicio de
+  sesión porque compile el enum o por una capacidad recibida del backend.
+- Diagnóstico sin red ni permisos del sistema, desde la raíz:
+  `python3 -B agent/tools/diagnose.py --self-test` y
+  `cargo run --manifest-path agent/Cargo.toml --locked --example lease-smoke`.
+  Para resumir un informe de laboratorio existente:
+  `python3 -B agent/tools/diagnose.py --report /ruta/al/report.json`.
+  Usa lista permitida de booleanos/contadores y hash; no imprime rutas, casos, errores
+  libres, contraseña, K, token ni teclas. Un informe de laboratorio nunca certifica
+  el servicio. No hacer `cat` de almacenes/credenciales para diagnosticar.

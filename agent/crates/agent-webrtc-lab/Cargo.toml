@@ -20,6 +20,7 @@ absor-agent-security = { path = "../agent-security", features = ["protected-ipc-
 absor-agent-x11-lab = { path = "../agent-x11-lab", features = ["x11-lab"], optional = true }
 
 [dependencies]
+absor-agent-control = { path = "../agent-control" }
 absor-agent-api = { path = "../agent-api" }
 absor-agent-auth = { path = "../agent-auth" }
 absor-agent-core = { path = "../agent-core" }

@@ -184,6 +184,46 @@ pub unsafe extern "C" fn absor_bridge_auth(id: u64, proof: *const u8, len: usize
     .unwrap_or(-3)
 }
 
+/// # Safety
+/// raw legible por len bytes (o null/0 para recoger contexto), out exclusivo de 8192 bytes.
+#[no_mangle]
+pub unsafe extern "C" fn absor_bridge_control(
+    id: u64,
+    raw: *const u8,
+    len: usize,
+    out: *mut u8,
+    cap: usize,
+) -> i32 {
+    if out.is_null() || cap != 8192 {
+        return -3;
+    }
+    let bytes = if len == 0 {
+        vec![]
+    } else {
+        // SAFETY: contrato del llamador, copia acotada antes de tocar el registro.
+        let Some(bytes) = (unsafe { input(raw, len, absor_agent_control::CONTROL_LIMIT) }) else {
+            return -3;
+        };
+        bytes
+    };
+    let Ok(mut instances) = instances().lock() else {
+        return -3;
+    };
+    let Some(bridge) = instances.get_mut(&id) else {
+        return -3;
+    };
+    match bridge.control(&bytes) {
+        Ok(bytes) if bytes.len() <= cap => {
+            // SAFETY: salida exclusiva del llamador y longitud comprobada.
+            unsafe {
+                std::ptr::copy_nonoverlapping(bytes.as_ptr(), out, bytes.len());
+            }
+            bytes.len() as i32
+        }
+        _ => -3,
+    }
+}
+
 #[no_mangle]
 pub extern "C" fn absor_bridge_close(id: u64) {
     let _ = std::panic::catch_unwind(|| {

@@ -1,6 +1,7 @@
 // Controlador de laboratorio: usa la autenticación de producción, con contraseña pública de prueba.
 import { computeProof, sdpFingerprint } from '../../../src/shared/remote/auth'
 import { CHANNELS, PROTOCOL_VERSION } from '../../../src/shared/remote/protocol'
+import { parseAgentHostMessage } from '../../../src/shared/remote/agentProtocol'
 import vectors from '../../../src/shared/remote/auth-vectors.json'
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -53,6 +54,10 @@ async function runCase(name) {
   let resolveAuth
   let rejectAuth
   let helloCount = 0
+  let authAccepted = false
+  let extensionAdvertised = false
+  let extensionError = null
+  const extensionMessages = []
   const auth = new Promise((resolve, reject) => { resolveAuth = resolve; rejectAuth = reject })
   // La captura y la entrada no forman parte de este ejecutable; ningún dato del host se solicita.
   channel.onmessage = async ({ data }) => {
@@ -62,6 +67,11 @@ async function runCase(name) {
       if (!message || Array.isArray(message) || message.v !== PROTOCOL_VERSION) throw new Error('Mensaje de host inválido')
       if (message.type === 'hello') {
         if (++helloCount !== 1) throw new Error('Reto repetido')
+        if (window.lab.protectedIpc) {
+          // No deben responderse ni ejecutarse mensajes de extensión antes de autenticar.
+          channel.send(JSON.stringify({v:1,extension:1,type:'agent-control-enable'}))
+          channel.send(JSON.stringify({v:1,extension:1,type:'host-operation',id:'12345678-1234-4abc-8def-123456789abc',action:'restart'}))
+        }
         if (input) {
           const deadline = Date.now() + 5000
           while (input.readyState !== 'open') {
@@ -89,7 +99,16 @@ async function runCase(name) {
           : await computeProof(key, binding)
         if (name === 'wrong-proof') proof = 'A'.repeat(44)
         channel.send(JSON.stringify({ v: 1, type: 'auth', proof }))
+      } else if (message.type === 'features') {
+        if (!authAccepted) throw new Error('Funciones anunciadas antes de autenticar')
+        extensionAdvertised = message.unattendedControl === true
+      } else if (message.extension === 1) {
+        if (!authAccepted) throw new Error('Respuesta de extensión previa a autenticar')
+        const parsed = parseAgentHostMessage(data)
+        if (!parsed) throw new Error('Extensión de host malformada')
+        extensionMessages.push(parsed)
       } else if (message.type === 'auth-result') {
+        authAccepted = message.ok === true
         if (input && name === 'linux-locked' && message.ok && input.readyState === 'open') {
           for (const event of fixedInput) input.send(JSON.stringify(event))
           lockedInputSent = true
@@ -98,7 +117,7 @@ async function runCase(name) {
       } else {
         throw new Error('Datos inesperados antes de terminar la prueba de autenticación')
       }
-    } catch (error) { rejectAuth(error) }
+    } catch (error) { extensionError = error; rejectAuth(error) }
   }
   // Evita un rechazo sin atender mientras se intercambia el SDP.
   auth.catch(() => {})
@@ -123,6 +142,39 @@ async function runCase(name) {
     const expectedVideo = expected && name !== 'linux-locked'
     if (result.ok !== expected || (!expected && result.reason !== 'wrong_password')) {
       throw new Error('Resultado de autenticación inesperado')
+    }
+    if (window.lab.protectedIpc && expectedVideo) {
+      const announceDeadline = Date.now() + 5000
+      while (!extensionAdvertised) {
+        if (extensionError) throw extensionError
+        if (Date.now() > announceDeadline) throw new Error('Extensión nativa no anunciada')
+        await delay(10)
+      }
+      const send = (message) => channel.send(JSON.stringify(message))
+      send({ v:1,extension:1,type:'agent-control-enable' })
+      const deadline = Date.now() + 5000
+      while (!extensionMessages.some((m) => m.type === 'agent-capabilities')) {
+        if (extensionError) throw extensionError
+        if (Date.now() > deadline) throw new Error('Sin negociación de extensión')
+        await delay(10)
+      }
+      const caps = extensionMessages.find((m) => m.type === 'agent-capabilities')
+      if (caps.actions.length !== 0 || Object.values(caps.capabilities).some(Boolean)) throw new Error('La ventana de prueba anuncia administración no certificada')
+      const op = { v:1,extension:1,type:'host-operation',id:'12345678-1234-4abc-8def-123456789abc',action:'restart' }
+      send({...op, command:'forbidden'})
+      await delay(100)
+      if (extensionMessages.some((m) => m.type === 'host-operation-result')) throw new Error('Orden malformada atendida')
+      send(op); send(op)
+      while (extensionMessages.filter((m) => m.type === 'host-operation-result').length < 2) {
+        if (extensionError) throw extensionError
+        if (Date.now() > deadline) throw new Error('Sin resultado deduplicado')
+        await delay(10)
+      }
+      const responses = extensionMessages.filter((m) => m.type === 'host-operation-result')
+      if (responses.some((m) => m.status !== 'rejected' || m.code !== 'not_supported') || JSON.stringify(responses[0]) !== JSON.stringify(responses[1])) throw new Error('Rechazo/deduplicación incorrectos')
+      send({ v:1,extension:1,type:'agent-control-enable' })
+      await delay(100)
+      if (extensionMessages.filter((m) => m.type === 'agent-capabilities').length !== 1) throw new Error('Renegociación inesperada')
     }
     let decodedFrames = 0
     let syntheticColorVerified = false
@@ -206,7 +258,10 @@ async function runCase(name) {
       channelClosedAfterFault = true
       if (cutAfterFaultMilliseconds > (name === 'api-revoked' ? 8000 : 30000)) throw new Error('El corte excede el plazo de laboratorio')
     } else channel.send(JSON.stringify({ v: 1, type: 'bye', reason: 'closed' }))
+    if (extensionError) throw extensionError
     return await window.lab.result(name, {
+      extensionNegotiated: extensionMessages.some((m) => m.type === 'agent-capabilities'),
+      extensionOperationsRejected: extensionMessages.filter((m) => m.type === 'host-operation-result').length,
       authenticated: result.ok, connected, helloCount,
       candidateTypes: [local.candidateType, remote.candidateType],
       relayProtocol: local.relayProtocol ?? null,

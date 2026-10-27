@@ -264,6 +264,20 @@
       "generic": "Could not load the device list.",
       "network_error": "No connection to the service.",
       "remote_unavailable": "Remote control is not available on the service right now."
+    },
+    "agent": {
+      "revoke": "Revoke unattended access",
+      "revokeTitle": "Revoke unattended access for this device",
+      "revokeDetail": "Its connections will end within 30 seconds. A new agent enrollment will be required to enable access again. S3 and SSH connections are preserved.",
+      "cancel": "Cancel",
+      "revoked": "Unattended access revoked.",
+      "declared": "Capabilities declared by the agent; certification pending.",
+      "readiness": {
+        "legacy_session": "User mode: requires the app and an open system session. Quitting the app stops the host.",
+        "not_certified": "Unattended access is not yet certified for travel.",
+        "unknown": "The mode of this device could not be verified.",
+        "offline": "Offline: check this device and an alternative access method before travelling."
+      }
     }
   },
   "background": {

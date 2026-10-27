@@ -27,6 +27,7 @@ declare global {
     api: {
       getSession: () => Promise<SessionState>
       remoteDevices: () => Promise<AccountDevicesResult>
+      revokeRemoteAgent: (deviceId: string) => Promise<{ ok: true } | { ok: false; code: string }>
       openViewer: (deviceId: string, deviceName: string) => Promise<boolean>
       remoteSettings: () => Promise<RemoteSettingsResult>
       setRemotePassword: (password: string) => Promise<RemoteSettingsResult>
