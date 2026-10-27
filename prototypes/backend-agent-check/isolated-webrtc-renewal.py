@@ -29,7 +29,14 @@ def main():
     parser.add_argument('--linux-broker', action='store_true')
     parser.add_argument('--secure-ipc-vm', type=Path)
     parser.add_argument('--protected-p2p-vm', type=Path)
+    parser.add_argument('--mobile-device')
+    parser.add_argument('--turn-config', type=Path)
+    parser.add_argument('--stun-config', type=Path)
+    parser.add_argument('--android-mapped-direct', action='store_true')
+    parser.add_argument('--flutter-tests', action='store_true')
     args = parser.parse_args()
+    assert not (args.mobile_device or args.turn_config or args.stun_config or args.android_mapped_direct) or args.protected_p2p_vm, 'mobile_requires_protected_vm'
+    assert not args.flutter_tests or not (args.protected_p2p_vm or args.secure_ipc_vm or args.linux_broker or args.linux_webrtc_vm or args.x11_worker_vm), 'choose_one_matrix'
     assert not args.linux_broker or args.linux_webrtc_vm, 'broker_requires_linux_vm'
     assert not args.protected_p2p_vm or not (args.secure_ipc_vm or args.linux_broker or args.linux_webrtc_vm or args.x11_worker_vm), 'choose_one_matrix'
     assert not args.secure_ipc_vm or not (args.linux_broker or args.linux_webrtc_vm or args.x11_worker_vm), 'choose_one_matrix'
@@ -58,7 +65,7 @@ def main():
              'APP_SECRET': secrets.token_hex(32), 'CONNECTIONS_KEY': base64.b64encode(secrets.token_bytes(32)).decode(),
              'CONNECTIONS_KEY_PREVIOUS': '', 'SERVER_NAME': ':80', 'DEFAULT_URI': 'http://127.0.0.1:'+str(port),
              'FRANKENPHP_WORKER_CONFIG': 'num 1', 'XDEBUG_MODE': 'off', 'REMOTE_ENABLED': '1',
-             'STUN_URLS': '', 'TURN_URLS': '', 'TURN_SECRET': ''}
+             'STUN_URLS': 'stun:stun.example.invalid:3478' if args.flutter_tests else '', 'TURN_URLS': '', 'TURN_SECRET': ''}
     descriptor = os.open(env_file, os.O_WRONLY|os.O_CREAT|os.O_EXCL, 0o600)
     with os.fdopen(descriptor, 'w') as file:
         file.write(''.join(k+'='+v+'\n' for k, v in value.items()))
@@ -85,6 +92,10 @@ def main():
         php_version = command(['docker', 'exec', container, 'php', '-r', 'echo PHP_VERSION;']).decode().strip()
         if args.protected_p2p_vm:
             child_args=['python3','-B',str(Path(__file__).with_name('protected-webrtc.py')),str(lab),str(args.protected_p2p_vm),'--api-base','http://127.0.0.1:'+str(port),'--node',args.node]
+            if args.mobile_device:child_args += ['--mobile-device',args.mobile_device]
+            if args.turn_config:child_args += ['--turn-config',str(args.turn_config.resolve())]
+            if args.stun_config:child_args += ['--stun-config',str(args.stun_config.resolve())]
+            if args.android_mapped_direct:child_args += ['--android-mapped-direct']
         elif args.secure_ipc_vm:
             child_args = ['python3', '-B', str(Path(__file__).with_name('secure-ipc-check.py')),
                           str(lab), str(args.secure_ipc_vm), '--api-base', 'http://127.0.0.1:'+str(port)]
@@ -94,7 +105,12 @@ def main():
             child_args += (['--x11-worker-vm', str(args.x11_worker_vm)] if args.x11_worker_vm else [])
             child_args += (['--linux-webrtc-vm', str(args.linux_webrtc_vm)] if args.linux_webrtc_vm else [])
             child_args += (['--linux-broker'] if args.linux_broker else [])
-        run = subprocess.run(child_args, cwd=ROOT, capture_output=True, timeout=360)
+        if args.flutter_tests:
+            # API/BD propias: no vaciar los límites compartidos de desarrollo.
+            environment = dict(os.environ, API_TEST_URL='http://127.0.0.1:'+str(port))
+            run = subprocess.run(['/opt/homebrew/bin/flutter', 'test'], cwd=ROOT/'mobile', env=environment, capture_output=True, timeout=600)
+        else:
+            run = subprocess.run(child_args, cwd=ROOT, capture_output=True, timeout=600)
         log = private/'matrix.log'
         log.write_bytes(run.stdout+run.stderr)
         os.chmod(log, 0o600)

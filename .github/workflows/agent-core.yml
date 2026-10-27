@@ -47,7 +47,9 @@ jobs:
           cargo +1.85.0 fmt --manifest-path agent/Cargo.toml --all --check
           cargo +1.85.0 clippy --manifest-path agent/Cargo.toml --offline --locked --all-targets --all-features -- -D warnings
       - name: Diagnóstico sin secretos
-        run: python agent/tools/diagnose.py --self-test
+        run: |
+          python agent/tools/diagnose.py --self-test
+          python -B prototypes/backend-agent-check/test_mobile_protected_runner.py
       - name: Autorización y proceso propio
         run: |
           cargo +1.85.0 test --manifest-path agent/Cargo.toml --offline --locked

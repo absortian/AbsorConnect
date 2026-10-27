@@ -1,0 +1,463 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "scope": "Viabilidad libwebrtc/adaptador C++ con ventana nativa propia X11, broker e IPC protegidos y controladores Electron/Android/iOS en laboratorio.",
+  "acceptedTasks": [
+    "1.5"
+  ],
+  "acceptedTotal": 16,
+  "totalTasks": 57,
+  "percent": 28,
+  "matrix": [
+    {
+      "controller": "electron",
+      "route": "direct",
+      "casesPassed": 10,
+      "caseNames": [
+        "correct",
+        "correct-reconnect",
+        "wrong-proof",
+        "fingerprint-mismatch",
+        "api-revoked",
+        "api-cut",
+        "linux-locked",
+        "worker-stall",
+        "broker-stall",
+        "broker-crash"
+      ],
+      "successDecodedFrames": [
+        6,
+        6
+      ],
+      "eachSuccessHasOneCompleteClickAndKey": true,
+      "rejectionCaptureAndInputZero": true,
+      "twoConnectionsSameBroker": true,
+      "secondConnectionUsesNewNonce": true,
+      "candidateTypes": {
+        "local": [
+          "host"
+        ],
+        "remote": [
+          "prflx"
+        ],
+        "relayProtocol": [
+          null
+        ]
+      },
+      "cleanupVerified": true,
+      "privateReportSha256": "dd6478beadc80e2b2127bed489d9c046e6c29df7a4256f9585530fb37849fd52",
+      "fixtureSourceSha256AtExecution": {
+        "prototypes/backend-agent-check/protected-webrtc.py": "68ce317d9aad0eff1034ed2c3fc2396bf6775f2049524dc262f2e020cde29927",
+        "prototypes/backend-agent-check/mobile-protected-runner.py": "0fb44baef6a287a32aa4162c24a29bd32581d4fb97b3e960287bc59a23c5bef4",
+        "prototypes/backend-agent-check/isolated-webrtc-renewal.py": "a8a6d0dec7ab957d49948620fd63ae0b063e069768c4eabe6280a7df893b1ec0",
+        "prototypes/remote-desktop/webrtc-check/mobile-protected-interop-test.dart": "ce9fc66c1bae4eb0dceea9d6ad50e8b5545c71bfccaacd0cc9dc8bcfa8b71b40",
+        "prototypes/remote-desktop/webrtc-check/run-interop.cjs": "6d2234c113f7a62bb1cadd593f1eb9ffc17eff05340aa72c16b0f60faceb235c",
+        "prototypes/remote-desktop/webrtc-check/interop-main.cjs": "c4abf0c5a06bb1664a9d74c49c4b85c3762f770bf527a543f95ea762077a8a29",
+        "prototypes/remote-desktop/webrtc-check/interop-renderer.js": "a3d0e9e4ded584319f1d3cc443c5943e44094d64ba343cb2ad5db677435c258e"
+      }
+    },
+    {
+      "controller": "electron",
+      "route": "udp",
+      "casesPassed": 10,
+      "caseNames": [
+        "correct",
+        "correct-reconnect",
+        "wrong-proof",
+        "fingerprint-mismatch",
+        "api-revoked",
+        "api-cut",
+        "linux-locked",
+        "worker-stall",
+        "broker-stall",
+        "broker-crash"
+      ],
+      "successDecodedFrames": [
+        8,
+        7
+      ],
+      "eachSuccessHasOneCompleteClickAndKey": true,
+      "rejectionCaptureAndInputZero": true,
+      "twoConnectionsSameBroker": true,
+      "secondConnectionUsesNewNonce": true,
+      "candidateTypes": {
+        "local": [
+          "relay"
+        ],
+        "remote": [
+          "srflx"
+        ],
+        "relayProtocol": [
+          "udp"
+        ]
+      },
+      "cleanupVerified": true,
+      "privateReportSha256": "458256397cf2224f32af97c88f0475004b35016044b526964e0f3c3782b8c23a",
+      "fixtureSourceSha256AtExecution": {
+        "prototypes/backend-agent-check/protected-webrtc.py": "68ce317d9aad0eff1034ed2c3fc2396bf6775f2049524dc262f2e020cde29927",
+        "prototypes/backend-agent-check/mobile-protected-runner.py": "d5785df1f32ba21965d12a28c33fb50914c6434c58d112bc22408e7d63da27d7",
+        "prototypes/backend-agent-check/isolated-webrtc-renewal.py": "a8a6d0dec7ab957d49948620fd63ae0b063e069768c4eabe6280a7df893b1ec0",
+        "prototypes/remote-desktop/webrtc-check/mobile-protected-interop-test.dart": "ce9fc66c1bae4eb0dceea9d6ad50e8b5545c71bfccaacd0cc9dc8bcfa8b71b40",
+        "prototypes/remote-desktop/webrtc-check/run-interop.cjs": "6d2234c113f7a62bb1cadd593f1eb9ffc17eff05340aa72c16b0f60faceb235c",
+        "prototypes/remote-desktop/webrtc-check/interop-main.cjs": "c4abf0c5a06bb1664a9d74c49c4b85c3762f770bf527a543f95ea762077a8a29",
+        "prototypes/remote-desktop/webrtc-check/interop-renderer.js": "a3d0e9e4ded584319f1d3cc443c5943e44094d64ba343cb2ad5db677435c258e"
+      }
+    },
+    {
+      "controller": "electron",
+      "route": "tls",
+      "casesPassed": 10,
+      "caseNames": [
+        "correct",
+        "correct-reconnect",
+        "wrong-proof",
+        "fingerprint-mismatch",
+        "api-revoked",
+        "api-cut",
+        "linux-locked",
+        "worker-stall",
+        "broker-stall",
+        "broker-crash"
+      ],
+      "successDecodedFrames": [
+        8,
+        6
+      ],
+      "eachSuccessHasOneCompleteClickAndKey": true,
+      "rejectionCaptureAndInputZero": true,
+      "twoConnectionsSameBroker": true,
+      "secondConnectionUsesNewNonce": true,
+      "candidateTypes": {
+        "local": [
+          "relay"
+        ],
+        "remote": [
+          "srflx"
+        ],
+        "relayProtocol": [
+          "tls"
+        ]
+      },
+      "cleanupVerified": true,
+      "privateReportSha256": "323a589d34d21a4622712f39d9e8fc572efc35e6b98a47b676b5abf711208385",
+      "fixtureSourceSha256AtExecution": {
+        "prototypes/backend-agent-check/protected-webrtc.py": "f46ac5c80247b97e8c5487009aeac6fede827c0d32befea20f6752312adc1491",
+        "prototypes/backend-agent-check/mobile-protected-runner.py": "b978214f4ea708bf01b5d6beab0bf9e7b878c60edf2f16c9ca6720955bcc5ed5",
+        "prototypes/backend-agent-check/isolated-webrtc-renewal.py": "a8a6d0dec7ab957d49948620fd63ae0b063e069768c4eabe6280a7df893b1ec0",
+        "prototypes/remote-desktop/webrtc-check/mobile-protected-interop-test.dart": "ce9fc66c1bae4eb0dceea9d6ad50e8b5545c71bfccaacd0cc9dc8bcfa8b71b40",
+        "prototypes/remote-desktop/webrtc-check/run-interop.cjs": "6d2234c113f7a62bb1cadd593f1eb9ffc17eff05340aa72c16b0f60faceb235c",
+        "prototypes/remote-desktop/webrtc-check/interop-main.cjs": "c4abf0c5a06bb1664a9d74c49c4b85c3762f770bf527a543f95ea762077a8a29",
+        "prototypes/remote-desktop/webrtc-check/interop-renderer.js": "a3d0e9e4ded584319f1d3cc443c5943e44094d64ba343cb2ad5db677435c258e"
+      }
+    },
+    {
+      "controller": "ios",
+      "route": "direct",
+      "casesPassed": 4,
+      "caseNames": [
+        "correct",
+        "correct-reconnect",
+        "wrong-proof",
+        "fingerprint-mismatch"
+      ],
+      "successDecodedFrames": [
+        9,
+        10
+      ],
+      "eachSuccessHasOneCompleteClickAndKey": true,
+      "rejectionCaptureAndInputZero": true,
+      "twoConnectionsSameBroker": true,
+      "secondConnectionUsesNewNonce": true,
+      "candidateTypes": {
+        "local": [
+          "host"
+        ],
+        "remote": [
+          "prflx"
+        ],
+        "relayProtocol": [
+          null
+        ]
+      },
+      "cleanupVerified": true,
+      "privateReportSha256": "50a22cca5e6e71b8a1e52bc6d65d1feaa070c64361d5e5bdd829cfbbbb2a6c29",
+      "fixtureSourceSha256AtExecution": {
+        "prototypes/backend-agent-check/protected-webrtc.py": "f46ac5c80247b97e8c5487009aeac6fede827c0d32befea20f6752312adc1491",
+        "prototypes/backend-agent-check/mobile-protected-runner.py": "b978214f4ea708bf01b5d6beab0bf9e7b878c60edf2f16c9ca6720955bcc5ed5",
+        "prototypes/backend-agent-check/isolated-webrtc-renewal.py": "a8a6d0dec7ab957d49948620fd63ae0b063e069768c4eabe6280a7df893b1ec0",
+        "prototypes/remote-desktop/webrtc-check/mobile-protected-interop-test.dart": "ce9fc66c1bae4eb0dceea9d6ad50e8b5545c71bfccaacd0cc9dc8bcfa8b71b40",
+        "prototypes/remote-desktop/webrtc-check/run-interop.cjs": "6d2234c113f7a62bb1cadd593f1eb9ffc17eff05340aa72c16b0f60faceb235c",
+        "prototypes/remote-desktop/webrtc-check/interop-main.cjs": "c4abf0c5a06bb1664a9d74c49c4b85c3762f770bf527a543f95ea762077a8a29",
+        "prototypes/remote-desktop/webrtc-check/interop-renderer.js": "a3d0e9e4ded584319f1d3cc443c5943e44094d64ba343cb2ad5db677435c258e"
+      }
+    },
+    {
+      "controller": "ios",
+      "route": "udp",
+      "casesPassed": 4,
+      "caseNames": [
+        "correct",
+        "correct-reconnect",
+        "wrong-proof",
+        "fingerprint-mismatch"
+      ],
+      "successDecodedFrames": [
+        13,
+        12
+      ],
+      "eachSuccessHasOneCompleteClickAndKey": true,
+      "rejectionCaptureAndInputZero": true,
+      "twoConnectionsSameBroker": true,
+      "secondConnectionUsesNewNonce": true,
+      "candidateTypes": {
+        "local": [
+          "relay"
+        ],
+        "remote": [
+          "srflx"
+        ],
+        "relayProtocol": [
+          "udp"
+        ]
+      },
+      "cleanupVerified": true,
+      "privateReportSha256": "e650a992dcdc66d9b21a5c030d2d2431f9b8dbe8fbecb8b77e39f38b3ed75883",
+      "fixtureSourceSha256AtExecution": {
+        "prototypes/backend-agent-check/protected-webrtc.py": "f46ac5c80247b97e8c5487009aeac6fede827c0d32befea20f6752312adc1491",
+        "prototypes/backend-agent-check/mobile-protected-runner.py": "b978214f4ea708bf01b5d6beab0bf9e7b878c60edf2f16c9ca6720955bcc5ed5",
+        "prototypes/backend-agent-check/isolated-webrtc-renewal.py": "15daf7e071aefa94d32392e72118985137a3701c94d8b32c31203fdca2de2b90",
+        "prototypes/remote-desktop/webrtc-check/mobile-protected-interop-test.dart": "ce9fc66c1bae4eb0dceea9d6ad50e8b5545c71bfccaacd0cc9dc8bcfa8b71b40",
+        "prototypes/remote-desktop/webrtc-check/run-interop.cjs": "6d2234c113f7a62bb1cadd593f1eb9ffc17eff05340aa72c16b0f60faceb235c",
+        "prototypes/remote-desktop/webrtc-check/interop-main.cjs": "c4abf0c5a06bb1664a9d74c49c4b85c3762f770bf527a543f95ea762077a8a29",
+        "prototypes/remote-desktop/webrtc-check/interop-renderer.js": "a3d0e9e4ded584319f1d3cc443c5943e44094d64ba343cb2ad5db677435c258e"
+      }
+    },
+    {
+      "controller": "ios",
+      "route": "tls",
+      "casesPassed": 4,
+      "caseNames": [
+        "correct",
+        "correct-reconnect",
+        "wrong-proof",
+        "fingerprint-mismatch"
+      ],
+      "successDecodedFrames": [
+        10,
+        12
+      ],
+      "eachSuccessHasOneCompleteClickAndKey": true,
+      "rejectionCaptureAndInputZero": true,
+      "twoConnectionsSameBroker": true,
+      "secondConnectionUsesNewNonce": true,
+      "candidateTypes": {
+        "local": [
+          "relay"
+        ],
+        "remote": [
+          "srflx"
+        ],
+        "relayProtocol": [
+          "tls"
+        ]
+      },
+      "cleanupVerified": true,
+      "privateReportSha256": "4d62fe7461e7617d6a7ae87d5c6ea707c60c5c5aebeef914c2f1d7ba655306b4",
+      "fixtureSourceSha256AtExecution": {
+        "prototypes/backend-agent-check/protected-webrtc.py": "f46ac5c80247b97e8c5487009aeac6fede827c0d32befea20f6752312adc1491",
+        "prototypes/backend-agent-check/mobile-protected-runner.py": "b978214f4ea708bf01b5d6beab0bf9e7b878c60edf2f16c9ca6720955bcc5ed5",
+        "prototypes/backend-agent-check/isolated-webrtc-renewal.py": "3492c39940a526a293112abc73c29ebef1e2497ca6309c3e47e1b7a38916dd9b",
+        "prototypes/remote-desktop/webrtc-check/mobile-protected-interop-test.dart": "ce9fc66c1bae4eb0dceea9d6ad50e8b5545c71bfccaacd0cc9dc8bcfa8b71b40",
+        "prototypes/remote-desktop/webrtc-check/run-interop.cjs": "6d2234c113f7a62bb1cadd593f1eb9ffc17eff05340aa72c16b0f60faceb235c",
+        "prototypes/remote-desktop/webrtc-check/interop-main.cjs": "c4abf0c5a06bb1664a9d74c49c4b85c3762f770bf527a543f95ea762077a8a29",
+        "prototypes/remote-desktop/webrtc-check/interop-renderer.js": "a3d0e9e4ded584319f1d3cc443c5943e44094d64ba343cb2ad5db677435c258e"
+      }
+    },
+    {
+      "controller": "android",
+      "route": "direct-with-owned-vm-nat-mapping",
+      "casesPassed": 4,
+      "caseNames": [
+        "correct",
+        "correct-reconnect",
+        "wrong-proof",
+        "fingerprint-mismatch"
+      ],
+      "successDecodedFrames": [
+        10,
+        11
+      ],
+      "eachSuccessHasOneCompleteClickAndKey": true,
+      "rejectionCaptureAndInputZero": true,
+      "twoConnectionsSameBroker": true,
+      "secondConnectionUsesNewNonce": true,
+      "candidateTypes": {
+        "local": [
+          "prflx"
+        ],
+        "remote": [
+          "host"
+        ],
+        "relayProtocol": [
+          null
+        ]
+      },
+      "cleanupVerified": true,
+      "privateReportSha256": "8bda271fe336b483b1c49d03dc6f984d4990bc612c8d50d187e40503f133e182",
+      "fixtureSourceSha256AtExecution": {
+        "prototypes/backend-agent-check/protected-webrtc.py": "f46ac5c80247b97e8c5487009aeac6fede827c0d32befea20f6752312adc1491",
+        "prototypes/backend-agent-check/mobile-protected-runner.py": "b978214f4ea708bf01b5d6beab0bf9e7b878c60edf2f16c9ca6720955bcc5ed5",
+        "prototypes/backend-agent-check/isolated-webrtc-renewal.py": "a8a6d0dec7ab957d49948620fd63ae0b063e069768c4eabe6280a7df893b1ec0",
+        "prototypes/remote-desktop/webrtc-check/mobile-protected-interop-test.dart": "ce9fc66c1bae4eb0dceea9d6ad50e8b5545c71bfccaacd0cc9dc8bcfa8b71b40",
+        "prototypes/remote-desktop/webrtc-check/run-interop.cjs": "6d2234c113f7a62bb1cadd593f1eb9ffc17eff05340aa72c16b0f60faceb235c",
+        "prototypes/remote-desktop/webrtc-check/interop-main.cjs": "c4abf0c5a06bb1664a9d74c49c4b85c3762f770bf527a543f95ea762077a8a29",
+        "prototypes/remote-desktop/webrtc-check/interop-renderer.js": "a3d0e9e4ded584319f1d3cc443c5943e44094d64ba343cb2ad5db677435c258e"
+      }
+    },
+    {
+      "controller": "android",
+      "route": "udp",
+      "casesPassed": 4,
+      "caseNames": [
+        "correct",
+        "correct-reconnect",
+        "wrong-proof",
+        "fingerprint-mismatch"
+      ],
+      "successDecodedFrames": [
+        10,
+        10
+      ],
+      "eachSuccessHasOneCompleteClickAndKey": true,
+      "rejectionCaptureAndInputZero": true,
+      "twoConnectionsSameBroker": true,
+      "secondConnectionUsesNewNonce": true,
+      "candidateTypes": {
+        "local": [
+          "relay"
+        ],
+        "remote": [
+          "srflx"
+        ],
+        "relayProtocol": [
+          "udp"
+        ]
+      },
+      "cleanupVerified": true,
+      "privateReportSha256": "030630fa8c021bd9595e483b8b868b0eb996de1813fe4b7a1d8e82e8c988ef75",
+      "fixtureSourceSha256AtExecution": {}
+    },
+    {
+      "controller": "android",
+      "route": "tls",
+      "casesPassed": 4,
+      "caseNames": [
+        "correct",
+        "correct-reconnect",
+        "wrong-proof",
+        "fingerprint-mismatch"
+      ],
+      "successDecodedFrames": [
+        11,
+        11
+      ],
+      "eachSuccessHasOneCompleteClickAndKey": true,
+      "rejectionCaptureAndInputZero": true,
+      "twoConnectionsSameBroker": true,
+      "secondConnectionUsesNewNonce": true,
+      "candidateTypes": {
+        "local": [
+          "relay"
+        ],
+        "remote": [
+          "srflx"
+        ],
+        "relayProtocol": [
+          "tls"
+        ]
+      },
+      "cleanupVerified": true,
+      "privateReportSha256": "b41115ecaf74423fe7e6caa5f291e320232b4f837f13d2f86993943cd73a462f",
+      "fixtureSourceSha256AtExecution": {}
+    }
+  ],
+  "casesPassed": 54,
+  "dependency": {
+    "webrtcRevision": "5d27ce25e244b90d09de3429dd3e702fd70f400b",
+    "boringSslRevision": "890a85a274947ba27b386f1af8ddf183ac5947fa",
+    "target": "aarch64-linux-gnu",
+    "gnArgs": "target_os=\"linux\" target_cpu=\"arm64\" is_debug=false symbol_level=0 rtc_include_tests=false rtc_build_examples=false is_component_build=false use_remoteexec=false use_siso=false rtc_use_h264=false proprietary_codecs=false rtc_use_x11=false rtc_use_pipewire=false use_glib=false use_dbus=false rtc_include_pulse_audio=false absor_rust_bridge=true absor_linux_fixture=true",
+    "sysrootSha256": "278c36fe3a785d7f89fbe3f46956899a3bd49fe665f68dc667d6f626a951fcd6",
+    "rustCompiler": "rustc 1.75.0 (82e1608df 2023-12-21) (built from a source tarball)",
+    "rustLinker": "Ubuntu LLD 18.1.3 (compatible with GNU linkers)"
+  },
+  "artifactsSha256": {
+    "absor-protected-channel-lab": "69e9527ba16a9ed97d990ccc53cb9b43d056153e9c304befcbfe2789003bf9ef",
+    "libabsor_agent_webrtc_lab.so": "9b497ad56e78fb0b8b379cc220788afd2de6bf658c2108e793cc4b010ff1fbca",
+    "absor-secure-broker-lab": "d93d4806521161e74edacc2b502ad075af2e437a18e25b197bb766c3857f89c1",
+    "absor-secret-provision-lab": "d541eb0d3fce487f464f4c9f6e3d9ec562f32553c092c79bf17d865e1ec33b55",
+    "absorconnect-secure-lab.service": "e003badc8619e6ae3f202344df47825ca1306c9b08809b0f346a467773f650c0",
+    "absorconnect-secure-lab.socket": "a36677cff3914a8d3f3973e82d8b6ae8a4f66138fe2c0dd5df42885849653bad",
+    "absorconnect-protected-worker-lab.service": "2b8139420e60a7175bf3b4a176dbe94b8efd7a96e1b6bf747ee151a20e2d76d2"
+  },
+  "finalCleanup": {
+    "pathsRemoved": true,
+    "accountRemoved": true,
+    "temporaryUdpMappingsRemoved": true,
+    "allProtectedPathsRemoved": true
+  },
+  "checks": {
+    "typecheck": "passed",
+    "vitestPassed": 300,
+    "vitestSkippedWithoutApi": 6,
+    "phpunitTests": 162,
+    "phpunitAssertions": 1077,
+    "flutterAnalyze": "passed",
+    "flutterTestsWithIsolatedApi": 165,
+    "pythonMappingSafetyTests": 4,
+    "diagnosticSelfTest": "passed",
+    "rustMacDefault": 66,
+    "rustMacAllFeatures": 86,
+    "rustMacClippyAndBothReleaseBuilds": "passed",
+    "rustLinuxDefaultAndAllFeatures": 167,
+    "rustLinuxClippyAndBothReleaseBuilds": "passed"
+  },
+  "limitations": [
+    "Solo ventana propia 320x180 y secuencia fija de clic izquierdo/KeyA; no certifica entrada o captura general, administración, greeter, bloqueo o varios monitores.",
+    "iOS simulado y Android emulado; sin piloto de dispositivos físicos o redes exteriores.",
+    "El directo Android necesitó NAT temporal UDP loopback entre AVD/QEMU; no demuestra traversal automático de NAT reales. Sus intentos sin mapeo fallaron y se conservan en privado.",
+    "TURN verificado por candidato relay y protocolo UDP/TLS realmente seleccionado; no certifica cualquier combinación de redes.",
+    "No se distribuye un servicio final, no se cambian permisos del Mac ni se certifica preparación para viajes.",
+    "El objetivo del 50% sigue pendiente; este cierre suma una tarea."
+  ],
+  "sourceSha256": {
+    ".github/workflows/agent-core.yml": "cbdf6d2a0fcb74d98844d0cd792e5551ed1e071d925ec59db5a8b5dc90dfb791",
+    "agent/crates/agent-webrtc-lab/src/native.rs": "fb649906875029373da785cec4534f4fafeb1a20869b21c3eac0419db10904f0",
+    "mobile/lib/src/remote/viewer_session.dart": "7c3beb2e501076534551517656d22d35946c56f6058fa2cb6122eb93be79f659",
+    "mobile/test/remote_runtime_test.dart": "e264e773d76ff017e4b67a73305840aa311644c2ab8f6652d7b5b3c25eba7be2",
+    "prototypes/backend-agent-check/isolated-webrtc-renewal.py": "3492c39940a526a293112abc73c29ebef1e2497ca6309c3e47e1b7a38916dd9b",
+    "prototypes/backend-agent-check/protected-webrtc.py": "f46ac5c80247b97e8c5487009aeac6fede827c0d32befea20f6752312adc1491",
+    "prototypes/backend-agent-check/mobile-protected-runner.py": "b978214f4ea708bf01b5d6beab0bf9e7b878c60edf2f16c9ca6720955bcc5ed5",
+    "prototypes/backend-agent-check/test_mobile_protected_runner.py": "0a4a87103620f8182a4d013b4e3645780d71ba5918250591594743c1d5a71dd5",
+    "prototypes/remote-desktop/webrtc-check/interop-renderer.js": "a3d0e9e4ded584319f1d3cc443c5943e44094d64ba343cb2ad5db677435c258e",
+    "prototypes/remote-desktop/webrtc-check/run-interop.cjs": "6d2234c113f7a62bb1cadd593f1eb9ffc17eff05340aa72c16b0f60faceb235c",
+    "prototypes/remote-desktop/webrtc-check/mobile-protected-interop-test.dart": "ce9fc66c1bae4eb0dceea9d6ad50e8b5545c71bfccaacd0cc9dc8bcfa8b71b40"
+  },
+  "evidenceSha256": {
+    "absor-native-mobile-analyze.log": "27729e34b35e8c626fa03348d366a87c575126eef5a34f4574e20d7160b70b91",
+    "absor-native-mobile-isolated-tests.log": "c83c151e265b932663d9fdd6ae5288b40d704798e9d2effc5b3ec56735c09998",
+    "absor-native-mobile-linux-checks.log": "44673314a4b5c6dd39cadb0f1ca7c829650af9d9709284ae49f71a80d83e56e8",
+    "absor-native-mobile-mac-all.log": "df437cf1618459c5ce81081eb1c9c94373fdbe8d7aa79436c32a6717d4ab9570",
+    "absor-native-mobile-mac-clippy.log": "fd7597c9c78acfa40b227564b459c750523b5c13968926193eaef6515a20d11c",
+    "absor-native-mobile-mac-default.log": "4a0d15d0b8af63438500561067ac4b885e0d3f0eb15891d124da7ba331df3364",
+    "absor-native-mobile-mac-release-all.log": "b35bc235499944cd9b9a821d62e94761428be33e075dc10493b32208b9cbbffd",
+    "absor-native-mobile-mac-release.log": "ab726000fd82c12833208abbe8bc09660854b7a23f5671ece6134cb760b204cf",
+    "absor-native-mobile-phpunit.log": "4c743fe3b5eb8a3d9975cf27b264f817d10078fd8282e53413c518d52f35df0c",
+    "absor-native-mobile-runtime-test.log": "13b16519a899a1f0748bbae2e706811415d4f492f21741335b05f1b275c62a59",
+    "absor-native-mobile-tests.log": "63bc95e4492327dbf2d8ee4b81398d12d976de962042a34ac0229f63ed2f7707",
+    "absor-native-mobile-typecheck.log": "eb06aafaa08b67d7b2ddc2113a11b4f8dc5f8f8c59af33cc2bf49397787f5c74",
+    "absor-native-mobile-vitest.log": "010292be61b8b706a09dd9b9b5020c92c85bdeb2af65146f97c58e2fdff02481",
+    "api-workers-linux-final.log": "5ad0bacb782696c9dc886daae3e32558f794e6c5c40d1d4caa5cb7305f43dee9",
+    "flutter-isolated-suite.log": "1bac5dd20c63724dd5e4ac7ceb08056eb79ded485e48f0b7d28e92de27f0e31d"
+  }
+}

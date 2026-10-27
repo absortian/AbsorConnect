@@ -28,7 +28,7 @@ existentes continúa pendiente: los laboratorios no lo activan automáticamente.
 | Windows | Escritorio ordinario del usuario, con la app abierta. | Servicio SCM, trabajadores por sesión/escritorio, UAC y aplicaciones elevadas, bloqueo, entrada y paquetes/ACL finales. |
 | macOS | Escritorio del usuario con pantalla y Accesibilidad autorizadas. Sonido desde macOS 14.2. | Revisión de viabilidad, identidad/firma del helper, launchd/XPC, permisos y captura/entrada de los contextos de bloqueo e inicio. No se promete autoactualización del helper con firma ad-hoc. |
 | Mint/Linux | Host con sesión X11 y app abierta; audio con PulseAudio/PipeWire y `pactl`. Wayland puede controlar otros equipos, pero no actuar como host publicado. | Selección logind/asiento/sesión, LightDM/Cinnamon, captura general, acciones del sistema y paquete `.deb` reversible. |
-| Android/iOS | Controladores; no son equipos controlables. | Interoperabilidad del agente nativo por conexión directa y TURN, acciones y recuperación tras reiniciar, certificadas en ambos clientes. |
+| Android/iOS | Controladores; no son equipos controlables. | Tras la viabilidad nativa en simulador/emulador: acciones, recuperación tras reiniciar y certificación con los paquetes y dispositivos finales. |
 
 La captura de una ventana propia en una VM no certifica un escritorio completo,
 una pantalla protegida, monitores adicionales ni otra versión/arquitectura.

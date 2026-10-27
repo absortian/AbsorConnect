@@ -29,7 +29,7 @@ for (let i = 0; i < options.length; i++) {
 if (linuxProtected && (!linuxVm || linuxBroker)) throw new Error('--linux-protected exige VM y su propio servicio')
 if (linuxBroker && !linuxVm) throw new Error('--linux-broker exige --linux-vm')
 if (supervised && !agentConfig) throw new Error('--supervised exige --agent-config')
-if (linuxVm && (!agentConfig || supervised || turnConfig)) throw new Error('--linux-vm exige API y transporte directo sin el lanzador Mac')
+if (linuxVm && (!agentConfig || supervised || (turnConfig && !linuxProtected))) throw new Error('--linux-vm exige API; TURN solo en el IPC protegido')
 if (relayController && !turnConfig) throw new Error('--relay-controller exige --turn-config')
 let relayConfiguration
 if (turnConfig) {
@@ -43,7 +43,9 @@ if (turnConfig) {
         !server || Object.keys(server).some((key) => !['urls', 'username', 'credential'].includes(key)) ||
         !Array.isArray(server.urls) || server.urls.length < 1 || server.urls.length > 8 ||
         server.urls.some((url) => typeof url !== 'string' || url.length > 512 || !/^(?:turns?|stun):[^\s]+$/.test(url)) ||
-        ['username', 'credential'].some((key) => typeof server[key] !== 'string' || server[key].length < 1 || server[key].length > 1024))) {
+        (server.urls.some((url) => /^turns?:/.test(url))
+          ? ['username', 'credential'].some((key) => typeof server[key] !== 'string' || server[key].length < 1 || server[key].length > 1024)
+          : ['username', 'credential'].some((key) => Object.hasOwn(server,key))))) {
     throw new Error('Configuración TURN inválida; usar únicamente credenciales temporales')
   }
   if (!value.iceServers.some((server) => server.urls.some((url) => /^turns?:/.test(url)))) throw new Error('Falta servidor TURN')

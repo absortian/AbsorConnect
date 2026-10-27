@@ -12,7 +12,7 @@ siguen pendientes API completa, autenticador, trabajador P2P y watchdog del
 servicio. La tarea 3.4 no se cierra solo con el proceso de prueba; su aceptación posterior
 añade el gate/API/DTLS y trabajador nativo conectados, con la evidencia del 26/10.
 
-Avance cerrado: **15/57 tareas (26 %)**. Es proporción de tareas aceptadas, no
+Avance cerrado: **16/57 tareas (28 %)**. Es proporción de tareas aceptadas, no
 porcentaje del tiempo restante. La tarea 3.2 se acepta como protocolo común:
 vectores compartidos, HMAC/huellas aplicadas, intentos durables/reinicio, sesión
 única y denegación de captura/entrada antes de autenticar, con integración IPC
@@ -89,13 +89,23 @@ salud/reconexión por equipo y contexto protegido completo siguen pendientes.
 El objetivo solicitado de 50 % **todavía no se ha alcanzado**; no se modifica el
 denominador ni se cierran tareas de sistemas/paquetes/piloto por estas pruebas.
 
+El bloque posterior del 27/10 acepta **1.5**: adaptador C++/libwebrtc fijado,
+vectores compartidos y 54 casos de ventana propia Linux en nueve combinaciones
+Electron/Android/iOS × directo/TURN UDP/TLS. El directo Android usa NAT UDP
+loopback explícito entre las VM, sin acreditar traversal automático en redes
+reales. La autenticación rechazada produce cero captura/entrada. Se verifica
+reconexión con broker persistente/nonce nuevo y retirada de servicios/secretos.
+La matriz y sus límites están en `native-mobile-input-results.json`. No acepta
+contextos protegidos, servicios finales, firma Mac ni piloto físico. El avance
+pasa a **16/57 (28 %)** y continúa por debajo del 50 % solicitado.
+
 ## 1. Viabilidad y configuraciones objetivo
 
 - [ ] 1.1 Registrar versiones, arquitecturas, cifrado de arranque y opciones de conectividad de los Windows/Mac del propietario y confirmar Mint Cinnamon/X11/LightDM; verificar un inventario privado sin secretos y una matriz pública de configuraciones objetivo sin IPs personales.
 - [ ] 1.2 Probar un trabajador Win32 autorizado en sesión interactiva: captura, entrada, aplicación elevada, UAC con credenciales, bloqueo e inicio de sesión; entregar resultados reproducibles y binario de prueba identificado, sin cambiar UAC.
 - [ ] 1.3 Probar en Mac un helper empaquetado con launchd y permisos autorizados: escritorio, diálogo de administración, bloqueo, cierre de sesión y `loginwindow`; entregar resultados por versión/arquitectura. Si falla entrada/captura, volver a revisión antes de desarrollar su agente final.
 - [ ] 1.4 Probar en Mint los cambios LightDM ↔ Cinnamon y bloqueo/polkit con Xauthority limitado; verificar que un fallo del prototipo no impide el inicio de sesión y documentar cómo restaurar la configuración.
-- [ ] 1.5 Construir una prueba nativa libwebrtc con adaptador C++ que pase `auth-vectors.json` y conecte con Electron, Android e iOS por red directa y solo TURN; verificar vídeo, entrada y rechazo de autenticación antes de adoptar la dependencia.
+- [x] 1.5 Construir una prueba nativa libwebrtc con adaptador C++ que pase `auth-vectors.json` y conecte con Electron, Android e iOS por red directa y solo TURN; verificar vídeo, entrada y rechazo de autenticación antes de adoptar la dependencia.
 - [ ] 1.6 Documentar versiones fijadas, licencias, coste de compilación y vía de firma/distribución del helper Mac; verificar una instalación y una actualización consecutivas con conservación de permisos o intervención correctamente indicada, y resolver con el propietario las decisiones de distribución antes del piloto.
 
 ## 2. Backend: identidad y permisos del agente
