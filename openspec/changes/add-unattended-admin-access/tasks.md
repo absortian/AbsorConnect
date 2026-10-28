@@ -12,7 +12,7 @@ siguen pendientes API completa, autenticador, trabajador P2P y watchdog del
 servicio. La tarea 3.4 no se cierra solo con el proceso de prueba; su aceptación posterior
 añade el gate/API/DTLS y trabajador nativo conectados, con la evidencia del 26/10.
 
-Avance cerrado: **21/57 tareas (37 %)**. Es proporción de tareas aceptadas, no
+Avance cerrado: **22/57 tareas (39 %)**. Es proporción de tareas aceptadas, no
 porcentaje del tiempo restante. La tarea 3.2 se acepta como protocolo común:
 vectores compartidos, HMAC/huellas aplicadas, intentos durables/reinicio, sesión
 única y denegación de captura/entrada antes de autenticar, con integración IPC
@@ -138,7 +138,7 @@ reconectar por la ausencia de etiquetas de contexto en v1. Evidencia:
 
 ## 4. Agente Windows
 
-- [ ] 4.1 Implementar el servicio SCM, recuperación y creación de trabajadores en sesión/escritorio autorizados; verificar arranque sin inicio de sesión, caída del trabajador y parada explícita que no se reactiva sola.
+- [x] 4.1 Implementar el servicio SCM, recuperación y creación de trabajadores en sesión/escritorio autorizados; verificar arranque sin inicio de sesión, caída del trabajador y parada explícita que no se reactiva sola.
 - [ ] 4.2 Integrar captura e inyección en escritorio normal/seguro y recuperación de DXGI; verificar con paquete real el paso a UAC y vuelta, varios monitores/escalados y cierre/entrada de usuario sin teclas retenidas.
 - [ ] 4.3 Implementar atención segura, bloqueo, cierre de sesión y reinicio mediante operaciones enumeradas; verificar éxito/rechazo, cancelación de UAC y rechazo de una orden arbitraria.
 - [ ] 4.4 Proteger almacén y named pipes con identidades/ACL adecuadas; verificar desde un usuario local sin privilegios que no puede extraer credenciales, sustituir ejecutables ni ejecutar RPC administrativos. Documentar instalación, permisos y recuperación de Windows.
@@ -279,3 +279,16 @@ cuentas, con recuperación de LightDM. No une todavía entrada/captura general a
 WebRTC ni completa transiciones protegidas: 3.5/6.2 siguen parciales. Evidencia:
 `linux-input-lease-results.json`. Se conserva **21/57 (37 %)**; el mínimo de 50 %
 continúa pendiente y las pruebas físicas quedan para el final.
+
+
+El bloque Windows del 28/10 acepta **4.1** para el componente SCM y el trabajador
+fijo de metadatos: WTS, Jobs, pipes locales con identidad del kernel, supervisión
+independiente y recuperación finita. Pasan 16 casos en la VM ARM64 con binarios
+x64 de CI, incluido reinicio sin usuario, caída/bloqueo, parada persistente,
+configuración dañada, colisiones y retirada completa con UAC intacto. La sonda
+de permisos usa un token restringido del usuario SSH existente; no certifica una
+sesión interactiva estándar. CI pasa en los tres sistemas y conserva los límites
+sin captura, entrada, API/HMAC o credenciales. Evidencia:
+`windows-session-service-results.json`. 1.2/4.2/4.3/4.4 siguen pendientes, al igual
+que la revisión Mac y el piloto físico. Avance **22/57 (39 %)**; el mínimo de 50 %
+continúa pendiente y se sigue con las partes que pueden verificarse automáticamente.

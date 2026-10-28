@@ -85,6 +85,31 @@ class Matrix:
         self.ps("Stop-Service -Name AbsorConnectSessionLab;@{requested=$true}|ConvertTo-Json -Compress")
         return self.wait(self.stopped)
     def resume(self):self.invoke_source('install.ps1','Resume');return self.running()
+    def collisions(self):
+        nonce=uuid.uuid4().hex
+        self.system("$d='C:\\ProgramData\\AbsorConnectSessionLab';if(Test-Path -LiteralPath $d){throw 'collision_destination_exists'};if(Get-Service AbsorConnectSessionLab -ErrorAction SilentlyContinue){throw 'collision_service_exists'};New-Item -ItemType Directory -Path $d|Out-Null;[IO.File]::WriteAllText(($d+'\\preflight-owner.txt'),'%s');@{created=$true}"%nonce)
+        blocked=False
+        try:
+            try:self.invoke_source('install.ps1','Install')
+            except LabError as e:blocked=str(e)=='system_destination_exists'
+            require(blocked,'destination_collision_not_refused')
+        finally:
+            self.system("$d='C:\\ProgramData\\AbsorConnectSessionLab';$items=@(Get-ChildItem -LiteralPath $d -Force);if($items.Count -ne 1 -or $items[0].Name -cne 'preflight-owner.txt' -or $items[0].PSIsContainer -or ($items[0].Attributes -band [IO.FileAttributes]::ReparsePoint) -or [IO.File]::ReadAllText($items[0].FullName) -cne '%s'){throw 'collision_sentinel_changed'};if(Get-Service AbsorConnectSessionLab -ErrorAction SilentlyContinue){throw 'collision_created_service'};Remove-Item -LiteralPath $items[0].FullName;Remove-Item -LiteralPath $d;@{unchangedAndRemoved=$true}"%nonce)
+        self.case('foreign_destination_refused',unchanged=True)
+        f=self.out/'system-failure.json'
+        if f.exists():f.rename(self.out/'expected-destination-denial.json')
+        self.system(r'''if(Test-Path -LiteralPath 'C:\ProgramData\AbsorConnectSessionLab'){throw 'collision_destination_exists'};if(Get-Service AbsorConnectSessionLab -ErrorAction SilentlyContinue){throw 'collision_service_exists'};$s=New-Service -Name AbsorConnectSessionLab -BinaryPathName '"C:\Windows\System32\cmd.exe" /c exit /b 0' -DisplayName 'AbsorConnect Session Lab sentinel' -StartupType Manual;$s.Dispose();@{manualSentinelCreated=$true}''')
+        blocked=False
+        try:
+            try:self.invoke_source('install.ps1','Install')
+            except LabError as e:blocked=str(e)=='system_service_exists'
+            require(blocked,'service_collision_not_refused')
+        finally:
+            self.system(r'''$s=Get-CimInstance Win32_Service -Filter "Name='AbsorConnectSessionLab'";if($null -eq $s -or $s.PathName -cne '"C:\Windows\System32\cmd.exe" /c exit /b 0' -or $s.State -ne 'Stopped' -or $s.StartMode -ne 'Manual' -or (Test-Path -LiteralPath 'C:\ProgramData\AbsorConnectSessionLab')){throw 'collision_service_changed'};[GC]::Collect();[GC]::WaitForPendingFinalizers();& "$env:SystemRoot\System32\sc.exe" delete AbsorConnectSessionLab|Out-Null;if($LASTEXITCODE -ne 0){throw 'collision_service_delete'};@{unchangedAndRemoved=$true}''')
+        self.wait(lambda v:v['serviceState']=='absent' and not v['rootExists'] and not v['processes'])
+        self.case('foreign_service_refused',unchanged=True)
+        f=self.out/'system-failure.json'
+        if f.exists():f.rename(self.out/'expected-service-denial.json')
     def prepare(self):
         v=self.snapshot();require(v['serviceState']=='absent' and not v['rootExists'] and not v['processes'],'existing_installation')
         # Las dos carpetas pertenecen a este laboratorio; se rechazan enlaces y nombres ajenos.
@@ -95,6 +120,7 @@ class Matrix:
         p=self.remote.transfer(lines);require(p.returncode==0,'artifact_transfer')
         digest=hashlib.sha256((self.artifact/'build.json').read_bytes()).hexdigest()
         self.system("$d='%s';if((Get-FileHash -LiteralPath ($d+'\\build.json') -Algorithm SHA256).Hash.ToLowerInvariant() -cne '%s'){throw 'manifest_hash'};$known=@('absor-win-sessiond-lab.exe','absor-win-session-worker-lab.exe','absor-win-session-monitor-lab.exe','build.json');$a=New-Object Security.AccessControl.FileSecurity;$a.SetSecurityDescriptorSddlForm('O:SYG:SYD:P(A;;FA;;;SY)(A;;FA;;;BA)');foreach($f in Get-ChildItem -LiteralPath $d -Force){if($f.Name -notin $known -or ($f.Attributes -band [IO.FileAttributes]::ReparsePoint) -or $f.PSIsContainer){throw 'stage_foreign_file'};Set-Acl -LiteralPath $f.FullName -AclObject $a};@{verified=$true}"%(STAGE,digest))
+        self.collisions()
         v=self.invoke_source('install.ps1','Install');self.installed=True;require(v.get('scmConfigurationVerified') is True,'scm_configuration_not_verified')
     def execute(self):
         self.prepare();v=self.running();self.case('scm_install',selectedConsole=True,metadataOnly=True)

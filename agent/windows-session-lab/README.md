@@ -68,9 +68,12 @@ los accesos privados del laboratorio, conserva informes acotados, ensaya caída,
 bloqueo, parada, configuración dañada y reinicio sin usuario, y retira el servicio.
 No requiere contraseñas. La sonda de permisos restringe un token del usuario SSH
 existente: todavía no certifica una sesión interactiva de usuario estándar.
-La aceptación de 4.1 se documentará con la matriz completa, no por compilar.
+La matriz completa pasa 16 casos y acepta 4.1 como componente SCM;
+`openspec/changes/add-unattended-admin-access/windows-session-service-results.json`
+conserva los resultados y sus límites. No acredita captura, entrada ni el agente
+de red Windows. El servicio se ha retirado tras la prueba de arranque sin usuario.
 
 Pendiente: credenciales/DPAPI y política de intentos, IPC del broker autorizado,
 trabajadores de captura/entrada, adaptación DXGI, UAC y transiciones completas,
 controladores reales, instalador firmado y piloto físico. Compilar estos binarios
-no completa 4.1/4.2/4.4 ni cambia el porcentaje aceptado.
+no completa 4.2/4.4. El bloque SCM aceptado lleva el avance a 22/57 (39 %).

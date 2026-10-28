@@ -1,0 +1,206 @@
+{
+  "schema": 1,
+  "date": "2026-10-28",
+  "ok": true,
+  "scope": "Supervisor SCM y trabajador de metadatos en VM propia; sin captura, entrada, credenciales o transporte de red.",
+  "acceptedTasks": [
+    "4.1"
+  ],
+  "acceptedTotal": {
+    "closed": 22,
+    "total": 57,
+    "percentageRounded": 39
+  },
+  "configuration": {
+    "os": "Microsoft Windows 11 Pro",
+    "build": "26300.9711",
+    "guestArchitecture": "ARM64",
+    "binaryArchitecture": "x86_64 (emulación Windows)",
+    "rust": "1.85.0",
+    "crt": "static",
+    "platformCertifiedForUnattended": false
+  },
+  "artifact": {
+    "commit": "a01cf7b9da0eb67dc1614d2c917da6c9dd8d144f",
+    "id": 12853015615,
+    "zipSha256": "d2c032246e7a632fbc5d48ffa00f14fc3ce521619ea2ed673b718e4cdb481457",
+    "binariesSha256": {
+      "absor-win-session-monitor-lab.exe": "d23d6e005258756c3f3b61296ab578fea1293087352aea4b695aa96c543132b2",
+      "absor-win-session-worker-lab.exe": "d7cbe6741d00dd6e4bfc79680f7a11a6169f24dd9c1f5fbcac5be06e24d03b65",
+      "absor-win-sessiond-lab.exe": "a63ec1fc8a0a46093f40eeacb41b402034ac18325dfe7542cf4c8648fb08acc7"
+    },
+    "signedProductionManifest": false
+  },
+  "cases": [
+    {
+      "case": "foreign_destination_refused",
+      "ok": true,
+      "unchanged": true
+    },
+    {
+      "case": "foreign_service_refused",
+      "ok": true,
+      "unchanged": true
+    },
+    {
+      "case": "scm_install",
+      "ok": true,
+      "selectedConsole": true,
+      "metadataOnly": true
+    },
+    {
+      "case": "restricted_user_denials",
+      "ok": true,
+      "allDenied": true
+    },
+    {
+      "case": "worker_crash",
+      "ok": true,
+      "sameBroker": true,
+      "newGeneration": true
+    },
+    {
+      "case": "worker_stall",
+      "ok": true,
+      "sameBroker": true,
+      "bounded": true
+    },
+    {
+      "case": "scm_first_recovery",
+      "ok": true,
+      "newBroker": true,
+      "noOldChildren": true
+    },
+    {
+      "case": "monitor_stall",
+      "ok": true,
+      "newBroker": true,
+      "noOldChildren": true
+    },
+    {
+      "case": "scm_recovery_exhausted",
+      "ok": true,
+      "stopped": true
+    },
+    {
+      "case": "explicit_stop",
+      "ok": true,
+      "stopped": true,
+      "marker": true
+    },
+    {
+      "case": "stop_survives_plain_start",
+      "ok": true,
+      "stopped": true,
+      "marker": true
+    },
+    {
+      "case": "corrupt_configuration",
+      "ok": true,
+      "stopped": true,
+      "configurationExit": true
+    },
+    {
+      "case": "stop_during_actor_stall",
+      "ok": true,
+      "stopped": true,
+      "marker": true
+    },
+    {
+      "case": "worker_retry_exhausted",
+      "ok": true,
+      "stopped": true,
+      "boundedStarts": true
+    },
+    {
+      "case": "boot_without_user",
+      "ok": true,
+      "workerAtLogin": true,
+      "metadataOnly": true,
+      "noUser": true
+    },
+    {
+      "case": "service_removal",
+      "ok": true,
+      "removed": true
+    }
+  ],
+  "kernelAndScm": {
+    "supervisorSessionZero": true,
+    "workerInWtsConsoleSession": true,
+    "winlogonMetadataWithoutUser": true,
+    "firstInstanceLocalPipe": true,
+    "kernelPidSessionSystemSidChecks": true,
+    "strictSequenceAndBootClock": true,
+    "workerJobKillOnCloseAndOneProcessLimit": true,
+    "workerRetryDelaysMilliseconds": [
+      250,
+      500,
+      1000
+    ],
+    "scmRecoveryDelaysMilliseconds": [
+      1000,
+      5000,
+      null
+    ],
+    "scmDaclOnlySystemAndAdministratorsVerified": true,
+    "scmRequiredPrivilegesVerified": true,
+    "nonCrashRecoveryDisabledVerified": true,
+    "explicitStopPersistsBeforeChildrenClose": true,
+    "configurationFailureStopsWith78": true
+  },
+  "cleanup": {
+    "serviceAbsent": true,
+    "filesAbsent": true,
+    "processesAbsent": true,
+    "uacUnchanged": true
+  },
+  "verification": {
+    "lifecycleAndWireTests": 10,
+    "macConcurrentProcessStressCases": 65,
+    "ciCombinedDefaultAndFeatures": {
+      "linux": 288,
+      "macos": 254,
+      "windows": 252
+    },
+    "ciHead": "a01cf7b9da0eb67dc1614d2c917da6c9dd8d144f",
+    "ciJobs": [
+      123107624376,
+      123107624142,
+      123107624550
+    ],
+    "fullLogsAndAnnotationsReviewed": true,
+    "typecheck": true,
+    "vitestPassed": 334,
+    "vitestApiSkipped": 6,
+    "phpunitTests": 162,
+    "phpunitAssertions": 1077,
+    "openspecStrict": true,
+    "privateReportSha256": "c28cde5e14202df8bc8fd3211de02d8c01da14ec2b436d5d9d674fcd4a5086fe"
+  },
+  "limits": {
+    "metadataOnly": true,
+    "captureTested": false,
+    "inputTested": false,
+    "readyForUnattended": false,
+    "dpapiOrCredentialsIntegrated": false,
+    "apiHmacWebrtcIntegrated": false,
+    "secureAttentionOrOsOperations": false,
+    "standardInteractiveUserTested": false,
+    "restrictedExistingSshUserTokenTested": true,
+    "wholeProcessSuspensionTested": false,
+    "physicalPilotTested": false,
+    "macFinalAgentAccepted": false
+  },
+  "pendingTasks": [
+    "1.2",
+    "3.1",
+    "3.5",
+    "4.2",
+    "4.3",
+    "4.4",
+    "11.1",
+    "12.4",
+    "12.5"
+  ]
+}
