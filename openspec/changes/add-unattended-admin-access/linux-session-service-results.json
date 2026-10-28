@@ -162,7 +162,14 @@
       }
     ],
     "releaseBuildsDefaultAndAllFeatures": true,
-    "warnings": "Solo avisos de disponibilidad de runners y migración de ubuntu-latest; siete pruebas del lector Linux se omiten en Windows."
+    "warnings": "Solo avisos de disponibilidad de runners y migración de ubuntu-latest; siete pruebas del lector Linux se omiten en Windows.",
+    "finalReviewedHead": "56165a9a9534a82c4e3ba1b89b72ca484ec6367b",
+    "finalReviewedJobs": [
+      122624359082,
+      122624358770,
+      122624359151
+    ],
+    "mergedSha": "65cae03673f9b8ef54500ed0f8efda1e6a841413"
   },
   "checks": {
     "typecheck": true,

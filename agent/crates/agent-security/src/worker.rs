@@ -26,6 +26,8 @@ mod implementation {
         Request { command: Command },
         ReplayPrevious {},
         Exit {},
+        AuthorityProbe {},
+        AuthorityProbeDelayed {},
     }
     fn rpc(peer: &mut FramedPeer, raw: &[u8]) -> Result<Vec<u8>, ()> {
         let start = BootClock.now().map_err(|_| ())?;
@@ -104,8 +106,20 @@ mod implementation {
             };
             let explicit = control.is_some();
             let now = BootClock.now().map_err(|_| ())?;
+            let delayed_probe = matches!(&control, Some(Control::AuthorityProbeDelayed {}));
             let command = match control {
                 Some(Control::Exit { .. }) => return Ok(0),
+                Some(Control::AuthorityProbe {}) | Some(Control::AuthorityProbeDelayed {}) => {
+                    if delayed_probe {
+                        report(br#"{"authorityProbeWaiting":true}"#)?;
+                        thread::sleep(Duration::from_millis(650));
+                    }
+                    let result = absor_agent_security::authority_client::request();
+                    let received = result.is_ok();
+                    drop(result);
+                    report(&serde_json::to_vec(&serde_json::json!({"authorityReceived":received,"cookieBytesReported":false,"captureTested":false,"inputTested":false})).map_err(|_|())?)?;
+                    continue;
+                }
                 Some(Control::ReplayPrevious { .. }) => {
                     if last.is_empty() {
                         return Err(());

@@ -2,13 +2,19 @@
 //! Solo acepta propiedades de logind obtenidas por el lector local, nunca de la red o renderer.
 #![forbid(unsafe_code)]
 
+#[cfg(all(target_os = "linux", feature = "authority-lab"))]
+pub mod authority_service;
 pub mod binding;
+pub mod grant;
+#[cfg(target_os = "linux")]
+pub mod grant_file;
 pub mod monitor;
 #[cfg(target_os = "linux")]
 pub mod query;
 #[cfg(target_os = "linux")]
 pub mod service;
 pub mod status;
+pub mod xauthority;
 
 use std::collections::BTreeMap;
 

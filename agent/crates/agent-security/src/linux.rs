@@ -31,6 +31,9 @@ pub struct Credentials {
 pub fn uid() -> u32 {
     unsafe { libc::geteuid() }
 }
+pub fn gid() -> u32 {
+    unsafe { libc::getegid() }
+}
 pub fn disable_dumping() -> Result<(), IpcError> {
     // SAFETY: prctl con argumentos enteros, sin memoria apuntada.
     if unsafe { libc::prctl(libc::PR_SET_DUMPABLE, 0, 0, 0, 0) } != 0 {
