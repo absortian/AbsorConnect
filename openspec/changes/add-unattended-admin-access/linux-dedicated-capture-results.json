@@ -3,10 +3,11 @@
   "date": "2026-10-28",
   "scope": "Identidades locales Linux separadas, captura contada por fd y protección de configuración",
   "ok": true,
-  "acceptedTasks": [],
-  "partialTasks": [
-    "6.2",
+  "acceptedTasks": [
     "6.4"
+  ],
+  "partialTasks": [
+    "6.2"
   ],
   "linuxRustTestsDefaultAndAllFeatures": 252,
   "macRustTestsDefaultAndAllFeatures": 218,
@@ -231,5 +232,30 @@
     "El paquete y la migración final de Electron siguen pendientes; estos servicios exigen marcador de VM.",
     "No certifica Mint físico, otros sistemas, cambios de usuario completos o resolución/monitores generales.",
     "La investigación de liberación por dispositivo virtual no es aún una capacidad implementada."
-  ]
+  ],
+  "acceptanceScope": "Protección de socket, secretos y configuración del servicio Linux ensayado; no acepta escritorio general, paquete/migración final o piloto físico.",
+  "ci": {
+    "testedHead": "30655a431c3365334d29e6ec9e4d260dabbedcd9",
+    "allSuccessful": true,
+    "fullLogsAndAnnotationsReviewed": true,
+    "releaseBuildsDefaultAndAllFeatures": true,
+    "jobs": [
+      {
+        "platform": "linux",
+        "id": 122650087943,
+        "rustTestsDefaultAndAllFeatures": 252
+      },
+      {
+        "platform": "macos",
+        "id": 122650088283,
+        "rustTestsDefaultAndAllFeatures": 218
+      },
+      {
+        "platform": "windows",
+        "id": 122650088145,
+        "rustTestsDefaultAndAllFeatures": 216
+      }
+    ],
+    "notes": "Solo avisos de runners; siete casos Python de Linux se omiten en Windows."
+  }
 }
