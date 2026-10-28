@@ -30,6 +30,7 @@ dependencies = [
  "absor-agent-api",
  "absor-agent-auth",
  "absor-agent-core",
+ "absor-agent-linux-session",
  "absor-agent-security",
  "absor-agent-supervisor",
  "serde",
@@ -48,6 +49,14 @@ dependencies = [
 [[package]]
 name = "absor-agent-core"
 version = "0.1.0"
+
+[[package]]
+name = "absor-agent-linux-session"
+version = "0.1.0"
+dependencies = [
+ "absor-agent-core",
+ "absor-agent-security",
+]
 
 [[package]]
 name = "absor-agent-security"

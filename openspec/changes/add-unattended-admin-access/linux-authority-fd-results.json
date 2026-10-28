@@ -1,0 +1,116 @@
+{
+  "schema": 1,
+  "date": "2026-10-28",
+  "scope": "Sonda local independiente de entrega de autoridad; sin WebRTC/entrada",
+  "ok": true,
+  "acceptedTasks": [],
+  "partialTasks": [
+    "6.2",
+    "6.4"
+  ],
+  "cases": [
+    {
+      "case": "desktop",
+      "schema": 1,
+      "unprivilegedWorker": true,
+      "noCapabilities": true,
+      "noSupplementaryGroups": true,
+      "noNewPrivileges": true,
+      "privateNetwork": true,
+      "rootFilesDenied": true,
+      "sealedAuthorityFd": true,
+      "x11Connected": true,
+      "captureTested": true,
+      "inputTested": false,
+      "readyForUnattended": false,
+      "captureRegion": [
+        128,
+        72
+      ],
+      "frames": 10,
+      "nonUniformFrames": 10,
+      "sourceClass": "user",
+      "withoutAuthorityDenied": true,
+      "authorityCopiedToDisk": false,
+      "cookieBytesInArgumentsOrEnvironment": false,
+      "serverIdentityStable": true,
+      "status": "unprivileged_fd_capture_ok_not_certified"
+    },
+    {
+      "case": "greeter",
+      "schema": 1,
+      "unprivilegedWorker": true,
+      "noCapabilities": true,
+      "noSupplementaryGroups": true,
+      "noNewPrivileges": true,
+      "privateNetwork": true,
+      "rootFilesDenied": true,
+      "sealedAuthorityFd": true,
+      "x11Connected": true,
+      "captureTested": true,
+      "inputTested": false,
+      "readyForUnattended": false,
+      "captureRegion": [
+        128,
+        72
+      ],
+      "frames": 10,
+      "nonUniformFrames": 10,
+      "sourceClass": "greeter",
+      "withoutAuthorityDenied": true,
+      "authorityCopiedToDisk": false,
+      "cookieBytesInArgumentsOrEnvironment": false,
+      "serverIdentityStable": true,
+      "status": "unprivileged_fd_capture_ok_not_certified"
+    },
+    {
+      "case": "returned-desktop",
+      "schema": 1,
+      "unprivilegedWorker": true,
+      "noCapabilities": true,
+      "noSupplementaryGroups": true,
+      "noNewPrivileges": true,
+      "privateNetwork": true,
+      "rootFilesDenied": true,
+      "sealedAuthorityFd": true,
+      "x11Connected": true,
+      "captureTested": true,
+      "inputTested": false,
+      "readyForUnattended": false,
+      "captureRegion": [
+        128,
+        72
+      ],
+      "frames": 10,
+      "nonUniformFrames": 7,
+      "sourceClass": "user",
+      "withoutAuthorityDenied": true,
+      "authorityCopiedToDisk": false,
+      "cookieBytesInArgumentsOrEnvironment": false,
+      "serverIdentityStable": true,
+      "status": "unprivileged_fd_capture_ok_not_certified"
+    }
+  ],
+  "sourceSha256": {
+    "linux-xauthority-fd-probe.py": "2ba84dd60e27dbcf352ac169239b72ac48b6a2112314531acdf43662c67b714d",
+    "linux-xauthority-fd-worker.py": "1115933d1b17873076bb0f7b86940fa216ef301a815fbe9bf6cc5cd3f8ca1b1c",
+    "linux-session-check.py": "40d222539fa05c21b9f0a95993efe40a386bc82dab4ad031b6d188e827b6e275",
+    "linux-probe.py": "5c6dc1a14a6a0c8d4e2fc0eaf8816bfed9be3caae19733aa11ad5002a79b7d5e"
+  },
+  "temporaryIdentityRemoved": true,
+  "markerAndFilesRemoved": true,
+  "serviceInstalled": false,
+  "inputTested": false,
+  "networkWebRtcTested": false,
+  "physicalMachinesTested": false,
+  "productionTested": false,
+  "readyForUnattended": false,
+  "binaryParserTests": 7,
+  "descriptorTransportTests": 6,
+  "privateReportSha256": "b62cd6296f0d210644c059dcb0ab38c479a28cc98fe22677cb2ad89c9a00576d",
+  "limitations": [
+    "La entrega aún no está unida a HMAC ni al trabajador P2P.",
+    "El descriptor solo limita la cookie seleccionada; X11 no ofrece aislamiento de ventanas tras abrir el servidor.",
+    "No certifica entrada ni trabajadores generales o instalación final."
+  ]
+}

@@ -300,5 +300,63 @@
     "Las rutas iniciales conservan su manifiesto del laboratorio; todas usan exactamente la misma app y artefactos nativos."
   ],
   "electronRegressionCases": 10,
-  "postRunCleanupVerified": true
+  "postRunCleanupVerified": true,
+  "mergedPullRequest": {
+    "number": 56,
+    "head": "bcbf602614f5e01a1e57eb071d8908b849f23a3d",
+    "merge": "04c6c427f750de91c0d15b63318ae784e5be05ee"
+  },
+  "ciReview": {
+    "fullLogsAndAnnotationsReviewed": true,
+    "jobs": [
+      {
+        "jobId": 122592706864,
+        "platform": "native_linux",
+        "testsPassed": 167,
+        "skippedIntegrationTests": 0,
+        "logSha256": "c1777f4670288d50f894f60be9723e3c4c9f74598e057df3a279e34242b727b2",
+        "passed": true
+      },
+      {
+        "jobId": 122592706790,
+        "platform": "native_macos",
+        "testsPassed": 152,
+        "skippedIntegrationTests": 0,
+        "logSha256": "a4ba322677cc6ee896ea6b7f1f0603aeb5c01ee17d0a67c0c4d85e9aa6e150f0",
+        "passed": true
+      },
+      {
+        "jobId": 122592706433,
+        "platform": "native_windows",
+        "testsPassed": 150,
+        "skippedIntegrationTests": 0,
+        "logSha256": "ae0729589273752b89ad358bd118232228a4ed25244fe897af443d5b97a63d65",
+        "passed": true
+      },
+      {
+        "jobId": 122592706739,
+        "platform": "android",
+        "testsPassed": 185,
+        "skippedIntegrationTests": 16,
+        "logSha256": "32fa41634ffe68aa4ac3116c7d22f1a20cd2908ac9132e3bdbd810b2505b0816",
+        "passed": true
+      },
+      {
+        "jobId": 122592706318,
+        "platform": "ios",
+        "testsPassed": 185,
+        "skippedIntegrationTests": 16,
+        "logSha256": "63d87be98caf96b6f545985a3d7603e0ffdd3e3398cf5e92b101b1b6483a6bd7",
+        "passed": true
+      }
+    ],
+    "androidSignatureVerified": true,
+    "iosUnsigned": true,
+    "nativeDefaultAndAllFeatureReleaseBuilds": true,
+    "existingWarnings": [
+      "capacidad/cambio de imagen de runners",
+      "upload-artifact v5 con Node 20 forzado a 24",
+      "Java source/target 8 de dependencias Android"
+    ]
+  }
 }

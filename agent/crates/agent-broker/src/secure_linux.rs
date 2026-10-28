@@ -5,6 +5,7 @@ use absor_agent_core::{
     clock::{BootClock, Clock},
     CloseReason, Session, SessionHandle,
 };
+use absor_agent_linux_session::{binding::SeatBinding, monitor::Monitor, query::LogindSource};
 use absor_agent_security::{
     linux::{self, FramedPeer, HostLock, ProtectedAttemptStore},
     secrets::{self, WallClock, WrappingKey},
@@ -143,6 +144,8 @@ struct Authority {
     terminal: Option<(Duration, i32)>,
     audit: AuditLog,
     signaling: Option<ApiSignaling>,
+    seat_monitor: Option<Monitor<BootClock>>,
+    seat: SeatBinding,
 }
 impl Authority {
     fn disconnect(&mut self) {
@@ -150,12 +153,28 @@ impl Authority {
             let _ = self.agent.disconnect(&h);
         }
         self.verifier.cancel();
+        self.seat.clear();
     }
     fn end_connection(&mut self) {
         self.disconnect();
         if let Some(s) = self.signaling.as_mut() {
             s.reset();
         }
+    }
+    fn refresh_seat(&mut self) -> Result<(), ()> {
+        let Some(monitor) = self.seat_monitor.as_mut() else {
+            return Ok(());
+        };
+        let snapshot = monitor.tick().map_err(|_| ())?.cloned();
+        if self.seat.update(snapshot) {
+            self.end_connection();
+            self.flag.store(3, Ordering::SeqCst);
+            self.audit.append(Event::WorkerEnded).map_err(|_| ())?;
+        }
+        Ok(())
+    }
+    fn seat_eligible(&self) -> bool {
+        self.seat_monitor.is_none() || self.seat.eligible()
     }
     fn state(&mut self) -> State {
         if let Some((_, code)) = self.terminal {
@@ -176,7 +195,7 @@ impl Authority {
                 return State::Authenticated;
             }
         }
-        if self.agent.check_authorization().is_ok() {
+        if self.agent.check_authorization().is_ok() && self.seat_eligible() {
             State::Ready
         } else {
             State::AwaitingApi
@@ -190,6 +209,7 @@ impl Authority {
         }
     }
     fn command(&mut self, request: Command) -> Result<Reply, ()> {
+        self.refresh_seat()?;
         if matches!(request, Command::Status { .. }) {
             return Ok(self.status());
         }
@@ -199,7 +219,10 @@ impl Authority {
             self.audit.append(Event::WorkerEnded).map_err(|_| ())?;
             return Ok(self.status());
         }
-        if self.terminal.is_some() || self.agent.check_authorization().is_err() {
+        if self.terminal.is_some()
+            || self.agent.check_authorization().is_err()
+            || !self.seat_eligible()
+        {
             return Ok(Reply::Denied {
                 state: self.state(),
                 retry_after: 0,
@@ -254,6 +277,12 @@ impl Authority {
                 }
                 self.disconnect();
                 self.flag.store(0, Ordering::SeqCst);
+                if self.seat_monitor.is_some() && !self.seat.pin() {
+                    return Ok(Reply::Denied {
+                        state: State::Stopped,
+                        retry_after: 0,
+                    });
+                }
                 let binding = match DtlsBinding::new(offer_fingerprint, answer_fingerprint) {
                     Ok(v) => v,
                     Err(e) => return Ok(auth_denied(e)),
@@ -272,7 +301,8 @@ impl Authority {
                 }
             }
             Command::Authenticate { message } => {
-                if self.handle.is_some() {
+                if self.handle.is_some() || (self.seat_monitor.is_some() && !self.seat.is_pinned())
+                {
                     self.end_connection();
                     return Ok(Reply::Denied {
                         state: State::Invalid,
@@ -365,6 +395,10 @@ pub fn run() -> Result<i32, ()> {
         operations: Arc::new(AtomicU64::new(0)),
         terminal: None,
         signaling,
+        seat_monitor: Some(
+            Monitor::new(BootClock, LogindSource::new().map_err(|_| ())?).map_err(|_| ())?,
+        ),
+        seat: SeatBinding::default(),
         audit: AuditLog::open(&directory.join("audit.json")).map_err(|_| ())?,
     };
     authority
@@ -379,12 +413,14 @@ pub fn run() -> Result<i32, ()> {
         let now = BootClock.now().map_err(|_| ())?;
         linux::notify(b"WATCHDOG=1").map_err(|_| ())?;
         if authority.terminal.is_none() {
+            authority.refresh_seat()?;
             let progress = authority.agent.tick();
             let mut failed = progress.is_err();
             let mut signaling_revoked = false;
             let mut signaling_failed = false;
             if let (Ok(progress), Some(signaling)) = (progress, authority.signaling.as_mut()) {
-                let authorized = authority.agent.check_authorization().is_ok();
+                let authorized = authority.agent.check_authorization().is_ok()
+                    && (authority.seat_monitor.is_none() || authority.seat.eligible());
                 if let Err(error) = signaling.poll(progress.requests, authorized) {
                     signaling_revoked = error == ApiError::Revoked;
                     if signaling_revoked {
