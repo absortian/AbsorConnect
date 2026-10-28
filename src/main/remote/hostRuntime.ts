@@ -20,6 +20,7 @@ import { RemoteSupport, SupportMonitor } from './support'
 import { RemoteAccessStore } from './remoteAccessStore'
 import { createSafeBox } from './safeBox'
 import { AgentStatusClient, installedAgentSource } from './agentStatusClient'
+import { MigrationJournal, migrationStatusSource } from './migrationJournal'
 import { AgentControlClient, installedAgentControlSource } from './agentControlClient'
 import type { LocalAgentStopResult } from '../../shared/remote/localAgent'
 import { absentLocalAgent, type LocalAgentSnapshot } from '../../shared/remote/localAgent'
@@ -29,6 +30,7 @@ let store: RemoteAccessStore | null = null
 let identity: DeviceIdentity | null = null
 let monitor: SupportMonitor | null = null
 let nativeClient: AgentStatusClient | null = null
+let migrationJournal: MigrationJournal | null = null
 const nativeControl = new AgentControlClient(installedAgentControlSource())
 let keepAwakeId: number | null = null
 
@@ -68,7 +70,11 @@ async function start(): Promise<void> {
   if (service || !platform) return
   await loadSession()
   if (stopRequested) return
-  nativeClient = new AgentStatusClient(installedAgentSource())
+  const userData = app.getPath('userData')
+  migrationJournal = new MigrationJournal(join(userData, 'agent-migration.json'))
+  nativeClient = new AgentStatusClient(
+    migrationStatusSource(migrationJournal, installedAgentSource())
+  )
   const native = await nativeClient.read()
   if (!stopRequested) {
     setLocalAgentState(native)
@@ -78,7 +84,6 @@ async function start(): Promise<void> {
   // Fuente de sonido que quedó de una sesión anterior si la app se cerró de golpe (D8)
   if (process.platform === 'linux' && native.ownership === 'legacy') void linuxAudio.cleanup()
 
-  const userData = app.getPath('userData')
   const box = createSafeBox()
   store = new RemoteAccessStore(join(userData, 'remote-access.json'), box, os.hostname())
   const deviceIdentity = new DeviceIdentity(join(userData, 'device.json'), box)
@@ -182,7 +187,14 @@ export function remoteHost(): {
     store,
     ownDeviceId: async () => {
       const state = await nativeClient?.read()
-      if (state && state.ownership !== 'legacy') return state.deviceId
+      if (state && state.ownership !== 'legacy') {
+        if (state.deviceId) return state.deviceId
+        try {
+          return (await migrationJournal?.read())?.deviceId ?? null
+        } catch {
+          return null
+        }
+      }
       return identity ? (await identity.get()).id : null
     },
     agentState: () => nativeClient?.read() ?? Promise.resolve(absentLocalAgent()),

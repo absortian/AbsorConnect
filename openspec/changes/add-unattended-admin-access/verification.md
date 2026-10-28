@@ -3133,3 +3133,42 @@ fmt/clippy, con registros completos y anotaciones revisados. No se certifican
 adaptadores de control Windows/Mac ni acceso protegido. El alta nueva requerida
 sigue pendiente de la UI/migración de 7.2; no se activan servicios en producto.
 Avance aceptado 25/57 (44 %); mínimo de 50 % pendiente.
+
+
+## Preparación transaccional de migración (29/10; parcial)
+
+Se añade el contrato D14 de transacción, con clave de equipo y sesión origen,
+autorización de un uso y lápida persistente de cancelación. Una compensación no
+retira un agente/permiso posterior, sus solicitudes ni conexiones S3/SSH. Las
+columnas son opcionales y aditivas; se conservan respuestas anteriores cuando no
+hay transacción. Se limita a 64 intenciones por equipo/sesión sin descartar
+lápidas de sesiones vivas. REMOTE_ENABLED y las cuotas originales siguen vigentes.
+
+Pasan nueve pruebas PHP nuevas (100 comprobaciones iniciales, 101 tras añadir
+conexiones no vacías) y las 162 anteriores: total 171/1178. Se ejecutan once
+carreras HTTP de crear/cancelar, canjear/cancelar y POST duplicados contra API/BD
+efímeras. Se retiran tres cuentas, contenedor y BD, sin resetear límites. El
+primer arnés agotó la cuota al crear una cuenta por repetición; se sustituyó por
+tres cuentas reutilizadas, conservando la configuración. Mapeo/esquema de test y
+desarrollo validados. La imagen sigue fijada a PHP 8.5.12.
+
+Main incorpora journal 0600, campos cerrados sin secretos, creación exclusiva,
+revisión/fases y sincronización de archivo/directorio. Una intención parcial o
+corrupta reserva el host al siguiente arranque antes de consultar o regenerar
+identidad. Windows permanece sin escrituras de journal hasta disponer de un
+adaptador ACL: los bits POSIX no son una validación de ACL. Ausencia inicial
+permite seguir con el modo legado, también en Windows.
+
+El drenaje del host cierra sesiones publicadas y respuestas aún pendientes y
+espera autenticación/liberación de entrada. Una autenticación que termina tarde
+no crea entrada ni se marca como aceptada; un error de limpieza impide copiar
+el estado. Se coalescen reservas concurrentes y se espera su persistencia. Pasan
+389 Vitest en Mac (seis API optativas y un caso exclusivo Windows omitidos),
+typecheck y lint de los archivos modificados. La regresión de diez P2P conserva
+seis ciclos Main, vídeo continuo y corte con API sin respuesta (ACK 167 ms,
+visor 436 ms), sin reactivación ni recursos temporales restantes.
+
+**No se acepta 7.2**: faltan snapshot/importador protegido de identidad/K/opciones/
+bloqueo, coordinador completo y prueba nativa de los fallos por fase. Tampoco se
+aceptan 7.3/8.1/9.1 o paquetes/proveedores finales. `migration-foundation-results.json`
+conserva hashes y límites; el avance permanece 25/57 (44 %), por debajo del mínimo.

@@ -105,6 +105,7 @@ function setup(nativeAgent?: HostServiceDeps['nativeAgent']): {
     signedIn: boolean
     ownershipWrites: number
     ownershipWriteFails: boolean
+    ownershipWriteGate: Promise<void> | null
     identityReads: number
     identityResets: number
   }
@@ -125,6 +126,7 @@ function setup(nativeAgent?: HostServiceDeps['nativeAgent']): {
     signedIn: true,
     ownershipWrites: 0,
     ownershipWriteFails: false,
+    ownershipWriteGate: null as Promise<void> | null,
     identityReads: 0,
     identityResets: 0
   }
@@ -173,6 +175,7 @@ function setup(nativeAgent?: HostServiceDeps['nativeAgent']): {
     },
     onAgentOwned: async () => {
       state.ownershipWrites++
+      if (state.ownershipWriteGate) await state.ownershipWriteGate
       if (state.ownershipWriteFails) throw new Error('storage_unavailable')
       state.enabled = false
     },
@@ -666,4 +669,67 @@ describe('HostService — salir de la cuenta (tarea 4.10)', () => {
     expect(api.registrations).toHaveLength(registrations)
     await service.stop()
   })
+})
+
+it('la migración cierra también una sesión cuya respuesta API está pendiente y espera su drenaje', async () => {
+  const { service, api, sessions, state } = setup()
+  api.pending.push(request('pending'))
+  let answer!: () => void
+  api.answerGate = new Promise<void>((resolve) => {
+    answer = resolve
+  })
+  service.start()
+  await flush()
+  expect(sessions).toHaveLength(1)
+  const opened = sessions[0]
+  opened.session.close = (reason) => {
+    opened.session.closedWith = reason
+  }
+  let done = false
+  const pending = service.quiesceForMigration().then(() => {
+    done = true
+  })
+  await flush()
+  expect(opened.session.closedWith).toBe('stopped')
+  expect(done).toBe(false)
+  answer()
+  await flush()
+  expect(done).toBe(false)
+  opened.end()
+  await pending
+  expect(done).toBe(true)
+  expect(state.identityResets).toBe(0)
+  expect(service.isAgentManaged()).toBe(true)
+  await service.stop()
+})
+
+it('no permite copiar el estado si no pudo persistir la reserva', async () => {
+  const { service, state } = setup()
+  state.ownershipWriteFails = true
+  await expect(service.quiesceForMigration()).rejects.toThrow(
+    'agent_migration_legacy_not_quiescent'
+  )
+  expect(service.isAgentManaged()).toBe(true)
+  expect(state.identityReads).toBe(0)
+})
+
+it('el drenaje espera una reserva anterior todavía pendiente de persistir, sin duplicarla', async () => {
+  const { service, state } = setup()
+  let persist!: () => void
+  state.ownershipWriteGate = new Promise<void>((resolve) => {
+    persist = resolve
+  })
+  const first = service.reserveForLocalAgent()
+  let drained = false
+  const pending = service.quiesceForMigration().then(() => {
+    drained = true
+  })
+  await flush()
+  expect(drained).toBe(false)
+  expect(state.ownershipWrites).toBe(1)
+  persist()
+  await Promise.all([first, pending])
+  expect(drained).toBe(true)
+  expect(state.ownershipWrites).toBe(1)
+  expect(state.identityReads).toBe(0)
 })

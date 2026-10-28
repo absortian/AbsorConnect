@@ -322,3 +322,14 @@ Evidencia: `local-agent-stop-results.json`. No acepta alta/migración/baja final
 proveedores de control Windows/Mac, actualizador conjunto ni piloto. El modo
 legado conserva su salida y el agente no anuncia certificación. Avance **25/57
 (44 %)**; el mínimo de 50 % sigue pendiente.
+
+
+El 29/10 se verifican las bases de 7.2: compensación API por transacción que
+preserva autoridades posteriores, once carreras HTTP, journal durable sin secretos
+y drenaje del host legado antes de copiar su estado. Pasan 171 PHPUnit/1178,
+389 Vitest en Mac, validación de esquema y diez regresiones WebRTC. Windows no
+escribe journal hasta contar con adaptador ACL. Evidencia parcial:
+`migration-foundation-results.json`. **7.2 sigue sin aceptar** hasta integrar y
+verificar importación nativa de K/opciones/bloqueo y recuperación por fase; también
+siguen pendientes 7.3/8.1/9.1. Se mantiene **25/57 (44 %)**; el mínimo de 50 % no
+se da por alcanzado con estas bases.

@@ -490,3 +490,64 @@ viaja a ese cliente. Una respuesta de parada no certifica captura protegida y un
 respuesta perdida se muestra como intervención necesaria; nunca devuelve el host
 al legado. Se ensayarán denegaciones locales, mensajes malformados y parada de un
 P2P con API sin respuesta, más reinicio del broker sin reactivación.
+
+
+### D13. Migración con intención durable y compensación explícita
+
+Main reservará una intención privada y durable antes de parar el host legado o
+pedir un alta. Solo se permite importar una identidad existente y legible: no se
+llama a la creación/reset para recuperar un archivo corrupto. Se conserva K/salt/
+iteraciones sin pedir de nuevo la contraseña, opciones y el bloqueo activo. El
+payload secreto se transmite por stdin/IPC protegido al componente instalado,
+nunca por argv, renderer, archivo temporal de Main ni registro de progreso. El
+token de cuenta permanece en Main; el componente solo recibe `ace_` de un uso.
+
+El journal contiene únicamente versión, IDs de transacción/equipo, vínculo opaco
+a la cuenta, fase y estado habilitado previo. Toda lectura es cerrada y acotada;
+una intención corrupta o incompleta reserva el host durante el siguiente arranque.
+La recuperación consulta el estado protegido del componente: no repite un canje
+incierto ni restaura automáticamente el legado por ausencia de respuesta. El
+componente valida ID esperado, opciones y contador antes del canje, guarda todo
+cifrado y no acepta un segundo destino o un token de sesión de cuenta.
+
+Las fases serán reserva → permiso solicitado → provisión incierta → preparado →
+confirmado. Cancelación o fallo requieren retirar el permiso/propiedad API y una
+confirmación local de retirada antes de volver al legado. Si una compensación
+falla se conserva la reserva y se indica intervención. Cambios de cuenta o cierre
+en mitad de cualquier await invalidan la operación y no transfieren secretos a
+la cuenta nueva. Conservar opciones no habilita funciones no implementadas: se
+muestran como pendientes y no se anuncian como disponibles o certificadas; una
+opción necesaria que el proveedor no puede aplicar impide activar el host.
+
+Los adaptadores se habilitan únicamente con componentes instalados y protegidos.
+La integración Linux de VM prueba el flujo real contra API aislada y almacén
+nativo. La indisponibilidad de paquetes/proveedores finales Windows/Mac no se
+sustituye por una ejecución ad-hoc o una elevación del proceso Electron. Las
+pruebas incluyen fallos antes/después de cada fase, pérdida de respuesta tras
+canjear, recuperación tras reinicio, compensación sin red y contador/contraseña
+conservados. No se acepta 7.2 por un coordinador con proveedores simulados.
+
+
+### D14. Compensación API ligada a la transacción de migración
+
+Una baja global por ID de equipo no es una compensación segura de un canje cuya
+respuesta se perdió: podría retirar un agente posterior. Se añaden rutas de
+transacción, conservando las existentes. Main elige un UUID por intento y la API
+lo liga al equipo, clave y sesión origen bajo el orden de bloqueo sesión→equipo.
+El token de un uso sigue almacenado solo como hash; un POST repetido no emite
+otro permiso. GET devuelve estado enumerado, sin ningún secreto.
+
+DELETE conserva una lápida de cancelación incluso si llega antes del POST; por
+eso un POST retrasado de esa misma transacción no puede recrear el permiso.
+Retira exclusivamente permiso/credencial emitidos por esa transacción y sesión;
+una identidad posterior, sus ofertas y los demás equipos/conexiones se conservan.
+La respuesta indica si la vuelta al legado sigue bloqueada por otra autoridad.
+Cambiar de sesión no permite adoptar la transacción anterior por conocer su UUID.
+
+Las columnas son aditivas y opcionales para los clientes antiguos. Las lápidas
+pertenecen a la sesión origen y desaparecen con ella; su credencial ya no puede
+ejecutar un POST tardío. Se limita a 64 transacciones por equipo/sesión para acotar
+almacenamiento, sin borrar lápidas de una sesión viva. Los errores de cuota o
+compensación conservan la reserva local y exigen intervención. Se prueban
+cancelación antes/después de canje, duplicados, otra sesión/cuenta, alta posterior
+y conservación de capacidades, solicitudes y conexiones ajenas.

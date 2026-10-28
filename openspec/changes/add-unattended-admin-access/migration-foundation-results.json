@@ -1,0 +1,142 @@
+{
+  "schema": 1,
+  "date": "2026-10-29",
+  "ok": true,
+  "acceptedTasks": [],
+  "partialTasks": [
+    "7.2"
+  ],
+  "acceptedTotal": {
+    "closed": 25,
+    "total": 57,
+    "percentageRounded": 44
+  },
+  "scope": "Compensación API por transacción, journal privado de intención y drenaje del host legado; todavía sin importador nativo o coordinador de transferencia completo.",
+  "apiConcurrentCases": [
+    {
+      "case": "create-versus-cancel",
+      "episode": 1,
+      "passed": true,
+      "lateCreateBlocked": true,
+      "grantUnusable": true
+    },
+    {
+      "case": "create-versus-cancel",
+      "episode": 2,
+      "passed": true,
+      "lateCreateBlocked": true,
+      "grantUnusable": true
+    },
+    {
+      "case": "create-versus-cancel",
+      "episode": 3,
+      "passed": true,
+      "lateCreateBlocked": true,
+      "grantUnusable": true
+    },
+    {
+      "case": "create-versus-cancel",
+      "episode": 4,
+      "passed": true,
+      "lateCreateBlocked": true,
+      "grantUnusable": true
+    },
+    {
+      "case": "consume-versus-cancel",
+      "episode": 1,
+      "passed": true,
+      "noSurvivingCredential": true
+    },
+    {
+      "case": "consume-versus-cancel",
+      "episode": 2,
+      "passed": true,
+      "noSurvivingCredential": true
+    },
+    {
+      "case": "consume-versus-cancel",
+      "episode": 3,
+      "passed": true,
+      "noSurvivingCredential": true
+    },
+    {
+      "case": "consume-versus-cancel",
+      "episode": 4,
+      "passed": true,
+      "noSurvivingCredential": true
+    },
+    {
+      "case": "duplicate-create",
+      "episode": 1,
+      "passed": true,
+      "oneGrantOnly": true
+    },
+    {
+      "case": "duplicate-create",
+      "episode": 2,
+      "passed": true,
+      "oneGrantOnly": true
+    },
+    {
+      "case": "duplicate-create",
+      "episode": 3,
+      "passed": true,
+      "oneGrantOnly": true
+    }
+  ],
+  "apiTemporaryAccountsRemoved": true,
+  "nativeWebrtcRegressionCases": 10,
+  "nativeLocalStopRegression": {
+    "acknowledgedAfterMilliseconds": 167,
+    "apiUnavailable": true,
+    "freshEnrollmentRequired": true,
+    "durableReply": true,
+    "mainControlClientTested": true,
+    "survivedBrokerStart": true,
+    "brokerNotReactivated": true,
+    "controllerCutAfterMilliseconds": 436,
+    "apiRevokedCaseReplacedByLocalStopWithApiUnavailable": true
+  },
+  "verification": {
+    "typecheck": true,
+    "vitestPassedMac": 389,
+    "vitestApiSkipped": 6,
+    "vitestWindowsOnlySkippedOnMac": 1,
+    "posixJournalTestsNotClaimedOnWindows": true,
+    "phpunitTests": 171,
+    "phpunitAssertions": 1178,
+    "testSchemaValidated": true,
+    "developmentSchemaValidated": true,
+    "openspecStrict": true,
+    "phpRuntime": "8.5.12"
+  },
+  "sourceSha256": {
+    "backend/src/HostAgent/AgentRegistry.php": "b47c45c932a41d08a7c9ebde0c60fbb5cd15f0ac14a7ebf7d4b0429cd11b9e73",
+    "backend/src/Controller/HostAgentController.php": "84d7a45d58c572582153706c1559e94c52e9f84f626363b25ec8f62dfe336189",
+    "backend/migrations/Version20261029001500.php": "bbc502b64af34f1d096a0dc277f367430c64f0706bf5945c73328eb7495b6333",
+    "src/main/remote/migrationJournal.ts": "d4abea522350a0a65503898b0e7458133b07da8ce67737b8fcd2edf00fa49847",
+    "src/main/remote/hostService.ts": "735fb9a3c1545503a1b1df34c1ee4723a4e24e165da4532d32cf28fcbe6d011b",
+    "src/main/remote/hostSession.ts": "9216657fcf2a9e6c7dacebc9e3dfd812c84558dbd0f00921efb0c7a948b4eafb",
+    "src/main/remote/hostRuntime.ts": "5168b135eaa2079814eba85763d29b468c5fdfbce711e83a0d129d96f867155c"
+  },
+  "privateReportsSha256": {
+    "concurrency": "901d6aba804abd34ac6cbea3a389b6afc2eb92ede23c62c77e1926fdb03d7c16",
+    "webrtc": "7499b92873a6eb9ba01b64e8ef50866f5a4f086a6f70125b1c304e345ec9e3c1"
+  },
+  "cleanup": {
+    "apiAndDatabaseRemoved": true,
+    "servicesAndSecretsRemoved": true,
+    "accountsRemoved": true,
+    "developmentRateLimitsNotReset": true
+  },
+  "limits": {
+    "readyForUnattended": false,
+    "nativeSecretTransferImplemented": false,
+    "nativeOptionsAndLockoutImportImplemented": false,
+    "migrationCoordinatorImplemented": false,
+    "setupUiImplemented": false,
+    "windowsAclJournalImplemented": false,
+    "physicalPilotTested": false,
+    "productionTested": false
+  }
+}
