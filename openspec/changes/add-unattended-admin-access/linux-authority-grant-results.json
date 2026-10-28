@@ -1,0 +1,223 @@
+{
+  "schema": 1,
+  "date": "2026-10-28",
+  "scope": "Concesión HMAC/API → descriptor Xauthority local; todavía sin trabajador general/P2P dedicado",
+  "ok": true,
+  "acceptedTasks": [],
+  "partialTasks": [
+    "6.2",
+    "6.4"
+  ],
+  "progressAcceptedTasks": 20,
+  "progressTotalTasks": 57,
+  "linuxRustTestsDefaultAndAllFeatures": 245,
+  "macRustTestsDefaultAndAllFeatures": 218,
+  "newPureTests": 11,
+  "ipcCases": [
+    {
+      "case": "failed-local-seal-retires-native-enrollment-and-removes-partial-storage",
+      "passed": true
+    },
+    {
+      "case": "native-one-use-enrollment-encrypted-storage",
+      "passed": true,
+      "brokerUidDifferentFromWorker": true,
+      "accountTokenSentToService": false
+    },
+    {
+      "case": "worker-cannot-read-secret-files-proc-or-replace-root-socket",
+      "passed": true
+    },
+    {
+      "case": "foreign-uid-and-unregistered-same-uid-pid-denied",
+      "passed": true
+    },
+    {
+      "case": "authority-fd-denied-before-hmac",
+      "passed": true
+    },
+    {
+      "case": "authority-provider-root-without-capabilities-or-ip-network",
+      "passed": true
+    },
+    {
+      "case": "authority-grant-and-executable-inaccessible-to-worker-writes",
+      "passed": true
+    },
+    {
+      "case": "root-sealed-fd-delivered-only-to-authenticated-worker",
+      "passed": true
+    },
+    {
+      "case": "authority-fd-denies-foreign-uid-and-same-uid-other-pid",
+      "passed": true
+    },
+    {
+      "case": "authority-fd-expires-during-broker-stall-before-api-deadline",
+      "passed": true
+    },
+    {
+      "case": "unique-key-proof-required-and-proof-replay-closes-diagnostic-session",
+      "passed": true
+    },
+    {
+      "case": "logind-greeter-drops-active-authority-and-denies-challenges",
+      "passed": true
+    },
+    {
+      "case": "new-user-session-requires-new-proof-with-same-broker",
+      "passed": true
+    },
+    {
+      "case": "seat-change-invalidates-unfinished-challenge-before-login",
+      "passed": true
+    },
+    {
+      "case": "frame-sequence-replay-and-worker-restart-do-not-revive-session",
+      "passed": true
+    },
+    {
+      "case": "broker-crash-drops-authority-and-recovery-requires-new-proof",
+      "passed": true
+    },
+    {
+      "case": "api-expiry-and-restoration-require-new-proof",
+      "passed": true,
+      "denialObservedMilliseconds": 30071,
+      "observationIncludesSshRoundTrips": true
+    },
+    {
+      "case": "lockout-survives-service-and-worker-restart-without-state-reset",
+      "passed": true
+    },
+    {
+      "case": "tampered-encrypted-configuration-fails-closed-without-erasing-lockout",
+      "passed": true
+    },
+    {
+      "case": "missing-corrupt-attempt-store-and-wrong-wrapping-key-never-reset-state",
+      "passed": true
+    },
+    {
+      "case": "worker-and-audit-contain-no-host-key-agent-token-or-account-token",
+      "passed": true
+    },
+    {
+      "case": "real-api-revocation-is-terminal-across-service-restart",
+      "passed": true
+    },
+    {
+      "case": "reversible-removal-of-service-account-socket-state-and-secrets",
+      "passed": true,
+      "lightdmModified": false
+    }
+  ],
+  "sourceSha256": {
+    "agent/crates/agent-linux-session/examples/seat-inventory.rs": "1865c21a2c715633bd512857a77006a728361877e4bf00f84b60ad75826ff48e",
+    "agent/crates/agent-linux-session/src/grant_file.rs": "02aada65a8794b289daafcb969971ed635e2e4bcc9d1b170d1e683253e85c3d9",
+    "agent/crates/agent-linux-session/src/monitor.rs": "a05aa454317e7907edda5135c220a4397322308750363296b2c6e51a42a865da",
+    "agent/crates/agent-linux-session/src/lib.rs": "709aee4eab98929b4be194d13f9dc173b5d2186668797a0a9cb160860577814c",
+    "agent/crates/agent-linux-session/src/query.rs": "d475fd419f19c0e325184c11bd68b106aac909a626bd6eee34eeee3d1fd59214",
+    "agent/crates/agent-linux-session/src/service.rs": "c59faf7b7ee59657c24414b0af5160ca813e2ce641e15d46fcb320662836ad0a",
+    "agent/crates/agent-linux-session/src/status.rs": "24ff9c97e6a633b73bdbe7b7fc389c1ee72628b2096a2f0aa1eedbb32486ce76",
+    "agent/crates/agent-linux-session/src/binding.rs": "4fa7ee5891476dd644c025b0dbc32a126a55a0b5b725d83f661f070c8e0f5d84",
+    "agent/crates/agent-linux-session/src/main.rs": "d9a74d5bddc3ae4f7e987799abb0f3d3dc96daae2f0ec7141a72c0c717c436e5",
+    "agent/crates/agent-linux-session/src/authority_main.rs": "68a02cd054a09c0a3f2e97af4858e618326e6b788e686c0badf2d4f6440f54e4",
+    "agent/crates/agent-linux-session/src/xauthority.rs": "89451e9f144357bafb66cc7dcffd52b3ce77dcae97e70b79497b450167dbe634",
+    "agent/crates/agent-linux-session/src/authority_service.rs": "1451b2bd3361d4d8b529bf72d93c37ebf64bd38ec67cfc259955248f4d833f74",
+    "agent/crates/agent-linux-session/src/grant.rs": "ceee7820775f3ac22349e16ed45dfc65afbbc10109527158dc75784efc70ffe0",
+    "agent/crates/agent-security/src/client.rs": "6b519d2e460b63256befe246f24940c4ff01c777b3d55d85a7f75b607cbb0148",
+    "agent/crates/agent-security/src/lib.rs": "c0cb87d728c6412f01126daccb8605fd585cbc0317319cda85fd4d14c96fa047",
+    "agent/crates/agent-security/src/worker.rs": "fbc2d4b687ca63a18d993b0acbd95d1f7bd743f1614e51f0f2a47ca2fe2e15ec",
+    "agent/crates/agent-security/src/fd.rs": "40b40bbfba73a7ca8071b30262d6dc6aa7ad26b5e29d423eba5a12f9a0d32910",
+    "agent/crates/agent-security/src/linux.rs": "18a92e410ad02157e0908890c580af093b5ac6b70a6778c566fef72acb9b086d",
+    "agent/crates/agent-security/src/authority_client.rs": "8d1577a1a2e9903a255913e158af2351377f554c19c660da8209494f077fcb9e",
+    "agent/crates/agent-security/src/wire.rs": "42fa038c35a157764ec39ea3c79f24f7126177e868205b2227d4b07c94bd684d",
+    "agent/crates/agent-security/src/secrets.rs": "f7e61489110439d9d1d116c26e565b8c9079b0219669c1be538eab65ce9f1b2a",
+    "agent/crates/agent-security/src/provision.rs": "c81e312b6fc3a093d9923f3ad66e765454a5ff7fea560acac97fcebce2667f9d",
+    "agent/crates/agent-broker/src/secure_linux.rs": "a9dd72204878fcc02e135966db388f8dc02e195cad58ce080e8602469f620823",
+    "agent/linux-secure-lab/authority-install-vm.py": "dc5b0de494a6477f3d5d6d6d1d39eb82676c9b5b878ee97d606cec77777ed308",
+    "prototypes/backend-agent-check/secure-ipc-check.py": "40c48a0cf3ed2fad2882528d670603deb534db7e737074f99997c4b655148af7"
+  },
+  "artifactHashes": {
+    "absor-secure-broker-lab": "95cc7b99da3508fa25a9cc045ddef308f084a620070dd61fd90e393ed3e0e63c",
+    "absor-secret-provision-lab": "e5b3aac42db223fb5ad4cf3959caee480c20e1bf005a7ca59854c774ac6629f3",
+    "absor-ipc-worker-lab": "d3e6da283a618381803c0f45c1a834ef2edb3a0ee8ae1d2287e772884c11e32f",
+    "absorconnect-secure-lab.service": "e003badc8619e6ae3f202344df47825ca1306c9b08809b0f346a467773f650c0",
+    "absorconnect-ipc-worker-lab.service": "984cbe35e072e0890eb8a05fa1a63767137040b399710b2da9b869f4eca8273c",
+    "absorconnect-secure-lab.socket": "a36677cff3914a8d3f3973e82d8b6ae8a4f66138fe2c0dd5df42885849653bad",
+    "absor-seat-authority-lab": "4f565e3c2e26dcd8144fe40789d80a49bd0b6c4cecbb337d593603701c987824",
+    "absorconnect-seat-authority-lab.socket": "6dead467cb453ef0ddcddb797f516169e64915532ea404c30edbbf52225fbaa2",
+    "absorconnect-seat-authority-lab.service": "e156478167828984ca8c48c35a392ac2ddb9be6659c8f52ad13355f26d08e84f"
+  },
+  "privateReportSha256": "14cb0747b53aebdfb875569ebaa584e33cfcd68f5bb78ccf58af7f6363929ddf",
+  "authorityServiceRemoved": true,
+  "brokerServiceRemoved": true,
+  "temporaryAccountRemoved": true,
+  "providerRootWithNoCapabilitiesOrIpNetwork": true,
+  "grantFreshnessLimitMilliseconds": 400,
+  "grantBoundToBrokerAndWorkerStartTimes": true,
+  "grantBoundToLogindSeat": true,
+  "beforeHmacDenied": true,
+  "foreignUidAndSameUidOtherPidDenied": true,
+  "stalledBrokerGrantDenied": true,
+  "workerGrantFileReadWriteDenied": true,
+  "cookieBytesReported": false,
+  "captureTested": false,
+  "inputTested": false,
+  "p2pRegression": {
+    "cases": 10,
+    "ownWindowOnly": true,
+    "servicesAndSecretsRemoved": true,
+    "temporaryAccountsRemoved": true,
+    "privateReportSha256": "b69f249667f90e8fb2abb36bab25ca3ce448dfda6d9f2bf1a384df8afedcbb3a",
+    "artifactHashes": {
+      "absor-protected-channel-lab": "82c855050c0e91a452f9ed6a7f52dcd561b5d9c07a140bd4a5eab7f3c21a7f9d",
+      "libabsor_agent_webrtc_lab.so": "9da9ab30ba237495c51668aab4f93a78a4d09335654020f938110b8ecad55d0c",
+      "absor-secure-broker-lab": "95cc7b99da3508fa25a9cc045ddef308f084a620070dd61fd90e393ed3e0e63c",
+      "absor-secret-provision-lab": "e5b3aac42db223fb5ad4cf3959caee480c20e1bf005a7ca59854c774ac6629f3",
+      "absorconnect-secure-lab.service": "e003badc8619e6ae3f202344df47825ca1306c9b08809b0f346a467773f650c0",
+      "absorconnect-secure-lab.socket": "a36677cff3914a8d3f3973e82d8b6ae8a4f66138fe2c0dd5df42885849653bad",
+      "absorconnect-protected-worker-lab.service": "2b8139420e60a7175bf3b4a176dbe94b8efd7a96e1b6bf747ee151a20e2d76d2"
+    }
+  },
+  "typecheck": true,
+  "vitestPassed": 334,
+  "vitestIntegrationSkipped": 6,
+  "phpunitTests": 162,
+  "phpunitAssertions": 1077,
+  "physicalMachinesTested": false,
+  "productionTested": false,
+  "readyForUnattended": false,
+  "limitations": [
+    "La sonda recibe y cierra el descriptor sin abrir X11; la captura de la sonda independiente anterior no se atribuye a este circuito.",
+    "Faltan el trabajador P2P dedicado, captura/entrada generales y los cambios de contexto completos.",
+    "El proveedor optativo exige el marcador de VM; no es un paquete instalable de producción.",
+    "La sonda conserva la cuenta gráfica del laboratorio, con unidad sin home/red IP; el perfil de identidad P2P dedicado sigue pendiente.",
+    "No se garantiza borrado criptográfico de copias temporales de memoria."
+  ],
+  "ci": {
+    "testedHead": "c2f4262bc3a7ae8dee0f5a388d09acd9e7becfcc",
+    "fullLogsAndAnnotationsReviewed": true,
+    "allSuccessful": true,
+    "jobs": [
+      {
+        "platform": "linux",
+        "id": 122633213271,
+        "rustTestsDefaultAndAllFeatures": 245
+      },
+      {
+        "platform": "macos",
+        "id": 122633213194,
+        "rustTestsDefaultAndAllFeatures": 218
+      },
+      {
+        "platform": "windows",
+        "id": 122633213011,
+        "rustTestsDefaultAndAllFeatures": 216
+      }
+    ],
+    "releaseBuildsDefaultAndAllFeatures": true,
+    "notes": "Solo avisos de disponibilidad de runners; siete pruebas del lector Python Linux se omiten en Windows."
+  }
+}

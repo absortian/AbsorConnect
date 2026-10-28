@@ -247,3 +247,11 @@ Se acepta el componente de selección y su integración en el broker, sin cerrar
 6.2/6.4: el trabajador general y la entrega de autoridad posterior a HMAC siguen
 pendientes. La sonda independiente de memfd/SCM_RIGHTS conserva esos límites en
 `linux-authority-fd-results.json`. Avance **20/57 (35 %)**; sigue pendiente el 50 %.
+
+
+La siguiente integración del 28/10 une HMAC/API con un proveedor root de
+Xauthority por descriptor sellado, mediante una concesión de hasta 400 ms ligada
+a ambos procesos y al asiento. Pasa 23 comprobaciones y conserva diez regresiones
+WebRTC; retira todos sus recursos temporales. La sonda no captura ni envía
+entrada y falta el trabajador P2P dedicado: 6.2/6.4 continúan parciales. Evidencia:
+`linux-authority-grant-results.json`. Se mantiene **20/57 (35 %)**.

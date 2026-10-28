@@ -2872,3 +2872,28 @@ CLOEXEC, denegaciones, plazos y cierre de descriptores sobrantes/truncados.
 No está unido al P2P ni certifica entrada o escritorio general: 6.2/6.4 quedan
 parciales. No se anuncia acceso desatendido disponible ni se instala en físico.
 Avance aceptado: **20/57, 35 %**; objetivo mínimo 50 % aún pendiente.
+
+
+### 28/10 — concesión local de Xauthority después de HMAC
+
+`linux-authority-grant-results.json` registra 23 comprobaciones con API real
+aislada, broker/sonda de UID distintos y proveedor root separado sin capacidades
+o red IP. Antes de HMAC no entrega fd; después solo al MainPID de unidad correcto.
+La concesión de hasta 400 ms vincula boot, los dos PID/UID/inicios de proceso y
+la sesión de logind. Caduca durante SIGSTOP del broker, antes del plazo de API;
+otro PID del mismo UID o UID ajeno no la obtiene. La sonda no puede leer/escribir
+la concesión ni sustituir el ejecutable. Se rechazan cambios de sesión y se
+mantienen todos los casos anteriores de secretos/IPC/revocación/retirada.
+
+Pasan 245 pruebas Rust Linux y 218 Mac sumando default/all-features, fmt/clippy,
+releases Linux, typecheck, 334 Vitest con seis integraciones omitidas y PHP
+162/1077. Las once pruebas puras nuevas cubren formato/tiempos/identidades y
+Xauthority binario. La regresión nativa de diez conexiones WebRTC también pasa
+con las fuentes nuevas: sigue siendo ventana propia; no usa este fd para vídeo.
+Los 23 casos retiran proveedor/drop-in/concesión y laboratorio base/cuenta API/BD.
+
+La sonda recibe y cierra el fd sin abrir X11. No se atribuye aquí la captura
+contada de la sonda independiente anterior. Faltan el trabajador P2P con UID
+dedicado y la captura/entrada/contextos generales: no se cierra 6.2/6.4 ni se
+anuncia soporte desatendido de producción. Avance aceptado **20/57 (35 %)**,
+con el objetivo mínimo de 50 % todavía pendiente.
