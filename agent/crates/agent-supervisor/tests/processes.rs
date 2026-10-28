@@ -142,7 +142,10 @@ fn run_controlled(fault: Option<u8>, mode: &str, broker: Option<&str>) -> (i32, 
 fn pipe_eof_before_normal_process_exit_is_not_a_crash() {
     let (code, report, elapsed) = run_case(None, "normal-eof");
     assert_eq!(code, 0);
-    assert!(report.contains("\"eofBeforeExit\":true"));
+    // El SO puede publicar la salida antes de que vuelva a ejecutarse el actor.
+    // Ambas ordenaciones deben conservar el código real, sin cortar ni reiniciar.
+    assert!(report.contains("\"workerCode\":0"));
+    assert!(!report.contains("\"event\":\"cut\""));
     assert!(elapsed < Duration::from_secs(2));
 }
 #[test]
@@ -221,10 +224,8 @@ fn broker_replay_and_eof_cut_worker() {
 fn stdin_close_before_normal_exit_is_reaped_without_restart() {
     let (code, report, elapsed) = run_case(None, "normal-write-eof");
     assert_eq!(code, 0, "{report}");
-    assert!(
-        report.contains("\"writeClosedBeforeExit\":true"),
-        "{report}"
-    );
+    assert!(report.contains("\"workerCode\":0"), "{report}");
+    assert!(!report.contains("\"event\":\"cut\""), "{report}");
     assert_eq!(report.matches("spawned").count(), 1);
     assert!(elapsed < Duration::from_secs(2));
 }
