@@ -416,3 +416,28 @@ contrato de la API; no abre conexiones WebRTC ni contacta ese dominio. La API,
 la base y las cuentas temporales desaparecen al terminar; los servidores SSH/S3
 de pruebas existentes no se modifican. No ejecutes el preparador del entorno
 contra una base que quieras conservar: su script histórico vacía los límites.
+
+## Pantalla y sesión Flutter completas
+
+El modo `--mobile-runtime` de `isolated-webrtc-renewal.py` copia `mobile/lib` a
+la app aislada y ejecuta `mobile-runtime-interop-test.dart`. Usa `ViewerScreen`,
+`ViewerSession` y `RemoteTransfers` de producción con una API local de laboratorio,
+sin tokens de cuenta en el dispositivo. Comprueba dos conexiones con reto nuevo
+y el mismo broker, una solicitud ocupada, contexto negociado y cuatro eventos
+nativos completos. Un PNG del simulador/AVD propio debe mostrar el verde que la
+ventana nativa pinta al recibir el clic y KeyA: contar frames no prueba ese efecto.
+`check-green-frame.swift` solo analiza el PNG; no captura ni modifica imágenes.
+
+El extremo nativo no tiene fuente de sonido y responde audio inactivo, aunque
+el visor real ofrezca recibirlo. Anunciar envío de audio vacío bloqueaba la
+presentación de vídeo Android pese a recibir y decodificar frames. El caso de
+runtime verifica ahora esa dirección SDP antes de autenticar. No se añade audio
+al agente ni se certifica sincronización audiovisual general.
+
+Las capturas automáticas se limitan al AVD `absorconnect` o al simulador
+`AbsorConnect iPad Lab` identificado expresamente en el lanzador. No capturan el
+Mac, pantallas protegidas ni equipos físicos. Los logs e imágenes quedan privados;
+el resumen público contiene hashes, contadores y tipos de candidato. El directo
+Android necesita el mapeo UDP temporal de la VM descrito antes; no demuestra
+travesía NAT automática en una red exterior. Los controles administrativos y la
+certificación del host completo siguen pendientes.

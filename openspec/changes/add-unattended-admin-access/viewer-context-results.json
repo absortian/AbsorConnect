@@ -115,5 +115,25 @@
     "Contenido sensible solo se reactiva con una conexión nueva tras un cambio observado.",
     "El móvil todavía no integra este recorrido visual; 10.2 permanece pendiente.",
     "No publica servicio final ni certifica preparación para viajes; el 50% no se alcanza."
-  ]
+  ],
+  "sourceRevision": "85c4bd6ddd25c5366af5c8d6dcf3bd527c9039f4",
+  "mergedByPr": 53,
+  "ci": {
+    "head": "85c4bd6ddd25c5366af5c8d6dcf3bd527c9039f4",
+    "allChecksPassed": true,
+    "fullLogsReviewed": true,
+    "vitestPerOs": 311,
+    "skippedWithoutApiPerOs": 6,
+    "desktopPackages": [
+      "windows-x64-nsis",
+      "macos-arm64-dmg-zip",
+      "macos-x64-dmg-zip",
+      "linux-x64-AppImage-deb-rpm-tar"
+    ],
+    "logsSha256": {
+      "ci-122523937924.log": "f6abb10988e2a54bd23fe6785b592c516c0f4b29f6ff9858910fbb8f3247ec08",
+      "ci-122523938165.log": "e4b85df3cb2922a1770c2be5a4561c445f3e5c04702db9f41b585b9b5f011dea",
+      "ci-122523938287.log": "1c5d2224c573bcad6561b51a75a8d89588bc2d1672f3977d6431beeebccede21"
+    }
+  }
 }

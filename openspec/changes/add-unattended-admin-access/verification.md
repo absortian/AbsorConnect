@@ -2680,3 +2680,54 @@ No se cambia el protocolo v1 ni móviles, ni configuración iOS anterior.
 La responsabilidad del host de aislar fuente, entrada y colas sigue en 3.5;
 los contextos físicos/servicios finales y controles Flutter siguen pendientes.
 Avance aceptado **17/57 (30 %)**, todavía por debajo del 50 % solicitado.
+
+
+## 28/10/2026 — visor Flutter real y efecto visible de entrada
+
+Evidencia pública: `mobile-context-results.json`, con doce casos y hashes de
+fuentes/informes privados. Se mantienen **17/57 tareas (30 %)**: 10.2 avanza
+parcialmente; no se acepta UAC/macOS/LightDM desde móvil ni se cambia el denominador.
+
+Android AVD e iPad simulado ejecutan `ViewerScreen`, `ViewerSession` y
+`RemoteTransfers` de producción en una copia aislada. Cada uno pasa dos
+conexiones en directo, TURN UDP y TURN TLS: reto nuevo, mismo broker, segundo
+controlador ocupado rechazado, contexto autenticado, 320×180 y cuatro eventos
+nativos completos. El color verde que produce la ventana propia tras el clic y
+KeyA debe aparecer en el PNG del móvil. No basta el contador de frames. Los seis
+recorridos prueban exactamente el mismo conjunto de fuentes Dart; el lanzador
+verifica además fuentes contra el manifiesto del binario nativo.
+
+La prueba completa descubrió audio anunciado sin fuente en el extremo C++ del
+laboratorio. Android decodificaba más de doscientos frames pero no presentaba
+imagen; responder audio inactivo resolvió el problema en ambas plataformas.
+La prueba exige ahora esa dirección en SDP. No se atribuye esta causa al tirón
+histórico iPad → Windows, que no se ha reproducido con medición.
+Los intentos fallidos, incluido uno con bloqueo por inactividad de la VM Linux,
+se conservan privados; no cuentan como aceptación. La vista mínima y la
+inicialización adelantada fueron experimentos descartados. La matriz final usa
+la pantalla completa y la inicialización del motor de producción.
+
+La política móvil negocia después de autenticar, aplica retirada de capacidades,
+ignora contexto antiguo y oculta imagen durante transición/no disponible.
+Solo permite entrada protegida con capacidad e imagen nueva; libera teclas y
+restablece gestos/IME al cambiar. Descarta portapapeles, colas/nombres y callbacks
+pendientes; cierra solo la hoja de ficheros afectada. Audio/ficheros/portapapeles
+no se reactivan hasta una conexión nueva tras cambiar de contexto porque v1 no
+etiqueta cada trozo. No se amplía el protocolo ni se guardan credenciales del SO.
+Al cerrar, serializa teardown antes de destruir la textura, libera sus streams
+y dispone la PeerConnection nativa, incluso si close falla.
+
+Verificación: `flutter analyze` sin incidencias; **178 pruebas Flutter**, incluidas
+API aislada real y SSH/S3; typecheck correcto; **317 Vitest con API**; PHPUnit
+**162/1077**; Rust Mac **66 + 86** y fmt/clippy; **7 pruebas Python** del lanzador;
+OpenSpec estricto válido. La suite aislada retira su API/BD sin resetear límites
+de desarrollo. El escaneo completo ESLint de `src` detecta deuda previa de
+**106 errores/706 avisos**; `src` es idéntico al árbol de PR #53 (85c4bd6), sin
+cambios TypeScript en esta entrega. No se declara ese escaneo limpio.
+
+Los informes acreditan retirada de cuentas, servicios y secretos de cada ensayo;
+el mapeo UDP directo del AVD es temporal y no prueba NAT exterior automático.
+El AVD y el iPad de laboratorio se apagan al terminar. La captura ilustrativa
+`docs/images/unattended-mobile-context.png` contiene exclusivamente la ventana
+propia, sin pantallas ni credenciales del propietario. Las pruebas físicas
+permanecen para el final; no se instala ni publica un agente final con este cambio.

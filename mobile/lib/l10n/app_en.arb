@@ -349,5 +349,16 @@
   "remoteStreamBalanced": "Balanced",
   "remoteStreamSmooth": "Smooth",
   "remoteStreamNative": "Original resolution",
-  "remoteStreamBuffer": "Video buffer"
+  "remoteStreamBuffer": "Video buffer",
+  "remoteAgentDesktop": "User desktop",
+  "remoteAgentLocked": "Device locked",
+  "remoteAgentLogin": "Sign in",
+  "remoteAgentPrompt": "System authorization",
+  "remoteAgentTransition": "Changing context",
+  "remoteAgentUnavailable": "Context unavailable",
+  "remoteAgentImageMissing": "There is no current image. The previous image is hidden.",
+  "remoteAgentImageWaiting": "Waiting for a new frame from the current context.",
+  "remoteAgentInputUnavailable": "The host does not support input in this context. Sensitive features are suspended.",
+  "remoteAgentReconnectContent": "Files, clipboard and sound remain suspended until you reconnect.",
+  "remoteAgentSensitiveSuspended": "Protected context: clipboard, files and sound are suspended."
 }

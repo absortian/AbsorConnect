@@ -1315,6 +1315,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Video buffer'**
   String get remoteStreamBuffer;
+
+  /// No description provided for @remoteAgentDesktop.
+  ///
+  /// In en, this message translates to:
+  /// **'User desktop'**
+  String get remoteAgentDesktop;
+
+  /// No description provided for @remoteAgentLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Device locked'**
+  String get remoteAgentLocked;
+
+  /// No description provided for @remoteAgentLogin.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get remoteAgentLogin;
+
+  /// No description provided for @remoteAgentPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'System authorization'**
+  String get remoteAgentPrompt;
+
+  /// No description provided for @remoteAgentTransition.
+  ///
+  /// In en, this message translates to:
+  /// **'Changing context'**
+  String get remoteAgentTransition;
+
+  /// No description provided for @remoteAgentUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Context unavailable'**
+  String get remoteAgentUnavailable;
+
+  /// No description provided for @remoteAgentImageMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'There is no current image. The previous image is hidden.'**
+  String get remoteAgentImageMissing;
+
+  /// No description provided for @remoteAgentImageWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for a new frame from the current context.'**
+  String get remoteAgentImageWaiting;
+
+  /// No description provided for @remoteAgentInputUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The host does not support input in this context. Sensitive features are suspended.'**
+  String get remoteAgentInputUnavailable;
+
+  /// No description provided for @remoteAgentReconnectContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Files, clipboard and sound remain suspended until you reconnect.'**
+  String get remoteAgentReconnectContent;
+
+  /// No description provided for @remoteAgentSensitiveSuspended.
+  ///
+  /// In en, this message translates to:
+  /// **'Protected context: clipboard, files and sound are suspended.'**
+  String get remoteAgentSensitiveSuspended;
 }
 
 class _AppLocalizationsDelegate

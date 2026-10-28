@@ -1,0 +1,320 @@
+{
+  "schema": 1,
+  "date": "2026-10-28",
+  "scope": "Visor Flutter real con trabajador Linux de ventana propia; no agente distribuible",
+  "ok": true,
+  "cases": [
+    {
+      "platform": "android",
+      "route": "direct",
+      "case": "correct",
+      "ok": true,
+      "nativeGreenVerified": true,
+      "decodedFrames": 15,
+      "width": 320,
+      "height": 180,
+      "candidates": {
+        "local": "prflx",
+        "remote": "host",
+        "relayProtocol": null
+      },
+      "nativeInput": {
+        "mouseDown": 1,
+        "mouseUp": 1,
+        "keyDown": 1,
+        "keyUp": 1
+      },
+      "vmDirectMapping": true
+    },
+    {
+      "platform": "android",
+      "route": "direct",
+      "case": "correct-reconnect",
+      "ok": true,
+      "nativeGreenVerified": true,
+      "decodedFrames": 14,
+      "width": 320,
+      "height": 180,
+      "candidates": {
+        "local": "prflx",
+        "remote": "host",
+        "relayProtocol": null
+      },
+      "nativeInput": {
+        "mouseDown": 1,
+        "mouseUp": 1,
+        "keyDown": 1,
+        "keyUp": 1
+      },
+      "vmDirectMapping": true
+    },
+    {
+      "platform": "android",
+      "route": "udp",
+      "case": "correct",
+      "ok": true,
+      "nativeGreenVerified": true,
+      "decodedFrames": 14,
+      "width": 320,
+      "height": 180,
+      "candidates": {
+        "local": "relay",
+        "remote": "srflx",
+        "relayProtocol": "udp"
+      },
+      "nativeInput": {
+        "mouseDown": 1,
+        "mouseUp": 1,
+        "keyDown": 1,
+        "keyUp": 1
+      },
+      "vmDirectMapping": false
+    },
+    {
+      "platform": "android",
+      "route": "udp",
+      "case": "correct-reconnect",
+      "ok": true,
+      "nativeGreenVerified": true,
+      "decodedFrames": 9,
+      "width": 320,
+      "height": 180,
+      "candidates": {
+        "local": "relay",
+        "remote": "srflx",
+        "relayProtocol": "udp"
+      },
+      "nativeInput": {
+        "mouseDown": 1,
+        "mouseUp": 1,
+        "keyDown": 1,
+        "keyUp": 1
+      },
+      "vmDirectMapping": false
+    },
+    {
+      "platform": "android",
+      "route": "tls",
+      "case": "correct",
+      "ok": true,
+      "nativeGreenVerified": true,
+      "decodedFrames": 7,
+      "width": 320,
+      "height": 180,
+      "candidates": {
+        "local": "relay",
+        "remote": "srflx",
+        "relayProtocol": "tls"
+      },
+      "nativeInput": {
+        "mouseDown": 1,
+        "mouseUp": 1,
+        "keyDown": 1,
+        "keyUp": 1
+      },
+      "vmDirectMapping": false
+    },
+    {
+      "platform": "android",
+      "route": "tls",
+      "case": "correct-reconnect",
+      "ok": true,
+      "nativeGreenVerified": true,
+      "decodedFrames": 13,
+      "width": 320,
+      "height": 180,
+      "candidates": {
+        "local": "relay",
+        "remote": "srflx",
+        "relayProtocol": "tls"
+      },
+      "nativeInput": {
+        "mouseDown": 1,
+        "mouseUp": 1,
+        "keyDown": 1,
+        "keyUp": 1
+      },
+      "vmDirectMapping": false
+    },
+    {
+      "platform": "ios",
+      "route": "direct",
+      "case": "correct",
+      "ok": true,
+      "nativeGreenVerified": true,
+      "decodedFrames": 29,
+      "width": 320,
+      "height": 180,
+      "candidates": {
+        "local": "host",
+        "remote": "prflx",
+        "relayProtocol": null
+      },
+      "nativeInput": {
+        "mouseDown": 1,
+        "mouseUp": 1,
+        "keyDown": 1,
+        "keyUp": 1
+      },
+      "vmDirectMapping": false
+    },
+    {
+      "platform": "ios",
+      "route": "direct",
+      "case": "correct-reconnect",
+      "ok": true,
+      "nativeGreenVerified": true,
+      "decodedFrames": 8,
+      "width": 320,
+      "height": 180,
+      "candidates": {
+        "local": "host",
+        "remote": "prflx",
+        "relayProtocol": null
+      },
+      "nativeInput": {
+        "mouseDown": 1,
+        "mouseUp": 1,
+        "keyDown": 1,
+        "keyUp": 1
+      },
+      "vmDirectMapping": false
+    },
+    {
+      "platform": "ios",
+      "route": "udp",
+      "case": "correct",
+      "ok": true,
+      "nativeGreenVerified": true,
+      "decodedFrames": 15,
+      "width": 320,
+      "height": 180,
+      "candidates": {
+        "local": "relay",
+        "remote": "srflx",
+        "relayProtocol": "udp"
+      },
+      "nativeInput": {
+        "mouseDown": 1,
+        "mouseUp": 1,
+        "keyDown": 1,
+        "keyUp": 1
+      },
+      "vmDirectMapping": false
+    },
+    {
+      "platform": "ios",
+      "route": "udp",
+      "case": "correct-reconnect",
+      "ok": true,
+      "nativeGreenVerified": true,
+      "decodedFrames": 14,
+      "width": 320,
+      "height": 180,
+      "candidates": {
+        "local": "relay",
+        "remote": "srflx",
+        "relayProtocol": "udp"
+      },
+      "nativeInput": {
+        "mouseDown": 1,
+        "mouseUp": 1,
+        "keyDown": 1,
+        "keyUp": 1
+      },
+      "vmDirectMapping": false
+    },
+    {
+      "platform": "ios",
+      "route": "tls",
+      "case": "correct",
+      "ok": true,
+      "nativeGreenVerified": true,
+      "decodedFrames": 21,
+      "width": 320,
+      "height": 180,
+      "candidates": {
+        "local": "relay",
+        "remote": "srflx",
+        "relayProtocol": "tls"
+      },
+      "nativeInput": {
+        "mouseDown": 1,
+        "mouseUp": 1,
+        "keyDown": 1,
+        "keyUp": 1
+      },
+      "vmDirectMapping": false
+    },
+    {
+      "platform": "ios",
+      "route": "tls",
+      "case": "correct-reconnect",
+      "ok": true,
+      "nativeGreenVerified": true,
+      "decodedFrames": 9,
+      "width": 320,
+      "height": 180,
+      "candidates": {
+        "local": "relay",
+        "remote": "srflx",
+        "relayProtocol": "tls"
+      },
+      "nativeInput": {
+        "mouseDown": 1,
+        "mouseUp": 1,
+        "keyDown": 1,
+        "keyUp": 1
+      },
+      "vmDirectMapping": false
+    }
+  ],
+  "twoConnectionsSameBroker": true,
+  "freshAuthenticationChallenge": true,
+  "secondControllerBusyRejected": true,
+  "temporaryAccountsRemoved": true,
+  "servicesAndSecretsRemoved": true,
+  "nativeBuildSourceVerified": true,
+  "androidDirectRequiresTemporaryVmMapping": true,
+  "protectedOsScreensTested": false,
+  "physicalMachinesTested": false,
+  "productionTested": false,
+  "administrativeActionsTested": false,
+  "readyForUnattended": false,
+  "unitTests": {
+    "flutter": 178,
+    "vitestWithApi": 317,
+    "phpunit": 162,
+    "phpAssertions": 1077,
+    "rustMacDefault": 66,
+    "rustMacAllFeatures": 86,
+    "pythonGuards": 7
+  },
+  "sourceSha256": {
+    "mobile/lib/src/remote/agent_viewer_state.dart": "4026266ed3d8a7cdf2a83589cf9a012e5de0671c40b3650110aa102c7b27d59d",
+    "mobile/lib/src/remote/viewer_session.dart": "e85ec657f7dd87f0deddd7774f98ed4182f8fac175ff49aeb3be3e0c9570b3d0",
+    "mobile/lib/src/remote/remote_transfers.dart": "86dce757b1b7e48acbb90896bf44a54e749f6db205f2c3f26983cfaae326552c",
+    "mobile/lib/src/remote/video_stats.dart": "5d64998aa4cc10f3bc42cf83e444e400acde2ffd05bbfef975c4b90d6daceb9c",
+    "mobile/lib/ui/viewer_screen.dart": "016b72c1628737379f3c9e7cc26026dc3bbac3e8b0d05d59fbb6d537bb8d2b9f",
+    "mobile/lib/ui/agent_context_notice.dart": "59680b4d634a24edfc169c26bd5c82bb23b18b45a9aac701e3711fdf7f99ff26",
+    "mobile/lib/ui/sensitive_context_sheet.dart": "8280074b88d3e8bf995b16318770778f7f40b64e89b67868819f7958a140d693",
+    "prototypes/remote-desktop/webrtc-check/channel_check.cc": "6a2b66d1f11e7f57b8589cefc07514e985e8026804be0c8ac13858fdcb572c22",
+    "prototypes/remote-desktop/webrtc-check/mobile-runtime-interop-test.dart": "5715e4e09f396ebcd925b0cc7ecf4ddaaaf2e29c2f1ce33bdd740746e64f80a5",
+    "prototypes/remote-desktop/webrtc-check/check-green-frame.swift": "a78eeed6203f98aeab1132ac084e6ef67728f9fec91df23648e3ebd271110bcf"
+  },
+  "allMobileDartSourceManifestSha256": "d1a0ebb7384768cc5915f58fdd8dc0fd96c94524487d52e3428206a96366a103",
+  "privateReportSha256": {
+    "android-runtime-final-direct.json": "c208edfee840452d0a4bb82812dae968fdc25645c4cb2a1106e81958949ddfde",
+    "android-runtime-final-tls.json": "ecdc449374e90c718ca196916cc8d340788700fa959ea910f79cd0147a31adad",
+    "android-runtime-final-udp.json": "485d99dc1c22c89ebc0e39d2cd4e1ad4ac85787d5fb867f0092ee03783a3df7e",
+    "ios-runtime-final-direct.json": "8c273367245b1327ee86854792558a0ddc2c8e2b81651c47627a81f8e5767826",
+    "ios-runtime-final-tls.json": "057914c64c7dbdd1eaa515698c5af9abbfcae29302719ae4e853ab0f620fd098",
+    "ios-runtime-final-udp.json": "d5342df260c621b124dbf0b95e1f9b6d89fa4dc35f643941fb0bd106830e450a"
+  },
+  "limitations": [
+    "Windows/macOS/Mint protegidos pendientes; tarea 10.2 parcial",
+    "Operaciones administrativas y espera de reinicio pendientes",
+    "No se certifica NAT exterior ni audio general",
+    "CI de este commit pendiente de revisión antes de fusionar"
+  ]
+}

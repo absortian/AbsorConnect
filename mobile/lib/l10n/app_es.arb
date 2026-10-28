@@ -202,5 +202,16 @@
   "remoteStreamBalanced": "Equilibrado",
   "remoteStreamSmooth": "Fluido",
   "remoteStreamNative": "Resolución original",
-  "remoteStreamBuffer": "Búfer de vídeo"
+  "remoteStreamBuffer": "Búfer de vídeo",
+  "remoteAgentDesktop": "Escritorio del usuario",
+  "remoteAgentLocked": "Equipo bloqueado",
+  "remoteAgentLogin": "Inicio de sesión",
+  "remoteAgentPrompt": "Autorización del sistema",
+  "remoteAgentTransition": "Cambiando de contexto",
+  "remoteAgentUnavailable": "Contexto no disponible",
+  "remoteAgentImageMissing": "No hay imagen actual. La imagen anterior está oculta.",
+  "remoteAgentImageWaiting": "Esperando una imagen nueva del contexto actual.",
+  "remoteAgentInputUnavailable": "El host no admite entrada en este contexto. Las funciones sensibles están suspendidas.",
+  "remoteAgentReconnectContent": "Archivos, portapapeles y sonido permanecen suspendidos hasta reconectar.",
+  "remoteAgentSensitiveSuspended": "Contexto protegido: portapapeles, archivos y sonido suspendidos."
 }

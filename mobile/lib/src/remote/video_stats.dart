@@ -1,8 +1,11 @@
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 class ViewerStats {
-  const ViewerStats({this.relay, this.rttMs, this.fps, this.width, this.height, this.kbps, this.bufferMs});
+  const ViewerStats({this.relay, this.rttMs, this.fps, this.width, this.height, this.kbps, this.bufferMs, this.decodedFrames, this.localCandidateType, this.remoteCandidateType, this.relayProtocol});
   final bool? relay;
+  /// Contadores y enums; nunca direcciones, SDP o credenciales ICE.
+  final int? decodedFrames;
+  final String? localCandidateType, remoteCandidateType, relayProtocol;
   final int? rttMs;
   final int? fps;
   final int? width;
@@ -33,9 +36,13 @@ class VideoStatsSampler {
     final remote = pair == null ? null : byId[pair.values['remoteCandidateId']];
     final relay = pair == null ? null : local?.values['candidateType'] == 'relay' || remote?.values['candidateType'] == 'relay' || local?.values['relayProtocol'] is String;
     final rtt = _number(pair?.values['currentRoundTripTime']);
+    String? candidate(Object? value) => {'host', 'prflx', 'srflx', 'relay'}.contains(value) ? value as String : null;
+    final localType = candidate(local?.values['candidateType']), remoteType = candidate(remote?.values['candidateType']);
+    final protocolValue = local?.values['relayProtocol'];
+    final protocol = {'udp', 'tcp', 'tls'}.contains(protocolValue) ? protocolValue as String : null;
     if (video == null) {
       reset();
-      return ViewerStats(relay: relay, rttMs: _round(rtt == null ? null : rtt * 1000));
+      return ViewerStats(relay: relay, rttMs: _round(rtt == null ? null : rtt * 1000), localCandidateType: localType, remoteCandidateType: remoteType, relayProtocol: protocol);
     }
     final values = video.values;
     // flutter_webrtc nativo entrega timestamp_us en Android y Darwin.
@@ -50,6 +57,8 @@ class VideoStatsSampler {
     _previous = current;
     return ViewerStats(
       relay: relay,
+      decodedFrames: _round(current.frames),
+      localCandidateType: localType, remoteCandidateType: remoteType, relayProtocol: protocol,
       rttMs: _round(rtt == null ? null : rtt * 1000),
       fps: _round(fps),
       width: width != null && width > 0 && height != null && height > 0 ? width : null,

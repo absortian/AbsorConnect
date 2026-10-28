@@ -1,11 +1,15 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:crypto/crypto.dart' as crypto;
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import '../api.dart';
 import 'auth.dart';
+import 'agent_protocol.dart';
+import 'agent_viewer_state.dart';
 import 'input.dart';
 import 'protocol.dart';
 import 'quality_selection.dart';
@@ -71,6 +75,21 @@ class ViewerSession extends ChangeNotifier {
   final _quality = QualitySelection();
   StreamProfile get streamProfile => _quality.confirmed;
   bool _authenticated = false;
+  int _challengeCount = 0;
+  String? _challengeId;
+  /// Solo contador/hash del nonce público; no expone K, contraseña ni SDP.
+  int get challengeCount => _challengeCount;
+  String? get challengeId => _challengeId;
+  AgentViewerState _agentState = AgentViewerState();
+  FeaturesMessage _declaredFeatures = const FeaturesMessage(clipboard: false, files: false, audio: false);
+  int _contextEpoch = 0;
+  bool _frameCurrent = true;
+  int? _contextFramesBaseline;
+  AgentViewerStatus get agentContext => _agentState.status;
+  int get contextEpoch => _contextEpoch;
+  bool get contextImageCurrent => !agentContext.enabled || (_frameCurrent && agentContext.imageAvailable);
+  bool get inputAllowed => _input?.state == RTCDataChannelState.RTCDataChannelOpen && _authenticated && !_closed && !_disposed && agentContext.inputAllowed && contextImageCurrent && (!agentContext.enabled || (renderer.renderVideo && renderer.videoWidth > 0 && renderer.videoHeight > 0));
+  void Function()? onContextBoundary;
 
   /// Trozo del portapapeles del PC.
   void Function(ClipboardPiece piece)? onClipboard;
@@ -85,12 +104,14 @@ class ViewerSession extends ChangeNotifier {
   RTCDataChannel? _pointer;
   RTCDataChannel? _file;
   final List<MediaStreamTrack> _audioTracks = [];
+  final Set<MediaStream> _ownedVideoStreams = {};
   Timer? _statsTimer;
   Timer? _disconnectedTimer;
   bool _closed = false;
   bool _recovering = false;
   bool _disposed = false;
   bool _rendererReady = false;
+  Future<void>? _teardownPending;
   final _statsSampler = VideoStatsSampler();
   final _statsPending = <RTCPeerConnection>{};
 
@@ -131,7 +152,7 @@ class ViewerSession extends ChangeNotifier {
 
   void sendInput(String message) {
     final channel = _input;
-    if (channel?.state == RTCDataChannelState.RTCDataChannelOpen) unawaited(channel!.send(RTCDataChannelMessage(message)));
+    if (inputAllowed && channel?.state == RTCDataChannelState.RTCDataChannelOpen) unawaited(channel!.send(RTCDataChannelMessage(message)));
   }
 
   void sendInputs(Iterable<String> messages) => messages.forEach(sendInput);
@@ -139,7 +160,7 @@ class ViewerSession extends ChangeNotifier {
   /// Posición normalizada (0–1) sobre la pantalla elegida; solo importa la última.
   void sendPointer(double x, double y) {
     final channel = _pointer;
-    if (channel?.state == RTCDataChannelState.RTCDataChannelOpen) unawaited(channel!.send(RTCDataChannelMessage(RemoteInput.move(x, y))));
+    if (inputAllowed && channel?.state == RTCDataChannelState.RTCDataChannelOpen) unawaited(channel!.send(RTCDataChannelMessage(RemoteInput.move(x, y))));
   }
 
   void sendControl(String message) {
@@ -150,11 +171,14 @@ class ViewerSession extends ChangeNotifier {
   /// Espacio libre en el canal `control` (el portapapeles va en trozos por él).
   Future<bool> controlRoom() async {
     final channel = _control;
-    if (channel == null) return false;
+    final epoch = _contextEpoch;
+    bool current() => channel == _control && epoch == _contextEpoch && _authenticated && !_closed && agentContext.sensitiveAllowed;
+    if (channel == null || !current()) return false;
     while (channel.state == RTCDataChannelState.RTCDataChannelOpen && await channel.getBufferedAmount() > TransferLimits.bufferHighBytes) {
+      if (!current()) return false;
       await Future<void>.delayed(const Duration(milliseconds: 20));
     }
-    return channel.state == RTCDataChannelState.RTCDataChannelOpen;
+    return current() && channel.state == RTCDataChannelState.RTCDataChannelOpen;
   }
 
   void selectDisplay(String id) {
@@ -172,16 +196,19 @@ class ViewerSession extends ChangeNotifier {
   void setAudioMuted(bool muted) {
     audioMuted = muted;
     for (final track in _audioTracks) {
-      track.enabled = !muted;
+      track.enabled = features.audio && !muted;
     }
     notifyListeners();
   }
 
   /// Cierra la sesión (Desconectar o salir de la pantalla): se despide del PC.
   Future<void> close() async {
-    if (_closed && _pc == null) return;
+    if (_closed && _pc == null) {
+      await _teardownPending;
+      return;
+    }
+    _releaseInput();
     _closed = true;
-    sendInput(RemoteInput.releaseAll());
     sendControl(byeMessage());
     await Future<void>.delayed(const Duration(milliseconds: 200));
     await _teardown();
@@ -227,6 +254,7 @@ class ViewerSession extends ChangeNotifier {
     final control = await pc.createDataChannel(Channels.control, RTCDataChannelInit());
     _control = control;
     _input = await pc.createDataChannel(Channels.input, RTCDataChannelInit());
+    _input!.onDataChannelState = (_) { if (pc == _pc && !_closed && !_disposed) notifyListeners(); };
     // Solo importa la última posición: sin orden y sin reenvíos tardíos (D9). flutter_webrtc no
     // envía maxRetransmits = 0, así que se limita la vida de cada mensaje
     _pointer = await pc.createDataChannel(Channels.pointer, RTCDataChannelInit()
@@ -240,13 +268,22 @@ class ViewerSession extends ChangeNotifier {
         var stream = event.streams.isNotEmpty ? event.streams.first : null;
         if (stream == null) {
           stream = await createLocalMediaStream('remote-video');
+          if (pc != _pc || _closed || _disposed) {
+            await stream.dispose();
+            return;
+          }
+          _ownedVideoStreams.add(stream);
           await stream.addTrack(event.track);
         }
-        if (pc == _pc) renderer.srcObject = stream;
+        if (pc == _pc && !_closed && !_disposed) {
+          // Unified Plan puede reemplazar el wrapper: seleccionar la pista del PC actual.
+          await renderer.setSrcObject(stream: stream, trackId: event.track.id);
+        }
       } else {
         // El sonido remoto suena solo; la pista se guarda para silenciarlo
+        if (pc != _pc || _closed || _disposed) return;
         _audioTracks.add(event.track);
-        event.track.enabled = !audioMuted;
+        event.track.enabled = features.audio && !audioMuted;
       }
     };
 
@@ -312,8 +349,11 @@ class ViewerSession extends ChangeNotifier {
     control.onMessage = (message) async {
       if (pc != _pc || _closed || _disposed) return;
       if (message.isBinary) return;
+      if (_handleAgent(message.text)) return;
       switch (parseHostMessage(message.text)) {
         case HelloMessage(:final salt, :final iterations, :final nonce, :final hostName):
+          if (++_challengeCount != 1) return fail('connection_failed');
+          _challengeId = crypto.sha256.convert(utf8.encode(nonce)).toString();
           try {
             this.hostName = hostName;
             if (_key == null) {
@@ -350,6 +390,7 @@ class ViewerSession extends ChangeNotifier {
     control.onMessage = (message) {
       if (pc != _pc || _closed) return;
       if (message.isBinary) return;
+      if (_handleAgent(message.text)) return;
       final parsed = parseHostMessage(message.text);
       if (parsed != null) _handle(parsed);
     };
@@ -380,7 +421,14 @@ class ViewerSession extends ChangeNotifier {
         currentDisplay = current;
         notifyListeners();
       case FeaturesMessage():
-        features = message;
+        _declaredFeatures = message;
+        final previous = agentContext;
+        if (_agentState.announce(1, message.unattendedControl)) {
+          _applyAgentState(previous);
+          sendControl(jsonEncode(const AgentControlEnable().toJson()));
+        } else {
+          _publishFeatures();
+        }
         final request = _quality.negotiate(message.streamQuality);
         if (request != null) sendControl(request);
         notifyListeners();
@@ -390,7 +438,7 @@ class ViewerSession extends ChangeNotifier {
           notifyListeners();
         }
       case ClipboardMessage(:final piece):
-        onClipboard?.call(piece);
+        if (agentContext.sensitiveAllowed && features.clipboard) onClipboard?.call(piece);
       case ByeMessage(:final reason):
         // El PC cerró la sesión a propósito: no se reconecta solo. Con la contraseña nueva, K ya
         // no vale (reconectar con ella sería un intento fallido más)
@@ -434,10 +482,18 @@ class ViewerSession extends ChangeNotifier {
 
   Future<void> _collectStats(RTCPeerConnection pc) async {
     if (pc != _pc || _closed || _disposed || !_statsPending.add(pc)) return;
+    final epoch = _contextEpoch;
     try {
       final reports = await pc.getStats();
       if (pc != _pc || _closed || _disposed) return;
       stats = _statsSampler.sample(reports);
+      if (epoch == _contextEpoch && agentContext.enabled && agentContext.imageAvailable && !_frameCurrent) {
+        final frames = stats.decodedFrames;
+        if (frames != null) {
+          if (_contextFramesBaseline == null) { _contextFramesBaseline = frames; }
+          else if (frames > _contextFramesBaseline!) { _frameCurrent = true; }
+        }
+      }
       notifyListeners();
     } on Object {
       if (pc == _pc && !_closed && !_disposed) {
@@ -450,13 +506,74 @@ class ViewerSession extends ChangeNotifier {
     }
   }
 
-  Future<void> _teardown() async {
+  bool _handleAgent(String raw) {
+    if (!_authenticated || _closed || _disposed) return false;
+    final previous = agentContext;
+    if (!_agentState.accept(raw)) return false;
+    _applyAgentState(previous);
+    return true;
+  }
+
+  void _applyAgentState(AgentViewerStatus previous) {
+    final next = agentContext;
+    final boundary = next.enabled && (!previous.enabled || next.sequence != previous.sequence);
+    _releaseInput();
+    if (boundary || !next.imageAvailable) {
+      _frameCurrent = false;
+      _contextFramesBaseline = null;
+    }
+    if (boundary) {
+      _contextEpoch++;
+      onContextBoundary?.call();
+    }
+    _publishFeatures();
+    if (!_disposed) notifyListeners();
+    final pc = _pc;
+    if (pc != null && next.imageAvailable && !_frameCurrent) unawaited(_collectStats(pc));
+  }
+
+  void _publishFeatures() {
+    final sensitive = agentContext.sensitiveAllowed;
+    features = FeaturesMessage(clipboard: sensitive && _declaredFeatures.clipboard, files: sensitive && _declaredFeatures.files, audio: sensitive && _declaredFeatures.audio, streamQuality: _declaredFeatures.streamQuality, unattendedControl: _declaredFeatures.unattendedControl);
+    for (final track in _audioTracks) { track.enabled = features.audio && !audioMuted; }
+  }
+
+  void _releaseInput() {
+    final channel = _input;
+    if (_authenticated && channel?.state == RTCDataChannelState.RTCDataChannelOpen) {
+      unawaited(channel!.send(RTCDataChannelMessage(RemoteInput.releaseAll())).catchError((Object _) {}));
+    }
+  }
+
+  Future<void> _teardown() {
+    final pending = _teardownPending;
+    if (pending != null) return pending;
+    late final Future<void> current;
+    current = _teardownNow().whenComplete(() {
+      if (identical(_teardownPending, current)) _teardownPending = null;
+    });
+    _teardownPending = current;
+    return current;
+  }
+
+  Future<void> _teardownNow() async {
+    _releaseInput();
+    final wasAgent = agentContext.enabled;
+    _agentState = AgentViewerState();
+    _contextEpoch++;
+    _frameCurrent = true;
+    _contextFramesBaseline = null;
+    if (wasAgent) onContextBoundary?.call();
+    for (final track in _audioTracks) { track.enabled = false; }
+    _declaredFeatures = const FeaturesMessage(clipboard: false, files: false, audio: false);
     _statsTimer?.cancel();
     _statsTimer = null;
     _disconnectedTimer?.cancel();
     _disconnectedTimer = null;
     _statsSampler.reset();
     _authenticated = false;
+    _challengeCount = 0;
+    _challengeId = null;
     _quality.reset();
     stats = const ViewerStats();
     features = const FeaturesMessage(clipboard: false, files: false, audio: false);
@@ -470,7 +587,16 @@ class ViewerSession extends ChangeNotifier {
       _file = null;
       onFileChannel?.call(null);
     }
-    if (_rendererReady) renderer.srcObject = null;
+    if (_rendererReady) await renderer.setSrcObject(stream: null);
+    final streams = _ownedVideoStreams.toList();
+    _ownedVideoStreams.clear();
+    for (final stream in streams) {
+      try {
+        await stream.dispose();
+      } on Object {
+        // Puede haber desaparecido al cerrar la conexión nativa.
+      }
+    }
     if (pc != null) {
       pc
         ..onConnectionState = null
@@ -480,6 +606,11 @@ class ViewerSession extends ChangeNotifier {
         await pc.close();
       } on Object {
         // ya cerrada
+      }
+      try {
+        await pc.dispose();
+      } on Object {
+        // Liberar el registro nativo aunque close haya fallado.
       }
     }
   }

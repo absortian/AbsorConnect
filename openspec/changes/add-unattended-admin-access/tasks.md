@@ -206,3 +206,10 @@ reconectar por la ausencia de etiquetas de contexto en v1. Evidencia:
 
 - El propietario autorizó iniciar `/opsx:apply` e implementar/desplegar el 22/10/2026; mantener los criterios de verificación y coordinar las pruebas que bloqueen, cierren sesión o reinicien sus equipos.
 - Tras implementar y verificar, revisar el resultado y la publicación por los canales existentes. Archivar con `/opsx:archive` solo cuando se haya satisfecho el alcance acordado.
+
+
+El 28/10 se añadió el visor Flutter completo con contexto y descarte de funciones
+sensibles, doce casos reales de vídeo/entrada en AVD/iPad y directo/UDP/TLS,
+y 178 pruebas Flutter. Evidencia en `mobile-context-results.json`. Es avance
+parcial de 10.2; las acciones administrativas y pantallas protegidas siguen
+pendientes. Se mantiene **17/57 (30 %)**, sin adelantar la certificación del host.

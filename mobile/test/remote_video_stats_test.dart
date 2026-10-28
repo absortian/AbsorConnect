@@ -32,6 +32,7 @@ void main() {
     final first = sampler.sample(report(1000));
     expect((first.fps, first.kbps, first.bufferMs), (null, null, null));
     final next = sampler.sample(report(2000));
+    expect((next.decodedFrames, next.localCandidateType, next.relayProtocol), (60, 'prflx', 'tls'));
     expect((next.relay, next.rttMs, next.fps, next.width, next.height, next.kbps, next.bufferMs), (true, 20, 30, 1920, 1080, 800, 20));
   });
   test('reinicia contadores, flujo y timestamp sin valores falsos', () {
@@ -48,5 +49,11 @@ void main() {
     final stats = sampler.sample(report(1000, values: {'framesPerSecond': 0, 'frameWidth': double.nan, 'bytesReceived': double.infinity, 'jitterBufferDelay': -1}));
     expect((stats.fps, stats.width, stats.height, stats.kbps), (0, null, null, null));
     expect(sampler.sample([]).relay, isNull);
+    final unknown = report(2000);
+    unknown.last.values['candidateType'] = 'not-a-type';
+    unknown.last.values['relayProtocol'] = 'not-a-protocol';
+    final bounded = sampler.sample(unknown);
+    expect(bounded.localCandidateType, isNull);
+    expect(bounded.relayProtocol, isNull);
   });
 }

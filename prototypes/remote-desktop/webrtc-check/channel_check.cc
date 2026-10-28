@@ -369,7 +369,12 @@ bool Exchange(webrtc::scoped_refptr<webrtc::PeerConnectionInterface> connection,
   bool directions_ok = true;
   signaling->BlockingCall([&] {
     for (const auto& transceiver : connection->GetTransceivers()) {
-      if (!transceiver->SetDirectionWithError(webrtc::RtpTransceiverDirection::kSendOnly).ok()) directions_ok = false;
+      // El laboratorio solo produce vídeo; una pista de audio sin fuente
+      // debe quedar inactiva en la respuesta.
+      const auto direction = transceiver->media_type() == webrtc::MediaType::VIDEO
+          ? webrtc::RtpTransceiverDirection::kSendOnly
+          : webrtc::RtpTransceiverDirection::kInactive;
+      if (!transceiver->SetDirectionWithError(direction).ok()) directions_ok = false;
     }
   });
   if (!directions_ok) return false;

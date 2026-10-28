@@ -702,4 +702,42 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get remoteStreamBuffer => 'Búfer de vídeo';
+
+  @override
+  String get remoteAgentDesktop => 'Escritorio del usuario';
+
+  @override
+  String get remoteAgentLocked => 'Equipo bloqueado';
+
+  @override
+  String get remoteAgentLogin => 'Inicio de sesión';
+
+  @override
+  String get remoteAgentPrompt => 'Autorización del sistema';
+
+  @override
+  String get remoteAgentTransition => 'Cambiando de contexto';
+
+  @override
+  String get remoteAgentUnavailable => 'Contexto no disponible';
+
+  @override
+  String get remoteAgentImageMissing =>
+      'No hay imagen actual. La imagen anterior está oculta.';
+
+  @override
+  String get remoteAgentImageWaiting =>
+      'Esperando una imagen nueva del contexto actual.';
+
+  @override
+  String get remoteAgentInputUnavailable =>
+      'El host no admite entrada en este contexto. Las funciones sensibles están suspendidas.';
+
+  @override
+  String get remoteAgentReconnectContent =>
+      'Archivos, portapapeles y sonido permanecen suspendidos hasta reconectar.';
+
+  @override
+  String get remoteAgentSensitiveSuspended =>
+      'Contexto protegido: portapapeles, archivos y sonido suspendidos.';
 }
