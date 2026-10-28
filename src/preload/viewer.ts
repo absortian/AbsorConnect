@@ -6,6 +6,7 @@ import type { ClipboardContent } from '../shared/remote/transfer'
 
 const api: AbsorViewerApi = {
   init: () => ipcRenderer.invoke(VIEWER_IPC.init),
+  availability: () => ipcRenderer.invoke(VIEWER_IPC.availability),
   iceServers: () => ipcRenderer.invoke(VIEWER_IPC.iceServers),
   request: (offer) => ipcRenderer.invoke(VIEWER_IPC.request, offer),
   poll: (requestId) => ipcRenderer.invoke(VIEWER_IPC.poll, requestId),

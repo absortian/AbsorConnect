@@ -33,9 +33,14 @@ export type ViewerPollResult =
   | { status: 'rejected'; reason: string; retryAfter?: number }
   | { status: 'error'; code: string }
 
+export type ViewerAvailabilityResult =
+  | { ok: true; online: boolean; available: boolean; lastSeenAt: string }
+  | { ok: false; code: string; retryAfter?: number }
+
 /** API que el preload del visor expone como `window.absorViewer`. */
 export interface AbsorViewerApi {
   init(): Promise<ViewerInit>
+  availability(): Promise<ViewerAvailabilityResult>
   iceServers(): Promise<IceServer[]>
   request(offer: string): Promise<ViewerRequestResult>
   poll(requestId: string): Promise<ViewerPollResult>
@@ -56,6 +61,7 @@ export interface AbsorViewerApi {
 
 export const VIEWER_IPC = {
   init: 'remote-viewer:init',
+  availability: 'remote-viewer:availability',
   iceServers: 'remote-viewer:ice-servers',
   request: 'remote-viewer:request',
   poll: 'remote-viewer:poll',

@@ -2731,3 +2731,57 @@ El AVD y el iPad de laboratorio se apagan al terminar. La captura ilustrativa
 `docs/images/unattended-mobile-context.png` contiene exclusivamente la ventana
 propia, sin pantallas ni credenciales del propietario. Las pruebas físicas
 permanecen para el final; no se instala ni publica un agente final con este cambio.
+
+
+## 28/10/2026 — operaciones del controlador de escritorio
+
+PR #54 integrada (head fd7b46e, merge c39fcf0) tras revisar los logs completos y
+annotations de sus cinco jobs: Rust Windows/Mac/Linux 150/152/167 pruebas, siete
+Python y dos builds release por SO; APK firmado 98,5 MB y Runner iOS sin firma
+34,5 MB. Avisos previos de runners, Node de acciones y Java/KGP. Se repitió la
+regresión Electron IPC nativo: diez casos correctos; verificación separada de
+retirada de secretos/cuenta/servicios/mapeos en la VM. AVD e iPad apagados.
+Los hashes de CI/evidencia se añaden a `mobile-context-results.json` como historia.
+
+Se acepta **9.3**. El visor espera autenticación, contexto y acciones anunciadas;
+pide confirmación asíncrona e invalida la elección si cambia contexto/capacidad.
+Usa UUID v4, una operación pendiente y límite de 64 por conexión. Correlaciona
+acción e ID, rechaza resultados ajenos/repetidos y nunca reintenta una orden.
+Un resultado perdido a 15 s bloquea otra operación hasta una conexión nueva.
+Rechazo/fallo/cancelación se muestran sin anunciar éxito ni esperar un reinicio.
+
+Reinicio/logout aceptados descartan K y cortan entrada/contenido. El reinicio
+consulta solo presencia del mismo PC, sin ofertas hasta volver; acepta una
+señal nueva por indisponibilidad observada o heartbeat posterior al registrado
+antes de confirmar. La UI distingue disponibilidad de reinicio del SO terminado.
+La espera vence a cinco minutos con temporizador independiente, permite cancelar
+y exige contraseña/prueba nueva. Incluso tras cancelar o vencer se verifica
+presencia antes de una oferta manual. El diálogo no reenvía teclas al host.
+Se corrigió también un timeout de cierre que podía destruir un peer posterior.
+
+Main fija equipo/nombre desde la API; cada visor queda vinculado a su cuenta y
+frame principal. Su solicitud solo se consulta desde ese visor; no se solapan
+creaciones ni se entregan resultados tardíos tras cambiar cuenta o ventana.
+La presencia expone únicamente online/available/lastSeenAt. Un diálogo tardío de
+guardado no crea archivo tras perder cuenta; una descarga pendiente no publica
+su resultado a otra cuenta. El vigilante del portapapeles también comprueba
+la cuenta al emitir, deteniéndose sin entregar datos posteriores a otra cuenta.
+El puente no entrega secretos del host ni tokens de cuenta. La K del
+controlador se deriva de la contraseña y solo vive en la memoria del visor;
+se borra al aceptar reinicio/logout. No hay shell RPC.
+
+`viewer-actions-check` ejecuta HTML/CSS/main.ts reales y dos peers Chromium con
+canvas público. Pasa cancelación, retirada de acción, rechazo, resultado perdido,
+dos ciclos de reinicio simulados, tres retos distintos y cero ofertas fuera de
+línea. Comprueba teclas locales, liberación, hit-test de cancelación y capturas
+es/en a 500 px. La nueva comprobación del lanzador exige informe `ok` además de
+exit code: cerrar Electron no puede ocultar un fallo. Se repitió también
+`viewer-context-check`. Evidencia en `viewer-actions-results.json` y capturas
+`docs/images/unattended-admin-confirm.png` / `unattended-restart-wait.png`.
+
+Typecheck/build correctos, **340 Vitest con API** (23 nuevos), **26 dirigidos**,
+ESLint de archivos TypeScript tocados limpio y PHPUnit **162/1077**. Los tests de
+reloj prueban vuelta a diez segundos, cinco minutos con consulta bloqueada,
+respuesta tardía, cancelación y Retry-After. Las operaciones del host artificial
+solo incrementan contadores; no se reinicia ni administra un SO. No acepta las
+tareas de agente 4.3/5.4/6.3, Flutter ni piloto exterior. **18/57 (32 %)**.

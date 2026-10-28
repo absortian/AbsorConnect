@@ -27,11 +27,28 @@
       <input id="file-input" type="file" multiple hidden />
       <button id="mute" type="button" hidden></button>
       <span id="no-audio" hidden></span>
+      <div class="menu" id="agent-menu" hidden>
+        <button id="agent-actions" type="button"></button>
+        <div id="agent-action-list" hidden></div>
+      </div>
       <button id="disconnect" type="button" class="danger"></button>
     </header>
     <aside id="agent-context" role="status" aria-live="polite" hidden>
       <strong id="agent-context-state"></strong> <span id="agent-context-hint"></span>
     </aside>
+    <aside id="agent-operation" role="status" aria-live="polite" hidden>
+      <span id="agent-operation-result"></span>
+    </aside>
+    <dialog id="agent-operation-dialog" aria-labelledby="agent-operation-title">
+      <h2 id="agent-operation-title"></h2>
+      <p id="agent-operation-target"></p>
+      <strong id="agent-operation-action"></strong>
+      <p id="agent-operation-detail"></p>
+      <div class="operation-buttons">
+        <button id="agent-operation-cancel" type="button"></button>
+        <button id="agent-operation-confirm" type="button" class="danger"></button>
+      </div>
+    </dialog>
     <main id="stage" class="fit">
       <video id="video" tabindex="-1" autoplay playsinline muted></video>
     </main>
@@ -59,6 +76,7 @@
         <p id="message"></p>
         <input id="password" type="password" autocomplete="off" />
         <button id="connect" type="submit"></button>
+        <button id="restart-cancel" type="button" hidden></button>
       </form>
     </div>
     <script type="module" src="/viewer/main.ts"></script>

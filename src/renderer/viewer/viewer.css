@@ -37,6 +37,7 @@ body {
 
 #toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   padding: 6px 10px;
@@ -81,7 +82,8 @@ button.danger {
   position: relative;
 }
 
-#combo-list {
+#combo-list,
+#agent-action-list {
   position: absolute;
   right: 0;
   top: calc(100% + 4px);
@@ -95,11 +97,13 @@ button.danger {
   border-radius: 8px;
 }
 
-#combo-list[hidden] {
+#combo-list[hidden],
+#agent-action-list[hidden] {
   display: none;
 }
 
-#combo-list button {
+#combo-list button,
+#agent-action-list button {
   border: 0;
   text-align: left;
 }
@@ -436,4 +440,28 @@ video {
 }
 #agent-context[hidden] {
   display: none;
+}
+
+#agent-operation {
+  flex: none;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+#agent-operation-dialog {
+  max-width: min(480px, 85vw);
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+#agent-operation-dialog::backdrop {
+  background: rgb(0 0 0 / 75%);
+}
+#agent-operation-select {
+  max-width: 100%;
+}
+.operation-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
 }

@@ -376,5 +376,48 @@
     "reconnectHint": "Files, clipboard and sound remain suspended until you reconnect.",
     "soundSuspended": "Sound suspended",
     "inputUnavailable": "The host does not support input in this context. Clipboard, files and sound are suspended."
+  },
+  "viewerOperations": {
+    "title": "Manage PC",
+    "choose": "Action",
+    "confirmTitle": "Confirm remote action",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "actions": {
+      "lock": "Lock",
+      "logout": "Sign out of the system",
+      "restart": "Restart",
+      "secure_attention": "Send secure attention (Ctrl+Alt+Delete)"
+    },
+    "details": {
+      "lock": "The PC session will be locked.",
+      "logout": "Save work on the PC before signing out. You will need to authenticate again.",
+      "restart": "Save work on the PC. A normal restart will be requested; applications may prevent it.",
+      "secure_attention": "Windows will open its security screen if supported by the agent."
+    },
+    "pending": "Waiting for the PC response…",
+    "accepted": "The PC accepted the request.",
+    "cancelled": "Action cancelled.",
+    "unavailable": "The action is no longer available on this connection.",
+    "connection_lost": "The connection ended without confirming the result.",
+    "timed_out": "No confirmation arrived. The command will not be resent; reconnect before another action.",
+    "rejected": "The PC rejected the request.",
+    "failed": "The PC could not perform the action.",
+    "codes": {
+      "not_supported": "Not supported.",
+      "not_allowed": "Not allowed.",
+      "busy": "PC busy.",
+      "cancelled": "Cancelled on the PC.",
+      "system_error": "System error.",
+      "session_expired": "Authorization expired."
+    },
+    "waiting": "Restart requested. Waiting for the PC to become available…",
+    "waitHint": "Up to five minutes. Availability alone does not confirm that the system has finished restarting.",
+    "cancelWait": "Cancel wait",
+    "ready": "The PC reports that it is available again.",
+    "expired": "The PC did not report availability within five minutes.",
+    "waitCancelled": "Wait cancelled.",
+    "waitFailed": "Unable to continue waiting.",
+    "authenticateAgain": "Authenticate again with the PC password to connect."
   }
 }
