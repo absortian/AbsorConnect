@@ -25,20 +25,20 @@ const OPT: &str = "/opt/absorconnect-seat-authority-lab";
 const SOCKET: &str = "/run/absorconnect-seat-authority-lab/authority.sock";
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-struct Profile {
-    broker_uid: u32,
-    broker_gid: u32,
-    worker_uid: u32,
-    worker_gid: u32,
+pub(crate) struct Profile {
+    pub(crate) broker_uid: u32,
+    pub(crate) broker_gid: u32,
+    pub(crate) worker_uid: u32,
+    pub(crate) worker_gid: u32,
 }
-fn root_directory(path: &str) -> Result<(), GrantError> {
+pub(crate) fn root_directory(path: &str) -> Result<(), GrantError> {
     let m = fs::symlink_metadata(path).map_err(|_| GrantError)?;
     if !m.is_dir() || m.uid() != 0 || m.mode() & 0o022 != 0 {
         return Err(GrantError);
     }
     Ok(())
 }
-fn root_file(path: &str, mode: u32, limit: u64) -> Result<Vec<u8>, GrantError> {
+pub(crate) fn root_file(path: &str, mode: u32, limit: u64) -> Result<Vec<u8>, GrantError> {
     let m = fs::symlink_metadata(path).map_err(|_| GrantError)?;
     if !m.is_file()
         || m.uid() != 0
@@ -62,7 +62,7 @@ fn root_file(path: &str, mode: u32, limit: u64) -> Result<Vec<u8>, GrantError> {
     }
     Ok(value)
 }
-fn expected_pid(broker: bool) -> Result<u32, GrantError> {
+pub(crate) fn expected_pid(broker: bool) -> Result<u32, GrantError> {
     let name = if broker {
         "absorconnect-secure-lab.service"
     } else {

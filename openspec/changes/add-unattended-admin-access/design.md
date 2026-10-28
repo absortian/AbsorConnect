@@ -350,3 +350,27 @@ XTest ni activa uinput en instalaciones reales. La adopción y su política de
 acceso al dispositivo se decidirán con la evidencia y quedarán documentadas
 antes de integrar el trabajador general. No se marca completa 3.5 o 6.2 por
 esta investigación.
+
+
+### D8. Concesión por conexión y propietario del dispositivo de entrada
+
+La prueba limitada de uinput pasa en la VM Linux 6.8 con Xorg/Cinnamon: tecla A y
+botón izquierdo en una ventana propia, cierre normal, SIGKILL y watchdog. El
+kernel libera únicamente los estados del dispositivo retirado; no fue necesario
+enviar eventos de liberación globales de XTest. El resultado está acotado a esa
+configuración y no certifica LightDM, hardware físico o el transporte remoto.
+
+La siguiente integración mantendrá el descriptor uinput en un componente local
+sin red IP. El trabajador WebRTC no recibirá ese descriptor ni una RPC de shell,
+rutas o configuración. Cada conexión autenticada tendrá una concesión aleatoria
+diferente, aunque conserve broker/PID/asiento; observar otra concesión cerrará el
+dispositivo anterior. Los refrescos no podrán resucitar una concesión caducada.
+El guardián comprobará reloj, secuencia y concesión antes/después de la entrada y
+también sin tráfico. Cualquier error cerrará el dispositivo propio, sin soltar
+teclas de otros dispositivos. Un watchdog externo cubre bloqueo/SIGSTOP del
+componente; el plazo de la concesión no se renueva por recibir entrada.
+
+Primero se integra el guardián con los eventos fijos del laboratorio y la
+concesión HMAC/API. El teclado y ratón generales, el capturador/P2P dedicado,
+las transiciones protegidas y su aislamiento de contenido conservan 3.5/6.2
+pendientes. El modo de producción sigue usando su implementación anterior.

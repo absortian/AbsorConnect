@@ -25,6 +25,23 @@ pub struct Grant {
     worker: WorkerIdentity,
     seat_digest: String,
 }
+/// Evidencia local tras validar plazo, núcleo y asiento. No se deserializa por IPC.
+pub struct ValidatedGrant(Grant);
+impl ValidatedGrant {
+    pub fn deadline_millis(&self) -> u64 {
+        self.0.expires_millis
+    }
+    pub fn issued_millis(&self) -> u64 {
+        self.0.issued_millis
+    }
+    pub fn same_authorization(&self, other: &Self) -> bool {
+        self.0.instance == other.0.instance
+            && self.0.boot_id == other.0.boot_id
+            && self.0.broker == other.0.broker
+            && self.0.worker == other.0.worker
+            && self.0.seat_digest == other.0.seat_digest
+    }
+}
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct GrantError;
 fn seat_digest(seat: &Snapshot) -> String {
@@ -94,7 +111,7 @@ impl Grant {
         broker: WorkerIdentity,
         worker: WorkerIdentity,
         seat: &Snapshot,
-    ) -> Result<Self, GrantError> {
+    ) -> Result<ValidatedGrant, GrantError> {
         if raw.is_empty() || raw.len() > 1024 {
             return Err(GrantError);
         }
@@ -105,6 +122,11 @@ impl Grant {
             || value.boot_id != boot_id
             || value.broker != broker
             || value.worker != worker
+            || broker.uid == 0
+            || broker.pid <= 1
+            || broker.start_ticks == 0
+            || broker.uid == worker.uid
+            || broker.pid == worker.pid
             || worker.uid == 0
             || worker.pid <= 1
             || worker.start_ticks == 0
@@ -116,7 +138,7 @@ impl Grant {
         {
             return Err(GrantError);
         }
-        Ok(value)
+        Ok(ValidatedGrant(value))
     }
 }
 #[cfg(test)]

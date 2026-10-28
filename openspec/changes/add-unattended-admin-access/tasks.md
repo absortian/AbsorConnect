@@ -269,3 +269,13 @@ cuenta imágenes 128×72 solo tras HMAC y fd sellado. CI Linux/Mac/Windows y las
 `linux-dedicated-capture-results.json`. No acepta 6.2, el paquete/migración final,
 Windows/Mac o el piloto físico; no anuncia acceso desatendido disponible.
 Avance **21/57 (37 %)**; el mínimo de 50 % sigue pendiente.
+
+
+El siguiente bloque del 28/10 añade concesión por cada HMAC y guardián nativo
+Linux de entrada fija con dispositivo propio. Pasan 41 casos de laboratorio,
+incluidos diez de liberación y tres de denegación/aislamiento, y siete pruebas
+puras de plazo/posesión/secuencia. Se retiran dispositivos, unidades, archivos y
+cuentas, con recuperación de LightDM. No une todavía entrada/captura general a
+WebRTC ni completa transiciones protegidas: 3.5/6.2 siguen parciales. Evidencia:
+`linux-input-lease-results.json`. Se conserva **21/57 (37 %)**; el mínimo de 50 %
+continúa pendiente y las pruebas físicas quedan para el final.

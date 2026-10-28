@@ -141,6 +141,21 @@ fn auth_denied(error: AuthError) -> Reply {
         },
     }
 }
+// Una concesión distinta por autenticación, no solo por arranque del broker.
+fn new_grant_instance() -> Result<String, ()> {
+    let mut random = [0u8; 16];
+    File::open("/dev/urandom")
+        .and_then(|mut f| f.read_exact(&mut random))
+        .map_err(|_| ())?;
+    let value = random
+        .iter()
+        .flat_map(|v| {
+            let h = b"0123456789abcdef";
+            [h[(v >> 4) as usize] as char, h[(v & 15) as usize] as char]
+        })
+        .collect();
+    Ok(value)
+}
 struct Authority {
     agent: Agent,
     verifier: Verifier<ProtectedAttemptStore, WallClock>,
@@ -377,6 +392,7 @@ impl Authority {
                 match self.verifier.authenticate(message.as_bytes()) {
                     Ok(verified) => {
                         let _binding = verified.into_binding();
+                        self.grant_instance = new_grant_instance()?;
                         self.handle = Some(
                             self.agent
                                 .attach_authenticated(Active {
@@ -464,17 +480,7 @@ pub fn run() -> Result<i32, ()> {
     if !absor_agent_linux_session::status::is_boot_id(&boot_id) {
         return Err(());
     }
-    let mut random = [0u8; 16];
-    File::open("/dev/urandom")
-        .and_then(|mut f| f.read_exact(&mut random))
-        .map_err(|_| ())?;
-    let grant_instance = random
-        .iter()
-        .flat_map(|v| {
-            let h = b"0123456789abcdef";
-            [h[(v >> 4) as usize] as char, h[(v & 15) as usize] as char]
-        })
-        .collect();
+    let grant_instance = new_grant_instance()?;
     let mut authority = Authority {
         agent: RenewingAgent::new(BootClock, api),
         verifier,

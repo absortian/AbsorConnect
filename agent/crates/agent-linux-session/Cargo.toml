@@ -7,6 +7,7 @@ publish.workspace = true
 
 [features]
 authority-lab = []
+input-lease-lab = ["authority-lab", "absor-agent-security/input-lease-lab"]
 
 [dependencies]
 absor-agent-core = { path = "../agent-core" }
@@ -23,3 +24,8 @@ path = "src/main.rs"
 name = "absor-seat-authority-lab"
 path = "src/authority_main.rs"
 required-features = ["authority-lab"]
+
+[[bin]]
+name = "absor-input-lease-probe-lab"
+path = "src/input_probe_main.rs"
+required-features = ["input-lease-lab"]
