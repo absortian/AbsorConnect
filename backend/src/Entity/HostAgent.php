@@ -4,6 +4,8 @@ namespace App\Entity;
 
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Bridge\Doctrine\Types\UuidType;
+use Symfony\Component\Uid\Uuid;
 
 /** Mapeo de la autoridad única del equipo; AgentRegistry opera bajo bloqueo de device. */
 #[ORM\Entity]
@@ -18,6 +20,9 @@ class HostAgent
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private UserSession $sourceSession;
+
+    #[ORM\Column(type: UuidType::NAME, nullable: true)]
+    private ?Uuid $transactionId = null;
 
     #[ORM\Column(length: 64, unique: true)]
     private string $tokenHash;

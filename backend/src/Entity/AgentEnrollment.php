@@ -24,6 +24,9 @@ class AgentEnrollment
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private UserSession $sourceSession;
 
+    #[ORM\Column(type: UuidType::NAME, nullable: true)]
+    private ?Uuid $transactionId = null;
+
     #[ORM\Column(length: 64, unique: true)]
     private string $tokenHash;
 

@@ -105,6 +105,9 @@ export class HostService {
   private wakeRequested = false
   private opening = false
   private current: Current | null = null
+  private readonly lifetimeSessions = new Set<HostSession>()
+  private drainFailed = false
+  private localReservation: Promise<void> | null = null
   private networkFailures = 0
   private status: string | null = null
   private keepAwake: boolean | null = null
@@ -206,9 +209,21 @@ export class HostService {
   }
 
   async reserveForLocalAgent(): Promise<void> {
-    if (this.nativeReserved) return
-    this.nativeReserved = true
-    await this.reserveHost()
+    if (!this.localReservation) {
+      this.nativeReserved = true
+      this.localReservation = this.reserveHost()
+    }
+    await this.localReservation
+  }
+
+  /** Solo el coordinador Main: no copiar K/contador hasta terminar todos los trabajos legado. */
+  async quiesceForMigration(): Promise<void> {
+    await this.reserveForLocalAgent()
+    await this.ticking
+    while (this.lifetimeSessions.size)
+      await Promise.all([...this.lifetimeSessions].map((session) => session.ended))
+    if (this.drainFailed || this.opening || this.ownershipPersistenceFailed)
+      throw new Error('agent_migration_legacy_not_quiescent')
   }
 
   private async observeNativeOwnership(): Promise<boolean> {
@@ -238,7 +253,7 @@ export class HostService {
     this.registered = null
     if (this.timer) clearTimeout(this.timer)
     this.timer = null
-    this.current?.session.close('stopped')
+    for (const session of this.lifetimeSessions) session.close('stopped')
     this.setKeepAwake(false)
     this.setStatus('agent', null)
     try {
@@ -404,6 +419,14 @@ export class HostService {
     let session: HostSession
     try {
       session = await this.deps.openSession(request)
+      this.lifetimeSessions.add(session)
+      void session.ended.then(
+        () => this.lifetimeSessions.delete(session),
+        () => {
+          this.drainFailed = true
+          this.lifetimeSessions.delete(session)
+        }
+      )
     } catch {
       this.opening = false
       await this.reject(device, request.id, { reason: 'unsupported' })

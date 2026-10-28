@@ -111,3 +111,54 @@ foráneas; no cambian claves de cifrado, conexiones, sesiones ni `cache_items`.
 Antes de restaurar un backend anterior, retirar las altas y revocar los agentes
 activos: un backend antiguo no aplica su autoridad. Las tablas aditivas pueden
 conservarse durante el rollback del binario.
+
+
+## Transacciones de migración y compensación acotada
+
+La migración Main añade rutas de cuenta sin cambiar las anteriores:
+`/api/devices/{id}/agent-enrollment-transactions/{transaction}`. Exigen token de
+sesión de cuenta y `X-Device-Key`; la transacción pertenece además a esa sesión
+origen exacta. Conocer el UUID o entrar en otra sesión de la misma cuenta no
+permite adoptarla. Los agentes `acg_` no pueden usar estas rutas.
+
+- `POST` crea una autorización `ace_` de un uso y devuelve 201 con
+  `enrollmentToken`, `expiresAt` y `transactionId`. Un segundo POST no emite otro
+  secreto: devuelve 409 `agent_enrollment_transaction_exists` o
+  `agent_enrollment_transaction_closed` si ya se canceló. La respuesta del canje
+  público añade `transactionId` solo para este tipo de alta; el componente debe
+  soportar este contrato y comprobarlo antes de aceptar el resultado. Las altas
+  de la ruta anterior conservan sus respuestas originales.
+- `GET` devuelve únicamente `{state, legacyAllowed}`. Los estados son `absent`,
+  `pending`, `consumed`, `cancelled`, `expired` o `retired`. No devuelve token,
+  hash, sesión origen o datos del almacén local. Ausencia no confirma que una
+  petición de creación que sigue en vuelo haya terminado.
+- `DELETE` devuelve `{state: "cancelled", legacyAllowed}` y conserva una lápida,
+  incluso si se recibe antes del POST. Un POST tardío de la misma transacción
+  no puede recrear la autorización. Solo retira permiso/credencial emitidos por
+  esa transacción y sesión; conserva otro agente o permiso posterior, sus
+  solicitudes y todas las conexiones S3/SSH. `legacyAllowed: false` impide a
+  Main reactivar el host legado como compensación.
+
+Todo se serializa bajo sesión→equipo, igual que logout/canje. Las columnas de
+transacción son opcionales para los clientes existentes. Se conservan hasta 64
+intenciones por equipo/sesión, incluidas las canceladas: la cuota devuelve 409
+`agent_enrollment_transaction_limit` sin borrar lápidas. Al eliminar la sesión
+se retiran por FK; una petición tardía ya no puede autenticarse con ella.
+La sesión distinta recibe 404 `agent_enrollment_transaction_not_found`.
+
+La compensación de API es solo una de las condiciones de recuperación: Main
+necesita también una confirmación local protegida de retirada. No debe usar la
+baja global `/agent` para compensar un alta incierta. Una pérdida de respuesta,
+cuota o fallo de compensación conserva la reserva local y exige intervención;
+no regenera identidad ni elimina el contador de intentos.
+
+Prueba concurrente con API/BD propias, sin alterar límites de desarrollo:
+
+```bash
+python3 -B prototypes/backend-agent-check/isolated-webrtc-renewal.py /ruta/lab \
+  --enrollment-transactions
+```
+
+Verifica once carreras HTTP de crear/cancelar, canjear/cancelar y POST duplicados,
+y elimina sus tres cuentas, contenedor y base temporal. No prueba la migración
+nativa completa ni certifica el acceso desatendido.

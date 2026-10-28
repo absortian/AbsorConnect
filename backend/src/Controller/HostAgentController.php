@@ -47,6 +47,27 @@ final class HostAgentController
         return new JsonResponse($this->agents->createEnrollment($user, $this->sessions->current($request), $id, DeviceKey::fromRequest($request)), 201, ['Cache-Control' => 'no-store']);
     }
 
+    #[Route('/api/devices/{id}/agent-enrollment-transactions/{transaction}', methods: ['POST'], requirements: ['id' => Requirement::UUID, 'transaction' => Requirement::UUID])]
+    public function createTransaction(Uuid $id, Uuid $transaction, Request $request, #[CurrentUser] User $user): JsonResponse
+    {
+        $this->limiter->sessionRequest($user);
+
+        return new JsonResponse($this->agents->createEnrollment($user, $this->sessions->current($request), $id, DeviceKey::fromRequest($request), $transaction), 201, ['Cache-Control' => 'no-store']);
+    }
+
+    #[Route('/api/devices/{id}/agent-enrollment-transactions/{transaction}', methods: ['GET', 'DELETE'], requirements: ['id' => Requirement::UUID, 'transaction' => Requirement::UUID])]
+    public function transaction(Uuid $id, Uuid $transaction, Request $request, #[CurrentUser] User $user): JsonResponse
+    {
+        $this->limiter->sessionRequest($user);
+        $source = $this->sessions->current($request);
+        $key = DeviceKey::fromRequest($request);
+        $result = $request->isMethod('DELETE')
+            ? $this->agents->cancelTransaction($user, $source, $id, $key, $transaction)
+            : $this->agents->transactionStatus($user, $source, $id, $key, $transaction);
+
+        return new JsonResponse($result, 200, ['Cache-Control' => 'no-store']);
+    }
+
     #[Route('/api/host-agent/enroll', methods: ['POST'])]
     public function enroll(Request $request): JsonResponse
     {

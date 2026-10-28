@@ -69,7 +69,7 @@ export interface HostSessionContext {
 /** Sesiones abiertas por el id del webContents de su ventana: el IPC solo atiende a esas ventanas. */
 const sessions = new Map<number, ActiveHostSession>()
 
-class ActiveHostSession implements HostSession {
+export class ActiveHostSession implements HostSession {
   answer = ''
   readonly started: Promise<void>
   readonly ended: Promise<void>
@@ -95,6 +95,9 @@ class ActiveHostSession implements HostSession {
   private resolveStarted!: () => void
   private rejectStarted!: (error: Error) => void
   private resolveEnded!: () => void
+  private rejectEnded!: (error: Error) => void
+  private authenticationFailed = false
+  private readonly pendingAuthentications = new Set<Promise<AuthResultMessage>>()
 
   constructor(
     readonly window: BrowserWindow,
@@ -111,7 +114,11 @@ class ActiveHostSession implements HostSession {
       this.rejectStarted = reject
     })
     this.started.catch(() => undefined)
-    this.ended = new Promise((resolve) => (this.resolveEnded = resolve))
+    this.ended = new Promise((resolve, reject) => {
+      this.resolveEnded = resolve
+      this.rejectEnded = reject
+    })
+    this.ended.catch(() => undefined)
   }
 
   async waitForAnswer(): Promise<void> {
@@ -148,7 +155,20 @@ class ActiveHostSession implements HostSession {
     return this.auth ? this.auth.hello(this.hostName) : Promise.resolve(null)
   }
 
-  async authenticate(proof: unknown): Promise<AuthResultMessage> {
+  authenticate(proof: unknown): Promise<AuthResultMessage> {
+    const pending = this.authenticateWhileOpen(proof)
+    this.pendingAuthentications.add(pending)
+    void pending.then(
+      () => this.pendingAuthentications.delete(pending),
+      () => {
+        this.authenticationFailed = true
+        this.pendingAuthentications.delete(pending)
+      }
+    )
+    return pending
+  }
+
+  private async authenticateWhileOpen(proof: unknown): Promise<AuthResultMessage> {
     const failed = (
       reason: 'wrong_password' | 'locked' | 'declined',
       retryAfter?: number
@@ -161,6 +181,7 @@ class ActiveHostSession implements HostSession {
     })
     if (!this.auth || this.authenticated || this.closed) return failed('wrong_password')
     const outcome = await this.auth.verify(proof)
+    if (this.closed) return failed('declined')
     if (!outcome.ok) {
       return outcome.reason === 'locked'
         ? failed('locked', outcome.retryAfter)
@@ -170,15 +191,23 @@ class ActiveHostSession implements HostSession {
       const accepted = await confirmLocally(this.request.controllerName, await this.ctx.language())
       if (!accepted || this.closed) return failed('declined')
     }
-    this.authenticated = true
-    this.setTimer(CAPTURE_TIMEOUT_MS, 'capture_failed')
+    if (this.closed) return failed('declined')
     try {
-      this.input = await createInputController()
+      const input = await createInputController()
+      if (this.closed) {
+        await input.dispose()
+        return failed('declined')
+      }
+      this.input = input
       this.input.setDisplayRect(nativeDisplayRect(this.display()))
     } catch (error) {
+      if (this.closed) throw new Error('host_cleanup_failed')
       // Sin entrada (p. ej. sin libXtst) la sesión sigue, solo para ver
       console.error('Remote input unavailable:', error)
     }
+    if (this.closed) return failed('declined')
+    this.authenticated = true
+    this.setTimer(CAPTURE_TIMEOUT_MS, 'capture_failed')
     return { v: 1, type: 'auth-result', ok: true }
   }
 
@@ -268,9 +297,12 @@ class ActiveHostSession implements HostSession {
     this.notice?.close()
     this.clipboard?.stop()
     this.clipboard = null
-    void this.filesStore?.dispose()
-    if (this.linuxAudio) void linuxAudio.stop()
-    void this.input?.dispose()
+    const cleanup: Promise<unknown>[] = []
+    if (this.filesStore) cleanup.push(this.filesStore.dispose())
+    if (this.linuxAudio) cleanup.push(linuxAudio.stop())
+    if (this.input) cleanup.push(this.input.dispose())
+    // Manejar los rechazos ya, conservándolos para el drenaje antes de migrar.
+    const disposed = Promise.allSettled(cleanup)
     this.input = null
     if (!this.isStarted) this.rejectStarted(new Error(reason))
     // Si el renderer murió no hay a quién avisar (y enviarle algo deja un error en el registro)
@@ -280,7 +312,16 @@ class ActiveHostSession implements HostSession {
     setTimeout(() => {
       sessions.delete(this.contentsId)
       if (!this.window.isDestroyed()) this.window.destroy()
-      this.resolveEnded()
+      void Promise.all([disposed, Promise.allSettled([...this.pendingAuthentications])]).then(
+        ([cleanupResults, authResults]) => {
+          if (
+            this.authenticationFailed ||
+            [...cleanupResults, ...authResults].some((result) => result.status === 'rejected')
+          )
+            this.rejectEnded(new Error('host_cleanup_failed'))
+          else this.resolveEnded()
+        }
+      )
     }, CLOSE_GRACE_MS)
   }
 
