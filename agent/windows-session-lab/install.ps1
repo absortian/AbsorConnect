@@ -58,15 +58,41 @@ public static class AbsorLabScm {
  [DllImport("advapi32.dll",CharSet=CharSet.Unicode,SetLastError=true)] static extern IntPtr OpenService(IntPtr manager,string name,uint access);
  [DllImport("advapi32.dll",EntryPoint="ChangeServiceConfig2W",ExactSpelling=true,SetLastError=true)] static extern bool ChangeServiceConfig2(IntPtr service,uint level,ref Recovery value);
  [DllImport("advapi32.dll")] static extern bool CloseServiceHandle(IntPtr handle);
+ [DllImport("advapi32.dll",EntryPoint="QueryServiceConfig2W",ExactSpelling=true,SetLastError=true)] static extern bool QueryServiceConfig2(IntPtr service,uint level,IntPtr value,uint size,out uint needed);
+ [DllImport("advapi32.dll",SetLastError=true)] static extern bool QueryServiceObjectSecurity(IntPtr service,uint info,IntPtr buffer,uint size,out uint needed);
+ [DllImport("advapi32.dll",SetLastError=true)] static extern bool GetSecurityDescriptorDacl(IntPtr descriptor,out bool present,out IntPtr acl,out bool defaults);
+ [DllImport("advapi32.dll",SetLastError=true)] static extern bool GetAce(IntPtr acl,uint index,out IntPtr ace);
+ [DllImport("advapi32.dll",EntryPoint="ConvertSidToStringSidW",ExactSpelling=true,SetLastError=true)] static extern bool ConvertSidToStringSid(IntPtr sid,out IntPtr value);
+ [DllImport("kernel32.dll")] static extern IntPtr LocalFree(IntPtr value);
+ static void Verify(IntPtr service) {
+  IntPtr b=Marshal.AllocHGlobal(8192);uint needed;
+  try {
+   if(!QueryServiceConfig2(service,4,b,8192,out needed)||Marshal.ReadInt32(b)!=0)throw new Exception("failure_flag_mismatch");
+   if(!QueryServiceConfig2(service,2,b,8192,out needed))throw new Exception("recovery_query");
+   Recovery r=(Recovery)Marshal.PtrToStructure(b,typeof(Recovery));if(r.Reset!=86400||r.Count!=3)throw new Exception("recovery_count");
+   int size=Marshal.SizeOf(typeof(Action));int[] types={1,1,0};uint[] delays={1000,5000,0};
+   for(int i=0;i<3;i++){Action a=(Action)Marshal.PtrToStructure(IntPtr.Add(r.Actions,i*size),typeof(Action));if(a.Type!=types[i]||a.Delay!=delays[i])throw new Exception("recovery_actions");}
+   if(!QueryServiceConfig2(service,6,b,8192,out needed))throw new Exception("privileges_query");
+   IntPtr text=Marshal.ReadIntPtr(b);System.Collections.Generic.List<string> names=new System.Collections.Generic.List<string>();
+   for(int i=0;i<16;i++){string name=Marshal.PtrToStringUni(text);if(String.IsNullOrEmpty(name))break;names.Add(name);text=IntPtr.Add(text,(name.Length+1)*2);}
+   names.Sort(StringComparer.Ordinal);string[] expected={"SeAssignPrimaryTokenPrivilege","SeChangeNotifyPrivilege","SeIncreaseQuotaPrivilege","SeTcbPrivilege"};if(String.Join("/",names.ToArray())!=String.Join("/",expected))throw new Exception("privileges_mismatch");
+   if(!QueryServiceObjectSecurity(service,4,b,8192,out needed))throw new Exception("service_dacl_query");
+   bool present,defaults;IntPtr acl;if(!GetSecurityDescriptorDacl(b,out present,out acl,out defaults)||!present||acl==IntPtr.Zero||Marshal.ReadInt16(acl,4)!=2)throw new Exception("service_dacl_count");
+   System.Collections.Generic.HashSet<string> sids=new System.Collections.Generic.HashSet<string>();
+   for(uint i=0;i<2;i++){IntPtr ace;if(!GetAce(acl,i,out ace)||Marshal.ReadByte(ace)!=0)throw new Exception("service_ace");IntPtr name;if(!ConvertSidToStringSid(IntPtr.Add(ace,8),out name))throw new Exception("service_sid");try{sids.Add(Marshal.PtrToStringUni(name));}finally{LocalFree(name);}}
+   if(!sids.SetEquals(new[]{"S-1-5-18","S-1-5-32-544"}))throw new Exception("service_dacl_sids");
+  }finally{Marshal.FreeHGlobal(b);}
+ }
+
  public static void Configure() {
   IntPtr m=OpenSCManager(null,null,1),s=IntPtr.Zero,p=IntPtr.Zero;
   try {
-   if(m==IntPtr.Zero)throw new Exception("scm_open");s=OpenService(m,"AbsorConnectSessionLab",2);if(s==IntPtr.Zero)throw new Exception("service_open");
+   if(m==IntPtr.Zero)throw new Exception("scm_open");s=OpenService(m,"AbsorConnectSessionLab",0x20013);if(s==IntPtr.Zero)throw new Exception("service_open");
    int n=Marshal.SizeOf(typeof(Action));p=Marshal.AllocHGlobal(n*3);
    Marshal.StructureToPtr(new Action{Type=1,Delay=1000},p,false);
    Marshal.StructureToPtr(new Action{Type=1,Delay=5000},IntPtr.Add(p,n),false);
    Marshal.StructureToPtr(new Action{Type=0,Delay=0},IntPtr.Add(p,n*2),false);
-   Recovery r=new Recovery{Reset=86400,Count=3,Actions=p};if(!ChangeServiceConfig2(s,2,ref r))throw new Exception("recovery_config");
+   Recovery r=new Recovery{Reset=86400,Count=3,Actions=p};if(!ChangeServiceConfig2(s,2,ref r))throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error(),"recovery_config");Verify(s);
   }finally{if(p!=IntPtr.Zero)Marshal.FreeHGlobal(p);if(s!=IntPtr.Zero)CloseServiceHandle(s);if(m!=IntPtr.Zero)CloseServiceHandle(m);}
  }
 }
@@ -91,16 +117,16 @@ if($Action -eq 'Install'){
    Set-Acl -LiteralPath $f.FullName -AclObject $filesAcl
   }
   Check-Tree;Check-Build $Root
-  New-Service -Name $Name -BinaryPathName ('"'+(Join-Path $Root $Bins[0])+'"') -DisplayName 'AbsorConnect sesión (laboratorio propio)' -StartupType Automatic | Out-Null
+  New-Service -Name $Name -BinaryPathName ('"'+(Join-Path $Root $Bins[0])+'"') -DisplayName 'AbsorConnect (laboratorio de sesiones)' -StartupType Automatic | Out-Null
   $ServiceCreated=$true;Check-Service
-  Invoke-LabScm @('sdset',$Name,'D:P(A;;GA;;;SY)(A;;GA;;;BA)')
-  Invoke-LabScm @('failureflag',$Name,'0')
-  Invoke-LabScm @('privs',$Name,'SeChangeNotifyPrivilege/SeTcbPrivilege/SeAssignPrimaryTokenPrivilege/SeIncreaseQuotaPrivilege')
+  Invoke-LabScm -Arguments @('sdset',$Name,'D:P(A;;GA;;;SY)(A;;GA;;;BA)')
+  Invoke-LabScm -Arguments @('failureflag',$Name,'0')
+  Invoke-LabScm -Arguments @('privs',$Name,'SeChangeNotifyPrivilege/SeTcbPrivilege/SeAssignPrimaryTokenPrivilege/SeIncreaseQuotaPrivilege')
   [AbsorLabScm]::Configure()
   Start-Service -Name $Name
-  [ordered]@{schema=1;installed=$true;readyForUnattended=$false}|ConvertTo-Json -Compress
+  [ordered]@{schema=1;installed=$true;scmConfigurationVerified=$true;readyForUnattended=$false}|ConvertTo-Json -Compress
  }catch{
-  if($ServiceCreated){Check-Service;Stop-Own;Invoke-LabScm @('delete',$Name)}
+  if($ServiceCreated){Check-Service;Stop-Own;Invoke-LabScm -Arguments @('delete',$Name)}
   if($Created){
    Check-Closed $Root $true
    foreach($f in Get-ChildItem -LiteralPath $Root -Force){if($f.Name -notin $Known){throw 'foreign_rollback_file'};Check-Closed $f.FullName $false $true}
@@ -112,13 +138,13 @@ if($Action -eq 'Install'){
 }elseif($Action -eq 'Resume'){
  Check-Tree;Check-Build $Root;Check-Service
  if((Get-CimInstance Win32_Service -Filter "Name='$Name'").State -ne 'Stopped'){throw 'stop_before_resume'}
- Invoke-LabScm @('start',$Name,'resume')
+ Invoke-LabScm -Arguments @('start',$Name,'resume')
  [ordered]@{schema=1;resumeRequested=$true;readyForUnattended=$false}|ConvertTo-Json -Compress
 }else{
  Check-Tree;Check-Build $Root;Check-Service
  Stop-Own;Start-Sleep -Milliseconds 300;Check-Tree
  if(Get-CimInstance Win32_Process -Filter "Name='absor-win-session-worker-lab.exe' OR Name='absor-win-session-monitor-lab.exe' OR Name='absor-win-sessiond-lab.exe'"){throw 'lab_process_still_alive'}
- Invoke-LabScm @('delete',$Name)
+ Invoke-LabScm -Arguments @('delete',$Name)
  foreach($f in Get-ChildItem -LiteralPath $Root -Force){Remove-Item -LiteralPath $f.FullName -Force}
  Remove-Item -LiteralPath $Root -Force
  [ordered]@{schema=1;removed=$true;readyForUnattended=$false}|ConvertTo-Json -Compress

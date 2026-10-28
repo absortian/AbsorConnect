@@ -57,8 +57,18 @@ CI construye los tres ejecutables Windows con CRT estático y conserva el artefa
 `windows-session-lab-x86_64` durante siete días. Sirve para la VM ARM64 con emulación
 x64; no certifica una distribución ARM64 nativa, firma ni actualización de producto.
 Los binarios permanecen desactivados fuera de una carpeta de laboratorio protegida,
-con marcador de VM y rutas fijas. La instalación reversible y la matriz real de SCM
-se incorporarán con sus resultados antes de aceptar la tarea 4.1.
+con marcador de VM y rutas fijas. `install.ps1 -Action Install|Resume|Remove`
+solo funciona como SYSTEM en la VM QEMU propia. Rechaza destinos o servicios
+existentes, comprueba hashes y propietarios, y verifica por API de Windows la
+DACL del servicio, sus cuatro privilegios y la recuperación finita configurada.
+El artefacto y sus fuentes se preparan en carpetas protegidas distintas del destino.
+
+La matriz `prototypes/backend-agent-check/windows-session-service-check.py` usa
+los accesos privados del laboratorio, conserva informes acotados, ensaya caída,
+bloqueo, parada, configuración dañada y reinicio sin usuario, y retira el servicio.
+No requiere contraseñas. La sonda de permisos restringe un token del usuario SSH
+existente: todavía no certifica una sesión interactiva de usuario estándar.
+La aceptación de 4.1 se documentará con la matriz completa, no por compilar.
 
 Pendiente: credenciales/DPAPI y política de intentos, IPC del broker autorizado,
 trabajadores de captura/entrada, adaptación DXGI, UAC y transiciones completas,

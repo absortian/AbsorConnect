@@ -87,7 +87,13 @@ unsafe extern "system" fn handler(
     }
 }
 pub fn service_run() -> Result<()> {
-    validate_install("absor-win-sessiond-lab.exe")?;
+    current_system()?;
+    // Registrar primero con SCM permite clasificar una configuración dañada
+    // como STOPPED/78, sin confundirla con la caída inesperada de un servicio.
+    ensure(
+        std::env::current_exe().map_err(|_| error(28))? == file("absor-win-sessiond-lab.exe"),
+        29,
+    )?;
     ensure(std::env::args_os().count() == 1, 111)?;
     let mut name = wide(SERVICE);
     let table = [
@@ -455,7 +461,8 @@ fn run_peer(worker: bool) -> Result<()> {
     let (name, parent, seat) = args(worker)?;
     let process = peer_parent(parent, !worker)?;
     let mut channel = Channel::client(&name, parent)?;
-    // El trabajador no conserva TCB/Debug/AssignPrimaryToken ni crea hijos.
+    // El trabajador arranca sin privilegios habilitados y su Job impide hijos.
+    // Sigue siendo SYSTEM: este perfil no aísla un transporte de red definitivo.
     if worker {
         drop_privileges()?;
     }
