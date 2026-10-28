@@ -425,5 +425,31 @@
     "waitCancelled": "Espera cancelada.",
     "waitFailed": "No se pudo continuar la espera.",
     "authenticateAgain": "Autentícate de nuevo con la contraseña del PC para conectar."
+  },
+  "travel": {
+    "title": "Preparación para viajes",
+    "notCertified": "Este equipo aún no tiene una configuración certificada de acceso desatendido.",
+    "certifiedNone": "Capacidades certificadas: ninguna. Estar en línea o declarar una función no acredita acceso al bloqueo o al inicio de sesión.",
+    "exit": {
+      "user_session": "Modo de usuario: necesita una sesión del sistema abierta y Absor Connect en marcha. Salir de la app detiene el host; abrir al iniciar sesión no permite acceder antes de entrar.",
+      "interface_only": "Salir de esta interfaz no envía una orden de parada al servicio nativo. Eso no garantiza que siga disponible al bloquear, cerrar sesión o reiniciar el equipo.",
+      "unverified": "El equipo está reservado al agente, pero no se puede verificar el servicio. No se reactiva automáticamente el host de usuario; no presupongas acceso al salir de la app."
+    },
+    "state": {
+      "idle": "El servicio responde sin una sesión remota activa.",
+      "active": "El servicio informa de una sesión remota activa; no demuestra soporte de pantallas protegidas.",
+      "validation_required": "El servicio requiere validar de nuevo la autorización de la cuenta.",
+      "revoked": "La autorización del servicio está revocada; necesita una nueva alta autorizada.",
+      "unknown": "No se ha podido verificar el estado del servicio."
+    },
+    "recovery": "Antes de viajar, prueba desde otra red los contextos que necesites y prepara acceso alternativo. El cifrado de arranque puede exigir intervención física tras reiniciar.",
+    "capability": {
+      "administration": "Administración",
+      "login": "Inicio de sesión",
+      "secureAttention": "Atención segura",
+      "restart": "Reinicio"
+    },
+    "declaredYes": "declarada por el agente, sin certificar",
+    "declaredNo": "no declarada"
   }
 }

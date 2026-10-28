@@ -12,7 +12,7 @@ siguen pendientes API completa, autenticador, trabajador P2P y watchdog del
 servicio. La tarea 3.4 no se cierra solo con el proceso de prueba; su aceptación posterior
 añade el gate/API/DTLS y trabajador nativo conectados, con la evidencia del 26/10.
 
-Avance cerrado: **22/57 tareas (39 %)**. Es proporción de tareas aceptadas, no
+Avance cerrado: **24/57 tareas (42 %)**. Es proporción de tareas aceptadas, no
 porcentaje del tiempo restante. La tarea 3.2 se acepta como protocolo común:
 vectores compartidos, HMAC/huellas aplicadas, intentos durables/reinicio, sesión
 única y denegación de captura/entrada antes de autenticar, con integración IPC
@@ -159,7 +159,7 @@ reconectar por la ausencia de etiquetas de contexto en v1. Evidencia:
 
 ## 7. Main: integración Electron y traspaso
 
-- [ ] 7.1 Añadir cliente del agente y estado de propiedad al runtime remoto; verificar en Vitest que abrir/cerrar/reiniciar Electron no duplica equipos ni interrumpe una sesión del agente.
+- [x] 7.1 Añadir cliente del agente y estado de propiedad al runtime remoto; verificar en Vitest que abrir/cerrar/reiniciar Electron no duplica equipos ni interrumpe una sesión del agente.
 - [ ] 7.2 Implementar alta y migración transaccional de identidad, K, opciones y bloqueo con recuperación; verificar fallos en cada fase, preservación de identidad/contraseña y que el token de cuenta nunca llega al servicio.
 - [ ] 7.3 Integrar cambio de contraseña, logout, cuenta distinta, revocación local y desinstalación; verificar corte inmediato local, alta nueva obligatoria y conservación de conexiones S3/SSH.
 - [ ] 7.4 Adaptar bandeja y actualizador para separar salir de la interfaz de detener el host; verificar modo legado sin cambios y modo desatendido con estado real, parada explícita y actualizaciones pospuestas durante sesiones.
@@ -173,7 +173,7 @@ reconectar por la ausencia de etiquetas de contexto en v1. Evidencia:
 ## 9. Renderer y visor
 
 - [ ] 9.1 Añadir Ajustes de acceso desatendido con instalación, elección explícita sobre confirmación local, permisos y estado del agente; verificar recorridos de instalación cancelada, servicio averiado y configuración «requiere intervención».
-- [ ] 9.2 Incorporar estado de preparación para viajes, capacidades certificadas y aviso sobre salir de la app; verificar que un equipo sin pruebas no aparece como preparado y que el modo de usuario conserva sus límites.
+- [x] 9.2 Incorporar estado de preparación para viajes, capacidades certificadas y aviso sobre salir de la app; verificar que un equipo sin pruebas no aparece como preparado y que el modo de usuario conserva sus límites.
 - [x] 9.3 Añadir acciones administrativas con confirmación, resultados y espera de reinicio; verificar host anterior sin comandos, rechazo/cancelación, autenticación nueva, vencimiento/cancelación de espera y que no se generan solicitudes mientras está fuera de línea.
 - [x] 9.4 Añadir contexto protegido y revocación desde Equipos; verificar cancelación de funciones sensibles, fotograma desactualizado identificado y revocación del equipo correcto. Añadir textos `es.json`/`en.json` y documentar el uso del visor con capturas de datos de prueba.
 
@@ -292,3 +292,18 @@ sin captura, entrada, API/HMAC o credenciales. Evidencia:
 `windows-session-service-results.json`. 1.2/4.2/4.3/4.4 siguen pendientes, al igual
 que la revisión Mac y el piloto físico. Avance **22/57 (39 %)**; el mínimo de 50 %
 continúa pendiente y se sigue con las partes que pueden verificarse automáticamente.
+
+
+El siguiente bloque del 28/10 acepta **7.1 y 9.2**. Main consulta un canal local de
+estado separado del trabajador, reserva el host antes de registrarlo y conserva
+esa reserva ante fallo o pérdida del marcador. Pasan 21 casos IPC y diez WebRTC
+con seis ciclos de las clases Main sin privilegios, el mismo broker/equipo y
+vídeo continuo. Vitest cubre carreras de arranque/salida, propiedad y remitentes.
+No es una prueba del ciclo de una app Electron empaquetada ni del instalador final.
+La preparación para viajes diferencia declaraciones y certificación vacía,
+propiedad ambigua y límites de salir de la interfaz, con ambos idiomas y las
+16 combinaciones de capacidades. CI nativo pasa en Linux/Mac/Windows. Evidencia:
+`local-agent-runtime-results.json` y `travel-readiness-results.json`. No acepta
+migración/alta/baja local, parada explícita de servicio, actualización transaccional,
+servicios finales Windows/Mac ni piloto físico. Avance **24/57 (42 %)**; el objetivo
+de 50 % sigue pendiente y se conserva el denominador de 57 tareas.

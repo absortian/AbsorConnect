@@ -453,3 +453,20 @@ forma explícita; no habilita esos servicios ni sustituye su revisión. La lectu
 de salud no certifica preparación para viajes. La matriz real mantendrá un P2P
 activo mientras consulta/cierra/reabre clientes; las pruebas de Main verificarán
 carreras de arranque/registro, persistencia y cero acceso a secretos del agente.
+
+
+### D11. Preparación para viajes sin inferir certificación
+
+La interfaz local distingue el host de usuario, la reserva nativa sin respuesta y
+el estado consultado del servicio. Ninguno se convierte en «preparado» por estar
+en línea o declarar capacidades. El catálogo de paquetes/SO/arquitecturas
+certificados permanece vacío hasta aceptar el piloto; se muestra expresamente
+que no hay capacidades certificadas. Equipos presenta por separado las cuatro
+declaraciones de la API, incluyendo las no declaradas, sin habilitar acciones por
+esa pantalla. Ajustes explica el efecto de salir de la interfaz según la propiedad
+verificada y conserva el límite del modo de usuario.
+
+Se verifican las dos traducciones, todas las combinaciones de capacidades,
+metadatos malformados, equipo fuera de línea y estado local ambiguo/activo/revocado.
+No se añade una casilla que el usuario pueda usar para marcar un equipo como
+certificado ni se expone información privada en el renderer.

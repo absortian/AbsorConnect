@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AlertTriangle, KeyRound, Loader2 } from 'lucide-react'
+import { LocalTravelReadiness } from './LocalTravelReadiness'
 import {
   MIN_PC_PASSWORD_LENGTH,
   RemoteLogInfo,
@@ -145,6 +146,9 @@ export default function RemoteSettings(): React.JSX.Element {
 
   return (
     <>
+      {remote && (
+        <LocalTravelReadiness agent={remote.localAgent} agentOwned={remote.agentOwned ?? false} />
+      )}
       <div className="settings-section">
         <h3>{t('background.title')}</h3>
         {background && (

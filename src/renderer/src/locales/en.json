@@ -425,5 +425,31 @@
     "waitCancelled": "Wait cancelled.",
     "waitFailed": "Unable to continue waiting.",
     "authenticateAgain": "Authenticate again with the PC password to connect."
+  },
+  "travel": {
+    "title": "Travel preparation",
+    "notCertified": "This device does not yet have a certified unattended access configuration.",
+    "certifiedNone": "Certified capabilities: none. Being online or declaring a feature does not prove access to the lock or sign-in screen.",
+    "exit": {
+      "user_session": "User mode needs an open OS session and Absor Connect running. Quitting the app stops the host; opening it at login does not provide access before sign-in.",
+      "interface_only": "Quitting this interface does not send a stop command to the native service. This does not guarantee availability after locking, signing out or restarting.",
+      "unverified": "This device is reserved for the agent, but the service cannot be verified. The user host is not automatically reactivated; do not assume access after quitting the app."
+    },
+    "state": {
+      "idle": "The service responds with no active remote session.",
+      "active": "The service reports an active remote session; this does not prove support for protected screens.",
+      "validation_required": "The service requires fresh account authorization.",
+      "revoked": "Service authorization has been revoked; a new authorized enrollment is required.",
+      "unknown": "The service state could not be verified."
+    },
+    "recovery": "Before travelling, test the contexts you need from another network and prepare alternate access. Boot encryption may require physical intervention after a restart.",
+    "capability": {
+      "administration": "Administration",
+      "login": "Sign-in",
+      "secureAttention": "Secure attention",
+      "restart": "Restart"
+    },
+    "declaredYes": "declared by the agent, not certified",
+    "declaredNo": "not declared"
   }
 }

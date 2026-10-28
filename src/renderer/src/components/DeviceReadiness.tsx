@@ -12,10 +12,21 @@ export function DeviceReadiness({ device }: { device: AccountDevice }): React.JS
         {t(`devices.agent.readiness.${travelReadiness(agent, device.online)}`)}
       </div>
       {agent.mode === 'agent' && (
-        <div className="settings-row-hint">
-          {t('devices.agent.declared')} ({agent.agentVersion})
-        </div>
+        <details className="settings-row-hint">
+          <summary>
+            {t('devices.agent.declared')} ({agent.agentVersion})
+          </summary>
+          <ul>
+            {(['administration', 'login', 'secureAttention', 'restart'] as const).map((key) => (
+              <li key={key}>
+                {t(`travel.capability.${key}`)}:{' '}
+                {t(agent.capabilities[key] ? 'travel.declaredYes' : 'travel.declaredNo')}
+              </li>
+            ))}
+          </ul>
+        </details>
       )}
+      <p className="settings-row-hint">{t('travel.certifiedNone')}</p>
     </div>
   )
 }

@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "date": "2026-10-28",
+  "ok": true,
+  "acceptedTasks": [
+    "9.2"
+  ],
+  "scope": "Preparación factual en Ajustes y Equipos; catálogo certificado vacío hasta aceptar el piloto.",
+  "verification": {
+    "typecheck": true,
+    "vitestPassed": 357,
+    "vitestApiSkipped": 6,
+    "languages": [
+      "es",
+      "en"
+    ],
+    "declaredCapabilityCombinationsPerLanguage": 16,
+    "onlineAndOfflineTested": true,
+    "localStatesTested": [
+      "idle",
+      "active",
+      "validation_required",
+      "revoked"
+    ],
+    "legacyAndAmbiguousOwnershipTested": true,
+    "malformedMetadataTested": true,
+    "exitNoticeByOwnershipTested": true,
+    "declaredVsCertifiedSeparated": true
+  },
+  "limits": {
+    "readyForUnattended": false,
+    "certifiedConfigurations": [],
+    "physicalPilotTested": false,
+    "serviceInstallationImplemented": false
+  }
+}

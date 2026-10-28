@@ -181,3 +181,19 @@ La prueba de este controlador usa un host artificial y WebRTC real, sin acciones
 del SO. El agente nativo de laboratorio sigue sin anunciar operaciones. Los
 servicios finales y el piloto de reinicio Windows/Mac/Mint continúan pendientes.
 No se anuncia preparación para viajes por el mero hecho de mostrar este menú.
+
+
+### Preparación mostrada en la app
+
+Ajustes incluye «Preparación para viajes»: el servicio puede responder y tener
+una sesión activa sin que esa configuración esté certificada. El catálogo actual
+de capacidades certificadas está vacío. Equipos permite desplegar las capacidades
+que declara cada agente y diferencia esa declaración de las pruebas del piloto.
+Un equipo fuera de línea o con metadatos desconocidos conserva ese aviso.
+
+En modo de usuario, salir de Absor Connect detiene el host y abrir al iniciar
+sesión no permite entrar antes del login del SO. Si se ha observado intención
+nativa pero no se puede verificar su servicio, la app reserva la propiedad y no
+crea otro host. Cerrar la interfaz cancela su consulta, sin enviar una parada al
+servicio; esa separación por sí sola no garantiza acceso después de bloquear,
+cerrar sesión o reiniciar. Las altas/migraciones y el paquete final siguen pendientes.
