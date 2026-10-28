@@ -202,6 +202,9 @@ fn now() -> Result<Duration> {
 }
 fn run_actor() -> Result<()> {
     let mut lifecycle = Lifecycle::new(BootClock).map_err(|_| WinError(119, 0))?;
+    // SCM solo garantiza el PID en RUNNING; el monitor lo verifica al conectarse.
+    // La disponibilidad sigue falsa hasta completar la matriz del host final.
+    publish(SERVICE_RUNNING, 0)?;
     let mut monitor = Child::spawn(None)?;
     let mut worker: Option<Child> = None;
     let mut snapshot = Snapshot {
@@ -222,7 +225,6 @@ fn run_actor() -> Result<()> {
     };
     let mut next_pulse = Duration::ZERO;
     let mut next_report = Duration::ZERO;
-    publish(SERVICE_RUNNING, 0)?;
     loop {
         if STOP.load(Ordering::SeqCst) {
             // Se persiste antes de tocar el Job o el par; un reinicio por SCM no lo borra.
@@ -505,9 +507,9 @@ fn run_peer(worker: bool) -> Result<()> {
             Err(e) => {
                 if !worker && alive(process.0) {
                     // Si STOP llegó a SCM con el actor congelado, conserva la desactivación.
-                    if scm_state().is_ok_and(|s| {
-                        s.dwProcessId == parent && s.dwCurrentState == SERVICE_STOP_PENDING
-                    }) {
+                    // STOP_PENDING no garantiza dwProcessId. El handle del padre
+                    // ya quedó fijado contra SCM cuando estaba en RUNNING.
+                    if scm_state().is_ok_and(|s| s.dwCurrentState == SERVICE_STOP_PENDING) {
                         let _ = mark_stopped();
                     }
                     let _ = report(

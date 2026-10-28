@@ -324,7 +324,11 @@ impl Drop for HandleService {
     }
 }
 pub fn peer_parent(pid: u32, can_terminate: bool) -> Result<Handle> {
-    ensure(scm_state()?.dwProcessId == pid && pid != 0, 47)?;
+    let scm = scm_state()?;
+    ensure(
+        scm.dwCurrentState == SERVICE_RUNNING && scm.dwProcessId == pid && pid != 0,
+        47,
+    )?;
     let p = process(
         pid,
         PROCESS_QUERY_LIMITED_INFORMATION
