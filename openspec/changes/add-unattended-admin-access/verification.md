@@ -2927,3 +2927,17 @@ pendientes. La captura por este fd no se presenta como P2P: la regresión P2P us
 la ventana propia anterior. No se cierra 6.2/3.5 ni se anuncia una configuración
 preparada para viajes. Evidencia: `linux-dedicated-capture-results.json`.
 Avance aceptado **21/57 (37 %)**; el mínimo del 50 % todavía no se ha alcanzado.
+
+
+### Regresión del cierre del supervisor — 28/10/2026
+
+La CI final de Windows de la PR 59 detectó una carrera en el lanzador artificial:
+el hijo podía salir entre `try_wait()` y la escritura del pulso; un pipe cerrado
+se convertía en error genérico 71. Se unifica con la gracia existente de EOF
+(250 ms), sin reiniciar ni enviar más pulsos: se recoge el código real si el hijo
+termina y se mata/recoge si conserva el proceso vivo. Dos pruebas de procesos
+reproducen el cierre de stdin, tanto con salida normal como con un hijo que no
+termina. La sincronización inicial espera el primer pulso del supervisor; no
+amplía los watchdogs. Las pruebas completas y clippy pasan localmente en Mac y
+Linux; la CI nueva en los tres SO y la regresión P2P se revisan antes de fusionar.
+Este arreglo no cierra otra tarea ni incrementa el 21/57.

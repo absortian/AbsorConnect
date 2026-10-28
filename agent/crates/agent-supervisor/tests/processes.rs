@@ -216,3 +216,26 @@ fn broker_replay_and_eof_cut_worker() {
         assert!(elapsed < Duration::from_secs(3));
     }
 }
+
+#[test]
+fn stdin_close_before_normal_exit_is_reaped_without_restart() {
+    let (code, report, elapsed) = run_case(None, "normal-write-eof");
+    assert_eq!(code, 0, "{report}");
+    assert!(
+        report.contains("\"writeClosedBeforeExit\":true"),
+        "{report}"
+    );
+    assert_eq!(report.matches("spawned").count(), 1);
+    assert!(elapsed < Duration::from_secs(2));
+}
+#[test]
+fn closing_stdin_without_exiting_is_cut_within_existing_grace() {
+    let (code, report, elapsed) = run_case(None, "fault-write-eof");
+    assert_eq!(code, 70, "{report}");
+    assert!(report.contains("\"workerReaped\":true"), "{report}");
+    assert!(
+        report.contains("\"writeClosedBeforeExit\":true"),
+        "{report}"
+    );
+    assert!(elapsed < Duration::from_secs(2));
+}
