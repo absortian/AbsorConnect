@@ -133,6 +133,7 @@ fn run() -> Result<i32, ()> {
     let mut sequence = 0_u64;
     let mut next = Duration::ZERO;
     let mut fault_started = None;
+    let mut worker_seen = false;
     loop {
         if let Some(status) = child.0.try_wait().map_err(|_| ())? {
             record(
@@ -151,7 +152,7 @@ fn run() -> Result<i32, ()> {
             }
             watch.poll().map_err(|_| ())?;
         }
-        if let Some(incoming) = &incoming {
+        if let Some(incoming) = incoming.as_ref().filter(|_| worker_seen) {
             match incoming.try_recv() {
                 Ok(command) => {
                     fault_started = Some(BootClock.now().map_err(|_| ())?);
@@ -176,7 +177,16 @@ fn run() -> Result<i32, ()> {
         let result = (|| {
             loop {
                 match events.try_recv() {
-                    Ok(Ok(Event::Pulse(pulse))) => watch.receive(pulse)?,
+                    Ok(Ok(Event::Pulse(pulse))) => {
+                        watch.receive(pulse)?;
+                        if !worker_seen {
+                            worker_seen = true;
+                            if incoming.is_some() {
+                                record(&mut report, json!({"event":"watching"}))
+                                    .map_err(|_| absor_agent_supervisor::Fault::Closed)?;
+                            }
+                        }
+                    }
                     Ok(_) => return Err(absor_agent_supervisor::Fault::Protocol),
                     Err(mpsc::TryRecvError::Empty) => break,
                     Err(mpsc::TryRecvError::Disconnected) => {

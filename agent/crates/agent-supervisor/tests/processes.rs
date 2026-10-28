@@ -93,6 +93,25 @@ fn run_controlled(fault: Option<u8>, mode: &str, broker: Option<&str>) -> (i32, 
             .unwrap();
         panic!("saludo del fixture: {greeting:?}; diagnóstico acotado: {detail}");
     }
+    if fault.is_some() && broker.is_none() {
+        // stdout del fixture no confirma que el padre ya recibió su primer
+        // pulso. No inyectar un bloqueo durante la gracia de arranque de 5 s.
+        let waiting = Instant::now();
+        while !fs::read_to_string(&report)
+            .unwrap()
+            .contains("\"event\":\"watching\"")
+        {
+            assert!(
+                child.try_wait().unwrap().is_none(),
+                "salió antes de activar la vigilancia"
+            );
+            assert!(
+                waiting.elapsed() < Duration::from_secs(5),
+                "vigilancia no activada"
+            );
+            thread::sleep(Duration::from_millis(10));
+        }
+    }
     drop(startup);
     let started = Instant::now();
     if let Some(fault) = fault {
@@ -187,7 +206,10 @@ fn blocked_actor_is_killed_by_an_independent_process() {
     assert_eq!(code, 70);
     assert!(report.contains("Timeout"));
     assert!(report.contains("\"workerReaped\":true"));
-    assert!(elapsed < Duration::from_millis(3500));
+    assert!(
+        elapsed < Duration::from_millis(3500),
+        "{elapsed:?}; {report}"
+    );
 }
 #[test]
 fn crashed_worker_is_reaped_without_restarting_transport() {

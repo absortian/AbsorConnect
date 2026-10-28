@@ -3,7 +3,10 @@ use std::{
     fs,
     io::Write,
     mem::{size_of, zeroed},
-    os::windows::fs::MetadataExt,
+    os::windows::{
+        fs::{MetadataExt, OpenOptionsExt},
+        io::AsRawHandle,
+    },
     path::{Path, PathBuf},
     ptr::{null, null_mut},
 };
@@ -215,8 +218,10 @@ pub fn mark_stopped() -> Result<()> {
     let mut f = fs::OpenOptions::new()
         .write(true)
         .create_new(true)
+        .access_mode(GENERIC_WRITE | WRITE_OWNER)
         .open(file("stopped.txt"))
         .map_err(|_| error(33))?;
+    own_new_file(&f)?;
     f.write_all(b"stopped-v1\n")
         .and_then(|_| f.sync_all())
         .map_err(|_| error(34))?;
@@ -244,8 +249,10 @@ pub fn report(name: &str, value: &impl serde::Serialize) -> Result<()> {
     let mut f = fs::OpenOptions::new()
         .write(true)
         .create_new(true)
+        .access_mode(GENERIC_WRITE | WRITE_OWNER)
         .open(&temp)
         .map_err(|_| error(39))?;
+    own_new_file(&f)?;
     f.write_all(&data)
         .and_then(|_| f.sync_all())
         .map_err(|_| error(40))?;
@@ -262,6 +269,25 @@ pub fn report(name: &str, value: &impl serde::Serialize) -> Result<()> {
             )
         } != 0,
         43,
+    )
+}
+fn own_new_file(file: &fs::File) -> Result<()> {
+    // Un token SYSTEM puede tener BA como dueño predeterminado. Se fija SY
+    // explícitamente sobre el handle recién creado, antes de publicar datos.
+    let sid = system_sid()?;
+    ensure(
+        unsafe {
+            SetSecurityInfo(
+                file.as_raw_handle() as HANDLE,
+                SE_FILE_OBJECT,
+                OWNER_SECURITY_INFORMATION,
+                sid.as_ptr() as *mut c_void,
+                null_mut(),
+                null(),
+                null(),
+            )
+        } == 0,
+        50,
     )
 }
 pub fn scm_state() -> Result<SERVICE_STATUS_PROCESS> {
