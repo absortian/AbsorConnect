@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:absor_connect/src/api.dart';
 import 'package:absor_connect/src/remote/remote_api.dart';
 import 'package:absor_connect/src/remote/viewer_session.dart';
@@ -55,4 +57,50 @@ void main() {
       WebRTC.initialized = false;
     }
   });
+  test(
+    'dispose espera al teardown pendiente antes de liberar la textura',
+    () async {
+      const channel = MethodChannel('FlutterWebRTC.Method');
+      final calls = <String>[];
+      final detaching = Completer<void>(), detached = Completer<void>();
+      WebRTC.initialized = false;
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      messenger.setMockMethodCallHandler(channel, (call) async {
+        calls.add(call.method);
+        if (call.method == 'createVideoRenderer') return {'textureId': 2};
+        if (call.method == 'videoRendererSetSrcObject') {
+          if (!detaching.isCompleted) detaching.complete();
+          await detached.future;
+        }
+        return null;
+      });
+      messenger.setMockMessageHandler(
+        'FlutterWebRTC/Texture2',
+        (message) async =>
+            const StandardMethodCodec().encodeSuccessEnvelope(null),
+      );
+      final session = ViewerSession(
+        UnavailableApi(),
+        '12345678-1234-4abc-8def-123456789abc',
+      );
+      try {
+        final connecting = session.connect('public-test-password');
+        await detaching.future;
+        final disposing = session.dispose();
+        await Future<void>.delayed(const Duration(milliseconds: 250));
+        expect(calls.where((m) => m == 'videoRendererSetSrcObject').length, 1);
+        expect(calls, isNot(contains('videoRendererDispose')));
+        detached.complete();
+        await connecting;
+        await disposing;
+        expect(calls.last, 'videoRendererDispose');
+      } finally {
+        if (!detached.isCompleted) detached.complete();
+        messenger.setMockMethodCallHandler(channel, null);
+        messenger.setMockMessageHandler('FlutterWebRTC/Texture2', null);
+        WebRTC.initialized = false;
+      }
+    },
+  );
 }

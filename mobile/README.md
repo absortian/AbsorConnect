@@ -143,3 +143,23 @@ controladores, no hosts. La guía de
 entre sesión de cuenta, sistema e interfaz y el desbloqueo previo al arranque.
 Las pruebas de API móvil incluyen host legado, capacidades nativas, revocación de
 la credencial y conservación de los demás equipos/conexiones.
+
+## Contexto declarado por un agente
+
+El visor móvil negocia la extensión solo después de autenticar el PC. En un
+host que la anuncie muestra escritorio, bloqueo, entrada, autorización o
+transición. Oculta la imagen anterior durante una transición y espera vídeo
+nuevo; la entrada protegida necesita además la capacidad correspondiente.
+El teclado conserva su entrada directa: no usa el portapapeles para escribir
+credenciales del sistema. Esas credenciales no se guardan ni van a la API.
+
+Al cambiar de contexto libera las teclas, cierra las hojas de ficheros y descarta
+colas, nombres y respuestas pendientes. Audio, portapapeles y ficheros quedan
+suspendidos hasta una conexión autenticada nueva: el protocolo v1 no identifica
+el contexto en cada trozo. Esto también impide reanudar una selección de archivo
+que respondiera tarde. Los hosts anteriores conservan su funcionamiento.
+
+Este visor no certifica el host. El laboratorio nativo solo captura una ventana
+propia y declara falsas las capacidades administrativas. Siguen pendientes las
+acciones administrativas, la espera de reinicio y la matriz protegida Windows,
+Mac y Mint; véase `../docs/unattended-access.md`.

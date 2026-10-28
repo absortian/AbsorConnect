@@ -32,9 +32,10 @@ def load(name,path):
 
 
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('lab',type=Path);parser.add_argument('vm',type=Path);parser.add_argument('--api-base',required=True);parser.add_argument('--node',default='node');parser.add_argument('--mobile-device');parser.add_argument('--turn-config',type=Path);parser.add_argument('--stun-config',type=Path);parser.add_argument('--android-mapped-direct',action='store_true');args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument('lab',type=Path);parser.add_argument('vm',type=Path);parser.add_argument('--api-base',required=True);parser.add_argument('--node',default='node');parser.add_argument('--mobile-device');parser.add_argument('--mobile-runtime',action='store_true');parser.add_argument('--turn-config',type=Path);parser.add_argument('--stun-config',type=Path);parser.add_argument('--android-mapped-direct',action='store_true');args=parser.parse_args()
     mobile_module=load('mobile_protected',Path(__file__).with_name('mobile-protected-runner.py')) if args.mobile_device else None
-    names=mobile_module.NAMES if mobile_module else NAMES
+    assert not args.mobile_runtime or args.mobile_device, 'runtime_requires_mobile_device'
+    names=['correct','correct-reconnect'] if args.mobile_runtime else mobile_module.NAMES if mobile_module else NAMES
     if args.mobile_device:
         assert args.mobile_device=='emulator-5554' or re.fullmatch('[0-9A-F-]{36}',args.mobile_device)
     assert not args.android_mapped_direct or args.mobile_device=='emulator-5554' and not(args.turn_config or args.stun_config)
@@ -58,8 +59,9 @@ def main():
         has_turn=any(u.startswith(('turn:','turns:')) for entry in value['iceServers'] for u in entry['urls'])
         assert has_turn is bool(args.turn_config)
         controller_ice={**value,'relayController':bool(args.turn_config)}
-    source_names=['prototypes/backend-agent-check/protected-webrtc.py','prototypes/backend-agent-check/mobile-protected-runner.py','prototypes/backend-agent-check/isolated-webrtc-renewal.py','prototypes/remote-desktop/webrtc-check/mobile-protected-interop-test.dart','prototypes/remote-desktop/webrtc-check/run-interop.cjs','prototypes/remote-desktop/webrtc-check/interop-main.cjs','prototypes/remote-desktop/webrtc-check/interop-renderer.js']
+    source_names=['prototypes/backend-agent-check/protected-webrtc.py','prototypes/backend-agent-check/mobile-protected-runner.py','prototypes/backend-agent-check/isolated-webrtc-renewal.py','prototypes/remote-desktop/webrtc-check/mobile-protected-interop-test.dart','prototypes/remote-desktop/webrtc-check/mobile-runtime-interop-test.dart','prototypes/remote-desktop/webrtc-check/check-green-frame.swift','prototypes/remote-desktop/webrtc-check/run-interop.cjs','prototypes/remote-desktop/webrtc-check/interop-main.cjs','prototypes/remote-desktop/webrtc-check/interop-renderer.js']
     source_hashes={name:hashlib.sha256((ROOT/name).read_bytes()).hexdigest() for name in source_names}
+    mobile_runtime_hashes={str(p.relative_to(ROOT)):hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted((ROOT/'mobile/lib').rglob('*.dart'))} if args.mobile_runtime else {}
     uri=urlsplit(args.api_base)
     assert uri.scheme=='http' and uri.hostname=='127.0.0.1' and uri.port and uri.path in ('','/') and not(uri.username or uri.password or uri.query or uri.fragment)
     lab=args.lab.resolve();directory=args.vm.resolve();m=directory.stat();assert m.st_uid==os.getuid() and m.st_mode&0o077==0
@@ -72,6 +74,9 @@ def main():
     owned={};signals={};server=thread=tunnel=child=None;manifest_path=None;work=None;mapping=None
     installed=False;locked=False;errors=[];marker_created=False;result=None;target=None
     build=json.loads((directory/'linux-webrtc-build.json').read_text())
+    # No atribuir el resultado a fuentes que no corresponden al binario probado.
+    for name,digest in build['artifactSourceSha256'].items():
+        assert hashlib.sha256((ROOT/name).read_bytes()).hexdigest()==digest,'native_build_source_drift'
     artifacts={}
 
     def root(code,data=None,timeout=20):
@@ -145,6 +150,7 @@ else:raise AssertionError('native_worker_timeout')
             if name!='correct':cleanup_install()
             value['systemd']={'systemService':True,'exitCode':0,'activeAfterExit':False,'runtimeRemoved':True,'restart':'no','privileged':False,'workerSupervised':True,'brokerWatchdog':True}
             value['protectedIpc']=True
+            saved=output/(name+'-native-result.json');saved.write_text(json.dumps(value,indent=2)+'\n');saved.chmod(0o600)
             item['nativeResult']=value
             completed=True
             return value
@@ -176,7 +182,46 @@ else:raise AssertionError('native_worker_timeout')
             status,enrollment=request('POST',item['path']+'/agent-enrollments',{},item['owner'],device_key);assert status==201;item['grant']=enrollment['enrollmentToken']
 
         mapping=mobile_module.VmDirectMapping(vm) if args.android_mapped_direct else None
-        mobile=mobile_module.MobileController(owned,signals,request,output,controller_ice,mapping) if mobile_module else None
+        def prepare_mobile():
+            if args.mobile_device!='emulator-5554':return
+            import xml.etree.ElementTree as ET
+            command=['/opt/homebrew/share/android-commandlinetools/platform-tools/adb','-s',args.mobile_device]
+            assert subprocess.check_output(command+['emu','avd','name'],timeout=10).splitlines()[0]==b'absorconnect'
+            path='/sdcard/absorconnect-owned-test-ui.xml'
+            try:
+                subprocess.run(command+['shell','uiautomator','dump',path],capture_output=True,check=True,timeout=15)
+                tree=ET.fromstring(subprocess.check_output(command+['shell','cat',path],timeout=10))
+                nodes=[n for n in tree.iter('node') if n.get('text')=='Got it' and n.get('clickable')=='true' and n.get('package') in ('android','com.android.systemui')]
+                assert len(nodes)<=1,'ambiguous_fullscreen_tutorial'
+                if nodes:
+                    points=[int(v) for v in re.findall(r'\d+',nodes[0].get('bounds',''))];assert len(points)==4 and all(0<=v<=5000 for v in points)
+                    subprocess.run(command+['shell','input','tap',str((points[0]+points[2])//2),str((points[1]+points[3])//2)],capture_output=True,check=True,timeout=10)
+            finally:subprocess.run(command+['shell','rm',path],capture_output=True,timeout=10)
+
+        def screenshot(name):
+            assert args.mobile_runtime and name in ('correct','correct-reconnect')
+            path=output/(name+'-production-mobile-screen.png');assert not path.exists()
+            deadline=time.monotonic()+18
+            while True:
+                if args.mobile_device=='emulator-5554':
+                    adb='/opt/homebrew/share/android-commandlinetools/platform-tools/adb'
+                    assert subprocess.check_output([adb,'-s',args.mobile_device,'emu','avd','name'],timeout=10).splitlines()[0]==b'absorconnect'
+                    data=subprocess.check_output([adb,'-s',args.mobile_device,'exec-out','screencap','-p'],timeout=15)
+                    path.write_bytes(data)
+                else:
+                    assert args.mobile_device=='0D9B8664-A2FF-46C4-95AC-D30591167441'
+                    subprocess.run(['xcrun','simctl','io',args.mobile_device,'screenshot','--type=png',str(path)],check=True,capture_output=True,timeout=15)
+                    data=path.read_bytes()
+                path.chmod(0o600)
+                assert data.startswith(b'\x89PNG\r\n\x1a\n') and 1024<len(data)<20*1024*1024
+                check=subprocess.run(['/usr/bin/swift','-module-cache-path',str(lab/'swift-pixel-cache'),str(ROOT/'prototypes/remote-desktop/webrtc-check/check-green-frame.swift'),str(path)],capture_output=True,timeout=25)
+                assert check.returncode in (0,1),'png_analysis_failed'
+                if check.returncode==0:
+                    owned[name].setdefault('greenCases',set()).add(name);return
+                assert time.monotonic()<deadline,'native_green_frame_not_rendered'
+                path.unlink();time.sleep(.1)
+
+        mobile=mobile_module.MobileController(owned,signals,request,output,controller_ice,mapping,runtime=args.mobile_runtime,screenshot=screenshot,prepare=prepare_mobile) if mobile_module else None
 
         class Proxy(http.server.BaseHTTPRequestHandler):
             def log_message(self,*_):pass
@@ -276,9 +321,12 @@ else:raise AssertionError('native_worker_timeout')
             project=lab/'mobile-simulator'
             assert project.is_dir() and not project.is_symlink()
             import shutil
-            for filename in ['auth.dart','pbkdf2.dart','agent_protocol.dart','input.dart','protocol.dart']:
-                shutil.copyfile(ROOT/'mobile/lib/src/remote'/filename,project/'lib/src/remote'/filename)
-            shutil.copyfile(ROOT/'prototypes/remote-desktop/webrtc-check/mobile-protected-interop-test.dart',project/'integration_test/protected_native_interop_test.dart')
+            if args.mobile_runtime:
+                shutil.copytree(ROOT/'mobile/lib',project/'lib',dirs_exist_ok=True)
+            else:
+                for filename in ['auth.dart','pbkdf2.dart','agent_protocol.dart','input.dart','protocol.dart']:
+                    shutil.copyfile(ROOT/'mobile/lib/src/remote'/filename,project/'lib/src/remote'/filename)
+            shutil.copyfile(ROOT/'prototypes/remote-desktop/webrtc-check'/('mobile-runtime-interop-test.dart' if args.mobile_runtime else 'mobile-protected-interop-test.dart'),project/'integration_test/protected_native_interop_test.dart')
             adb=Path('/opt/homebrew/share/android-commandlinetools/platform-tools/adb')
             android=args.mobile_device=='emulator-5554'
             if android:subprocess.run([str(adb),'-s',args.mobile_device,'reverse','tcp:'+str(server.server_address[1]),'tcp:'+str(server.server_address[1])],check=True,capture_output=True,timeout=15)
@@ -286,13 +334,15 @@ else:raise AssertionError('native_worker_timeout')
                 command=['/opt/homebrew/bin/flutter','drive','--no-pub','--driver=test_driver/integration_test.dart','--target=integration_test/protected_native_interop_test.dart','--dart-define=ABSOR_NATIVE_LAB_URL='+origin,'-d',args.mobile_device]
                 environment=dict(os.environ)
                 if android:environment.update(ANDROID_HOME='/opt/homebrew/share/android-commandlinetools',ANDROID_SDK_ROOT='/opt/homebrew/share/android-commandlinetools',JAVA_HOME='/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home')
-                child=subprocess.Popen(command,cwd=project,env=environment,stdout=subprocess.PIPE,stderr=subprocess.PIPE,start_new_session=True)
-                try:stdout,stderr=child.communicate(timeout=480)
-                except subprocess.TimeoutExpired:
-                    os.killpg(child.pid,signal.SIGKILL);stdout,stderr=child.communicate(timeout=10)
-                log=output/'mobile-interop.log';log.write_bytes(stdout+stderr);log.chmod(0o600)
-                assert child.returncode==0 and len(mobile.results)==4,'mobile_interop_failed_inspect_private_log'
-                result={'ok':True,'cases':mobile.results,'protectedIpcTested':True,'nativeWorkerConnected':True,'mobileTested':True,'turnTested':bool(args.turn_config),'relayPolicy':'controller' if args.turn_config else 'none','readyForUnattended':False}
+                log=output/'mobile-interop.log'
+                descriptor=os.open(log,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+                with os.fdopen(descriptor,'wb') as stream:
+                    child=subprocess.Popen(command,cwd=project,env=environment,stdout=stream,stderr=subprocess.STDOUT,start_new_session=True)
+                    try:child.wait(timeout=480)
+                    except subprocess.TimeoutExpired:
+                        os.killpg(child.pid,signal.SIGKILL);child.wait(timeout=10)
+                assert child.returncode==0 and len(mobile.results)==len(names),'mobile_interop_failed_inspect_private_log'
+                result={'ok':True,'cases':mobile.results,'protectedIpcTested':True,'nativeWorkerConnected':True,'mobileTested':True,'productionMobileRuntimeTested':args.mobile_runtime,'turnTested':bool(args.turn_config),'relayPolicy':'controller' if args.turn_config else 'none','readyForUnattended':False}
             finally:
                 if android:subprocess.run([str(adb),'-s',args.mobile_device,'reverse','--remove','tcp:'+str(server.server_address[1])],capture_output=True,timeout=15)
         else:
@@ -314,6 +364,7 @@ else:raise AssertionError('native_worker_timeout')
         assert len(owned['correct']['nonces'])==2
         result.update({'productionTested':False,'physicalMachinesTested':False,'uniqueHostKeys':True,'twoConnectionsSameBroker':True,'secondConnectionUsesNewNonce':True,'apiCredentialsKeptInBroker':True,'temporaryAccountsRemoved':False,'sdpFilesWritten':False,'artifactHashes':{n:hashlib.sha256(b).hexdigest() for n,b in artifacts.items()}})
         result['fixtureSourceSha256']=source_hashes
+        if args.mobile_runtime:result['mobileRuntimeSourceSha256']=mobile_runtime_hashes
         if mapping:result.update({'directVmNatMapping':True,'vmNatMappedPortsTotal':mapping.total,'vmNatMappingsRemoved':not mapping.ports})
         target=output/'report.json';target.write_text(json.dumps(result,indent=2)+'\n');target.chmod(0o600)
         print('Informe local: '+str(target))

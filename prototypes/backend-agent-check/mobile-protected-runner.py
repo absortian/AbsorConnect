@@ -6,25 +6,35 @@ NAMES = ['correct', 'correct-reconnect', 'wrong-proof', 'fingerprint-mismatch']
 
 
 class MobileController:
-    def __init__(self, owned, signals, request, output, ice, mapping=None):
+    def __init__(self, owned, signals, request, output, ice, mapping=None, runtime=False, screenshot=None, prepare=None):
         self.owned, self.signals, self.request, self.output = owned, signals, request, output
         self.ice = ice
+        self.runtime = runtime
+        self.screenshot = screenshot
+        self.prepare = prepare
         self.mapping = mapping
         self.results = []
 
     def get(self, handler):
         if handler.path != '/mobile/config':
             return False
-        handler.reply(200, {**self.ice, 'nativeFixture': True, 'cases': NAMES})
+        handler.reply(200, {**self.ice, 'nativeFixture': True, 'cases': ['correct','correct-reconnect'] if self.runtime else NAMES})
         return True
 
     def post(self, handler):
         if not handler.path.startswith('/mobile/'):
             return False
         parts = handler.path.split('/')
-        assert len(parts) == 4 and parts[2] in ('offer', 'result') and parts[3] in NAMES
+        assert len(parts) == 4 and parts[2] in ('offer', 'result', 'screenshot', 'prepare') and parts[3] in NAMES
         operation, name = parts[2:]
+        assert name in self.owned
         item = self.owned[name]
+        if operation == 'prepare':
+            assert self.runtime and self.prepare and handler.body(128)=={}
+            self.prepare();handler.reply(200,{'ok':True});return True
+        if operation == 'screenshot':
+            assert self.runtime and self.screenshot and name in ('correct','correct-reconnect') and handler.body(128)=={}
+            self.screenshot(name);handler.reply(200,{'ok':True,'nativeGreenVerified':True});return True
         if operation == 'offer':
             body = handler.body(70000)
             assert set(body) == {'sdp'} and isinstance(body['sdp'], str) and 0 < len(body['sdp'].encode()) <= 65536
@@ -46,8 +56,16 @@ class MobileController:
                 time.sleep(.05)
             raise RuntimeError('mobile_answer_timeout')
         body = handler.body(4096)
-        assert set(body) == {'authenticated', 'decodedFrames', 'helloCount', 'candidates', 'width', 'height', 'nonce', 'inputSent', 'preAuthInputSent', 'extensionNegotiated'}
-        assert body['helloCount'] == 1 and body['preAuthInputSent'] is True
+        if self.runtime:
+            assert set(body)=={'nativeGreenVerified','challengeId','helloCount','productionRuntime','productionScreen','authenticated','decodedFrames','width','height','inputSent','extensionNegotiated','contextImageCurrent','sensitiveFeaturesFalse','candidates'}
+            assert body['nativeGreenVerified'] is True and name in item.get('greenCases',set())
+            import re
+            assert body['helloCount']==1 and re.fullmatch('[0-9a-f]{64}',body['challengeId'])
+            nonces=item.setdefault('nonces',set());assert body['challengeId'] not in nonces;nonces.add(body['challengeId'])
+            assert all(body[k] is True for k in ['productionRuntime','productionScreen','authenticated','inputSent','extensionNegotiated','contextImageCurrent','sensitiveFeaturesFalse'])
+        else:
+            assert set(body) == {'authenticated', 'decodedFrames', 'helloCount', 'candidates', 'width', 'height', 'nonce', 'inputSent', 'preAuthInputSent', 'extensionNegotiated'}
+            assert body['helloCount'] == 1 and body['preAuthInputSent'] is True
         expected = name in ('correct', 'correct-reconnect')
         native = item['nativeResult']
         assert native['authenticated'] is expected and body['authenticated'] is expected
@@ -62,17 +80,18 @@ class MobileController:
         if expected:
             assert (body['width'], body['height']) == (320, 180)
             # El nonce es público, pero solo conservamos su distinción en memoria.
-            import base64
-            assert len(base64.b64decode(body['nonce'], validate=True)) == 32
-            nonces = item.setdefault('nonces', set())
-            assert body['nonce'] not in nonces
-            nonces.add(body['nonce'])
+            if not self.runtime:
+                import base64
+                assert len(base64.b64decode(body['nonce'], validate=True)) == 32
+                nonces = item.setdefault('nonces', set())
+                assert body['nonce'] not in nonces
+                nonces.add(body['nonce'])
         route = body['candidates']
         if self.ice['relayController']:
             assert route['local'] == 'relay'
         else:
             assert route['local'] in ('host', 'prflx', 'srflx') and route['remote'] in ('host', 'prflx', 'srflx')
-        body = {k: v for k, v in body.items() if k != 'nonce'}
+        body = {k: v for k, v in body.items() if k not in ('nonce','challengeId')}
         result = {'name': name, 'ok': True, 'native': native, 'controller': body, 'directVmNatMapping': self.mapping is not None}
         if self.mapping:self.mapping.close()
         self.results.append(result)

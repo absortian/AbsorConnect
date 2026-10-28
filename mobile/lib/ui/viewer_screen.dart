@@ -15,16 +15,20 @@ import '../src/remote/remote_api.dart';
 import '../src/remote/remote_transfers.dart';
 import '../src/remote/viewer_session.dart';
 import 'devices_screen.dart';
+import 'agent_context_notice.dart';
+import 'sensitive_context_sheet.dart';
 import 'remote_texts.dart';
 import 'theme.dart';
 
 /// Sesión con un PC a pantalla completa, en vertical y en horizontal (mobile-app, D12).
 class ViewerScreen extends StatefulWidget {
-  const ViewerScreen({super.key, required this.api, required this.device, required this.password});
+  const ViewerScreen({super.key, required this.api, required this.device, required this.password, this.sessionFactory});
 
   final RemoteApi api;
   final RemoteDevice device;
   final String password;
+  /// Punto de composición para probar la pantalla con el runtime real y señalización local.
+  final ViewerSession Function(RemoteApi api, String deviceId)? sessionFactory;
 
   @override
   State<ViewerScreen> createState() => _ViewerScreenState();
@@ -45,14 +49,22 @@ class _ViewerScreenState extends State<ViewerScreen> with WidgetsBindingObserver
   bool _closedInBackground = false;
   Timer? _backgroundTimer;
   final Set<String> _modifiers = {};
+  int _lastContextEpoch = 0;
+  void _contextChanged() {
+    if (_lastContextEpoch == _session.contextEpoch) return;
+    _lastContextEpoch = _session.contextEpoch;
+    _keyboardFocus.unfocus();
+    if (mounted) setState(() { _keyboard = false; _modifiers.clear(); });
+  }
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    _session = ViewerSession(widget.api, widget.device.id);
+    _session = widget.sessionFactory?.call(widget.api, widget.device.id) ?? ViewerSession(widget.api, widget.device.id);
     _transfers = RemoteTransfers(_session);
+    _session.addListener(_contextChanged);
     unawaited(_session.connect(widget.password));
   }
 
@@ -62,6 +74,7 @@ class _ViewerScreenState extends State<ViewerScreen> with WidgetsBindingObserver
     _backgroundTimer?.cancel();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     _keyboardFocus.dispose();
+    _session.removeListener(_contextChanged);
     _transfers.dispose();
     unawaited(_session.dispose());
     super.dispose();
@@ -133,23 +146,28 @@ class _ViewerScreenState extends State<ViewerScreen> with WidgetsBindingObserver
   }
 
   Future<void> _sendFiles({required bool photos}) async {
+    if (!_session.features.files) return;
+    final epoch = _session.contextEpoch;
     final picked = await FilePicker.pickFiles(type: photos ? FileType.media : FileType.any);
-    if (picked.isEmpty) return;
+    if (picked.isEmpty || epoch != _session.contextEpoch || !_session.features.files) return;
     final files = [for (final f in picked) (name: f.name, size: await f.length() ?? 0, open: f.readAsByteStream)];
-    if (!mounted) return;
+    if (!mounted || epoch != _session.contextEpoch || !_session.features.files) return;
     _transfers.upload(files);
     _showTransfers();
   }
 
   Future<void> _download() async {
+    if (!_session.features.files) return;
+    final epoch = _session.contextEpoch;
     final picked = await showModalBottomSheet<({String path, String name, int size})>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (_) => _RemoteBrowser(transfers: _transfers),
+      builder: (_) => SensitiveContextSheet(listenable: _session, epoch: () => _session.contextEpoch, allowed: () => _session.features.files, child: _RemoteBrowser(transfers: _transfers)),
     );
-    if (picked == null || !mounted) return;
+    if (picked == null || !mounted || epoch != _session.contextEpoch || !_session.features.files) return;
     final transfer = await _transfers.download(picked.path, picked.name, picked.size);
+    if (!mounted || epoch != _session.contextEpoch || !_session.features.files) return;
     if (transfer.status == RemoteTransferStatus.done && transfer.result != null) {
       await SharePlus.instance.share(ShareParams(files: [XFile(transfer.result!)]));
     } else if (mounted) {
@@ -157,7 +175,7 @@ class _ViewerScreenState extends State<ViewerScreen> with WidgetsBindingObserver
     }
   }
 
-  void _showTransfers() => showModalBottomSheet<void>(context: context, useSafeArea: true, builder: (_) => _TransfersSheet(transfers: _transfers));
+  void _showTransfers() => showModalBottomSheet<void>(context: context, useSafeArea: true, builder: (_) => SensitiveContextSheet(listenable: _session, epoch: () => _session.contextEpoch, child: _TransfersSheet(transfers: _transfers)));
 
   @override
   Widget build(BuildContext context) {
@@ -177,9 +195,11 @@ class _ViewerScreenState extends State<ViewerScreen> with WidgetsBindingObserver
               Positioned.fill(
                 child: Column(children: [
                   Expanded(
-                    child: _RemoteView(session: _session, mouseMode: _mouseMode, enabled: connected),
+                    child: _RemoteView(key: ValueKey(_session.contextEpoch), session: _session, mouseMode: _mouseMode, enabled: connected && _session.inputAllowed),
                   ),
-                  if (_keyboard && connected)
+                  if (connected && _session.agentContext.enabled)
+                    SafeArea(top: false, child: AgentContextNotice(status: _session.agentContext, imageCurrent: _session.contextImageCurrent)),
+                  if (_keyboard && connected && _session.inputAllowed)
                     _KeyBar(
                       modifiers: _modifiers,
                       systemKey: widget.device.platform == 'macos' ? 'Cmd' : 'Win',
@@ -189,7 +209,7 @@ class _ViewerScreenState extends State<ViewerScreen> with WidgetsBindingObserver
                 ]),
               ),
               // Campo invisible que recibe el teclado del teléfono
-              Positioned(left: 0, bottom: 0, width: 1, height: 1, child: _HiddenInput(focusNode: _keyboardFocus, onText: _typed, onKey: _pressKey)),
+              Positioned(left: 0, bottom: 0, width: 1, height: 1, child: _HiddenInput(key: ValueKey('ime-${_session.contextEpoch}'), focusNode: _keyboardFocus, onText: _typed, onKey: _pressKey)),
               if (connected)
                 Positioned(
                   top: 0,
@@ -240,7 +260,7 @@ class _ViewerScreenState extends State<ViewerScreen> with WidgetsBindingObserver
 ///     un dedo arrastra.
 ///   - En los dos: dos dedos desplazan (rueda) y el pellizco hace zoom en el móvil.
 class _RemoteView extends StatefulWidget {
-  const _RemoteView({required this.session, required this.mouseMode, required this.enabled});
+  const _RemoteView({super.key, required this.session, required this.mouseMode, required this.enabled});
 
   final ViewerSession session;
   final bool mouseMode;
@@ -463,12 +483,13 @@ class _RemoteViewState extends State<_RemoteView> {
       return ValueListenableBuilder<RTCVideoValue>(
         valueListenable: _session.renderer,
         builder: (context, _, _) {
-          final view = Transform(
+          final streamView = Transform(
             transform: Matrix4.identity()
               ..translateByDouble(_pan.dx, _pan.dy, 0, 1)
               ..scaleByDouble(_zoom, _zoom, 1, 1),
             child: SizedBox.fromSize(size: _box, child: RTCVideoView(_session.renderer, objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitContain)),
           );
+          final view = Stack(children: [streamView, if (!_session.contextImageCurrent) const Positioned.fill(child: ColoredBox(color: Colors.black))]);
           if (!widget.enabled) return view;
           final cursor = _toScreen(_cursor);
           return Listener(
@@ -515,7 +536,7 @@ class _RemoteViewState extends State<_RemoteView> {
 /// que se ha borrado (Retroceso), y lo que se añade es lo escrito. Espera a que termine la
 /// composición (acentos, dictado) antes de enviar.
 class _HiddenInput extends StatefulWidget {
-  const _HiddenInput({required this.focusNode, required this.onText, required this.onKey});
+  const _HiddenInput({super.key, required this.focusNode, required this.onText, required this.onKey});
 
   final FocusNode focusNode;
   final void Function(String text) onText;
@@ -727,7 +748,7 @@ class _Toolbar extends StatelessWidget {
           key: const Key('remote-keyboard-toggle'),
           tooltip: t.remoteKeyboard,
           icon: Icon(Icons.keyboard_outlined, color: keyboard ? AppColors.accentSoft : Colors.white),
-          onPressed: onKeyboard,
+          onPressed: session.inputAllowed ? onKeyboard : null,
         ),
         if (session.displays.length > 1)
           PopupMenuButton<String>(
@@ -871,8 +892,9 @@ class _RemoteBrowserState extends State<_RemoteBrowser> {
 
   Future<void> _open(String path) async {
     setState(() => _loading = true);
+    final epoch = widget.transfers.session.contextEpoch;
     final listing = await widget.transfers.list(path);
-    if (!mounted) return;
+    if (!mounted || epoch != widget.transfers.session.contextEpoch || !widget.transfers.session.features.files) return;
     setState(() {
       _loading = false;
       _listing = listing ?? _listing;

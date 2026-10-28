@@ -699,4 +699,42 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get remoteStreamBuffer => 'Video buffer';
+
+  @override
+  String get remoteAgentDesktop => 'User desktop';
+
+  @override
+  String get remoteAgentLocked => 'Device locked';
+
+  @override
+  String get remoteAgentLogin => 'Sign in';
+
+  @override
+  String get remoteAgentPrompt => 'System authorization';
+
+  @override
+  String get remoteAgentTransition => 'Changing context';
+
+  @override
+  String get remoteAgentUnavailable => 'Context unavailable';
+
+  @override
+  String get remoteAgentImageMissing =>
+      'There is no current image. The previous image is hidden.';
+
+  @override
+  String get remoteAgentImageWaiting =>
+      'Waiting for a new frame from the current context.';
+
+  @override
+  String get remoteAgentInputUnavailable =>
+      'The host does not support input in this context. Sensitive features are suspended.';
+
+  @override
+  String get remoteAgentReconnectContent =>
+      'Files, clipboard and sound remain suspended until you reconnect.';
+
+  @override
+  String get remoteAgentSensitiveSuspended =>
+      'Protected context: clipboard, files and sound are suspended.';
 }

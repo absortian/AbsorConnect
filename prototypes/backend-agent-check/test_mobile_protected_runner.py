@@ -63,4 +63,48 @@ class MappingTest(unittest.TestCase):
         self.assertFalse(vm.calls)
 
 
+class ScreenshotRequestTest(unittest.TestCase):
+    class Handler:
+        def __init__(self, path, body):self.path=path;self.value=body;self.response=None
+        def body(self, limit):
+            assert limit==128
+            return self.value
+        def reply(self, status, body):self.response=(status,body)
+
+    def controller(self, callback, runtime=True):
+        return fixture.MobileController({'correct':{},'correct-reconnect':{}},{},None,None,{},runtime=runtime,screenshot=callback)
+
+    def test_only_fixed_case_and_empty_body_reach_screenshot_callback(self):
+        seen=[];controller=self.controller(seen.append)
+        handler=self.Handler('/mobile/screenshot/correct',{})
+        self.assertTrue(controller.post(handler))
+        self.assertEqual(seen,['correct'])
+        self.assertEqual(handler.response,(200,{'ok':True,'nativeGreenVerified':True}))
+        handler=self.Handler('/mobile/screenshot/correct-reconnect',{})
+        self.assertTrue(controller.post(handler))
+        self.assertEqual(seen,['correct','correct-reconnect'])
+
+    def test_parameters_unknown_case_and_non_runtime_never_capture(self):
+        for path,body,runtime in [('/mobile/screenshot/correct',{'path':'untrusted'},True),
+                                  ('/mobile/screenshot/foreign',{},True),
+                                  ('/mobile/screenshot/correct',{},False)]:
+            seen=[];controller=self.controller(seen.append,runtime)
+            with self.assertRaises(AssertionError):controller.post(self.Handler(path,body))
+            self.assertEqual(seen,[])
+
+
+class PreparationRequestTest(unittest.TestCase):
+    def test_preparation_is_runtime_only_with_no_parameters(self):
+        for body,runtime in [({},True),({'path':'untrusted'},True),({},False)]:
+            seen=[]
+            controller=fixture.MobileController({'correct':{}},{},None,None,{},runtime=runtime,prepare=lambda:seen.append(True))
+            handler=ScreenshotRequestTest.Handler('/mobile/prepare/correct',body)
+            if body or not runtime:
+                with self.assertRaises(AssertionError):controller.post(handler)
+                self.assertFalse(seen)
+            else:
+                self.assertTrue(controller.post(handler));self.assertEqual(seen,[True])
+                self.assertEqual(handler.response,(200,{'ok':True}))
+
+
 if __name__=='__main__':unittest.main()

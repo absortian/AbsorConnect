@@ -34,8 +34,10 @@ def main():
     parser.add_argument('--stun-config', type=Path)
     parser.add_argument('--android-mapped-direct', action='store_true')
     parser.add_argument('--flutter-tests', action='store_true')
+    parser.add_argument('--mobile-runtime', action='store_true')
     args = parser.parse_args()
     assert not (args.mobile_device or args.turn_config or args.stun_config or args.android_mapped_direct) or args.protected_p2p_vm, 'mobile_requires_protected_vm'
+    assert not args.mobile_runtime or args.mobile_device, 'runtime_requires_mobile_device'
     assert not args.flutter_tests or not (args.protected_p2p_vm or args.secure_ipc_vm or args.linux_broker or args.linux_webrtc_vm or args.x11_worker_vm), 'choose_one_matrix'
     assert not args.linux_broker or args.linux_webrtc_vm, 'broker_requires_linux_vm'
     assert not args.protected_p2p_vm or not (args.secure_ipc_vm or args.linux_broker or args.linux_webrtc_vm or args.x11_worker_vm), 'choose_one_matrix'
@@ -93,6 +95,7 @@ def main():
         if args.protected_p2p_vm:
             child_args=['python3','-B',str(Path(__file__).with_name('protected-webrtc.py')),str(lab),str(args.protected_p2p_vm),'--api-base','http://127.0.0.1:'+str(port),'--node',args.node]
             if args.mobile_device:child_args += ['--mobile-device',args.mobile_device]
+            if args.mobile_runtime:child_args += ['--mobile-runtime']
             if args.turn_config:child_args += ['--turn-config',str(args.turn_config.resolve())]
             if args.stun_config:child_args += ['--stun-config',str(args.stun_config.resolve())]
             if args.android_mapped_direct:child_args += ['--android-mapped-direct']
