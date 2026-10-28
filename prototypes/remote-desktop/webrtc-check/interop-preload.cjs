@@ -5,6 +5,8 @@ contextBridge.exposeInMainWorld('lab', {
   nativeFixture: process.argv.includes('--lab-native-fixture'),
   apiSignaling: process.argv.includes('--lab-api-signaling'),
   busy: () => ipcRenderer.invoke('lab-busy'),
+  uiStatus: process.argv.includes('--lab-ui-status'),
+  uiCycle: () => ipcRenderer.invoke('lab-ui-cycle'),
   supervised: process.argv.includes('--lab-supervised'),
   agentBridge: process.argv.includes('--lab-agent-bridge'),
   credentialProbe: () => ipcRenderer.invoke('lab-credential-probe'),

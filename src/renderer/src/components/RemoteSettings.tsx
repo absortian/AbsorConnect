@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AlertTriangle, KeyRound, Loader2 } from 'lucide-react'
+import { LocalTravelReadiness } from './LocalTravelReadiness'
 import {
   MIN_PC_PASSWORD_LENGTH,
   RemoteLogInfo,
@@ -145,6 +146,9 @@ export default function RemoteSettings(): React.JSX.Element {
 
   return (
     <>
+      {remote && (
+        <LocalTravelReadiness agent={remote.localAgent} agentOwned={remote.agentOwned ?? false} />
+      )}
       <div className="settings-section">
         <h3>{t('background.title')}</h3>
         {background && (
@@ -234,10 +238,11 @@ function RemoteAccess(props: RemoteAccessProps): React.JSX.Element {
     else setName(remote.deviceName)
   }
 
-  if (remote.agentOwned) {
+  if (remote.agentOwned || (remote.localAgent && remote.localAgent.ownership !== 'legacy')) {
     return (
       <div className="settings-warning" role="status" style={{ display: 'block' }}>
-        {t('remoteAccess.agentOwned')}
+        {t(remote.agentOwned ? 'remoteAccess.agentOwned' : 'remoteAccess.localAgentManaged')}
+        {remote.localAgent && <p>{t(`remoteAccess.localAgentState.${remote.localAgent.phase}`)}</p>}
         {remote.agentOwnershipPersistenceFailed && (
           <p>{t('remoteAccess.agentPersistenceFailed')}</p>
         )}

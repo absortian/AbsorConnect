@@ -1,3 +1,5 @@
+import type { LocalAgentSnapshot } from './localAgent'
+
 // Lo que ve y cambia la sección "Control remoto de este PC" de Ajustes (add-remote-desktop D14,
 // remote-access-host, tarea 6.2). La contraseña del PC solo viaja una vez, al definirla, de la
 // ventana al proceso principal, que deriva K y no la guarda.
@@ -42,6 +44,8 @@ export interface RemoteSettingsState {
   active: boolean
   /** Propiedad confirmada por la API; no describe salud ni certificación del servicio. */
   agentOwned?: boolean
+  /** Consulta local separada del canal del trabajador; no acredita soporte. */
+  localAgent?: LocalAgentSnapshot
   agentOwnershipPersistenceFailed?: boolean
   log: RemoteLogInfo[]
 }

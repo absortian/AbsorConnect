@@ -47,6 +47,7 @@ def main():
     parser.add_argument('--authority-fd',action='store_true')
     parser.add_argument('--dedicated-worker',action='store_true')
     parser.add_argument('--input-lease',action='store_true')
+    parser.add_argument('--ui-status',action='store_true')
     args = parser.parse_args()
     assert not args.dedicated_worker or args.authority_fd
     assert not args.input_lease or args.dedicated_worker
@@ -228,12 +229,12 @@ else:raise RuntimeError('worker_reply_timeout')
         manifest = {}
         buffer = io.BytesIO()
         with tarfile.open(fileobj=buffer,mode='w') as archive:
-            for name in ['absor-secure-broker-lab','absor-secret-provision-lab','absor-ipc-worker-lab']:
+            for name in ['absor-secure-broker-lab','absor-secret-provision-lab','absor-ipc-worker-lab']+(['absor-agent-status-lab'] if args.ui_status else []):
                 raw = vm.remote('cat /home/absorlab/AbsorConnectLab/api-workers/agent/target/release/'+name)
                 manifest[name] = hashlib.sha256(raw).hexdigest()
                 item = tarfile.TarInfo(name); item.size=len(raw); item.mode=0o600
                 archive.addfile(item,io.BytesIO(raw))
-            for unit_name in ['absorconnect-secure-lab.service','absorconnect-ipc-worker-lab.service']:
+            for unit_name in ['absorconnect-secure-lab.service','absorconnect-ipc-worker-lab.service']+(['absorconnect-ui-status-lab.socket'] if args.ui_status else []):
                 artifact=ROOT/'agent/linux-secure-lab'/unit_name
                 raw=artifact.read_bytes(); manifest[artifact.name]=hashlib.sha256(raw).hexdigest()
                 item=tarfile.TarInfo(artifact.name);item.size=len(raw);item.mode=0o600
@@ -271,7 +272,7 @@ finally:shutil.rmtree(p)
         grant = enrollment['enrollmentToken']
         input_['enrollment']['enrollmentToken'] = grant
         check('failed-local-seal-retires-native-enrollment-and-removes-partial-storage')
-        install_code = 'import sys;sys.argv=["install-vm.py","install"];\n'+installer
+        install_code = 'import sys;sys.argv=["install-vm.py",'+repr('install-ui' if args.ui_status else 'install')+'];\n'+installer
         data = json.loads(root(install_code,json.dumps(input_).encode()))
         installed = True
         broker_uid = data['brokerUid']
@@ -391,6 +392,9 @@ print(json.dumps({'denied':count==3}))
         assert worker({'op':'authenticate','message':wrong})['state'] == 'wrong_proof'
         assert worker({'op':'diagnostic_operation'})['kind'] == 'denied'
         proof = authenticate()
+        if args.ui_status:
+            ui=load('ui_status_matrix',Path(__file__).with_name('ui-status-check.py'))
+            ui.run(vm,root,worker,check,output,device,[credentials['agent'],base64.b64encode(key).decode(),owner,password])
         if args.authority_fd:
             def authority_tag(previous=None):
                 # Solo huella de la concesión efímera; no devuelve K/token/cookie.
@@ -658,7 +662,7 @@ print(json.dumps({'secretFound':any(v.encode() in raw for v in values)}))
             if installed:
                 journal=root("import subprocess;print(subprocess.run(['journalctl','-u','absorconnect-secure-lab.service','-u','absorconnect-ipc-worker-lab.service','--no-pager','-n','120'],capture_output=True,text=True,check=True).stdout)")
                 (output/'journal.txt').write_bytes(journal);(output/'journal.txt').chmod(0o600)
-                code='import sys;sys.argv=["install-vm.py","remove"];\n'+installer
+                code='import sys;sys.argv=["install-vm.py",'+repr('remove-ui' if args.ui_status else 'remove')+'];\n'+installer
                 cleanup=json.loads(root(code))
                 assert cleanup['removed'] and cleanup['accountRemoved']
                 service_removed = True
@@ -683,7 +687,7 @@ print(json.dumps({'secretFound':any(v.encode() in raw for v in values)}))
                     tunnel.terminate();tunnel.wait(timeout=8)
                 if server:
                     server.shutdown();server.server_close();thread.join(timeout=3)
-                report={'schema':1,'authorityInstalledArtifactHashes':authority_installed_hashes,'authorityArtifactHashes':authority_hashes,'authoritySourceSha256':authority_sources,'dedicatedWorkerRemoved':dedicated_removed,'lightdmRecoveredAfterRemoval':lightdm_recovered,'dedicatedWorkerTested':args.dedicated_worker,'authorityDescriptorTested':args.authority_fd,'authorityServiceRemoved':not authority_installed,'cases':results,'productionTested':False,'captureTested':False,'inputTested':False,
+                report={'schema':1,'uiStatusTested':args.ui_status,'authorityInstalledArtifactHashes':authority_installed_hashes,'authorityArtifactHashes':authority_hashes,'authoritySourceSha256':authority_sources,'dedicatedWorkerRemoved':dedicated_removed,'lightdmRecoveredAfterRemoval':lightdm_recovered,'dedicatedWorkerTested':args.dedicated_worker,'authorityDescriptorTested':args.authority_fd,'authorityServiceRemoved':not authority_installed,'cases':results,'productionTested':False,'captureTested':False,'inputTested':False,
                         'realDtlsBindingTested':False,'physicalMachinesTested':False,
                         'credentialsGeneratedUniquely':True,'accountRemoved':account_removed, 'matrixPassed':matrix_passed,
                         'serviceRemoved':service_removed,'artifactHashes':locals().get('manifest',{})}

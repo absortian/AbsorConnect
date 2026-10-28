@@ -218,6 +218,15 @@ async function runCase(name) {
       for (const event of fixedInput) input.send(JSON.stringify(event))
       await delay(150)
     }
+    let localUiLifecycleVerified = false
+    if (window.lab.uiStatus && name === 'correct') {
+      const before = [...(await pc.getStats()).values()].find((r) => r.type === 'inbound-rtp' && r.kind === 'video')?.framesDecoded ?? 0
+      await window.lab.uiCycle()
+      await delay(350)
+      const after = [...(await pc.getStats()).values()].find((r) => r.type === 'inbound-rtp' && r.kind === 'video')?.framesDecoded ?? 0
+      if (after <= before || pc.connectionState !== 'connected' || channel.readyState !== 'open') throw new Error('El ciclo de interfaz interrumpió vídeo/transporte')
+      localUiLifecycleVerified = true
+    }
     if (window.lab.apiSignaling && name === 'correct') await window.lab.busy()
     const stats = await pc.getStats()
     const transport = [...stats.values()].find((item) => item.type === 'transport' && item.selectedCandidatePairId)
@@ -267,7 +276,7 @@ async function runCase(name) {
       relayProtocol: local.relayProtocol ?? null,
       ...(window.lab.agentBridge ? { channelClosedAfterFault, cutAfterFaultMilliseconds, framesStoppedAfterFault } : {}),
       ...(syntheticVideo ? { decodedFrames, syntheticColorVerified } : {}),
-      ...(input ? { preAuthInputSent, nativeGreenVerified, lockedInputSent } : {})
+      ...(input ? { preAuthInputSent, nativeGreenVerified, lockedInputSent, localUiLifecycleVerified } : {})
     })
   } finally { video.pause(); video.srcObject = null; input?.close(); channel.close(); pc.close() }
 }

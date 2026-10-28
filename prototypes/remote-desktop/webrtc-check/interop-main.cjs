@@ -160,6 +160,18 @@ ipcMain.handle('lab-busy', async (event) => {
   if (response.status !== 204) throw new Error('No se rechazó el segundo controlador')
 })
 
+ipcMain.handle('lab-ui-cycle', async (event) => {
+  validate(event, 'correct')
+  if (event.senderFrame !== window.webContents.mainFrame || agentManifest?.correct?.uiStatus !== true) throw new Error('Consulta de interfaz no autorizada')
+  const state=cases.get('correct')
+  if (!state?.signalUrl || state.exited) throw new Error('Trabajador no disponible')
+  const response=await fetch(state.signalUrl.href+'/ui-status',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',redirect:'error',signal:AbortSignal.timeout(15000)})
+  if (response.status!==200) throw new Error('Falló el ciclo de interfaz')
+  const result=await response.json()
+  if (result.episodes!==6 || !result.sameDevice || result.legacyApiCalls || result.legacyIdentityReadsOrResets || result.legacySessionsOpened || result.nativeStopCommands || result.readyForUnattended) throw new Error('La interfaz alteró el host')
+  return result
+})
+
 ipcMain.handle('lab-result', async (event, name, controller) => {
   validate(event, name)
   const state = cases.get(name)
@@ -233,7 +245,7 @@ app.whenReady().then(async () => {
     preload: path.join(__dirname, 'interop-preload.cjs'), contextIsolation: true,
     nodeIntegration: false, sandbox: true, backgroundThrottling: false,
     autoplayPolicy: 'no-user-gesture-required',
-    additionalArguments: [...(protectedIpc ? ['--lab-protected-ipc'] : []),...(linuxVm ? ['--lab-native-fixture'] : []), ...(agentManifest?.correct?.apiSignaling ? ['--lab-api-signaling'] : []), ...(supervisor ? ['--lab-supervised'] : []), ...(agentBridge ? ['--lab-agent-bridge'] : []), ...(syntheticVideo ? ['--lab-synthetic-video'] : []), ...(relayOnly ? ['--lab-relay-only'] : []), ...(relayController ? ['--lab-relay-controller'] : [])]
+    additionalArguments: [...(agentManifest?.correct?.uiStatus ? ['--lab-ui-status'] : []),...(protectedIpc ? ['--lab-protected-ipc'] : []),...(linuxVm ? ['--lab-native-fixture'] : []), ...(agentManifest?.correct?.apiSignaling ? ['--lab-api-signaling'] : []), ...(supervisor ? ['--lab-supervised'] : []), ...(agentBridge ? ['--lab-agent-bridge'] : []), ...(syntheticVideo ? ['--lab-synthetic-video'] : []), ...(relayOnly ? ['--lab-relay-only'] : []), ...(relayController ? ['--lab-relay-controller'] : [])]
   } })
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
   if (agentBridge) {

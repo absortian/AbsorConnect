@@ -69,47 +69,109 @@ pub fn peer_credentials(socket: &UnixStream) -> Result<Credentials, IpcError> {
         gid: value.gid,
     })
 }
-pub fn activation_listener(expected: &Path) -> Result<UnixListener, IpcError> {
-    if std::env::var("LISTEN_PID")
-        .ok()
-        .and_then(|v| v.parse::<u32>().ok())
-        != Some(std::process::id())
-        || std::env::var("LISTEN_FDS").as_deref() != Ok("1")
+/// Conexión local de estado: un backlog lleno falla enseguida, nunca bloquea.
+pub fn connect_nonblocking(path: &Path) -> Result<UnixStream, IpcError> {
+    use std::os::{fd::OwnedFd, unix::ffi::OsStrExt};
+    let name = path.as_os_str().as_bytes();
+    // SAFETY: sockaddr_un solo contiene enteros y bytes; cero es representable.
+    let mut address: libc::sockaddr_un = unsafe { std::mem::zeroed() };
+    if !path.is_absolute()
+        || name.is_empty()
+        || name.len() >= address.sun_path.len()
+        || name.contains(&0)
     {
         return Err(IpcError::Identity);
     }
-    let mut accepting: libc::c_int = 0;
-    let mut size = std::mem::size_of_val(&accepting) as libc::socklen_t;
-    // SAFETY: systemd entrega fd 3; comprobar que es un listener antes de tomarlo.
-    if unsafe {
-        libc::getsockopt(
-            3,
-            libc::SOL_SOCKET,
-            libc::SO_ACCEPTCONN,
-            (&mut accepting as *mut libc::c_int).cast(),
-            &mut size,
+    address.sun_family = libc::AF_UNIX as libc::sa_family_t;
+    for (slot, byte) in address.sun_path.iter_mut().zip(name) {
+        *slot = *byte as libc::c_char;
+    }
+    // SAFETY: socket sin punteros; NONBLOCK/CLOEXEC se aplican antes de connect.
+    let fd = unsafe {
+        libc::socket(
+            libc::AF_UNIX,
+            libc::SOCK_STREAM | libc::SOCK_NONBLOCK | libc::SOCK_CLOEXEC,
+            0,
         )
-    } != 0
-        || accepting != 1
-    {
-        return Err(IpcError::Identity);
-    }
-    // SAFETY: fd 3 pertenece a esta activación y se toma exactamente una vez.
-    let listener = unsafe { UnixListener::from_raw_fd(3) };
-    if listener
-        .local_addr()
-        .map_err(|_| IpcError::Io)?
-        .as_pathname()
-        != Some(expected)
-    {
-        return Err(IpcError::Identity);
-    }
-    // SAFETY: aplicar close-on-exec al descriptor propio evita fugas a helpers.
-    if unsafe { libc::fcntl(listener.as_raw_fd(), libc::F_SETFD, libc::FD_CLOEXEC) } < 0 {
+    };
+    if fd < 0 {
         return Err(IpcError::Io);
     }
-    listener.set_nonblocking(true).map_err(|_| IpcError::Io)?;
-    Ok(listener)
+    // SAFETY: fd nuevo, propio y tomado exactamente una vez para todo camino de error.
+    let owned = unsafe { OwnedFd::from_raw_fd(fd) };
+    // SAFETY: sockaddr_un inicializado, con ruta terminada en cero y tamaño ABI exacto.
+    if unsafe {
+        libc::connect(
+            fd,
+            (&address as *const libc::sockaddr_un).cast(),
+            std::mem::size_of_val(&address) as libc::socklen_t,
+        )
+    } != 0
+    {
+        return Err(match std::io::Error::last_os_error().raw_os_error() {
+            Some(libc::EAGAIN | libc::EINPROGRESS) => IpcError::Timeout,
+            _ => IpcError::Io,
+        });
+    }
+    Ok(UnixStream::from(owned))
+}
+pub fn activation_listener(expected: &Path) -> Result<UnixListener, IpcError> {
+    activation_listeners(&[expected])?
+        .pop()
+        .ok_or(IpcError::Identity)
+}
+/// Roles cerrados de socket: toma cada fd una sola vez y ordena por dirección verificada.
+pub fn activation_listeners(expected: &[&Path]) -> Result<Vec<UnixListener>, IpcError> {
+    if !(1..=2).contains(&expected.len())
+        || std::env::var("LISTEN_PID")
+            .ok()
+            .and_then(|v| v.parse::<u32>().ok())
+            != Some(std::process::id())
+        || std::env::var("LISTEN_FDS").ok().as_deref() != Some(expected.len().to_string().as_str())
+    {
+        return Err(IpcError::Identity);
+    }
+    let mut ordered: Vec<Option<UnixListener>> = expected.iter().map(|_| None).collect();
+    for index in 0..expected.len() {
+        let fd = 3 + index as i32;
+        let mut accepting: libc::c_int = 0;
+        let mut size = std::mem::size_of_val(&accepting) as libc::socklen_t;
+        // SAFETY: fd entregado por systemd; salida entera exclusiva y con su tamaño ABI.
+        if unsafe {
+            libc::getsockopt(
+                fd,
+                libc::SOL_SOCKET,
+                libc::SO_ACCEPTCONN,
+                (&mut accepting as *mut libc::c_int).cast(),
+                &mut size,
+            )
+        } != 0
+            || accepting != 1
+            || size as usize != std::mem::size_of_val(&accepting)
+        {
+            return Err(IpcError::Identity);
+        }
+        // SAFETY: cada descriptor de activación se toma exactamente una vez.
+        let listener = unsafe { UnixListener::from_raw_fd(fd) };
+        let address = listener.local_addr().map_err(|_| IpcError::Io)?;
+        let slot = expected
+            .iter()
+            .position(|p| Some(*p) == address.as_pathname())
+            .ok_or(IpcError::Identity)?;
+        if ordered[slot].is_some() {
+            return Err(IpcError::Identity);
+        }
+        // SAFETY: solo modifica las banderas del descriptor propio.
+        if unsafe { libc::fcntl(fd, libc::F_SETFD, libc::FD_CLOEXEC) } < 0 {
+            return Err(IpcError::Io);
+        }
+        listener.set_nonblocking(true).map_err(|_| IpcError::Io)?;
+        ordered[slot] = Some(listener);
+    }
+    ordered
+        .into_iter()
+        .map(|v| v.ok_or(IpcError::Identity))
+        .collect()
 }
 
 pub struct FramedPeer {
@@ -120,9 +182,25 @@ pub struct FramedPeer {
     output: Option<(Vec<u8>, usize, Duration)>,
     previous: Duration,
     failed: bool,
+    frame_limit: usize,
+    io_timeout: Duration,
 }
 impl FramedPeer {
     pub fn new(stream: UnixStream) -> Result<Self, IpcError> {
+        Self::bounded(stream, MAX_FRAME, Duration::from_secs(2))
+    }
+    pub fn bounded(
+        stream: UnixStream,
+        frame_limit: usize,
+        io_timeout: Duration,
+    ) -> Result<Self, IpcError> {
+        if frame_limit == 0
+            || frame_limit > MAX_FRAME
+            || io_timeout.is_zero()
+            || io_timeout > Duration::from_secs(2)
+        {
+            return Err(IpcError::Protocol);
+        }
         stream.set_nonblocking(true).map_err(|_| IpcError::Io)?;
         Ok(Self {
             stream,
@@ -132,13 +210,18 @@ impl FramedPeer {
             output: None,
             previous: Duration::ZERO,
             failed: false,
+            frame_limit,
+            io_timeout,
         })
+    }
+    pub fn output_pending(&self) -> bool {
+        self.output.is_some()
     }
     pub fn credentials(&self) -> Result<Credentials, IpcError> {
         peer_credentials(&self.stream)
     }
     pub fn send(&mut self, raw: &[u8], now: Duration) -> Result<(), IpcError> {
-        if self.failed || self.output.is_some() || raw.is_empty() || raw.len() > MAX_FRAME {
+        if self.failed || self.output.is_some() || raw.is_empty() || raw.len() > self.frame_limit {
             self.failed = true;
             return Err(IpcError::Protocol);
         }
@@ -164,7 +247,7 @@ impl FramedPeer {
         }
         self.previous = now;
         if let Some((bytes, offset, start)) = self.output.as_mut() {
-            if now.saturating_sub(*start) >= Duration::from_secs(2) {
+            if now.saturating_sub(*start) >= self.io_timeout {
                 return Err(IpcError::Timeout);
             }
             match self.stream.write(&bytes[*offset..]) {
@@ -181,25 +264,26 @@ impl FramedPeer {
         }
         if self
             .started
-            .is_some_and(|start| now.saturating_sub(start) >= Duration::from_secs(2))
+            .is_some_and(|start| now.saturating_sub(start) >= self.io_timeout)
         {
             return Err(IpcError::Timeout);
         }
         for _ in 0..9 {
             let mut bytes = [0; 16_384];
-            match self.stream.read(&mut bytes) {
+            let limit = (self.frame_limit + 4).min(bytes.len());
+            match self.stream.read(&mut bytes[..limit]) {
                 Ok(0) => return Err(IpcError::Closed),
                 Ok(n) => {
                     self.started.get_or_insert(now);
                     self.read.extend_from_slice(&bytes[..n]);
-                    if self.read.len() > MAX_FRAME + 4 {
+                    if self.read.len() > self.frame_limit + 4 {
                         return Err(IpcError::Protocol);
                     }
                     if self.expected.is_none() && self.read.len() >= 4 {
                         let size = u32::from_be_bytes(
                             self.read[..4].try_into().map_err(|_| IpcError::Protocol)?,
                         ) as usize;
-                        if size == 0 || size > MAX_FRAME {
+                        if size == 0 || size > self.frame_limit {
                             return Err(IpcError::Protocol);
                         }
                         self.expected = Some(size + 4);
@@ -368,6 +452,31 @@ impl HostLock {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn status_role_cannot_use_the_worker_frame_budget_or_timeout() {
+        let (a, mut b) = UnixStream::pair().unwrap();
+        let mut p = FramedPeer::bounded(a, 512, Duration::from_millis(250)).unwrap();
+        b.write_all(&513_u32.to_be_bytes()).unwrap();
+        assert_eq!(p.poll(Duration::ZERO).unwrap_err(), IpcError::Protocol);
+        let (a, mut b) = UnixStream::pair().unwrap();
+        let mut p = FramedPeer::bounded(a, 512, Duration::from_millis(250)).unwrap();
+        b.write_all(&[0, 0]).unwrap();
+        assert!(p.poll(Duration::ZERO).unwrap().is_none());
+        assert_eq!(
+            p.poll(Duration::from_millis(250)).unwrap_err(),
+            IpcError::Timeout
+        );
+        assert_eq!(
+            p.poll(Duration::from_millis(251)).unwrap_err(),
+            IpcError::Closed
+        );
+        let (a, _b) = UnixStream::pair().unwrap();
+        let mut p = FramedPeer::bounded(a, 512, Duration::from_millis(250)).unwrap();
+        assert_eq!(
+            p.send(&[b'x'; 513], Duration::ZERO),
+            Err(IpcError::Protocol)
+        );
+    }
     #[test]
     fn kernel_credentials_are_not_fields_supplied_by_client() {
         let (a, _b) = UnixStream::pair().unwrap();

@@ -71,6 +71,11 @@ fn decode<const N: usize>(s: &str) -> Result<[u8; N], SecretError> {
     bytes.try_into().map_err(|_| SecretError)
 }
 impl SecretBundle {
+    /// Identidad pública; no entrega K, credencial ni origen de API.
+    pub fn host_id(&self) -> &str {
+        &self.plain.host_id
+    }
+
     pub fn parse(raw: &[u8]) -> Result<Self, SecretError> {
         if raw.len() > 4096 {
             return Err(SecretError);

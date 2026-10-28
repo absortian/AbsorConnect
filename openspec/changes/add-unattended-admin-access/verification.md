@@ -3063,3 +3063,34 @@ pruebas de modelo/protocolo, typecheck, 334 Vitest (seis de API omitidas), PHPUn
 162/1077 y OpenSpec estricto. Se mantiene pendiente el teclado general Xorg de D8,
 Windows 4.2/4.3/4.4, la revisión Mac y el piloto físico. **22/57 (39 %)**; todavía
 no se alcanza el 50 % solicitado ni se anuncia el acceso remoto como disponible.
+
+
+## Cliente local Main y preparación para viajes (28/10)
+
+Se acepta 7.1 con el cliente sin privilegios y su IPC de estado Linux separado,
+limitado a 512 bytes, nonce y plazo; UID/GID/perfil raíz y activación systemd del
+socket se comprueban antes de aceptar el estado. Ninguna consulta recibe autoridad
+del trabajador ni puede detenerlo. El runtime comprueba propiedad antes de
+registrar, bloquea un retorno automático por pérdida de servicio y descarta un
+arranque/respuesta tardíos tras salir. Ajustes acepta solo el frame principal y
+proyecta campos públicos, sin K/token/PID/nonce/boot-id.
+
+Pasan 21 casos IPC (incluidas tramas parciales/malformadas y UID ajeno), diez P2P
+con autenticación, captura/entrada de ventana propia y fallos/revocación, y seis
+ciclos del Main real en Node como usuario sin privilegios durante vídeo Electron.
+Mismo broker/equipo, cero API/identidad/sesiones del legado y cero órdenes nativas
+de parada. Se verifica limpieza de servicios/secretos/cuentas. No acredita ciclos
+de una app empaquetada ni los proveedores finales ACL/XPC. La consulta de salud
+no migra secretos ni certifica acceso protegido.
+
+Se acepta 9.2 con el panel local de preparación y los detalles de Equipos:
+capacidades declaradas enumeradas por separado y catálogo certificado vacío.
+Pruebas SSR en español/inglés cubren las 16 combinaciones, estado fuera de línea,
+metadatos inválidos, servicio activo/idle/revocado/sin validar y propiedad ambigua.
+Salir de la app se explica por modo sin prometer continuidad no probada.
+
+Typecheck, 357 Vitest (seis de API optativas omitidas), PHPUnit 162/1077 y OpenSpec
+estricto pasan. CI nativo del código 684084b pasa con 300/262/260 pruebas combinadas
+en Linux/Mac/Windows, fmt/clippy/default/all-features y release; registros completos
+y anotaciones revisados (solo avisos de infraestructura). Los JSON de ambos
+bloques conservan hashes y límites. Avance aceptado 24/57 (42 %); mínimo 50 % pendiente.

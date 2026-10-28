@@ -461,9 +461,34 @@ pub fn run() -> Result<i32, ()> {
     {
         return Err(());
     }
+    #[cfg(feature = "ui-status-lab")]
+    let ui_profile =
+        absor_agent_security::ui_profile::UiProfile::load_optional().map_err(|_| ())?;
+    #[cfg(feature = "ui-status-lab")]
+    let (listener, ui_listener) = if let Some(profile) = ui_profile {
+        if profile.broker_uid != uid {
+            return Err(());
+        }
+        profile.validate_socket().map_err(|_| ())?;
+        let mut listeners = linux::activation_listeners(&[
+            Path::new(SOCKET),
+            Path::new(absor_agent_security::ui_profile::SOCKET),
+        ])
+        .map_err(|_| ())?;
+        let ui = listeners.pop().ok_or(())?;
+        (listeners.pop().ok_or(())?, Some(ui))
+    } else {
+        (
+            linux::activation_listener(Path::new(SOCKET)).map_err(|_| ())?,
+            None,
+        )
+    };
+    #[cfg(not(feature = "ui-status-lab"))]
     let listener = linux::activation_listener(Path::new(SOCKET)).map_err(|_| ())?;
     let key = WrappingKey::from_bytes(&credentials("wrapping.key", 32)?).map_err(|_| ())?;
     let bundle = secrets::open(&credentials("host.sealed.json", 8192)?, &key).map_err(|_| ())?;
+    #[cfg(feature = "ui-status-lab")]
+    let public_device_id = bundle.host_id().to_owned();
     let (api, verifier) = bundle
         .into_lab_authority(
             ProtectedAttemptStore::open(directory).map_err(|_| ())?,
@@ -481,6 +506,21 @@ pub fn run() -> Result<i32, ()> {
         return Err(());
     }
     let grant_instance = new_grant_instance()?;
+    #[cfg(feature = "ui-status-lab")]
+    let mut ui_server = match (ui_listener, ui_profile) {
+        (Some(listener), Some(profile)) => Some(
+            absor_agent_security::ui_server::StatusServer::new(
+                listener,
+                profile,
+                public_device_id,
+                new_grant_instance()?,
+                boot_id.clone(),
+            )
+            .map_err(|_| ())?,
+        ),
+        (None, None) => None,
+        _ => return Err(()),
+    };
     let mut authority = Authority {
         agent: RenewingAgent::new(BootClock, api),
         verifier,
@@ -638,6 +678,21 @@ pub fn run() -> Result<i32, ()> {
             }
             Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => (),
             Err(_) => return Err(()),
+        }
+        #[cfg(feature = "ui-status-lab")]
+        if let Some(ui) = ui_server.as_mut() {
+            use absor_agent_security::status_wire::BrokerState;
+            let status = if authority.terminal.is_some() {
+                BrokerState::Revoked
+            } else if authority.agent.check_authorization().is_err() {
+                BrokerState::ValidationRequired
+            } else if authority.handle.is_some() && authority.flag.load(Ordering::SeqCst) == 0 {
+                BrokerState::Active
+            } else {
+                BrokerState::Idle
+            };
+            ui.poll(BootClock.now().map_err(|_| ())?, status)
+                .map_err(|_| ())?;
         }
         authority.publish_grant(BootClock.now().map_err(|_| ())?)?;
         thread::sleep(Duration::from_millis(20));

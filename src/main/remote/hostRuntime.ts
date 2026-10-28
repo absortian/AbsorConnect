@@ -19,11 +19,14 @@ import { createSupportMonitor, detectSupport } from './platformSupport'
 import { RemoteSupport, SupportMonitor } from './support'
 import { RemoteAccessStore } from './remoteAccessStore'
 import { createSafeBox } from './safeBox'
+import { AgentStatusClient, installedAgentSource } from './agentStatusClient'
+import { absentLocalAgent, type LocalAgentSnapshot } from '../../shared/remote/localAgent'
 
 let service: HostService | null = null
 let store: RemoteAccessStore | null = null
 let identity: DeviceIdentity | null = null
 let monitor: SupportMonitor | null = null
+let nativeClient: AgentStatusClient | null = null
 let keepAwakeId: number | null = null
 
 function setKeepAwake(on: boolean): void {
@@ -37,6 +40,7 @@ function setKeepAwake(on: boolean): void {
 }
 
 let starting: Promise<void> | null = null
+let stopRequested = false
 
 /**
  * Arranca el servicio. Carga antes la sesión de la cuenta: con la app arrancada oculta al iniciar
@@ -60,8 +64,12 @@ async function start(): Promise<void> {
   const platform = devicePlatform(process.platform)
   if (service || !platform) return
   await loadSession()
+  if (stopRequested) return
+  nativeClient = new AgentStatusClient(installedAgentSource())
+  const native = await nativeClient.read()
+  if (stopRequested || nativeClient.isClosed) return
   // Fuente de sonido que quedó de una sesión anterior si la app se cerró de golpe (D8)
-  if (process.platform === 'linux') void linuxAudio.cleanup()
+  if (process.platform === 'linux' && native.ownership === 'legacy') void linuxAudio.cleanup()
 
   const userData = app.getPath('userData')
   const box = createSafeBox()
@@ -78,7 +86,7 @@ async function start(): Promise<void> {
   monitor = supportMonitor
   // La configuración pertenece a la cuenta que la creó: con otra cuenta se borra (D14)
   const session = currentSession()
-  if (session) await hostStore.bindToAccount(session.email)
+  if (session && native.ownership === 'legacy') await hostStore.bindToAccount(session.email)
 
   service = new HostService({
     api,
@@ -95,6 +103,7 @@ async function start(): Promise<void> {
         language: getLanguage
       }),
     onAgentOwned: () => hostStore.setEnabled(false),
+    nativeAgent: () => nativeClient?.read() ?? Promise.resolve(absentLocalAgent()),
     setKeepAwake,
     setStatus: (status, controller) => {
       setRemoteStatus(status, controller)
@@ -106,11 +115,18 @@ async function start(): Promise<void> {
       )
     }
   })
+  if (native.ownership !== 'legacy') await service.reserveForLocalAgent()
+  if (stopRequested || nativeClient.isClosed) return
   service.start()
+  nativeClient.watch((state) => {
+    if (state.ownership !== 'legacy') void service?.reserveForLocalAgent()
+  })
 }
 
 /** Para el servicio y corta la sesión en curso (salir de la app; cerrar sesión, tarea 4.10). */
 export async function stopRemoteHost(reason: HostCloseReason = 'stopped'): Promise<void> {
+  stopRequested = true
+  nativeClient?.close()
   const current = service
   service = null
   await current?.stop(reason)
@@ -131,7 +147,7 @@ export async function signOutRemoteHost(exit: AccountExit, token: string | null)
   if (!current) return
   // Lo primero, antes de esperar a nada: así la sesión se corta en el momento
   const device = await current.suspend()
-  if (exit === 'signed_out' && token) {
+  if (exit === 'signed_out' && token && device) {
     await new DeviceApi(() => token).remove(device).catch(() => undefined)
   }
   if (exit === 'expired' && (await store?.isEnabled()) && !getMainWindow()?.isVisible()) {
@@ -145,6 +161,7 @@ export function remoteHost(): {
   store: RemoteAccessStore | null
   ownDeviceId: () => Promise<string | null>
   /** Estado del sistema para Ajustes, que ya lo muestra: sin notificación. */
+  agentState: () => Promise<LocalAgentSnapshot>
   support: () => RemoteSupport
   /** Tras iniciar sesión: si la configuración era de otra cuenta, se borra y se desactiva. */
   bindToAccount: (email: string) => Promise<void>
@@ -152,10 +169,15 @@ export function remoteHost(): {
   return {
     service,
     store,
-    ownDeviceId: async () => (identity ? (await identity.get()).id : null),
+    ownDeviceId: async () => {
+      const state = await nativeClient?.read()
+      if (state && state.ownership !== 'legacy') return state.deviceId
+      return identity ? (await identity.get()).id : null
+    },
+    agentState: () => nativeClient?.read() ?? Promise.resolve(absentLocalAgent()),
     support: () => monitor?.check({ quiet: true }) ?? detectSupport(),
     bindToAccount: async (email) => {
-      if (!store) return
+      if (!store || service?.isAgentManaged()) return
       const before = await store.getAccountEmail()
       await store.bindToAccount(email)
       if (before !== null && before !== email) await service?.settingsChanged()

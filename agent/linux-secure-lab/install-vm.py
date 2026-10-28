@@ -20,6 +20,11 @@ UNITS = ['absorconnect-secure-lab.socket', 'absorconnect-secure-lab.service',
          'absorconnect-ipc-worker-lab.service']
 BINS = ['absor-secure-broker-lab', 'absor-secret-provision-lab', 'absor-ipc-worker-lab']
 MARK = b'absorconnect-owned-security-install-v1\n'
+UI = False
+UI_UNIT = 'absorconnect-ui-status-lab.socket'
+UI_DROP = Path('/etc/systemd/system/absorconnect-secure-lab.service.d')
+UI_DROP_BYTES = b'[Unit]\nRequires=absorconnect-ui-status-lab.socket\nAfter=absorconnect-ui-status-lab.socket\n'
+
 
 
 def call(*args):
@@ -36,10 +41,16 @@ def write(path, data, mode):
 
 def cleanup():
     assert (OPT/'owned-installation').read_bytes() == MARK, 'installation_not_owned'
-    for unit in [UNITS[2], UNITS[1], UNITS[0]]:
+    for unit in [UNITS[2], UNITS[1], *[u for u in UNITS if u.endswith('.socket')]]:
         call('systemctl', 'stop', unit)
     for unit in UNITS:
         (Path('/etc/systemd/system')/unit).unlink()
+    if UI:
+        drop=UI_DROP/'20-ui-status-lab.conf'
+        assert drop.read_bytes()==UI_DROP_BYTES and set(p.name for p in UI_DROP.iterdir())=={'20-ui-status-lab.conf'}
+        drop.unlink();UI_DROP.rmdir()
+        runtime=Path('/run/absorconnect-ui-lab')
+        if runtime.exists():runtime.rmdir()
     call('systemctl', 'daemon-reload')
     subprocess.run(['systemctl', 'reset-failed', *UNITS], capture_output=True)
     call('userdel', ACCOUNT)
@@ -52,11 +63,17 @@ def cleanup():
 
 
 def install():
+    if UI:
+        assert not UI_DROP.exists() and not UI_DROP.is_symlink(), 'existing_ui_dropin'
+        assert not Path('/run/absorconnect-ui-lab').exists() and not Path('/run/absorconnect-ui-lab').is_symlink(), 'existing_ui_runtime'
     if 'absor-protected-channel-lab' in BINS:
         assert not Path('/var/lib/absorconnect-protected-worker-lab').exists(), 'existing_worker_state'
     assert not any(p.exists() for p in [OPT, CONFIG, STATE]), 'existing_destination'
     for unit in UNITS:
-        assert not (Path('/etc/systemd/system')/unit).exists(), 'existing_unit'
+        target=Path('/etc/systemd/system')/unit
+        assert not target.exists() and not target.is_symlink(), 'existing_unit'
+        state=call('systemctl','show',unit,'-p','LoadState','--value').strip()
+        assert state==b'not-found', 'existing_loaded_unit'
     try:
         pwd.getpwnam(ACCOUNT)
         raise AssertionError('existing_service_account')
@@ -85,6 +102,11 @@ def install():
              '/nonexistent', '--shell', '/usr/sbin/nologin', ACCOUNT)
         account = pwd.getpwnam(ACCOUNT)
         assert account.pw_uid not in (0, 1000)
+        if UI:
+            owner=pwd.getpwnam('absorlab');assert owner.pw_uid==1000 and owner.pw_gid==1000
+            write(OPT/'ui-profile.json',json.dumps({'v':1,'brokerUid':account.pw_uid,'ownerUid':1000,'ownerGid':1000}).encode(),0o444)
+            UI_DROP.mkdir(mode=0o755)
+            write(UI_DROP/'20-ui-status-lab.conf',UI_DROP_BYTES,0o644)
         for name in BINS:
             write(OPT/name, artifacts[name], 0o755)
         if 'absor-protected-channel-lab' in BINS:
@@ -108,9 +130,15 @@ def install():
                           'plaintextBundleWritten': False, 'lightdmModified': False}))
     except BaseException:
         # La retirada completa exige unidades instaladas. Antes se retiran solo recursos propios.
-        for unit in [UNITS[2], UNITS[1], UNITS[0]]:
+        for unit in [UNITS[2], UNITS[1], *[u for u in UNITS if u.endswith('.socket')]]:
             subprocess.run(['systemctl', 'stop', unit], capture_output=True)
             (Path('/etc/systemd/system')/unit).unlink(missing_ok=True)
+        if UI:
+            if (UI_DROP/'20-ui-status-lab.conf').exists():
+                assert (UI_DROP/'20-ui-status-lab.conf').read_bytes()==UI_DROP_BYTES
+                (UI_DROP/'20-ui-status-lab.conf').unlink();UI_DROP.rmdir()
+            runtime=Path('/run/absorconnect-ui-lab')
+            if runtime.exists():runtime.rmdir()
         subprocess.run(['systemctl', 'daemon-reload'], capture_output=True)
         subprocess.run(['userdel', ACCOUNT], capture_output=True)
         for directory in [CONFIG, STATE, Path('/run')/NAME, Path('/run/absorconnect-ipc-worker-lab'), Path('/var/lib/absorconnect-protected-worker-lab'), OPT]:
@@ -120,12 +148,16 @@ def install():
 
 
 def main():
-    global UNITS, BINS
-    assert os.getuid() == 0 and len(sys.argv) == 2 and sys.argv[1] in ('install', 'remove', 'install-native', 'remove-native')
-    native=sys.argv[1].endswith('-native')
+    global UNITS, BINS, UI
+    assert os.getuid() == 0 and len(sys.argv) == 2 and sys.argv[1] in ('install', 'remove', 'install-native', 'remove-native','install-ui','remove-ui','install-native-ui','remove-native-ui')
+    native='native' in sys.argv[1].split('-')
+    UI='ui' in sys.argv[1].split('-')
     if native:
         UNITS=[UNITS[0],UNITS[1],'absorconnect-protected-worker-lab.service']
         BINS=['absor-secure-broker-lab','absor-secret-provision-lab','absor-protected-channel-lab','libabsor_agent_webrtc_lab.so']
+    if UI:
+        UNITS.append(UI_UNIT)
+        BINS.append('absor-agent-status-lab')
     marker=Path('/run/absorconnect-owned-vm-lab');meta=marker.lstat()
     assert stat.S_ISREG(meta.st_mode) and meta.st_uid==0 and stat.S_IMODE(meta.st_mode)==0o444
     assert marker.read_bytes() == b'absorconnect-native-window-fixture-v1\n'

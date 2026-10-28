@@ -9,6 +9,7 @@ publish.workspace = true
 # Solo VM propia: K pública, ventana propia y API loopback. No distribuir.
 linux-broker-lab = ["absor-agent-api/lab-http"]
 protected-ipc-lab = ["absor-agent-security/protected-ipc-lab"]
+ui-status-lab = ["protected-ipc-lab", "absor-agent-security/ui-status-lab"]
 
 [dependencies]
 absor-agent-linux-session = { path = "../agent-linux-session" }
