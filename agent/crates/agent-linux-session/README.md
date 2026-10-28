@@ -122,10 +122,12 @@ Lee solo la ruta cerrada de autoridad de LightDM correspondiente al display
 local y entrega una única cookie, sin copiarla a argumentos, entorno o archivos.
 El lector binario rechaza truncamiento, ambigüedad y otros protocolos/displays.
 
-La sonda del trabajador recibe y cierra el descriptor sin abrir X11. Esto une
-HMAC → concesión → fd; **todavía no** une el descriptor a libwebrtc o al trabajador
-general. La cuenta de la sonda sigue siendo la de escritorio del laboratorio,
-con unidad sin red IP/home: falta el perfil dedicado del trabajador P2P.
+La opción `--secure-ipc-authority` recibe y cierra el descriptor sin abrir X11.
+Con `--secure-ipc-dedicated` se crea una cuenta de sistema sin login distinta
+del usuario gráfico y del broker. Una sonda fija cuenta imágenes de una región
+128×72 desde el fd concedido tras HMAC, sin guardar imágenes ni enviar entrada.
+Esto une HMAC → concesión → fd → X11 desde una identidad dedicada; falta unirlo
+al trabajador P2P y al escritorio/entrada generales.
 No garantiza borrar criptográficamente todas las copias temporales de memoria.
 No añade acciones, capacidades certificadas o disponibilidad de producción.
 
@@ -137,8 +139,33 @@ python3 -B prototypes/backend-agent-check/isolated-webrtc-renewal.py \
 
 El complemento root vive solo en `/opt/absorconnect-seat-authority-lab`, sus dos
 unidades, un drop-in propio del broker y `/run/absorconnect-seat-authority-lab`.
-No crea usuarios nuevos. Exige grupos separados; no cambia LightDM/PAM/polkit.
+Crea la cuenta de sistema propia solo con el modo dedicado y la elimina al
+terminar. Exige grupos separados; no cambia LightDM/PAM/polkit.
 Su retirada verifica marcador/hashes, para las unidades y borra solo archivos
 propios, incluido el drop-in; conserva otros drop-ins. El lanzador lo retira
 antes del laboratorio base y elimina cuenta API/BD/túnel temporales incluso si
 una comprobación falla. El informe distingue entrega de descriptor de captura.
+
+
+### Perfil dedicado y compatibilidad
+
+El instalador root escribe `worker-profile.json` 0444 en el directorio protegido
+del laboratorio base, con esquema cerrado y UID/GID numéricos no nulos. No son
+campos IPC ni pueden proceder del renderer. Broker y trabajador comprueban el
+perfil, el UID/GID real y el PID de unidad. Si existe pero es inválido no se usa
+un valor alternativo. Ausencia conserva únicamente el laboratorio anterior con
+UID/GID 1000: una instalación dedicada con perfil ausente no supera la validación
+del socket, cuyo grupo sigue siendo el dedicado.
+
+El modo dedicado añade drop-ins propios de usuario/grupo/socket, red privada y
+montaje de lectura del directorio de sockets X11 en el tmp privado. El acceso
+sigue exigiendo la cookie por fd; no se habilita acceso X global. Su buzón local
+pertenece a esa cuenta: el operador de laboratorio escribe mediante `runuser`,
+no abre permisos a la sesión gráfica. La sonda hija solo recibe stdin sellado,
+entorno vacío y rutas fijas root; el informe admite booleanos/contadores con
+esquema cerrado y revalida la autenticación al terminar. No expone píxeles.
+
+El broker consume el fin del cliente anterior antes de aceptar el siguiente.
+Rechaza conexiones adicionales mientras mantiene una activa, sin dejarlas en
+espera en el backlog. La matriz comprueba el rechazo a otro PID del UID dedicado
+y conserva dos conexiones P2P sucesivas con el mismo broker en modo anterior.

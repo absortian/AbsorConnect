@@ -45,7 +45,9 @@ def main():
     parser.add_argument('vm', type=Path)
     parser.add_argument('--api-base', required=True)
     parser.add_argument('--authority-fd',action='store_true')
+    parser.add_argument('--dedicated-worker',action='store_true')
     args = parser.parse_args()
+    assert not args.dedicated_worker or args.authority_fd
     uri = urlsplit(args.api_base)
     assert uri.scheme == 'http' and uri.hostname == '127.0.0.1' and uri.port and 1024 <= uri.port <= 65535 and uri.path in ('', '/') and not (uri.username or uri.password or uri.query or uri.fragment)
     vm_directory = args.vm.resolve()
@@ -62,12 +64,17 @@ def main():
     output.mkdir(mode=0o700)
     results = []
     authority_hashes={}
+    authority_installed_hashes={}
     authority_sources={}
     if args.authority_fd:
         for path_ in [*(ROOT/'agent/crates/agent-linux-session').rglob('*.rs'),*(ROOT/'agent/crates/agent-security').rglob('*.rs'),ROOT/'agent/crates/agent-broker/src/secure_linux.rs',ROOT/'agent/linux-secure-lab/authority-install-vm.py',ROOT/'prototypes/backend-agent-check/secure-ipc-check.py']:
             authority_sources[str(path_.relative_to(ROOT))]=hashlib.sha256(path_.read_bytes()).hexdigest()
     installed = False
     authority_installed = False
+    dedicated_active=False
+    worker_uid=worker_gid=1000
+    dedicated_removed=False
+    lightdm_recovered=False
     marker_created = False
     account_removed = service_removed = matrix_passed = False
     tunnel = server = thread = None
@@ -110,7 +117,8 @@ while time.monotonic()<deadline:
  time.sleep(.03)
 else:raise RuntimeError('worker_reply_timeout')
 '''.replace('TIMEOUT', repr(timeout)).replace('CONTROL', repr(control))
-        value = json.loads(vm.remote('/usr/bin/python3 -I -c '+shlex.quote(code)))
+        prefix='sudo -n runuser -u absorconnect-worker-lab -- ' if dedicated_active else ''
+        value = json.loads(vm.remote(prefix+'/usr/bin/python3 -I -c '+shlex.quote(code)))
         return value.get('result', value)
 
     def ready(timeout=12):
@@ -306,7 +314,7 @@ try:
  s.sendall(struct.pack('!I',len(raw))+raw)
  try:denied=not s.recv(4096)
  except (ConnectionResetError,BrokenPipeError):denied=True
-except PermissionError:denied=True
+except (PermissionError,ConnectionResetError,BrokenPipeError):denied=True
 print(json.dumps({'denied':denied}))
 '''
         for uid in (1000,65534):
@@ -322,13 +330,22 @@ print(json.dumps({'denied':denied}))
             for name in ['absor-seat-authority-lab','absorconnect-seat-authority-lab.socket','absorconnect-seat-authority-lab.service']:
                 payload[name]=vm.remote('cat /home/absorlab/AbsorConnectLab/api-workers/agent/target/release/'+name) if name=='absor-seat-authority-lab' else (ROOT/'agent/linux-secure-lab'/name).read_bytes()
             authority_hashes={name:hashlib.sha256(raw).hexdigest() for name,raw in payload.items()}
+            if args.dedicated_worker:
+                payload['capture-worker.py']=(ROOT/'agent/linux-secure-lab/capture-worker.py').read_bytes()
+                payload['linux-probe.py']=(ROOT/'prototypes/remote-desktop/unattended-check/linux-probe.py').read_bytes()
+                authority_hashes={name:hashlib.sha256(raw).hexdigest() for name,raw in payload.items()}
             stage='/home/absorlab/AbsorConnectLab/authority-native-staging'
             vm.remote('mkdir -m 700 '+stage)
             for name,raw in payload.items():vm.remote('cat > '+stage+'/'+name,raw)
             root("from pathlib import Path;assert not Path('/opt/absorconnect-seat-authority-lab').exists() and not Path('/run/absorconnect-seat-authority-lab').exists()")
             authority_installed=True
-            value=json.loads(root('import sys;sys.argv=["authority-install-vm.py","install"];\n'+authority_installer,json.dumps({'hashes':{name:hashlib.sha256(raw).hexdigest() for name,raw in payload.items()}}).encode()))
+            value=json.loads(root('import sys;sys.argv=["authority-install-vm.py","install"];\n'+authority_installer,json.dumps({'hashes':{name:hashlib.sha256(raw).hexdigest() for name,raw in payload.items()},'dedicated':args.dedicated_worker}).encode()))
             assert value['authorityInstalled']
+            authority_installed_hashes=value['installedArtifactHashes']
+            dedicated_active=args.dedicated_worker
+            worker_uid=value['workerUid'];worker_gid=value['workerGid']
+            if dedicated_active:
+                assert worker_uid not in (0,1000,broker_uid) and worker_gid not in (0,1000)
             ready()
             assert worker(action='authority_probe')['authorityReceived'] is False
             check('authority-fd-denied-before-hmac')
@@ -351,8 +368,18 @@ for path,mode in [('/run/absorconnect-seat-authority-lab/grant.json',os.O_RDONLY
  except PermissionError:count+=1
 print(json.dumps({'denied':count==3}))
 """
-            assert json.loads(vm.remote('sudo -n setpriv --no-new-privs --reuid=1000 --regid=1000 --clear-groups /usr/bin/python3 -I -c '+shlex.quote(file_denial)))['denied']
+            assert json.loads(vm.remote('sudo -n setpriv --no-new-privs --reuid='+str(worker_uid)+' --regid='+str(worker_gid)+' --clear-groups /usr/bin/python3 -I -c '+shlex.quote(file_denial)))['denied']
             check('authority-grant-and-executable-inaccessible-to-worker-writes')
+            if dedicated_active:assert worker(action='authority_capture')['captureTested'] is False
+            if dedicated_active:
+                denied_after=json.loads(vm.remote('sudo -n setpriv --no-new-privs --reuid='+str(worker_uid)+' --regid='+str(worker_gid)+' --clear-groups /usr/bin/python3 -I -c '+shlex.quote(probe)))
+                assert denied_after['denied']
+                fixed_profile_denial="import os\ntry: fd=os.open('/opt/absorconnect-secure-lab/worker-profile.json',os.O_WRONLY);os.close(fd)\nexcept PermissionError: raise SystemExit(0)\nraise SystemExit(9)"
+                r=subprocess.run(vm.SSH+['sudo -n setpriv --no-new-privs --reuid='+str(worker_uid)+' --regid='+str(worker_gid)+' --clear-groups /usr/bin/python3 -I -c '+shlex.quote(fixed_profile_denial)],capture_output=True,timeout=10)
+                assert r.returncode==0
+                check('dedicated-identity-cannot-substitute-profile-or-impersonate-worker-pid')
+
+
 
 
 
@@ -366,6 +393,11 @@ print(json.dumps({'denied':count==3}))
             granted=worker(action='authority_probe')
             assert granted['authorityReceived'] and not granted['cookieBytesReported']
             check('root-sealed-fd-delivered-only-to-authenticated-worker')
+            if dedicated_active:
+                captured=worker(action='authority_capture')
+                assert captured['captureTested'] and captured['frames']>=2 and captured['dedicatedIdentity'] and captured['noCapabilities'] and captured['privateNetwork'] and captured['rootFilesDenied'] and not captured['inputTested'] and not captured['imagesStored']
+                check('dedicated-worker-counts-x11-only-after-authenticated-fd',frames=captured['frames'],nonUniformFrames=captured['nonUniformFrames'])
+
             # El proceso no registrado no puede reutilizar el UID del trabajador.
             probe_authority = """import json,socket
 s=socket.socket(socket.AF_UNIX);s.settimeout(2)
@@ -373,10 +405,10 @@ try:
  s.connect('/run/absorconnect-seat-authority-lab/authority.sock');s.sendall(b'G')
  try:denied=not s.recv(16)
  except (ConnectionResetError,BrokenPipeError):denied=True
-except PermissionError:denied=True
+except (PermissionError,ConnectionResetError,BrokenPipeError):denied=True
 print(json.dumps({'denied':denied}))
 """
-            for foreign_uid in (1000,65534):
+            for foreign_uid in sorted({1000,worker_uid,65534}):
                 denied=json.loads(vm.remote('sudo -n setpriv --no-new-privs --reuid='+str(foreign_uid)+' --regid='+str(foreign_uid)+' --clear-groups /usr/bin/python3 -I -c '+shlex.quote(probe_authority)))
                 assert denied['denied']
             check('authority-fd-denies-foreign-uid-and-same-uid-other-pid')
@@ -384,7 +416,7 @@ print(json.dumps({'denied':denied}))
             vm.remote('sudo -n systemctl kill --signal=STOP --kill-whom=main '+SERVICE)
             try:
                 time.sleep(.9)
-                delayed=json.loads(vm.remote("cat /run/absorconnect-ipc-worker-lab/reply.json"))
+                delayed=json.loads(vm.remote("sudo -n cat /run/absorconnect-ipc-worker-lab/reply.json"))
                 assert delayed['authorityReceived'] is False
             finally:vm.remote('sudo -n systemctl kill --signal=CONT --kill-whom=main '+SERVICE)
             check('authority-fd-expires-during-broker-stall-before-api-deadline')
@@ -520,6 +552,39 @@ print(json.dumps({'denied':denied}))
             assert challenge()[0]['state'] == 'locked'
             assert root("from pathlib import Path;print(Path('"+STATE+"/attempts.json').read_text())") == before
         check('missing-corrupt-attempt-store-and-wrong-wrapping-key-never-reset-state')
+        if dedicated_active:
+            profile_path='/opt/absorconnect-secure-lab/worker-profile.json'
+            original_attempts=root("from pathlib import Path;print(Path('"+STATE+"/attempts.json').read_text())")
+            for profile_fault in ['missing','corrupt','symlink','permissive','wrong-identity']:
+                units('stop',WORKER,SERVICE,SOCKET_UNIT)
+                mutate="""import json,os
+from pathlib import Path
+p=Path('/opt/absorconnect-secure-lab/worker-profile.json');backup=p.with_suffix('.profile-backup');assert not backup.exists();raw=p.read_bytes();p.rename(backup)
+fault=FAULT
+if fault=='corrupt':p.write_bytes(b'{');p.chmod(0o444)
+elif fault=='symlink':p.symlink_to(backup)
+elif fault=='permissive':p.write_bytes(raw);p.chmod(0o666)
+elif fault=='wrong-identity':p.write_text(json.dumps({'v':1,'uid':1000,'gid':1000}));p.chmod(0o444)
+""".replace('FAULT',repr(profile_fault))
+                root(mutate)
+                try:
+                    units('start',SOCKET_UNIT)
+                    failed=subprocess.run(vm.SSH+['sudo -n systemctl start '+SERVICE],capture_output=True,timeout=15)
+                    assert failed.returncode!=0 and int(vm.remote('systemctl show '+SERVICE+' -p ExecMainStatus --value'))==78
+                    assert root("from pathlib import Path;print(Path('"+STATE+"/attempts.json').read_text())")==original_attempts
+                finally:
+                    units('stop',SERVICE,SOCKET_UNIT)
+                    root("from pathlib import Path;p=Path('/opt/absorconnect-secure-lab/worker-profile.json');p.unlink(missing_ok=True);p.with_suffix('.profile-backup').rename(p)")
+                    reset=subprocess.run(vm.SSH+['sudo -n env LC_ALL=C systemctl reset-failed '+SERVICE+' '+WORKER],capture_output=True,timeout=10)
+                    if reset.returncode:
+                        # systemd puede descargar una unidad ya parada; no tiene estado que restablecer.
+                        lines=reset.stderr.decode(errors='replace').splitlines()
+                        assert lines and all('not loaded' in line and any(unit in line for unit in [SERVICE,WORKER]) for line in lines)
+                    units('start',SOCKET_UNIT,SERVICE,WORKER)
+                    ready()
+                assert challenge()[0]['state']=='locked'
+            check('absent-corrupt-linked-permissive-and-mismatched-profile-fail-closed')
+
 
         # Ni siquiera el informe privado o entorno del trabajador contienen los secretos.
         scan = '''import json,sys
@@ -556,6 +621,9 @@ print(json.dumps({'secretFound':any(v.encode() in raw for v in values)}))
                     (output/'authority-journal.txt').write_bytes(authority_journal);(output/'authority-journal.txt').chmod(0o600)
                     removed=json.loads(root('import sys;sys.argv=["authority-install-vm.py","remove"];\n'+authority_installer))
                     assert removed['authorityServiceRemoved'] and removed['grantFileRemoved']
+                    if args.dedicated_worker:
+                        assert removed['dedicatedWorkerRemoved']
+                        dedicated_removed=True
                     authority_installed=False
                     vm.remote('rm -rf /home/absorlab/AbsorConnectLab/authority-native-staging')
                 except Exception as error:authority_cleanup_error=error
@@ -569,6 +637,12 @@ print(json.dumps({'secretFound':any(v.encode() in raw for v in values)}))
                 check('reversible-removal-of-service-account-socket-state-and-secrets',lightdmModified=False)
             vm.remote('rm -rf /home/absorlab/AbsorConnectLab/secure-ipc-staging')
             if authority_cleanup_error:raise authority_cleanup_error
+            if args.dedicated_worker and service_removed and not authority_installed:
+                vm.logout();assert vm.context()['Class']=='greeter';vm.login()
+                assert vm.context()['Class']=='user' and vm.context()['Type']=='x11'
+                assert vm.remote('systemctl is-active lightdm.service').strip()==b'active'
+                lightdm_recovered=True
+                check('lightdm-login-recovers-after-dedicated-service-and-account-removal')
             if marker_created:
                 root("from pathlib import Path;p=Path('/run/absorconnect-owned-vm-lab');assert p.read_bytes()==b'absorconnect-native-window-fixture-v1\\n';p.unlink()")
         finally:
@@ -581,7 +655,7 @@ print(json.dumps({'secretFound':any(v.encode() in raw for v in values)}))
                     tunnel.terminate();tunnel.wait(timeout=8)
                 if server:
                     server.shutdown();server.server_close();thread.join(timeout=3)
-                report={'schema':1,'authorityArtifactHashes':authority_hashes,'authoritySourceSha256':authority_sources,'authorityDescriptorTested':args.authority_fd,'authorityServiceRemoved':not authority_installed,'cases':results,'productionTested':False,'captureTested':False,'inputTested':False,
+                report={'schema':1,'authorityInstalledArtifactHashes':authority_installed_hashes,'authorityArtifactHashes':authority_hashes,'authoritySourceSha256':authority_sources,'dedicatedWorkerRemoved':dedicated_removed,'lightdmRecoveredAfterRemoval':lightdm_recovered,'dedicatedWorkerTested':args.dedicated_worker,'authorityDescriptorTested':args.authority_fd,'authorityServiceRemoved':not authority_installed,'cases':results,'productionTested':False,'captureTested':False,'inputTested':False,
                         'realDtlsBindingTested':False,'physicalMachinesTested':False,
                         'credentialsGeneratedUniquely':True,'accountRemoved':account_removed, 'matrixPassed':matrix_passed,
                         'serviceRemoved':service_removed,'artifactHashes':locals().get('manifest',{})}

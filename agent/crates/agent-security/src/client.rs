@@ -79,7 +79,8 @@ pub struct WorkerClient {
 }
 impl WorkerClient {
     pub fn connect() -> Result<Self, ClientError> {
-        if linux::uid() != 1000 {
+        let profile = crate::profile::WorkerProfile::load().map_err(|_| ClientError)?;
+        if linux::uid() != profile.uid() || linux::gid() != profile.gid() {
             return Err(ClientError);
         }
         linux::disable_dumping().map_err(|_| ClientError)?;
@@ -91,8 +92,8 @@ impl WorkerClient {
         let path = parent.join("control.sock");
         let m = fs::symlink_metadata(&path).map_err(|_| ClientError)?;
         if !m.file_type().is_socket()
-            || [0, 1000].contains(&m.uid())
-            || m.gid() != 1000
+            || [0, profile.uid()].contains(&m.uid())
+            || m.gid() != profile.gid()
             || m.mode() & 0o7777 != 0o660
         {
             return Err(ClientError);
