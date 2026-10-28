@@ -11,6 +11,7 @@ linux-broker-lab = ["absor-agent-api/lab-http"]
 protected-ipc-lab = ["absor-agent-security/protected-ipc-lab"]
 
 [dependencies]
+absor-agent-linux-session = { path = "../agent-linux-session" }
 absor-agent-security = { path = "../agent-security" }
 absor-agent-auth = { path = "../agent-auth" }
 absor-agent-api = { path = "../agent-api" }

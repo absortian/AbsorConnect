@@ -321,6 +321,42 @@ print(json.dumps({'denied':denied}))
         assert worker({'op':'diagnostic_operation'})['kind'] == 'denied'
         check('unique-key-proof-required-and-proof-replay-closes-diagnostic-session')
 
+        # Misma unidad y broker, sin Xlib: comprobar el corte por el asiento real.
+        seat_proof = authenticate()
+        seat_pid = int(vm.remote('systemctl show '+SERVICE+' -p MainPID --value'))
+        vm.logout()
+        deadline = time.monotonic()+4
+        while worker({'op':'status'})['state'] != 'stopped':
+            assert time.monotonic()<deadline, 'seat_change_did_not_close_authority'
+            time.sleep(.05)
+        assert worker({'op':'diagnostic_operation'})['kind']=='denied'
+        assert challenge()[1] is None
+        check('logind-greeter-drops-active-authority-and-denies-challenges')
+        vm.login()
+        worker({'op':'disconnect'})
+        ready()
+        assert worker({'op':'authenticate','message':seat_proof})['kind']=='denied'
+        fresh_proof = authenticate()
+        assert fresh_proof != seat_proof
+        assert int(vm.remote('systemctl show '+SERVICE+' -p MainPID --value')) == seat_pid
+        assert worker({'op':'diagnostic_operation'})['kind']=='status'
+        check('new-user-session-requires-new-proof-with-same-broker')
+        worker({'op':'disconnect'})
+        _, pending_proof = challenge()
+        assert pending_proof
+        vm.logout()
+        deadline = time.monotonic()+4
+        while worker({'op':'status'})['state'] != 'stopped':
+            assert time.monotonic()<deadline, 'seat_change_kept_pending_challenge'
+            time.sleep(.05)
+        vm.login()
+        worker({'op':'disconnect'})
+        ready()
+        assert worker({'op':'authenticate','message':pending_proof})['kind']=='denied'
+        authenticate()
+        worker({'op':'disconnect'})
+        check('seat-change-invalidates-unfinished-challenge-before-login')
+
         authenticate()
         assert worker(action='replay_previous')['replayDenied'] is True
         units('restart',WORKER)
@@ -433,6 +469,7 @@ print(json.dumps({'secretFound':any(v.encode() in raw for v in values)}))
         check('real-api-revocation-is-terminal-across-service-restart')
         matrix_passed = True
     finally:
+        if vm.context().get('Class')=='greeter':vm.login()
         try:
             if installed:
                 journal=root("import subprocess;print(subprocess.run(['journalctl','-u','absorconnect-secure-lab.service','-u','absorconnect-ipc-worker-lab.service','--no-pager','-n','120'],capture_output=True,text=True,check=True).stdout)")

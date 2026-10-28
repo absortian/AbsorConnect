@@ -7,6 +7,7 @@ on:
       - 'src/shared/remote/auth-vectors.json'
       - 'src/shared/remote/agent-protocol-vectors.json'
       - 'prototypes/remote-desktop/webrtc-check/**'
+      - 'prototypes/remote-desktop/unattended-check/**'
       - 'prototypes/backend-agent-check/**'
       - '.github/workflows/agent-core.yml'
   push:
@@ -16,6 +17,7 @@ on:
       - 'src/shared/remote/auth-vectors.json'
       - 'src/shared/remote/agent-protocol-vectors.json'
       - 'prototypes/remote-desktop/webrtc-check/**'
+      - 'prototypes/remote-desktop/unattended-check/**'
       - 'prototypes/backend-agent-check/**'
       - '.github/workflows/agent-core.yml'
 
@@ -50,6 +52,7 @@ jobs:
         run: |
           python agent/tools/diagnose.py --self-test
           python -B prototypes/backend-agent-check/test_mobile_protected_runner.py
+          python -B prototypes/remote-desktop/unattended-check/test-linux-xauthority-fd.py
       - name: Autorización y proceso propio
         run: |
           cargo +1.85.0 test --manifest-path agent/Cargo.toml --offline --locked

@@ -303,3 +303,23 @@ completos y denegación en bloqueo. No se adopta todavía como paquete de agente
 ni anuncia administración, escritorio general, otras sesiones, greeter, TURN o
 controladores móviles certificados. Almacenes/IPC Windows y Mac, migración,
 actualización y piloto físico conservan sus tareas específicas pendientes.
+
+
+### D6 — selección Linux y entrega acotada, 28/10/2026
+
+El componente `absor-sessiond` selecciona seat0 mediante logind y publica solo
+estado diagnóstico root de lectura. Se prueba bajo systemd sin capacidades ni
+red IP, con recuperación, parada explícita y arranque en LightDM. El broker usa
+el mismo lector asíncrono para fijar sesión/UID/Leader/display al iniciar HMAC.
+Un cambio o muestra caducada invalida el desafío y la sesión; volver al escritorio
+requiere autenticación nueva. No se toma el JSON público como permiso ni como
+selección procedente del controlador. El trabajador de ventana sigue exigiendo
+Cinnamon desbloqueado y no ofrece captura general.
+
+Una sonda independiente verifica captura contada desde un UID sin login/CAP/red
+IP, con autoridad X11 entregada por descriptor sellado después de seleccionar
+Xorg localmente. No escribe cookies en disco, argumentos o entorno. SCM_RIGHTS
+es transporte, no autorización. Falta unir la concesión al broker después de
+HMAC, validar al trabajador por credenciales del núcleo/unidad y renovar/cortar
+la autoridad por contexto. Esta sonda no certifica aún 6.2/6.4 ni debe incluirse
+en instalaciones físicas. No se cambian LightDM, PAM, polkit ni acceso X global.

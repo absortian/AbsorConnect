@@ -2,6 +2,9 @@
 #![deny(unsafe_code)]
 #[cfg(target_os = "linux")]
 #[allow(unsafe_code)]
+pub mod fd;
+#[cfg(target_os = "linux")]
+#[allow(unsafe_code)]
 pub mod linux;
 pub mod secrets;
 pub mod wire;

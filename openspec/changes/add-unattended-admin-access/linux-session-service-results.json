@@ -1,0 +1,122 @@
+{
+  "schema": 1,
+  "date": "2026-10-28",
+  "scope": "Selección logind/systemd y vinculación del desafío del broker; trabajador general pendiente",
+  "ok": true,
+  "acceptedTasks": [],
+  "partialTasks": [
+    "6.1"
+  ],
+  "rustUnitTests": 22,
+  "vmChecks": [
+    {
+      "case": "desktop-selection",
+      "active": true,
+      "state": "user_session",
+      "privateNetwork": true,
+      "noCapabilities": true,
+      "statusRootReadOnly": true
+    },
+    {
+      "case": "fresh-publication",
+      "advanced": true
+    },
+    {
+      "case": "denials",
+      "unprivilegedWriteDenied": true,
+      "unprivilegedStartDenied": true,
+      "duplicateStartDenied": true
+    },
+    {
+      "case": "greeter-selection",
+      "active": true,
+      "state": "greeter",
+      "privateNetwork": true,
+      "noCapabilities": true,
+      "statusRootReadOnly": true
+    },
+    {
+      "case": "new-user-session",
+      "active": true,
+      "state": "user_session",
+      "privateNetwork": true,
+      "noCapabilities": true,
+      "statusRootReadOnly": true
+    },
+    {
+      "case": "crash-recovery",
+      "newInstance": true,
+      "restartsAdvanced": true
+    },
+    {
+      "case": "stale-selection-rejected",
+      "beforeWatchdogRecovery": true
+    },
+    {
+      "case": "watchdog-recovery",
+      "newInstance": true,
+      "restartsAdvanced": true
+    },
+    {
+      "case": "explicit-stop",
+      "remainedStopped": true
+    },
+    {
+      "case": "cold-boot-without-login",
+      "active": true,
+      "state": "greeter",
+      "privateNetwork": true,
+      "noCapabilities": true,
+      "statusRootReadOnly": true
+    },
+    {
+      "case": "desktop-after-cold-boot",
+      "active": true,
+      "state": "user_session",
+      "privateNetwork": true,
+      "noCapabilities": true,
+      "statusRootReadOnly": true
+    }
+  ],
+  "linuxRustTestsCombined": 223,
+  "fmtClippyAndReleaseBuilds": true,
+  "binarySha256": "1494e0222184287930623ee13e8114da174efef27d3e0c5e7a8402d17180d7f6",
+  "unitSha256": "5cb6627fcaf212bcc70efc66f7e6e57df2f6e3cc2ceb310be5afd101aba00fd1",
+  "privateReportSha256": "5b836fc33f5eb81eea3ffc30703c8fb40817e1b1f336c2d94a81cf1071ead8a4",
+  "sourceSha256": {
+    "agent/crates/agent-linux-session/Cargo.toml": "1b4ddddd8197f2708dd0eef355e3358ef7e513fcea86c6e76b488ef824424998",
+    "agent/crates/agent-linux-session/README.md": "59bbc215aa58604fd12b6609d2d7e8551a6545c0d5198d05f97f7bef17f03ed9",
+    "agent/crates/agent-linux-session/examples/seat-inventory.rs": "1865c21a2c715633bd512857a77006a728361877e4bf00f84b60ad75826ff48e",
+    "agent/crates/agent-linux-session/src/monitor.rs": "a05aa454317e7907edda5135c220a4397322308750363296b2c6e51a42a865da",
+    "agent/crates/agent-linux-session/src/lib.rs": "961fa046823a507b91045a0eeac49cec090f38a99584e1de29c827fcbc4e8071",
+    "agent/crates/agent-linux-session/src/query.rs": "d475fd419f19c0e325184c11bd68b106aac909a626bd6eee34eeee3d1fd59214",
+    "agent/crates/agent-linux-session/src/service.rs": "c59faf7b7ee59657c24414b0af5160ca813e2ce641e15d46fcb320662836ad0a",
+    "agent/crates/agent-linux-session/src/status.rs": "24ff9c97e6a633b73bdbe7b7fc389c1ee72628b2096a2f0aa1eedbb32486ce76",
+    "agent/crates/agent-linux-session/src/binding.rs": "906a3455f336a3bc8e3c0dab06d46d3065eddc709b3af86d19abf43a87591bc8",
+    "agent/crates/agent-linux-session/src/main.rs": "d9a74d5bddc3ae4f7e987799abb0f3d3dc96daae2f0ec7141a72c0c717c436e5",
+    "agent/linux/absorconnect-sessiond.service": "5cb6627fcaf212bcc70efc66f7e6e57df2f6e3cc2ceb310be5afd101aba00fd1",
+    "prototypes/backend-agent-check/linux-session-service-check.py": "d21814b6aa7976b8f735eb65c806c3e2d8cfd78961c38291e9bd974649db403b",
+    "agent/crates/agent-broker/src/secure_linux.rs": "9e470ecdbfcc0cbb1f6632e399bf9086e2021b7307a71578b9cf58ccc30639b3"
+  },
+  "coldBootTested": true,
+  "ownServiceRemoved": true,
+  "brokerConnected": true,
+  "captureTested": false,
+  "inputTested": false,
+  "physicalMachinesTested": false,
+  "productionTested": false,
+  "readyForUnattended": false,
+  "limitations": [
+    "La selección está conectada al broker; falta la regresión P2P final para aceptar 6.1.",
+    "La VM es Ubuntu ARM con Cinnamon/LightDM: no certifica Mint x86 físico.",
+    "El contexto de usuario no acredita desbloqueo de Cinnamon sin evidencia adicional.",
+    "El estado público es diagnóstico, nunca un permiso para ver o manejar una sesión."
+  ],
+  "credentialIpcChecks": 17,
+  "credentialIpcReportSha256": "49d9b6e1ef81cf6a462880a642b6de40eaa0739a3b71abd904ede311a0eb31ac",
+  "seatBindingChecks": [
+    "logind-greeter-drops-active-authority-and-denies-challenges",
+    "new-user-session-requires-new-proof-with-same-broker",
+    "seat-change-invalidates-unfinished-challenge-before-login"
+  ]
+}

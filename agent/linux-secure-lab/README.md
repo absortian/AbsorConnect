@@ -168,3 +168,15 @@ para la siguiente. Reutiliza un único carril/hilo HTTP; no crea hilos nuevos
 por reconexión. Un fallo de señalización cierra esa conexión; únicamente la
 revocación o un fallo terminal del núcleo inhabilita el alta. La matriz verifica
 un PID de broker idéntico en las dos primeras conexiones y nonce distinto.
+
+
+### Selección local de sesión
+
+El broker consulta logind mediante `agent-linux-session`, en un carril distinto
+de API y sin bloquear el actor. Fija el asiento al iniciar HMAC y cierra la
+conexión si la muestra caduca o cambia la sesión. El modo de ventana propia
+rechaza LightDM y Wayland. La matriz IPC añade cierre/entrada reales de la VM:
+autoridad activa y desafío pendiente se anulan, mientras el broker conserva
+su PID. La nueva sesión necesita otro desafío; esto no certifica captura de
+escritorio general o entrada en greeter. La unidad raíz de selección y la sonda
+de Xauthority se describen en `agent-linux-session/README.md` del crate.
