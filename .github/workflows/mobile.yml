@@ -44,6 +44,12 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Análisis y pruebas unitarias Flutter
+        run: |
+          flutter pub get
+          flutter analyze --no-pub
+          flutter test --no-pub
+
       - name: Version
         id: version
         run: |
@@ -100,6 +106,12 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
+
+      - name: Análisis y pruebas unitarias Flutter
+        run: |
+          flutter pub get
+          flutter analyze --no-pub
+          flutter test --no-pub
 
       - name: Version
         id: version

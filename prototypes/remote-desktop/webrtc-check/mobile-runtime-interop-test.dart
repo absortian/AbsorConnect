@@ -79,14 +79,15 @@ class LocalApi extends RemoteApi {
   Future<String> createRequest(String id, String offer) async {
     requests++;
     if (id != deviceId) throw StateError('wrong_device');
-    if (requested) throw ApiError('device_not_found', 404);
+    if (requested && (name != 'correct' || requests > 2)) throw ApiError('device_not_found', 404);
+    final slot = requested ? 'correct-auto-reconnect' : name;
     requested = true;
-    native = request('protected/$name/run', {});
+    native = request('protected/$slot/run', {});
     unawaited(
       native!.then<void>((_) {}, onError: (Object _, StackTrace __) {}),
     );
     answer =
-        (await request('mobile/offer/$name', {'sdp': offer}))['sdp'] as String;
+        (await request('mobile/offer/$slot', {'sdp': offer}))['sdp'] as String;
     final audio = answer
         .replaceAll('\r\n', '\n')
         .split('\nm=')
@@ -246,7 +247,17 @@ void main() {
         await tester.pump(const Duration(milliseconds:300));
         await runLive(tester, () async {
           if(name=='correct') {
-            await until(()=>session.phase==ViewerPhase.connected && session.inputAllowed);
+            await until(()=>session.phase==ViewerPhase.connected && session.inputAllowed, ()=>jsonEncode({'stage':'resume','phase':session.phase.name,'failure':session.failure?.code,'requests':api.requests,'keyPresent':session.hasKey}));
+            if(api.requests==2) {
+              expect(session.challengeId,isNot(report['challengeId']));
+              session.sendInputs([
+                RemoteInput.button(0,down:true),RemoteInput.button(0,down:false),
+                RemoteInput.key('KeyA',down:true),RemoteInput.key('KeyA',down:false),
+              ]);
+              await until(()=>session.contextImageCurrent && (session.stats.decodedFrames??0)>=2);
+              expect((await request('mobile/screenshot/correct-auto-reconnect',{}))['nativeGreenVerified'],true);
+              report.addAll({'challengeId':session.challengeId,'helloCount':session.challengeCount,'decodedFrames':session.stats.decodedFrames,'width':session.renderer.videoWidth,'height':session.renderer.videoHeight,'candidates':{'local':session.stats.localCandidateType,'remote':session.stats.remoteCandidateType,'relayProtocol':session.stats.relayProtocol}});
+            }
           } else {
             await until(()=>session.phase==ViewerPhase.closed);
             expect(session.hasKey,false);

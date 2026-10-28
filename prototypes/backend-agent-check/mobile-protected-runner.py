@@ -3,6 +3,7 @@ import json
 import time
 
 NAMES = ['correct', 'correct-reconnect', 'wrong-proof', 'fingerprint-mismatch']
+RUNTIME_NAMES = ['correct','correct-reconnect','correct-auto-reconnect']
 
 
 class MobileController:
@@ -26,7 +27,7 @@ class MobileController:
         if not handler.path.startswith('/mobile/'):
             return False
         parts = handler.path.split('/')
-        assert len(parts) == 4 and parts[2] in ('offer', 'result', 'screenshot', 'prepare', 'background', 'checkpoint') and parts[3] in NAMES
+        assert len(parts) == 4 and parts[2] in ('offer', 'result', 'screenshot', 'prepare', 'background', 'checkpoint') and parts[3] in (RUNTIME_NAMES if self.runtime else NAMES)
         operation, name = parts[2:]
         assert name in self.owned
         item = self.owned[name]
@@ -39,9 +40,10 @@ class MobileController:
             assert self.runtime and self.prepare and handler.body(128)=={}
             self.prepare();handler.reply(200,{'ok':True});return True
         if operation == 'screenshot':
-            assert self.runtime and self.screenshot and name in ('correct','correct-reconnect') and handler.body(128)=={}
+            assert self.runtime and self.screenshot and name in RUNTIME_NAMES and handler.body(128)=={}
             self.screenshot(name);handler.reply(200,{'ok':True,'nativeGreenVerified':True});return True
         if operation == 'offer':
+            if name=='correct-auto-reconnect':assert self.runtime and item['autoWorkerReady'].wait(30),'recovery_worker_not_ready'
             body = handler.body(70000)
             assert set(body) == {'sdp'} and isinstance(body['sdp'], str) and 0 < len(body['sdp'].encode()) <= 65536
             assert name not in self.signals
@@ -63,11 +65,14 @@ class MobileController:
             raise RuntimeError('mobile_answer_timeout')
         body = handler.body(4096)
         if self.runtime:
+            assert name in ('correct','correct-reconnect')
             assert set(body)=={'nativeGreenVerified','challengeId','helloCount','productionRuntime','productionScreen','authenticated','decodedFrames','width','height','inputSent','extensionNegotiated','contextImageCurrent','sensitiveFeaturesFalse','candidates','backgroundSeconds','backgroundClosed','backgroundRecovered','backgroundElapsedMicros','requestsAfterResume'}
             assert body['backgroundSeconds']==item.get('backgroundSeconds')==(10 if name=='correct' else 31)
             assert isinstance(body['backgroundElapsedMicros'],int) and body['backgroundElapsedMicros']>=body['backgroundSeconds']*1000000
             assert body['backgroundClosed'] is (name=='correct-reconnect') and body['backgroundRecovered'] is (name=='correct')
-            assert body['requestsAfterResume']==1
+            assert body['requestsAfterResume'] in ((1,2) if name=='correct' else (1,))
+            if body['requestsAfterResume']==2:
+                assert 'correct-auto-reconnect' in item.get('greenCases',set())
             assert body['nativeGreenVerified'] is True and name in item.get('greenCases',set())
             import re
             assert body['helloCount']==1 and re.fullmatch('[0-9a-f]{64}',body['challengeId'])

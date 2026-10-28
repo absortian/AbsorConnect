@@ -100,8 +100,8 @@ def main():
         nonlocal installed,locked
         item=owned[name]
         completed=False
-        reconnect=name=='correct-reconnect'
-        assert not installed or name=='correct-reconnect'
+        reconnect=name in ('correct-reconnect','correct-auto-reconnect')
+        assert not installed or name in ('correct-reconnect','correct-auto-reconnect')
         if vm.context().get('Class')=='greeter':vm.login()
         if helper.screen_state(vm)=='(true,)':vm.logout();vm.login()
         assert helper.screen_state(vm)=='(false,)'
@@ -117,6 +117,7 @@ def main():
                 assert int(vm.remote('systemctl show '+SERVICE+' -p MainPID --value'))==item['brokerPid']
                 root("from pathlib import Path;Path('/var/lib/absorconnect-protected-worker-lab/result.json').write_bytes(b'')")
                 vm.remote('sudo -n systemctl start '+WORKER)
+                if name=='correct-auto-reconnect':item['autoWorkerReady'].set()
             else:
                 install=json.loads(root('import sys;sys.argv=["install-vm.py","install-native"];\n'+installer,json.dumps(data).encode()))
                 installed=True;assert install['brokerUid'] not in (0,1000)
@@ -147,7 +148,7 @@ else:raise AssertionError('native_worker_timeout')
             assert len(attempts['failures'])==(1 if name in ['wrong-proof','fingerprint-mismatch'] else 0)
             audit=json.loads(root("from pathlib import Path;print(Path('/var/lib/absorconnect-secure-lab/audit.json').read_text())"))
             p=output/(name+'-audit.json');p.write_text(json.dumps(audit,indent=2)+'\n');p.chmod(0o600)
-            if name!='correct':cleanup_install()
+            if name not in ('correct','correct-auto-reconnect'):cleanup_install()
             value['systemd']={'systemService':True,'exitCode':0,'activeAfterExit':False,'runtimeRemoved':True,'restart':'no','privileged':False,'workerSupervised':True,'brokerWatchdog':True}
             value['protectedIpc']=True
             saved=output/(name+'-native-result.json');saved.write_text(json.dumps(value,indent=2)+'\n');saved.chmod(0o600)
@@ -159,7 +160,7 @@ else:raise AssertionError('native_worker_timeout')
                 error=output/'root-stderr.txt'
                 if error.exists():
                     saved=output/(name+'-root-stderr.txt');saved.write_bytes(error.read_bytes());saved.chmod(0o600)
-            if name!='correct' or not completed:cleanup_install()
+            if name not in ('correct','correct-auto-reconnect') or not completed:cleanup_install()
             if locked:
                 vm.logout();vm.login();locked=False
 
@@ -180,6 +181,10 @@ else:raise AssertionError('native_worker_timeout')
             info={'name':'Host IPC P2P propio','platform':'linux','appVersion':'0.1.0','remote':{'state':'available','features':{'clipboard':False,'files':False,'audio':False}}}
             assert request('PUT',item['path'],info,item['owner'],device_key)[0]==200
             status,enrollment=request('POST',item['path']+'/agent-enrollments',{},item['owner'],device_key);assert status==201;item['grant']=enrollment['enrollmentToken']
+
+        if args.mobile_runtime:
+            owned['correct-auto-reconnect']=owned['correct']
+            owned['correct']['autoWorkerReady']=threading.Event()
 
         mapping=mobile_module.VmDirectMapping(vm) if args.android_mapped_direct else None
         def prepare_mobile():
@@ -217,7 +222,7 @@ else:raise AssertionError('native_worker_timeout')
             finally:subprocess.run(resume,capture_output=True,check=True,timeout=25)
 
         def screenshot(name):
-            assert args.mobile_runtime and name in ('correct','correct-reconnect')
+            assert args.mobile_runtime and name in ('correct','correct-reconnect','correct-auto-reconnect')
             path=output/(name+'-production-mobile-screen.png');assert not path.exists()
             deadline=time.monotonic()+18
             while True:

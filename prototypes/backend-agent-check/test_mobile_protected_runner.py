@@ -107,7 +107,6 @@ class PreparationRequestTest(unittest.TestCase):
                 self.assertEqual(handler.response,(200,{'ok':True}))
 
 
-if __name__=='__main__':unittest.main()
 
 class BackgroundRequestTest(unittest.TestCase):
     def test_only_fixed_cases_and_empty_body_control_owned_lab(self):
@@ -136,3 +135,30 @@ class LifecycleCheckpointTest(unittest.TestCase):
             self.assertTrue(controller.post(Handler('/mobile/result/correct',body)))
             self.assertEqual(len(controller.results),1)
             with self.assertRaises(AssertionError):controller.post(Handler('/mobile/result/correct',body))
+
+
+class RecoveryReadinessTest(unittest.TestCase):
+    def test_only_the_new_owned_worker_can_release_its_offer(self):
+        import time
+        class Ready:
+            def __init__(self,value,order):self.value=value;self.order=order
+            def wait(self,seconds):
+                assert seconds==30
+                self.order.append('ready');return self.value
+        for ready in [False,True]:
+            order=[];item={'autoWorkerReady':Ready(ready,order),'lastPoll':time.monotonic(),'path':'/api/devices/fixed','owner':'laboratory-only'}
+            def request(method,path,*args,**kwargs):
+                order.append(method)
+                return (201,{'id':'fixed'}) if method=='POST' else (200,{'status':'answered','answer':'fixture'})
+            controller=fixture.MobileController({'correct-auto-reconnect':item},{},request,None,{},runtime=True)
+            class Handler(ScreenshotRequestTest.Handler):
+                def body(self,limit):return self.value
+            handler=Handler('/mobile/offer/correct-auto-reconnect',{'sdp':'fixture'})
+            if not ready:
+                with self.assertRaises(AssertionError):controller.post(handler)
+                self.assertEqual(order,['ready'])
+            else:
+                self.assertTrue(controller.post(handler));self.assertEqual(order,['ready','POST','GET'])
+
+
+if __name__=='__main__':unittest.main()
