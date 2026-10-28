@@ -740,4 +740,67 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get remoteAgentSensitiveSuspended =>
       'Contexto protegido: portapapeles, archivos y sonido suspendidos.';
+
+  @override
+  String get remoteAdmin => 'Administrar';
+
+  @override
+  String get remoteActionLock => 'Bloquear';
+
+  @override
+  String get remoteActionLogout => 'Cerrar sesión';
+
+  @override
+  String get remoteActionRestart => 'Reiniciar';
+
+  @override
+  String get remoteActionSecureAttention => 'Atención segura';
+
+  @override
+  String remoteActionConfirm(String action, String name) {
+    return '¿Quieres $action en «$name»?';
+  }
+
+  @override
+  String get remoteActionConfirmHint =>
+      'Esta orden afecta al PC remoto. El reinicio y el cierre de sesión desconectan el visor; después debes volver a autenticarte.';
+
+  @override
+  String get remoteActionAccepted => 'El PC aceptó la orden.';
+
+  @override
+  String get remoteActionRejected => 'El PC rechazó la orden.';
+
+  @override
+  String get remoteActionFailed => 'La orden no se completó.';
+
+  @override
+  String get remoteActionTimedOut =>
+      'Sin resultado. No se repetirá la orden; reconecta para volver a administrar.';
+
+  @override
+  String get remoteActionUnavailable => 'La acción ya no está disponible.';
+
+  @override
+  String get remoteRestartWaiting =>
+      'Esperando al PC, hasta cinco minutos. Solo se consulta su disponibilidad; no se intenta conectar.';
+
+  @override
+  String get remoteRestartReady =>
+      'El PC vuelve a estar disponible. Conecta e introduce de nuevo su contraseña.';
+
+  @override
+  String get remoteRestartExpired =>
+      'La espera terminó. Comprueba el PC o vuelve a intentarlo cuando esté disponible.';
+
+  @override
+  String get remoteRestartCancelled =>
+      'Espera cancelada. La orden enviada al PC no se deshace.';
+
+  @override
+  String get remoteRestartFailed =>
+      'No se puede comprobar el PC. Revisa tu cuenta y su disponibilidad.';
+
+  @override
+  String get remoteRestartCancel => 'Cancelar espera';
 }

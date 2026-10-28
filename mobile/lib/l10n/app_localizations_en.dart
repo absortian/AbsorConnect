@@ -737,4 +737,67 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get remoteAgentSensitiveSuspended =>
       'Protected context: clipboard, files and sound are suspended.';
+
+  @override
+  String get remoteAdmin => 'Manage';
+
+  @override
+  String get remoteActionLock => 'Lock';
+
+  @override
+  String get remoteActionLogout => 'Sign out';
+
+  @override
+  String get remoteActionRestart => 'Restart';
+
+  @override
+  String get remoteActionSecureAttention => 'Secure attention';
+
+  @override
+  String remoteActionConfirm(String action, String name) {
+    return 'Do you want to $action on “$name”?';
+  }
+
+  @override
+  String get remoteActionConfirmHint =>
+      'This command affects the remote PC. Restart and sign out disconnect the viewer; you must authenticate again afterwards.';
+
+  @override
+  String get remoteActionAccepted => 'The PC accepted the command.';
+
+  @override
+  String get remoteActionRejected => 'The PC rejected the command.';
+
+  @override
+  String get remoteActionFailed => 'The command did not complete.';
+
+  @override
+  String get remoteActionTimedOut =>
+      'No result received. The command will not be repeated; reconnect to manage again.';
+
+  @override
+  String get remoteActionUnavailable => 'This action is no longer available.';
+
+  @override
+  String get remoteRestartWaiting =>
+      'Waiting for the PC, for up to five minutes. Only availability is checked; no connection is attempted.';
+
+  @override
+  String get remoteRestartReady =>
+      'The PC is available again. Connect and enter its password again.';
+
+  @override
+  String get remoteRestartExpired =>
+      'The wait ended. Check the PC or try again when it is available.';
+
+  @override
+  String get remoteRestartCancelled =>
+      'Wait cancelled. The command already sent to the PC is not undone.';
+
+  @override
+  String get remoteRestartFailed =>
+      'Unable to check the PC. Check your account and its availability.';
+
+  @override
+  String get remoteRestartCancel => 'Cancel wait';
 }

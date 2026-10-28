@@ -1381,6 +1381,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Protected context: clipboard, files and sound are suspended.'**
   String get remoteAgentSensitiveSuspended;
+
+  /// No description provided for @remoteAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage'**
+  String get remoteAdmin;
+
+  /// No description provided for @remoteActionLock.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock'**
+  String get remoteActionLock;
+
+  /// No description provided for @remoteActionLogout.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out'**
+  String get remoteActionLogout;
+
+  /// No description provided for @remoteActionRestart.
+  ///
+  /// In en, this message translates to:
+  /// **'Restart'**
+  String get remoteActionRestart;
+
+  /// No description provided for @remoteActionSecureAttention.
+  ///
+  /// In en, this message translates to:
+  /// **'Secure attention'**
+  String get remoteActionSecureAttention;
+
+  /// No description provided for @remoteActionConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Do you want to {action} on “{name}”?'**
+  String remoteActionConfirm(String action, String name);
+
+  /// No description provided for @remoteActionConfirmHint.
+  ///
+  /// In en, this message translates to:
+  /// **'This command affects the remote PC. Restart and sign out disconnect the viewer; you must authenticate again afterwards.'**
+  String get remoteActionConfirmHint;
+
+  /// No description provided for @remoteActionAccepted.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC accepted the command.'**
+  String get remoteActionAccepted;
+
+  /// No description provided for @remoteActionRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC rejected the command.'**
+  String get remoteActionRejected;
+
+  /// No description provided for @remoteActionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The command did not complete.'**
+  String get remoteActionFailed;
+
+  /// No description provided for @remoteActionTimedOut.
+  ///
+  /// In en, this message translates to:
+  /// **'No result received. The command will not be repeated; reconnect to manage again.'**
+  String get remoteActionTimedOut;
+
+  /// No description provided for @remoteActionUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This action is no longer available.'**
+  String get remoteActionUnavailable;
+
+  /// No description provided for @remoteRestartWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for the PC, for up to five minutes. Only availability is checked; no connection is attempted.'**
+  String get remoteRestartWaiting;
+
+  /// No description provided for @remoteRestartReady.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC is available again. Connect and enter its password again.'**
+  String get remoteRestartReady;
+
+  /// No description provided for @remoteRestartExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'The wait ended. Check the PC or try again when it is available.'**
+  String get remoteRestartExpired;
+
+  /// No description provided for @remoteRestartCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Wait cancelled. The command already sent to the PC is not undone.'**
+  String get remoteRestartCancelled;
+
+  /// No description provided for @remoteRestartFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to check the PC. Check your account and its availability.'**
+  String get remoteRestartFailed;
+
+  /// No description provided for @remoteRestartCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel wait'**
+  String get remoteRestartCancel;
 }
 
 class _AppLocalizationsDelegate

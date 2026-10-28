@@ -162,8 +162,9 @@ void main() {
                 const Duration(seconds: 5),
               );
               while (input.state != RTCDataChannelState.RTCDataChannelOpen) {
-                if (DateTime.now().isAfter(inputDeadline))
+                if (DateTime.now().isAfter(inputDeadline)) {
                   throw StateError('Canal de entrada no disponible');
+                }
                 await Future<void>.delayed(const Duration(milliseconds: 10));
               }
               for (final message in fixedInput) {
@@ -287,8 +288,9 @@ void main() {
             final deadline = DateTime.now().add(const Duration(seconds: 5));
             while (!extensionNegotiated) {
               if (protocolFailure != null) throw protocolFailure!;
-              if (DateTime.now().isAfter(deadline))
+              if (DateTime.now().isAfter(deadline)) {
                 throw StateError('Extensión no negociada');
+              }
               await Future<void>.delayed(const Duration(milliseconds: 10));
             }
             // Los mensajes reales de producción llevan v:1. Otros códigos/versiones se descartan.
@@ -327,8 +329,9 @@ void main() {
             candidates['local'],
             relay ? 'relay' : isIn(['host', 'prflx', 'srflx']),
           );
-          if (!relay)
+          if (!relay) {
             expect(candidates['remote'], isIn(['host', 'prflx', 'srflx']));
+          }
           await channel.send(
             RTCDataChannelMessage(
               jsonEncode({'v': 1, 'type': 'bye', 'reason': 'closed'}),

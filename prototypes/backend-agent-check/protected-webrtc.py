@@ -124,7 +124,7 @@ def main():
             # Las denegaciones se comprueban antes de que llegue la prueba HMAC del visor.
             wait='''import json,subprocess,time
 from pathlib import Path
-p=Path('/var/lib/absorconnect-protected-worker-lab/result.json');deadline=time.monotonic()+75
+p=Path('/var/lib/absorconnect-protected-worker-lab/result.json');deadline=time.monotonic()+105
 while time.monotonic()<deadline:
  state=subprocess.check_output(['systemctl','show','absorconnect-protected-worker-lab.service','-p','ActiveState','--value']).strip()
  if state in (b'inactive',b'failed'):
@@ -139,7 +139,7 @@ while time.monotonic()<deadline:
 else:raise AssertionError('native_worker_timeout')
 '''
             fault=name in ['worker-stall','broker-stall','broker-crash']
-            value=json.loads(root(wait.replace('FAULT',str(fault)),timeout=85))
+            value=json.loads(root(wait.replace('FAULT',str(fault)),timeout=115))
             if fault:
                 assert item.get('faultAt')
                 value={'fault':{'name':name,'workerExitCode':value['exitCode'],'processCutMilliseconds':round((time.monotonic()-item['faultAt'])*1000)}}
@@ -198,6 +198,24 @@ else:raise AssertionError('native_worker_timeout')
                     subprocess.run(command+['shell','input','tap',str((points[0]+points[2])//2),str((points[1]+points[3])//2)],capture_output=True,check=True,timeout=10)
             finally:subprocess.run(command+['shell','rm',path],capture_output=True,timeout=10)
 
+        def background(seconds):
+            assert args.mobile_runtime and seconds in (10,31)
+            if args.mobile_device=='emulator-5554':
+                adb='/opt/homebrew/share/android-commandlinetools/platform-tools/adb'
+                assert subprocess.check_output([adb,'-s',args.mobile_device,'emu','avd','name'],timeout=10).splitlines()[0]==b'absorconnect'
+                pause=[adb,'-s',args.mobile_device,'shell','input','keyevent','KEYCODE_HOME']
+                resume=[adb,'-s',args.mobile_device,'shell','am','start','-W','-n','com.absor.connect/.MainActivity']
+            else:
+                assert args.mobile_device=='0D9B8664-A2FF-46C4-95AC-D30591167441'
+                import plistlib
+                app=lab/'mobile-simulator/build/ios/iphonesimulator/Runner.app/Info.plist'
+                bundle=plistlib.loads(app.read_bytes())['CFBundleIdentifier'];assert bundle=='com.absor.connect'
+                pause=['xcrun','simctl','launch',args.mobile_device,'com.apple.Preferences']
+                resume=['xcrun','simctl','launch',args.mobile_device,bundle]
+            subprocess.run(pause,capture_output=True,check=True,timeout=20)
+            try:time.sleep(seconds)
+            finally:subprocess.run(resume,capture_output=True,check=True,timeout=25)
+
         def screenshot(name):
             assert args.mobile_runtime and name in ('correct','correct-reconnect')
             path=output/(name+'-production-mobile-screen.png');assert not path.exists()
@@ -221,7 +239,7 @@ else:raise AssertionError('native_worker_timeout')
                 assert time.monotonic()<deadline,'native_green_frame_not_rendered'
                 path.unlink();time.sleep(.1)
 
-        mobile=mobile_module.MobileController(owned,signals,request,output,controller_ice,mapping,runtime=args.mobile_runtime,screenshot=screenshot,prepare=prepare_mobile) if mobile_module else None
+        mobile=mobile_module.MobileController(owned,signals,request,output,controller_ice,mapping,runtime=args.mobile_runtime,screenshot=screenshot,prepare=prepare_mobile,background=background) if mobile_module else None
 
         class Proxy(http.server.BaseHTTPRequestHandler):
             def log_message(self,*_):pass

@@ -9,6 +9,7 @@ class RemoteDevice {
       name = json['name'] as String? ?? '',
       platform = json['platform'] as String? ?? '',
       online = json['online'] == true,
+      lastSeenAt = DateTime.tryParse(json['lastSeenAt'] as String? ?? ''),
       remoteState = (json['remote'] as Map?)?['state'] as String? ?? 'disabled',
       agent = AgentDeviceInfo.fromRemote(json['remote']);
 
@@ -18,6 +19,7 @@ class RemoteDevice {
   /// `windows`, `macos` o `linux`.
   final String platform;
   final bool online;
+  final DateTime? lastSeenAt;
   final String remoteState;
   final AgentDeviceInfo agent;
 
@@ -26,6 +28,13 @@ class RemoteDevice {
   String get state => online ? remoteState : 'offline';
 
   bool get available => state == 'available';
+}
+
+/// Presencia del destino fijo; no constituye una autenticación del PC.
+class RemoteAvailability {
+  const RemoteAvailability({required this.online, required this.available, required this.lastSeenAt});
+  final bool online, available;
+  final DateTime lastSeenAt;
 }
 
 /// En qué punto está una solicitud de sesión.
@@ -65,6 +74,22 @@ class RemoteApi {
       for (final item in (data?['devices'] as List? ?? const []))
         if (item is Map<String, dynamic>) RemoteDevice.fromJson(item),
     ];
+  }
+
+  Future<RemoteAvailability> availability(String deviceId) async {
+    if (!isRemoteDeviceId(deviceId)) throw ApiError('device_not_found', 404);
+    final owner = session.token;
+    if (owner == null) throw ApiError('unauthenticated', 401);
+    final data = await session.request('GET', '/api/devices');
+    if (session.token != owner) throw ApiError('unauthenticated', 401);
+    if (data is! Map || data['devices'] is! List) throw ApiError('remote_unavailable', 503);
+    final matches = (data['devices'] as List).whereType<Map>().where((item) => item['id'] == deviceId).toList();
+    if (matches.length != 1) throw ApiError('device_not_found', 404);
+    final item = matches.single;
+    final seen = item['lastSeenAt'];
+    final date = seen is String ? DateTime.tryParse(seen) : null;
+    if (item['online'] is! bool || date == null || item['remote'] is! Map) throw ApiError('remote_unavailable', 503);
+    return RemoteAvailability(online: item['online'] == true, available: item['online'] == true && (item['remote'] as Map)['state'] == 'available', lastSeenAt: date);
   }
 
   /// Revocar solo el equipo indicado, tras la confirmación del usuario en la UI.

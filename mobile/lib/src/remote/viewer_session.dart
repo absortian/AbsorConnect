@@ -11,6 +11,7 @@ import 'auth.dart';
 import 'agent_protocol.dart';
 import 'agent_viewer_state.dart';
 import 'input.dart';
+import 'host_actions.dart';
 import 'protocol.dart';
 import 'quality_selection.dart';
 import 'remote_api.dart';
@@ -38,7 +39,30 @@ class SessionFailure implements Exception {
 /// K (nunca la contraseña) se queda en memoria mientras dure la pantalla, para reconectar sin
 /// volver a pedirla.
 class ViewerSession extends ChangeNotifier {
-  ViewerSession(this.api, this.deviceId, {this.forceRelay = false});
+  ViewerSession(this.api, this.deviceId, {this.forceRelay = false}) {
+    _operations = HostActions(active: () => _authenticated && !_closed && !_disposed && _foreground && agentContext.enabled && agentContext.sequence > 0 && _control?.state == RTCDataChannelState.RTCDataChannelOpen, send: (operation) async {
+      final channel = _control;
+      if (channel == null || channel.state != RTCDataChannelState.RTCDataChannelOpen) throw const SessionFailure('closed');
+      await channel.send(RTCDataChannelMessage(jsonEncode(operation.toJson())));
+    });
+    _operations.addListener(_operationsChanged);
+    _owner = api.session.token;
+    api.session.addListener(_accountChanged);
+  }
+  late final HostActions _operations;
+  HostActions get operations => _operations;
+  String? _owner;
+  bool _foreground = true;
+  void _operationsChanged() { if (!_disposed) notifyListeners(); }
+  void _forgetKey() { _key?.fillRange(0, _key!.length, 0); _key = null; }
+  void _accountChanged() { if (api.session.token != _owner) { _forgetKey(); unawaited(close()); } }
+  void setForeground(bool value) {
+    if (_foreground == value) return;
+    if (!value) { _releaseInput(); operations.invalidateConfirmation(); }
+    _foreground = value;
+  }
+  void releaseInput() => _releaseInput();
+  Future<HostActionOutcome> performOperation(AgentAction action, Future<bool> Function() confirm) => operations.run(action, confirm);
 
   final RemoteApi api;
   final String deviceId;
@@ -88,7 +112,7 @@ class ViewerSession extends ChangeNotifier {
   AgentViewerStatus get agentContext => _agentState.status;
   int get contextEpoch => _contextEpoch;
   bool get contextImageCurrent => !agentContext.enabled || (_frameCurrent && agentContext.imageAvailable);
-  bool get inputAllowed => _input?.state == RTCDataChannelState.RTCDataChannelOpen && _authenticated && !_closed && !_disposed && agentContext.inputAllowed && contextImageCurrent && (!agentContext.enabled || (renderer.renderVideo && renderer.videoWidth > 0 && renderer.videoHeight > 0));
+  bool get inputAllowed => _input?.state == RTCDataChannelState.RTCDataChannelOpen && _authenticated && _foreground && !_closed && !_disposed && !operations.state.confirming && operations.state.pending == null && agentContext.inputAllowed && contextImageCurrent && (!agentContext.enabled || (renderer.renderVideo && renderer.videoWidth > 0 && renderer.videoHeight > 0));
   void Function()? onContextBoundary;
 
   /// Trozo del portapapeles del PC.
@@ -112,6 +136,9 @@ class ViewerSession extends ChangeNotifier {
   bool _disposed = false;
   bool _rendererReady = false;
   Future<void>? _teardownPending;
+  Future<void>? _connecting;
+  Future<void>? _recoveringFuture;
+  int _connectionEpoch = 0;
   final _statsSampler = VideoStatsSampler();
   final _statsPending = <RTCPeerConnection>{};
 
@@ -120,27 +147,42 @@ class ViewerSession extends ChangeNotifier {
   bool get connected => _control?.state == RTCDataChannelState.RTCDataChannelOpen && phase == ViewerPhase.connected;
 
   /// Conecta con la contraseña (primera vez) o con K (reconectar).
-  Future<void> connect([String? password]) async {
+  Future<void> connect([String? password]) {
+    if (_connecting != null || _recovering || _disposed || !_foreground || api.session.token != _owner) return Future.value();
+    final epoch = ++_connectionEpoch;
+    late final Future<void> current;
+    current = _connectNow(password, epoch).whenComplete(() { if (identical(_connecting, current)) _connecting = null; });
+    _connecting = current;
+    return current;
+  }
+  Future<void> _connectNow(String? password, int epoch) async {
     _closed = false;
     failure = null;
     closedReason = null;
     _setPhase(ViewerPhase.connecting);
     try {
-      await _attempt(password);
+      await _attempt(password, epoch);
+      _checkAttempt(epoch);
       _setPhase(ViewerPhase.connected);
     } on Object catch (error) {
+      if (_closed || _disposed) { await _teardown(); return; }
+      if (epoch != _connectionEpoch) return;
       final f = _failureOf(error);
-      if (f.code == 'wrong_password') _key = null;
+      if (f.code == 'wrong_password') _forgetKey();
       await _teardown();
+      if (epoch != _connectionEpoch || _closed || _disposed) return;
       failure = f;
       _setPhase(ViewerPhase.failed);
     }
+  }
+  void _checkAttempt(int epoch) {
+    if (epoch != _connectionEpoch || _closed || _disposed || !_foreground || api.session.token != _owner) throw const SessionFailure('closed');
   }
 
   /// Al volver a la app: si la conexión cayó mientras estaba en segundo plano (iOS suspende la
   /// app), se recupera con K sin pedir la contraseña.
   Future<void> recoverIfLost() async {
-    if (_closed || _recovering || _key == null) return;
+    if (_closed || !_foreground || _recovering || _key == null) return;
     final state = _pc?.connectionState;
     final lost = _pc == null ||
         state == RTCPeerConnectionState.RTCPeerConnectionStateFailed ||
@@ -203,14 +245,19 @@ class ViewerSession extends ChangeNotifier {
 
   /// Cierra la sesión (Desconectar o salir de la pantalla): se despide del PC.
   Future<void> close() async {
+    _connectionEpoch++;
     if (_closed && _pc == null) {
       await _teardownPending;
       return;
     }
     _releaseInput();
+    final closingPc = _pc;
     _closed = true;
+    _forgetKey();
+    operations.invalidateConfirmation();
     sendControl(byeMessage());
     await Future<void>.delayed(const Duration(milliseconds: 200));
+    if (_pc != closingPc) return;
     await _teardown();
     if (phase != ViewerPhase.failed) _setPhase(ViewerPhase.closed);
   }
@@ -218,7 +265,14 @@ class ViewerSession extends ChangeNotifier {
   @override
   Future<void> dispose() async {
     _disposed = true;
+    api.session.removeListener(_accountChanged);
     await close();
+    // No liberar la textura mientras una inicialización cancelada aún puede usarla.
+    await _connecting;
+    await _recoveringFuture;
+    await _teardown();
+    _operations.removeListener(_operationsChanged);
+    _operations.dispose();
     if (_rendererReady) await renderer.dispose();
     super.dispose();
   }
@@ -229,10 +283,13 @@ class ViewerSession extends ChangeNotifier {
     if (!_recovering) _setPhase(value);
   }
 
-  Future<void> _attempt(String? password) async {
+  Future<void> _attempt(String? password, int epoch) async {
+    _checkAttempt(epoch);
     // Antes de crear texturas/fábrica: los logs informativos nativos pueden incluir credenciales ICE.
     await WebRTC.initialize(options: {'logSeverity': 'error'});
+    _checkAttempt(epoch);
     await _teardown();
+    _checkAttempt(epoch);
     if (!_rendererReady) {
       await renderer.initialize();
       _rendererReady = true;
@@ -243,11 +300,18 @@ class ViewerSession extends ChangeNotifier {
     } else if (Platform.isAndroid) {
       await Helper.setAndroidAudioConfiguration(AndroidAudioConfiguration.media);
     }
+    _checkAttempt(epoch);
+    final ice = await api.iceServers();
+    _checkAttempt(epoch);
     final pc = await createPeerConnection({
-      'iceServers': await api.iceServers(),
+      'iceServers': ice,
       'sdpSemantics': 'unified-plan',
       if (forceRelay) 'iceTransportPolicy': 'relay',
     });
+    try { _checkAttempt(epoch); } on Object {
+      try { await pc.close(); } finally { await pc.dispose(); }
+      rethrow;
+    }
     _pc = pc;
     await pc.addTransceiver(kind: RTCRtpMediaType.RTCRtpMediaTypeVideo, init: RTCRtpTransceiverInit(direction: TransceiverDirection.RecvOnly));
     await pc.addTransceiver(kind: RTCRtpMediaType.RTCRtpMediaTypeAudio, init: RTCRtpTransceiverInit(direction: TransceiverDirection.RecvOnly));
@@ -293,7 +357,9 @@ class ViewerSession extends ChangeNotifier {
     };
     await pc.setLocalDescription(await pc.createOffer());
     await gathered.future.timeout(_iceGatheringTimeout, onTimeout: () {});
+    _checkAttempt(epoch);
     final offer = (await pc.getLocalDescription())!.sdp!;
+    _checkAttempt(epoch);
 
     final String requestId;
     try {
@@ -301,11 +367,15 @@ class ViewerSession extends ChangeNotifier {
     } on ApiError catch (error) {
       throw SessionFailure(error.code, RemoteApi.retryAfterOf(error));
     }
+    _checkAttempt(epoch);
     _progress(ViewerPhase.waiting);
     final answer = await _waitForAnswer(requestId);
+    _checkAttempt(epoch);
     await pc.setRemoteDescription(RTCSessionDescription(answer, 'answer'));
+    _checkAttempt(epoch);
     _progress(ViewerPhase.authenticating);
     await _authenticate(pc, control, offer, answer, password);
+    _checkAttempt(epoch);
     _watch(pc, control);
     onFileChannel?.call(_file);
   }
@@ -358,7 +428,9 @@ class ViewerSession extends ChangeNotifier {
             this.hostName = hostName;
             if (_key == null) {
               if (password == null) return fail('wrong_password');
-              _key = await deriveKey(password, salt, iterations);
+              final derived = await deriveKey(password, salt, iterations);
+              if (pc != _pc || _closed || _disposed) { derived.fillRange(0, derived.length, 0); return fail('closed'); }
+              _key = derived;
             }
             final proof = computeProof(_key!,
                 nonce: nonce, offerFingerprint: sdpFingerprint(offer) ?? '', answerFingerprint: sdpFingerprint(answer) ?? '');
@@ -453,20 +525,31 @@ class ViewerSession extends ChangeNotifier {
   }
 
   /// Se perdió la conexión: se repite la negociación con K durante 30 s, sin pedir la contraseña.
-  Future<void> _lost(RTCPeerConnection? pc) async {
-    if (_closed || _recovering || pc != _pc) return;
+  Future<void> _lost(RTCPeerConnection? pc) {
+    if (_recoveringFuture != null) return _recoveringFuture!;
+    late final Future<void> current;
+    current = _recover(pc).whenComplete(() { if (identical(_recoveringFuture, current)) _recoveringFuture = null; });
+    _recoveringFuture = current;
+    return current;
+  }
+  Future<void> _recover(RTCPeerConnection? pc) async {
+    if (_closed || !_foreground || _recovering || pc != _pc) return;
     _recovering = true;
+    final epoch = ++_connectionEpoch;
     await _teardown();
+    if (epoch != _connectionEpoch || _closed || _disposed || !_foreground) { _recovering = false; return; }
     _setPhase(ViewerPhase.reconnecting);
     final deadline = DateTime.now().add(reconnectWindow);
     var last = const SessionFailure('reconnect_failed');
-    while (!_closed && DateTime.now().isBefore(deadline)) {
+    while (!_closed && _foreground && DateTime.now().isBefore(deadline)) {
       try {
-        await _attempt(null);
+        await _attempt(null, epoch);
+        _checkAttempt(epoch);
         _recovering = false;
         _setPhase(ViewerPhase.connected);
         return;
       } on Object catch (error) {
+        if (epoch != _connectionEpoch || _closed || _disposed || !_foreground) { if (_closed || _disposed) await _teardown(); _recovering = false; return; }
         last = _failureOf(error);
         await _teardown();
         if (finalErrors.contains(last.code)) break;
@@ -475,7 +558,7 @@ class ViewerSession extends ChangeNotifier {
     }
     _recovering = false;
     if (_closed) return;
-    if (last.code == 'wrong_password') _key = null;
+    if (last.code == 'wrong_password') _forgetKey();
     failure = SessionFailure(finalErrors.contains(last.code) ? last.code : 'reconnect_failed', last.retryAfter);
     _setPhase(ViewerPhase.failed);
   }
@@ -508,6 +591,22 @@ class ViewerSession extends ChangeNotifier {
 
   bool _handleAgent(String raw) {
     if (!_authenticated || _closed || _disposed) return false;
+    final message = parseAgentHostMessage(raw);
+    if (message is HostOperationResult) {
+      final matched = operations.receive(message);
+      if (matched && message.status == HostOperationStatus.accepted && {AgentAction.restart, AgentAction.logout}.contains(message.action)) {
+        _releaseInput();
+        _forgetKey();
+        _closed = true;
+        // Cortar contenido sensible antes de que termine la solicitud asíncrona.
+        _declaredFeatures = const FeaturesMessage(clipboard: false, files: false, audio: false);
+        _publishFeatures();
+        _contextEpoch++;
+        onContextBoundary?.call();
+        _setPhase(ViewerPhase.closed);
+      }
+      return true;
+    }
     final previous = agentContext;
     if (!_agentState.accept(raw)) return false;
     _applyAgentState(previous);
@@ -516,6 +615,8 @@ class ViewerSession extends ChangeNotifier {
 
   void _applyAgentState(AgentViewerStatus previous) {
     final next = agentContext;
+    operations.invalidateConfirmation();
+    operations.setActions(next.sequence > 0 ? _agentState.actions : const []);
     final boundary = next.enabled && (!previous.enabled || next.sequence != previous.sequence);
     _releaseInput();
     if (boundary || !next.imageAvailable) {
@@ -558,6 +659,7 @@ class ViewerSession extends ChangeNotifier {
 
   Future<void> _teardownNow() async {
     _releaseInput();
+    operations.reset();
     final wasAgent = agentContext.enabled;
     _agentState = AgentViewerState();
     _contextEpoch++;
@@ -587,7 +689,11 @@ class ViewerSession extends ChangeNotifier {
       _file = null;
       onFileChannel?.call(null);
     }
-    if (_rendererReady) await renderer.setSrcObject(stream: null);
+    if (_rendererReady) {
+      try { await renderer.setSrcObject(stream: null); } on Object {
+        // Un fallo de textura no puede impedir cerrar y liberar el transporte nativo.
+      }
+    }
     final streams = _ownedVideoStreams.toList();
     _ownedVideoStreams.clear();
     for (final stream in streams) {

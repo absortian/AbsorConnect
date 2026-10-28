@@ -10,6 +10,10 @@ import 'package:share_plus/share_plus.dart';
 
 import '../l10n/app_localizations.dart';
 import '../src/remote/input.dart';
+import '../src/remote/agent_protocol.dart';
+import '../src/remote/host_actions.dart';
+import '../src/remote/restart_wait.dart';
+import '../src/remote/background_lease.dart';
 import '../src/remote/protocol.dart';
 import '../src/remote/remote_api.dart';
 import '../src/remote/remote_transfers.dart';
@@ -36,7 +40,10 @@ class ViewerScreen extends StatefulWidget {
 
 class _ViewerScreenState extends State<ViewerScreen> with WidgetsBindingObserver {
   /// En segundo plano, la sesión aguanta 30 s; después se cierra (mobile-app).
-  static const _backgroundLimit = Duration(seconds: 30);
+  late final BackgroundLease _background;
+  late final RestartWait _restart;
+  bool _foreground = true, _reconnecting = false, _adminDialog = false;
+  bool _requireAvailability = false;
 
   late final ViewerSession _session;
 
@@ -47,7 +54,7 @@ class _ViewerScreenState extends State<ViewerScreen> with WidgetsBindingObserver
   bool _keyboard = false;
   bool _toolbar = true;
   bool _closedInBackground = false;
-  Timer? _backgroundTimer;
+
   final Set<String> _modifiers = {};
   int _lastContextEpoch = 0;
   void _contextChanged() {
@@ -64,6 +71,13 @@ class _ViewerScreenState extends State<ViewerScreen> with WidgetsBindingObserver
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     _session = widget.sessionFactory?.call(widget.api, widget.device.id) ?? ViewerSession(widget.api, widget.device.id);
     _transfers = RemoteTransfers(_session);
+    _restart = RestartWait(status: () => widget.api.availability(widget.device.id));
+    _restart.addListener(_restartChanged);
+    _background = BackgroundLease(onExpired: () {
+      _closedInBackground = true;
+      _restart.cancel();
+      unawaited(_session.close());
+    });
     _session.addListener(_contextChanged);
     unawaited(_session.connect(widget.password));
   }
@@ -71,7 +85,9 @@ class _ViewerScreenState extends State<ViewerScreen> with WidgetsBindingObserver
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _backgroundTimer?.cancel();
+    _background.dispose();
+    _restart.removeListener(_restartChanged);
+    _restart.dispose();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     _keyboardFocus.dispose();
     _session.removeListener(_contextChanged);
@@ -80,25 +96,109 @@ class _ViewerScreenState extends State<ViewerScreen> with WidgetsBindingObserver
     super.dispose();
   }
 
+  void _restartChanged() { if (mounted) setState(() {}); }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive) {
+      _session.releaseInput();
+      _session.operations.invalidateConfirmation();
+    }
     if (state == AppLifecycleState.paused || state == AppLifecycleState.hidden) {
-      _backgroundTimer ??= Timer(_backgroundLimit, () {
-        _closedInBackground = true;
-        unawaited(_session.close());
-      });
+      _foreground = false;
+      _session.setForeground(false);
+      _restart.setForeground(false);
+      _keyboardFocus.unfocus();
+      _background.pause();
     } else if (state == AppLifecycleState.resumed) {
-      _backgroundTimer?.cancel();
-      _backgroundTimer = null;
-      if (!_closedInBackground) unawaited(_session.recoverIfLost());
+      _foreground = true;
+      final valid = _background.resume();
+      _session.setForeground(true);
+      if (valid) {
+        _restart.setForeground(true);
+        unawaited(_session.recoverIfLost());
+      }
     }
   }
 
   Future<void> _reconnect() async {
-    _closedInBackground = false;
-    if (_session.hasKey) return _session.connect();
-    final password = await askPcPassword(context, widget.device.name);
-    if (password != null) await _session.connect(password);
+    if (_reconnecting || !_foreground || _restart.state == RestartWaitState.waiting) return;
+    _reconnecting = true;
+    try {
+      // Después de una acción destructiva nunca publica una oferta a un PC fuera de línea.
+      if (_requireAvailability) {
+        final status = await widget.api.availability(widget.device.id);
+        if (!mounted || !_foreground) return;
+        if (!status.online || !status.available) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context).remoteErrDeviceOffline)));
+          return;
+        }
+      }
+      if (!_session.hasKey) {
+        final password = await askPcPassword(context, widget.device.name);
+        if (password == null || !mounted || !_foreground) return;
+        _closedInBackground = false;
+        _background.renew();
+        _restart.clear();
+        await _session.connect(password);
+      } else {
+        _closedInBackground = false;
+        _background.renew();
+        await _session.connect();
+      }
+    } on Object {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context).remoteRestartFailed)));
+    } finally { _reconnecting = false; }
+  }
+
+  Future<void> _admin(AgentAction action) async {
+    DateTime? baseline;
+    if (action == AgentAction.restart) {
+      try { baseline = (await widget.api.availability(widget.device.id)).lastSeenAt; }
+      on Object { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context).remoteRestartFailed))); return; }
+    }
+    if (!mounted || !_foreground) return;
+    _keyboardFocus.unfocus();
+    _session.releaseInput();
+    setState(() { _keyboard = false; _modifiers.clear(); _adminDialog = true; });
+    final t = AppLocalizations.of(context);
+    final result = await _session.performOperation(action, () async => await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => SensitiveContextSheet(
+        listenable: _session.operations,
+        epoch: () => _session.contextEpoch,
+        allowed: () => _session.operations.state.confirming,
+        child: AlertDialog(
+          key: const Key('remote-admin-confirm'),
+          title: Text(t.remoteActionConfirm(_actionLabel(t, action), widget.device.name)),
+          content: Text(t.remoteActionConfirmHint),
+          actions: [
+            TextButton(key: const Key('remote-admin-cancel'), onPressed: () => Navigator.of(dialogContext).pop(false), child: Text(t.cancel)),
+            FilledButton(key: const Key('remote-admin-accept'), onPressed: () => Navigator.of(dialogContext).pop(true), child: Text(_actionLabel(t, action))),
+          ],
+        ),
+      ),
+    ) ?? false);
+    if (!mounted) return;
+    setState(() => _adminDialog = false);
+    if (result.status == HostActionStatus.accepted && {AgentAction.restart, AgentAction.logout}.contains(action)) {
+      _requireAvailability = true;
+      // El resultado correlacionado ya borró K e inhibió la reconexión automática.
+      await _session.close();
+      if (!mounted) return;
+      if (action == AgentAction.restart && baseline != null && !_closedInBackground) {
+        _restart.setForeground(_foreground);
+        _restart.start(baseline);
+      }
+    }
+    if (!mounted || result.status == HostActionStatus.cancelled) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(switch(result.status) {
+      HostActionStatus.accepted => t.remoteActionAccepted,
+      HostActionStatus.rejected => t.remoteActionRejected,
+      HostActionStatus.timedOut => t.remoteActionTimedOut,
+      HostActionStatus.failed || HostActionStatus.connectionLost => t.remoteActionFailed,
+      _ => t.remoteActionUnavailable,
+    })));
   }
 
   Future<void> _disconnect() async {
@@ -195,7 +295,7 @@ class _ViewerScreenState extends State<ViewerScreen> with WidgetsBindingObserver
               Positioned.fill(
                 child: Column(children: [
                   Expanded(
-                    child: _RemoteView(key: ValueKey(_session.contextEpoch), session: _session, mouseMode: _mouseMode, enabled: connected && _session.inputAllowed),
+                    child: _RemoteView(key: ValueKey(_session.contextEpoch), session: _session, mouseMode: _mouseMode, enabled: connected && !_adminDialog && _session.inputAllowed),
                   ),
                   if (connected && _session.agentContext.enabled)
                     SafeArea(top: false, child: AgentContextNotice(status: _session.agentContext, imageCurrent: _session.contextImageCurrent)),
@@ -209,7 +309,7 @@ class _ViewerScreenState extends State<ViewerScreen> with WidgetsBindingObserver
                 ]),
               ),
               // Campo invisible que recibe el teclado del teléfono
-              Positioned(left: 0, bottom: 0, width: 1, height: 1, child: _HiddenInput(key: ValueKey('ime-${_session.contextEpoch}'), focusNode: _keyboardFocus, onText: _typed, onKey: _pressKey)),
+              Positioned(left: 0, bottom: 0, width: 1, height: 1, child: _HiddenInput(key: ValueKey('ime-${_session.contextEpoch}'), focusNode: _keyboardFocus, onText: (text) { if (!_adminDialog) _typed(text); }, onKey: (key) { if (!_adminDialog) _pressKey(key); })),
               if (connected)
                 Positioned(
                   top: 0,
@@ -231,10 +331,11 @@ class _ViewerScreenState extends State<ViewerScreen> with WidgetsBindingObserver
                       onDownload: _download,
                       onTransfers: _transfers.transfers.isEmpty ? null : _showTransfers,
                       onDisconnect: _disconnect,
+                      onAdmin: _admin,
                     ),
                   ),
                 ),
-              if (!connected)
+              if (!connected && _restart.state == RestartWaitState.idle)
                 Positioned.fill(
                   child: _StatusOverlay(
                     session: _session,
@@ -245,6 +346,26 @@ class _ViewerScreenState extends State<ViewerScreen> with WidgetsBindingObserver
                     backLabel: t.remoteBack,
                   ),
                 ),
+              if (_restart.state != RestartWaitState.idle)
+                Positioned.fill(child: ColoredBox(color: Colors.black87, child: SafeArea(child: Center(child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    Text(widget.device.name),
+                    const SizedBox(height: 16),
+                    Text(switch (_restart.state) {
+                      RestartWaitState.waiting => t.remoteRestartWaiting,
+                      RestartWaitState.ready => t.remoteRestartReady,
+                      RestartWaitState.expired => t.remoteRestartExpired,
+                      RestartWaitState.cancelled => t.remoteRestartCancelled,
+                      _ => t.remoteRestartFailed,
+                    }, key: const Key('remote-restart-status'), textAlign: TextAlign.center),
+                    if (_restart.state == RestartWaitState.waiting) ...[
+                      const SizedBox(height: 16), const CircularProgressIndicator(),
+                      TextButton(key: const Key('remote-restart-cancel'), onPressed: _restart.cancel, child: Text(t.remoteRestartCancel)),
+                    ] else TextButton(key: const Key('remote-restart-connect'), onPressed: _reconnect, child: Text(t.remoteReconnect)),
+                    TextButton(onPressed: () => Navigator.of(context).pop(), child: Text(t.remoteBack)),
+                  ]),
+                ))))),
             ]);
           },
         ),
@@ -689,6 +810,7 @@ class _Toolbar extends StatelessWidget {
     required this.onDownload,
     required this.onTransfers,
     required this.onDisconnect,
+    required this.onAdmin,
   });
 
   final bool expanded;
@@ -704,6 +826,7 @@ class _Toolbar extends StatelessWidget {
   final VoidCallback onDownload;
   final VoidCallback? onTransfers;
   final VoidCallback onDisconnect;
+  final void Function(AgentAction) onAdmin;
 
   @override
   Widget build(BuildContext context) {
@@ -781,6 +904,14 @@ class _Toolbar extends StatelessWidget {
             tooltip: session.audioMuted ? t.remoteUnmute : t.remoteMute,
             icon: Icon(session.audioMuted ? Icons.volume_off_outlined : Icons.volume_up_outlined, color: Colors.white),
             onPressed: () => session.setAudioMuted(!session.audioMuted),
+          ),
+        if (session.operations.state.actions.isNotEmpty)
+          PopupMenuButton<AgentAction>(
+            key: const Key('remote-admin'), tooltip: t.remoteAdmin,
+            enabled: !session.operations.state.blocked && !session.operations.state.confirming && session.operations.state.pending == null,
+            icon: const Icon(Icons.admin_panel_settings_outlined, color: Colors.white),
+            onSelected: onAdmin,
+            itemBuilder: (_) => [for (final action in session.operations.state.actions) PopupMenuItem(value: action, child: Text(_actionLabel(t, action)))],
           ),
         PopupMenuButton<VoidCallback>(
           key: const Key('remote-more'),
@@ -1001,3 +1132,10 @@ String _size(int bytes) {
   }
   return '${value.toStringAsFixed(unit == 0 ? 0 : 1)} ${units[unit]}';
 }
+
+String _actionLabel(AppLocalizations t, AgentAction action) => switch (action) {
+  AgentAction.lock => t.remoteActionLock,
+  AgentAction.logout => t.remoteActionLogout,
+  AgentAction.restart => t.remoteActionRestart,
+  AgentAction.secureAttention => t.remoteActionSecureAttention,
+};

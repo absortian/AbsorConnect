@@ -108,3 +108,31 @@ class PreparationRequestTest(unittest.TestCase):
 
 
 if __name__=='__main__':unittest.main()
+
+class BackgroundRequestTest(unittest.TestCase):
+    def test_only_fixed_cases_and_empty_body_control_owned_lab(self):
+        seen=[]
+        controller=fixture.MobileController({'correct':{},'correct-reconnect':{}},{},None,None,{},runtime=True,background=seen.append)
+        for name,seconds in [('correct',10),('correct-reconnect',31)]:
+            handler=ScreenshotRequestTest.Handler('/mobile/background/'+name,{})
+            self.assertTrue(controller.post(handler))
+            self.assertEqual(handler.response,(200,{'ok':True,'seconds':seconds}))
+        self.assertEqual(seen,[10,31])
+        for path,body in [('/mobile/background/foreign',{}),('/mobile/background/correct',{'device':'foreign'}),('/mobile/background/correct',{'seconds':1000})]:
+            with self.assertRaises(AssertionError):controller.post(ScreenshotRequestTest.Handler(path,body))
+        self.assertEqual(seen,[10,31])
+
+class LifecycleCheckpointTest(unittest.TestCase):
+    def test_checkpoint_does_not_consume_the_final_challenge(self):
+        import tempfile
+        import pathlib
+        class Handler(ScreenshotRequestTest.Handler):
+            def body(self,limit):return self.value
+        with tempfile.TemporaryDirectory() as directory:
+            item={'greenCases':{'correct'},'backgroundSeconds':10,'nativeResult':{'authenticated':True,'dtlsConnected':True,'protectedIpc':True,'native':{'hostSecretsInWorker':False,'mouseDown':1,'mouseUp':1,'keyDown':1,'keyUp':1,'captures':10}}}
+            controller=fixture.MobileController({'correct':item},{},None,pathlib.Path(directory),{'relayController':False},runtime=True)
+            body={'nativeGreenVerified':True,'challengeId':'a'*64,'helloCount':1,'productionRuntime':True,'productionScreen':True,'authenticated':True,'decodedFrames':10,'width':320,'height':180,'inputSent':True,'extensionNegotiated':True,'contextImageCurrent':True,'sensitiveFeaturesFalse':True,'candidates':{'local':'host','remote':'host'},'backgroundSeconds':10,'backgroundClosed':False,'backgroundRecovered':True,'backgroundElapsedMicros':10000000,'requestsAfterResume':1}
+            self.assertTrue(controller.post(Handler('/mobile/checkpoint/correct',body)))
+            self.assertTrue(controller.post(Handler('/mobile/result/correct',body)))
+            self.assertEqual(len(controller.results),1)
+            with self.assertRaises(AssertionError):controller.post(Handler('/mobile/result/correct',body))

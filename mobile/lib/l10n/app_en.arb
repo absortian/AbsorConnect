@@ -360,5 +360,33 @@
   "remoteAgentImageWaiting": "Waiting for a new frame from the current context.",
   "remoteAgentInputUnavailable": "The host does not support input in this context. Sensitive features are suspended.",
   "remoteAgentReconnectContent": "Files, clipboard and sound remain suspended until you reconnect.",
-  "remoteAgentSensitiveSuspended": "Protected context: clipboard, files and sound are suspended."
+  "remoteAgentSensitiveSuspended": "Protected context: clipboard, files and sound are suspended.",
+  "remoteAdmin": "Manage",
+  "remoteActionLock": "Lock",
+  "remoteActionLogout": "Sign out",
+  "remoteActionRestart": "Restart",
+  "remoteActionSecureAttention": "Secure attention",
+  "remoteActionConfirm": "Do you want to {action} on “{name}”?",
+  "@remoteActionConfirm": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "remoteActionConfirmHint": "This command affects the remote PC. Restart and sign out disconnect the viewer; you must authenticate again afterwards.",
+  "remoteActionAccepted": "The PC accepted the command.",
+  "remoteActionRejected": "The PC rejected the command.",
+  "remoteActionFailed": "The command did not complete.",
+  "remoteActionTimedOut": "No result received. The command will not be repeated; reconnect to manage again.",
+  "remoteActionUnavailable": "This action is no longer available.",
+  "remoteRestartWaiting": "Waiting for the PC, for up to five minutes. Only availability is checked; no connection is attempted.",
+  "remoteRestartReady": "The PC is available again. Connect and enter its password again.",
+  "remoteRestartExpired": "The wait ended. Check the PC or try again when it is available.",
+  "remoteRestartCancelled": "Wait cancelled. The command already sent to the PC is not undone.",
+  "remoteRestartFailed": "Unable to check the PC. Check your account and its availability.",
+  "remoteRestartCancel": "Cancel wait"
 }
