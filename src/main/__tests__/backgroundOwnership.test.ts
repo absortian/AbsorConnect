@@ -91,3 +91,13 @@ it('la traducción inglesa conserva la distinción entre salir y detener el serv
   expect(h.menu.map((x) => x.label)).toContain('Native service: active session; not certified')
   expect(h.menu.at(-1)?.label).toBe('Quit the interface')
 })
+
+it('no anuncia instalación al salir antes de comprobar la propiedad al arrancar', async () => {
+  const b = await import('../background')
+  await b.initTray()
+  b.setTrayUpdate({ version: '1.2.3' })
+  await vi.waitFor(() =>
+    expect(h.menu.some((x) => x.label?.includes('comprobando el propietario del host'))).toBe(true)
+  )
+  expect(h.menu.some((x) => x.label?.includes('Instalar la versión'))).toBe(false)
+})

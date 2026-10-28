@@ -42,6 +42,7 @@ interface TrayLabels {
   remoteAgent: string
   nativeState: Record<string, string>
   updateSessionDeferred: (version: string) => string
+  updateOwnershipPending: (version: string) => string
   quitInterface: string
   remoteOff: string
   remoteAvailable: string
@@ -53,6 +54,8 @@ interface TrayLabels {
 
 const LABELS: Record<'es' | 'en', TrayLabels> = {
   es: {
+    updateOwnershipPending: (version) =>
+      `Versión ${version} pospuesta: comprobando el propietario del host`,
     open: 'Abrir Absor Connect',
     quit: 'Salir',
     remoteAgent: 'Servicio nativo: estado sin verificar',
@@ -73,6 +76,7 @@ const LABELS: Record<'es' | 'en', TrayLabels> = {
       `Versión ${version} pospuesta: actualización conjunta app/agente pendiente`
   },
   en: {
+    updateOwnershipPending: (version) => `Version ${version} deferred: checking host ownership`,
     open: 'Open Absor Connect',
     quit: 'Quit',
     remoteAgent: 'Native service: state unverified',
@@ -204,11 +208,13 @@ async function rebuildTrayMenu(): Promise<void> {
   if (trayUpdate) {
     const label =
       trayUpdate.action === NO_OP
-        ? remoteStatus === 'agent'
-          ? t.updateDeferred(trayUpdate.version)
-          : isRemoteControlActive()
-            ? t.updateSessionDeferred(trayUpdate.version)
-            : t.updateReady(trayUpdate.version)
+        ? !ownershipResolved
+          ? t.updateOwnershipPending(trayUpdate.version)
+          : remoteStatus === 'agent'
+            ? t.updateDeferred(trayUpdate.version)
+            : isRemoteControlActive()
+              ? t.updateSessionDeferred(trayUpdate.version)
+              : t.updateReady(trayUpdate.version)
         : t.updateAvailable(trayUpdate.version)
     items.push({ type: 'separator' }, { label, click: () => trayUpdate?.action() })
   }

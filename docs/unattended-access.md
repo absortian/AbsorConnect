@@ -197,3 +197,13 @@ nativa pero no se puede verificar su servicio, la app reserva la propiedad y no
 crea otro host. Cerrar la interfaz cancela su consulta, sin enviar una parada al
 servicio; esa separación por sí sola no garantiza acceso después de bloquear,
 cerrar sesión o reiniciar. Las altas/migraciones y el paquete final siguen pendientes.
+
+
+La parada local del laboratorio Linux se solicita expresamente desde Ajustes,
+con confirmación y sin compartir el canal de consulta. Tras confirmarla, el
+servicio exige alta autorizada nueva; reiniciarlo no revierte la parada. El cliente
+Main distingue «confirmada» de «sin confirmar». La UI de alta y los paquetes
+finales aún están pendientes, por lo que este canal no se activa automáticamente
+en los equipos instalados. El actualizador se pospone mientras comprueba la
+propiedad, durante sesiones remotas y para agentes que necesitan actualización
+conjunta. Cerrar la interfaz no envía esa parada.

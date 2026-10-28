@@ -262,7 +262,13 @@ function RemoteAccess(props: RemoteAccessProps): React.JSX.Element {
         <p>{t('remoteAccess.stop.requireEnrollment')}</p>
         <button
           className="btn-secondary"
-          disabled={!remote.localStopAvailable || stopping || (stopReport?.ok ?? false)}
+          disabled={
+            !remote.localStopAvailable ||
+            remote.localAgent?.phase !== 'responding' ||
+            remote.localAgent?.ownership !== 'agent' ||
+            stopping ||
+            (stopReport?.ok ?? false)
+          }
           onClick={() => void stopAgent()}
         >
           {t(stopping ? 'remoteAccess.stop.pending' : 'remoteAccess.stop.action')}
