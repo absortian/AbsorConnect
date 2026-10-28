@@ -358,6 +358,20 @@
       "absent": "No se ha detectado una instalación nativa activa.",
       "responding": "El servicio responde. Esta configuración aún no está certificada para acceso desatendido.",
       "unverified": "No se puede verificar el servicio. Revisa la instalación; salir de la interfaz no lo detiene."
+    },
+    "stop": {
+      "action": "Detener host nativo",
+      "pending": "Confirmando parada…",
+      "requireEnrollment": "Esta parada corta la sesión y exige una alta autorizada nueva para reactivar el host. Salir de la interfaz no lo detiene.",
+      "unavailable": "El componente local de parada no está instalado o no se puede verificar.",
+      "confirmed": "Parada guardada y confirmada por el servicio. Será necesaria una nueva alta autorizada.",
+      "errors": {
+        "forbidden": "Esta ventana no puede solicitar la parada.",
+        "local_agent_unverified": "El estado del servicio ha cambiado; no se ha enviado la parada.",
+        "local_agent_busy": "Ya hay una solicitud local en curso.",
+        "local_agent_control_unavailable": "No se puede verificar el componente local de parada.",
+        "local_agent_stop_unconfirmed": "La parada no se ha podido confirmar. No presupongas que el host está detenido; necesita revisión local."
+      }
     }
   },
   "remoteStream": {

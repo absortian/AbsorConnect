@@ -8,6 +8,8 @@ use std::{
     path::Path,
 };
 pub const PATH: &str = "/opt/absorconnect-secure-lab/ui-profile.json";
+const CONTROL_PATH: &str = "/opt/absorconnect-secure-lab/control-profile.json";
+pub const CONTROL_SOCKET: &str = "/run/absorconnect-ui-control-lab/control.sock";
 pub const SOCKET: &str = "/run/absorconnect-ui-lab/status.sock";
 #[derive(Clone, Copy, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -34,7 +36,13 @@ impl UiProfile {
         Ok(p)
     }
     pub fn load_optional() -> Result<Option<Self>, IpcError> {
-        let m = match fs::symlink_metadata(PATH) {
+        Self::load_at(PATH)
+    }
+    pub fn load_control_optional() -> Result<Option<Self>, IpcError> {
+        Self::load_at(CONTROL_PATH)
+    }
+    fn load_at(path: &str) -> Result<Option<Self>, IpcError> {
+        let m = match fs::symlink_metadata(path) {
             Ok(m) => m,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
             Err(_) => return Err(IpcError::Identity),
@@ -57,7 +65,7 @@ impl UiProfile {
         let f = OpenOptions::new()
             .read(true)
             .custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC)
-            .open(PATH)
+            .open(path)
             .map_err(|_| IpcError::Io)?;
         let opened = f.metadata().map_err(|_| IpcError::Io)?;
         if opened.ino() != m.ino() || opened.dev() != m.dev() {
@@ -70,13 +78,19 @@ impl UiProfile {
         Self::parse(&raw).map(Some)
     }
     pub fn validate_socket(self) -> Result<(), IpcError> {
+        self.validate_socket_at(SOCKET)
+    }
+    pub fn validate_control_socket(self) -> Result<(), IpcError> {
+        self.validate_socket_at(CONTROL_SOCKET)
+    }
+    fn validate_socket_at(self, path: &str) -> Result<(), IpcError> {
         use std::os::unix::fs::FileTypeExt;
-        let parent = Path::new(SOCKET).parent().ok_or(IpcError::Identity)?;
+        let parent = Path::new(path).parent().ok_or(IpcError::Identity)?;
         let d = fs::symlink_metadata(parent).map_err(|_| IpcError::Identity)?;
         if !d.is_dir() || d.is_symlink() || d.uid() != 0 || d.mode() & 0o022 != 0 {
             return Err(IpcError::Identity);
         }
-        let m = fs::symlink_metadata(SOCKET).map_err(|_| IpcError::Identity)?;
+        let m = fs::symlink_metadata(path).map_err(|_| IpcError::Identity)?;
         if !m.file_type().is_socket()
             || m.uid() != self.broker_uid
             || m.gid() != self.owner_gid

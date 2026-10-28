@@ -1,9 +1,19 @@
 // Misma implementación Main, ejecutada sin privilegios en la VM propia.
 import { AgentStatusClient, installedAgentSource } from '../../src/main/remote/agentStatusClient'
+import { AgentControlClient, installedAgentControlSource } from '../../src/main/remote/agentControlClient'
+import { isDeviceId } from '../../src/shared/remote/agentDevice'
 import { HostService } from '../../src/main/remote/hostService'
 const wait = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
 async function main(): Promise<void> {
-  if (process.platform !== 'linux' || process.argv.length !== 2 || process.getuid?.() !== 1000) throw Error('owned_user_required')
+  if (process.platform !== 'linux' || process.getuid?.() !== 1000) throw Error('owned_user_required')
+  if (process.argv.length === 4 && process.argv[2] === '--stop' && isDeviceId(process.argv[3])) {
+    const control = new AgentControlClient(installedAgentControlSource('/opt/absorconnect-secure-lab/absor-agent-control-lab'))
+    const result = await control.stop(process.argv[3])
+    if (!result.ok) throw Error('stop_unconfirmed')
+    console.log(JSON.stringify(result))
+    return
+  }
+  if (process.argv.length !== 2) throw Error('invalid_arguments')
   let apiCalls = 0, identities = 0, sessions = 0, reservations = 0
   const ids = new Set<string>()
   for (let episode = 0; episode < 6; episode++) {

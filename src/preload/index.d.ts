@@ -1,3 +1,4 @@
+import type { LocalAgentStopResult } from '../shared/remote/localAgent'
 import { ElectronAPI } from '@electron-toolkit/preload'
 import {
   CloudResult,
@@ -30,6 +31,7 @@ declare global {
       revokeRemoteAgent: (deviceId: string) => Promise<{ ok: true } | { ok: false; code: string }>
       openViewer: (deviceId: string, deviceName: string) => Promise<boolean>
       remoteSettings: () => Promise<RemoteSettingsResult>
+      stopLocalAgent: () => Promise<LocalAgentStopResult>
       setRemotePassword: (password: string) => Promise<RemoteSettingsResult>
       setRemoteEnabled: (enabled: boolean) => Promise<RemoteSettingsResult>
       updateRemoteSettings: (changes: RemoteSettingsChanges) => Promise<RemoteSettingsResult>

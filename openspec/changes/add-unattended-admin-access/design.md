@@ -470,3 +470,23 @@ Se verifican las dos traducciones, todas las combinaciones de capacidades,
 metadatos malformados, equipo fuera de línea y estado local ambiguo/activo/revocado.
 No se añade una casilla que el usuario pueda usar para marcar un equipo como
 certificado ni se expone información privada en el renderer.
+
+
+### D12. Parada local explícita en un canal separado
+
+La consulta D10 conserva su operación única de lectura. El laboratorio Linux
+puede instalar optativamente un tercer socket, con perfil root separado y solo
+UID/GID del dueño local. Este canal acepta únicamente `stop` para el identificador
+público exacto del host, nonce nuevo y tramas/plazos pequeños; no acepta rutas,
+PIDs, shell, reinicio, reanudación, altas ni datos de cuenta. El broker corta
+verificador/sesión/concesión, persiste su marcador terminal y sincroniza el padre
+antes de confirmar. Un error de persistencia termina el proceso sin confirmar;
+el supervisor retira al trabajador. La parada no se revierte con otra consulta,
+un cierre de interfaz o reinicio del servicio: hace falta alta autorizada nueva.
+
+Main solo invoca el cliente instalado validado, desde una acción local confirmada
+por el frame principal o un evento de salida de cuenta. El token de cuenta nunca
+viaja a ese cliente. Una respuesta de parada no certifica captura protegida y una
+respuesta perdida se muestra como intervención necesaria; nunca devuelve el host
+al legado. Se ensayarán denegaciones locales, mensajes malformados y parada de un
+P2P con API sin respuesta, más reinicio del broker sin reactivación.

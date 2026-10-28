@@ -9,6 +9,7 @@ import * as fs from 'fs/promises'
 import icon from '../../resources/icon.png?asset'
 import trayIconTemplate from '../../resources/trayTemplate.png?asset'
 import { getBackgroundSettings, getLanguage, saveBackgroundSettings } from './store'
+import { publicLocalAgentSnapshot, type LocalAgentSnapshot } from '../shared/remote/localAgent'
 
 /** Estado del control remoto de ESTE PC, para reflejarlo en la bandeja. */
 export type RemoteStatus = 'off' | 'available' | 'active' | 'agent'
@@ -22,6 +23,8 @@ let tray: Tray | null = null
 let deps: BackgroundDeps | null = null
 let mainWindow: BrowserWindow | null = null
 let remoteStatus: RemoteStatus = 'off'
+let ownershipResolved = false
+let localAgent: LocalAgentSnapshot | null = null
 let activeController: string | null = null
 // Salida real (menú "Salir" o app.quit()): deja de ocultar la ventana en 'close'.
 let quitting = false
@@ -37,6 +40,8 @@ interface TrayLabels {
   open: string
   quit: string
   remoteAgent: string
+  nativeState: Record<string, string>
+  updateSessionDeferred: (version: string) => string
   quitInterface: string
   remoteOff: string
   remoteAvailable: string
@@ -50,26 +55,41 @@ const LABELS: Record<'es' | 'en', TrayLabels> = {
   es: {
     open: 'Abrir Absor Connect',
     quit: 'Salir',
-    remoteAgent: 'Propietario: agente; estado del servicio sin verificar',
+    remoteAgent: 'Servicio nativo: estado sin verificar',
+    nativeState: {
+      idle: 'Servicio nativo: sin sesión activa; sin certificar',
+      active: 'Servicio nativo: sesión activa; sin certificar',
+      validation_required: 'Servicio nativo: requiere autorización nueva',
+      revoked: 'Servicio nativo: autorización revocada'
+    },
+    updateSessionDeferred: (version) => `Versión ${version} pospuesta durante la sesión remota`,
     quitInterface: 'Salir de la interfaz',
     remoteOff: 'Control remoto: desactivado',
     remoteAvailable: 'Control remoto: disponible',
     remoteActiveFrom: (name) => `Controlado ahora desde ${name}`,
     updateAvailable: (version) => `Descargar la versión ${version}`,
     updateReady: (version) => `Instalar la versión ${version} al salir`,
-    updateDeferred: (version) => `Versión ${version} pospuesta: estado del agente sin verificar`
+    updateDeferred: (version) =>
+      `Versión ${version} pospuesta: actualización conjunta app/agente pendiente`
   },
   en: {
     open: 'Open Absor Connect',
     quit: 'Quit',
-    remoteAgent: 'Owner: agent; service status unverified',
+    remoteAgent: 'Native service: state unverified',
+    nativeState: {
+      idle: 'Native service: no active session; not certified',
+      active: 'Native service: active session; not certified',
+      validation_required: 'Native service: fresh authorization required',
+      revoked: 'Native service: authorization revoked'
+    },
+    updateSessionDeferred: (version) => `Version ${version} deferred during the remote session`,
     quitInterface: 'Quit the interface',
     remoteOff: 'Remote control: off',
     remoteAvailable: 'Remote control: available',
     remoteActiveFrom: (name) => `Controlled now from ${name}`,
     updateAvailable: (version) => `Download version ${version}`,
     updateReady: (version) => `Install version ${version} on quit`,
-    updateDeferred: (version) => `Version ${version} deferred: agent status unverified`
+    updateDeferred: (version) => `Version ${version} deferred: coordinated app/agent update pending`
   }
 }
 
@@ -170,7 +190,9 @@ async function rebuildTrayMenu(): Promise<void> {
     remoteStatus === 'active'
       ? t.remoteActiveFrom(activeController ?? '—')
       : remoteStatus === 'agent'
-        ? t.remoteAgent
+        ? ((localAgent?.phase === 'responding' && localAgent.state
+            ? t.nativeState[localAgent.state]
+            : null) ?? t.remoteAgent)
         : remoteStatus === 'available'
           ? t.remoteAvailable
           : t.remoteOff
@@ -184,7 +206,9 @@ async function rebuildTrayMenu(): Promise<void> {
       trayUpdate.action === NO_OP
         ? remoteStatus === 'agent'
           ? t.updateDeferred(trayUpdate.version)
-          : t.updateReady(trayUpdate.version)
+          : isRemoteControlActive()
+            ? t.updateSessionDeferred(trayUpdate.version)
+            : t.updateReady(trayUpdate.version)
         : t.updateAvailable(trayUpdate.version)
     items.push({ type: 'separator' }, { label, click: () => trayUpdate?.action() })
   }
@@ -211,7 +235,21 @@ export function setRemoteStatus(status: RemoteStatus, controller: string | null 
 
 /** Hay una sesión de control remoto en curso en ESTE PC (para no reinstalar durante ella). */
 export function isRemoteControlActive(): boolean {
-  return remoteStatus === 'active'
+  return (
+    remoteStatus === 'active' ||
+    (remoteStatus === 'agent' && localAgent?.phase === 'responding' && localAgent.active)
+  )
+}
+
+/** El actualizador no puede decidir mientras se está comprobando la propiedad al arrancar. */
+export function isRemoteOwnershipResolved(): boolean {
+  return ownershipResolved
+}
+export function setLocalAgentState(state: LocalAgentSnapshot): void {
+  localAgent = publicLocalAgentSnapshot(state)
+  ownershipResolved = true
+  if (state.ownership !== 'legacy') remoteStatus = 'agent'
+  void rebuildTrayMenu()
 }
 
 export function isAgentHostOwned(): boolean {

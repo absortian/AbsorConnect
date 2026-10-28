@@ -32,7 +32,8 @@ def load(name,path):
 
 
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('lab',type=Path);parser.add_argument('vm',type=Path);parser.add_argument('--api-base',required=True);parser.add_argument('--node',default='node');parser.add_argument('--mobile-device');parser.add_argument('--mobile-runtime',action='store_true');parser.add_argument('--turn-config',type=Path);parser.add_argument('--stun-config',type=Path);parser.add_argument('--android-mapped-direct',action='store_true');parser.add_argument('--ui-status',action='store_true');args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument('lab',type=Path);parser.add_argument('vm',type=Path);parser.add_argument('--api-base',required=True);parser.add_argument('--node',default='node');parser.add_argument('--mobile-device');parser.add_argument('--mobile-runtime',action='store_true');parser.add_argument('--turn-config',type=Path);parser.add_argument('--stun-config',type=Path);parser.add_argument('--android-mapped-direct',action='store_true');parser.add_argument('--ui-status',action='store_true');parser.add_argument('--ui-control',action='store_true');args=parser.parse_args()
+    assert not args.ui_control or args.ui_status
     mobile_module=load('mobile_protected',Path(__file__).with_name('mobile-protected-runner.py')) if args.mobile_device else None
     assert not args.ui_status or not args.mobile_device, 'ui_status_requires_desktop_controller'
     assert not args.mobile_runtime or args.mobile_device, 'runtime_requires_mobile_device'
@@ -61,6 +62,7 @@ def main():
         assert has_turn is bool(args.turn_config)
         controller_ice={**value,'relayController':bool(args.turn_config)}
     source_names=['prototypes/backend-agent-check/protected-webrtc.py','prototypes/backend-agent-check/mobile-protected-runner.py','prototypes/backend-agent-check/isolated-webrtc-renewal.py','prototypes/remote-desktop/webrtc-check/mobile-protected-interop-test.dart','prototypes/remote-desktop/webrtc-check/mobile-runtime-interop-test.dart','prototypes/remote-desktop/webrtc-check/check-green-frame.swift','prototypes/remote-desktop/webrtc-check/run-interop.cjs','prototypes/remote-desktop/webrtc-check/interop-main.cjs','prototypes/remote-desktop/webrtc-check/interop-renderer.js']
+    if args.ui_status:source_names+=['prototypes/backend-agent-check/ui-main-runtime.ts','src/main/remote/agentStatusClient.ts','src/main/remote/agentControlClient.ts','src/main/remote/hostService.ts','src/shared/remote/localAgent.ts']
     source_hashes={name:hashlib.sha256((ROOT/name).read_bytes()).hexdigest() for name in source_names}
     mobile_runtime_hashes={str(p.relative_to(ROOT)):hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted((ROOT/'mobile/lib').rglob('*.dart'))} if args.mobile_runtime else {}
     uri=urlsplit(args.api_base)
@@ -90,7 +92,7 @@ def main():
     def cleanup_install():
         nonlocal installed
         if installed:
-            result=json.loads(root('import sys;sys.argv=["install-vm.py",'+repr('remove-native-ui' if args.ui_status else 'remove-native')+'];\n'+installer))
+            result=json.loads(root('import sys;sys.argv=["install-vm.py",'+repr('remove-native-ui-control' if args.ui_control else 'remove-native-ui' if args.ui_status else 'remove-native')+'];\n'+installer))
             assert result['removed'] and result['accountRemoved'];installed=False
 
     worker_lock=threading.Lock()
@@ -120,7 +122,7 @@ def main():
                 vm.remote('sudo -n systemctl start '+WORKER)
                 if name=='correct-auto-reconnect':item['autoWorkerReady'].set()
             else:
-                install=json.loads(root('import sys;sys.argv=["install-vm.py",'+repr('install-native-ui' if args.ui_status else 'install-native')+'];\n'+installer,json.dumps(data).encode()))
+                install=json.loads(root('import sys;sys.argv=["install-vm.py",'+repr('install-native-ui-control' if args.ui_control else 'install-native-ui' if args.ui_status else 'install-native')+'];\n'+installer,json.dumps(data).encode()))
                 installed=True;assert install['brokerUid'] not in (0,1000)
                 item['brokerPid']=int(vm.remote('systemctl show '+SERVICE+' -p MainPID --value'))
             # Las denegaciones se comprueban antes de que llegue la prueba HMAC del visor.
@@ -149,6 +151,22 @@ else:raise AssertionError('native_worker_timeout')
             assert len(attempts['failures'])==(1 if name in ['wrong-proof','fingerprint-mismatch'] else 0)
             audit=json.loads(root("from pathlib import Path;print(Path('/var/lib/absorconnect-secure-lab/audit.json').read_text())"))
             p=output/(name+'-audit.json');p.write_text(json.dumps(audit,indent=2)+'\n');p.chmod(0o600)
+            if args.ui_control and name=='api-revoked':
+                assert item.get('localStop')
+                proof=json.loads(root("""import json,subprocess,time
+from pathlib import Path
+assert Path('/var/lib/absorconnect-secure-lab/terminal').read_bytes()==b'fresh-local-enrollment-required\\n'
+subprocess.run(['systemctl','start','absorconnect-secure-lab.service'],capture_output=True,timeout=8)
+end=time.monotonic()+5
+while time.monotonic()<end:
+ state=subprocess.check_output(['systemctl','show','absorconnect-secure-lab.service','-p','ActiveState','--value']).strip()
+ if state in (b'inactive',b'failed'):break
+ time.sleep(.05)
+else:raise RuntimeError('stopped_broker_reactivated')
+assert int(subprocess.check_output(['systemctl','show','absorconnect-secure-lab.service','-p','ExecMainStatus','--value']))==77
+print(json.dumps({'survivedBrokerStart':True,'brokerNotReactivated':True}))
+"""))
+                item['localStop'].update(proof)
             if name not in ('correct','correct-auto-reconnect'):cleanup_install()
             value['systemd']={'systemService':True,'exitCode':0,'activeAfterExit':False,'runtimeRemoved':True,'restart':'no','privileged':False,'workerSupervised':True,'brokerWatchdog':True}
             value['protectedIpc']=True
@@ -339,6 +357,13 @@ else:raise AssertionError('native_worker_timeout')
                     sig='KILL' if name=='broker-crash' else 'STOP'
                     vm.remote('sudo -n systemctl kill --signal='+sig+' --kill-whom=main '+target)
                 elif name=='api-cut':owned[name]['cut'].set()
+                elif args.ui_control:
+                    item=owned[name];item['cut'].set();time.sleep(.2)
+                    started=time.monotonic()
+                    reply=json.loads(vm.remote(ui_node+' '+ui_runtime+' --stop '+item['path'].split('/')[-1]))
+                    assert reply=={'ok':True,'freshEnrollmentRequired':True}
+                    item['localStop']={'acknowledgedAfterMilliseconds':round((time.monotonic()-started)*1000),'apiUnavailable':True,'freshEnrollmentRequired':True,'durableReply':True,'mainControlClientTested':True}
+                    assert item['localStop']['acknowledgedAfterMilliseconds']<1500
                 else:assert request('DELETE',owned[name]['path']+'/agent',{},owned[name]['owner'])[0]==204
                 self.send_response(204);self.end_headers()
 
@@ -346,8 +371,8 @@ else:raise AssertionError('native_worker_timeout')
         tunnel=subprocess.Popen(vm.SSH[:-1]+['-N','-o','ExitOnForwardFailure=yes','-R','127.0.0.1:28022:127.0.0.1:'+str(server.server_address[1]),vm.SSH[-1]],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL);time.sleep(.5);assert tunnel.poll() is None
         artifacts['absor-protected-channel-lab']=(lab/'webrtc-native/src/out/AbsorLinuxProbe/rust_video_channel_check').read_bytes();assert hashlib.sha256(artifacts['absor-protected-channel-lab']).hexdigest()==build['binarySha256']
         artifacts['libabsor_agent_webrtc_lab.so']=(lab/'webrtc-native/src/absor_connect_probe/libabsor_agent_webrtc_lab.so').read_bytes();assert hashlib.sha256(artifacts['libabsor_agent_webrtc_lab.so']).hexdigest()==build['libraries']['libabsor_agent_webrtc_lab.so']
-        for name in ['absor-secure-broker-lab','absor-secret-provision-lab']+(['absor-agent-status-lab'] if args.ui_status else []):artifacts[name]=vm.remote('cat /home/absorlab/AbsorConnectLab/api-workers/agent/target/release/'+name)
-        for name in ['absorconnect-secure-lab.service','absorconnect-secure-lab.socket','absorconnect-protected-worker-lab.service']+(['absorconnect-ui-status-lab.socket'] if args.ui_status else []):artifacts[name]=(ROOT/'agent/linux-secure-lab'/name).read_bytes()
+        for name in ['absor-secure-broker-lab','absor-secret-provision-lab']+(['absor-agent-status-lab'] if args.ui_status else [])+(['absor-agent-control-lab'] if args.ui_control else []):artifacts[name]=vm.remote('cat /home/absorlab/AbsorConnectLab/api-workers/agent/target/release/'+name)
+        for name in ['absorconnect-secure-lab.service','absorconnect-secure-lab.socket','absorconnect-protected-worker-lab.service']+(['absorconnect-ui-status-lab.socket'] if args.ui_status else [])+(['absorconnect-ui-control-lab.socket'] if args.ui_control else []):artifacts[name]=(ROOT/'agent/linux-secure-lab'/name).read_bytes()
         buffer=io.BytesIO()
         with tarfile.open(fileobj=buffer,mode='w') as archive:
             for name,raw in artifacts.items():
@@ -419,6 +444,11 @@ else:raise AssertionError('native_worker_timeout')
             assert lifecycle and lifecycle['episodes']==6 and lifecycle['sameDevice']
             assert next(c for c in result['cases'] if c['name']=='correct')['controller']['localUiLifecycleVerified']
             result['localUiLifecycle']={**lifecycle,'nodeVersion':version,'runtimeBundleSha256':hashlib.sha256(bundled.read_bytes()).hexdigest(),'publicStatusOnly':True,'brokerPidPreserved':True}
+        if args.ui_control:
+            proof=owned['api-revoked']['localStop']
+            controller=next(c for c in result['cases'] if c['name']=='api-revoked')['controller']
+            assert controller['channelClosedAfterFault'] and controller['cutAfterFaultMilliseconds']<2000
+            result['explicitLocalStop']={**proof,'controllerCutAfterMilliseconds':controller['cutAfterFaultMilliseconds'],'apiRevokedCaseReplacedByLocalStopWithApiUnavailable':True}
         result['fixtureSourceSha256']=source_hashes
         if args.mobile_runtime:result['mobileRuntimeSourceSha256']=mobile_runtime_hashes
         if mapping:result.update({'directVmNatMapping':True,'vmNatMappedPortsTotal':mapping.total,'vmNatMappingsRemoved':not mapping.ports})

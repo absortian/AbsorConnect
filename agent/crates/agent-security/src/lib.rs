@@ -29,3 +29,9 @@ pub mod ui_profile;
 pub mod ui_client;
 #[cfg(all(target_os = "linux", feature = "ui-status-lab"))]
 pub mod ui_server;
+
+#[cfg(all(target_os = "linux", feature = "ui-control-lab"))]
+pub mod control_client;
+#[cfg(all(target_os = "linux", feature = "ui-control-lab"))]
+pub mod control_server;
+pub mod control_wire;

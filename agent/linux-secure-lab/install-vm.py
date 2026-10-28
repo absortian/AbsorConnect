@@ -21,6 +21,8 @@ UNITS = ['absorconnect-secure-lab.socket', 'absorconnect-secure-lab.service',
 BINS = ['absor-secure-broker-lab', 'absor-secret-provision-lab', 'absor-ipc-worker-lab']
 MARK = b'absorconnect-owned-security-install-v1\n'
 UI = False
+CONTROL = False
+CONTROL_UNIT = "absorconnect-ui-control-lab.socket"
 UI_UNIT = 'absorconnect-ui-status-lab.socket'
 UI_DROP = Path('/etc/systemd/system/absorconnect-secure-lab.service.d')
 UI_DROP_BYTES = b'[Unit]\nRequires=absorconnect-ui-status-lab.socket\nAfter=absorconnect-ui-status-lab.socket\n'
@@ -45,6 +47,9 @@ def cleanup():
         call('systemctl', 'stop', unit)
     for unit in UNITS:
         (Path('/etc/systemd/system')/unit).unlink()
+    if CONTROL:
+        runtime=Path('/run/absorconnect-ui-control-lab')
+        if runtime.exists():runtime.rmdir()
     if UI:
         drop=UI_DROP/'20-ui-status-lab.conf'
         assert drop.read_bytes()==UI_DROP_BYTES and set(p.name for p in UI_DROP.iterdir())=={'20-ui-status-lab.conf'}
@@ -63,6 +68,9 @@ def cleanup():
 
 
 def install():
+    if CONTROL:
+        runtime=Path('/run/absorconnect-ui-control-lab')
+        assert not runtime.exists() and not runtime.is_symlink(), 'existing_control_runtime'
     if UI:
         assert not UI_DROP.exists() and not UI_DROP.is_symlink(), 'existing_ui_dropin'
         assert not Path('/run/absorconnect-ui-lab').exists() and not Path('/run/absorconnect-ui-lab').is_symlink(), 'existing_ui_runtime'
@@ -105,6 +113,7 @@ def install():
         if UI:
             owner=pwd.getpwnam('absorlab');assert owner.pw_uid==1000 and owner.pw_gid==1000
             write(OPT/'ui-profile.json',json.dumps({'v':1,'brokerUid':account.pw_uid,'ownerUid':1000,'ownerGid':1000}).encode(),0o444)
+            if CONTROL:write(OPT/'control-profile.json',json.dumps({'v':1,'brokerUid':account.pw_uid,'ownerUid':1000,'ownerGid':1000}).encode(),0o444)
             UI_DROP.mkdir(mode=0o755)
             write(UI_DROP/'20-ui-status-lab.conf',UI_DROP_BYTES,0o644)
         for name in BINS:
@@ -133,6 +142,9 @@ def install():
         for unit in [UNITS[2], UNITS[1], *[u for u in UNITS if u.endswith('.socket')]]:
             subprocess.run(['systemctl', 'stop', unit], capture_output=True)
             (Path('/etc/systemd/system')/unit).unlink(missing_ok=True)
+        if CONTROL:
+            runtime=Path('/run/absorconnect-ui-control-lab')
+            if runtime.exists():runtime.rmdir()
         if UI:
             if (UI_DROP/'20-ui-status-lab.conf').exists():
                 assert (UI_DROP/'20-ui-status-lab.conf').read_bytes()==UI_DROP_BYTES
@@ -148,16 +160,23 @@ def install():
 
 
 def main():
-    global UNITS, BINS, UI
-    assert os.getuid() == 0 and len(sys.argv) == 2 and sys.argv[1] in ('install', 'remove', 'install-native', 'remove-native','install-ui','remove-ui','install-native-ui','remove-native-ui')
+    global UNITS, BINS, UI, CONTROL, UI_DROP_BYTES
+    assert os.getuid() == 0 and len(sys.argv) == 2 and sys.argv[1] in ('install', 'remove', 'install-native', 'remove-native','install-ui','remove-ui','install-native-ui','remove-native-ui','install-ui-control','remove-ui-control','install-native-ui-control','remove-native-ui-control')
     native='native' in sys.argv[1].split('-')
     UI='ui' in sys.argv[1].split('-')
+    CONTROL='control' in sys.argv[1].split('-')
+    if CONTROL:
+        assert UI
+        UI_DROP_BYTES=b'[Unit]\nRequires=absorconnect-ui-status-lab.socket absorconnect-ui-control-lab.socket\nAfter=absorconnect-ui-status-lab.socket absorconnect-ui-control-lab.socket\n'
     if native:
         UNITS=[UNITS[0],UNITS[1],'absorconnect-protected-worker-lab.service']
         BINS=['absor-secure-broker-lab','absor-secret-provision-lab','absor-protected-channel-lab','libabsor_agent_webrtc_lab.so']
     if UI:
         UNITS.append(UI_UNIT)
         BINS.append('absor-agent-status-lab')
+    if CONTROL:
+        UNITS.append(CONTROL_UNIT)
+        BINS.append('absor-agent-control-lab')
     marker=Path('/run/absorconnect-owned-vm-lab');meta=marker.lstat()
     assert stat.S_ISREG(meta.st_mode) and meta.st_uid==0 and stat.S_IMODE(meta.st_mode)==0o444
     assert marker.read_bytes() == b'absorconnect-native-window-fixture-v1\n'

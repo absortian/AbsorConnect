@@ -1,8 +1,9 @@
 // Ajustes del control remoto de ESTE PC (add-remote-desktop D14, tarea 6.2): lo que lee y cambia la
 // ventana principal. Cada cambio avisa a HostService: desactivar o cambiar la contraseña corta la
 // sesión en curso, y el resto se publica en la cuenta en la siguiente vuelta.
-import { ipcMain, type IpcMainInvokeEvent } from 'electron'
+import { dialog, ipcMain, type IpcMainInvokeEvent } from 'electron'
 import { getMainWindow } from '../background'
+import { getLanguage } from '../store'
 import { publicLocalAgentSnapshot } from '../../shared/remote/localAgent'
 import { currentSession } from '../cloud/session'
 import {
@@ -39,6 +40,7 @@ async function state(): Promise<RemoteSettingsState | null> {
     active: service?.isActive() ?? false,
     agentOwned: service?.isAgentOwned() ?? false,
     localAgent: publicLocalAgentSnapshot(await agentState()),
+    localStopAvailable: await remoteHost().nativeStopAvailable(),
     agentOwnershipPersistenceFailed: service?.didOwnershipPersistenceFail() ?? false,
     log: await store.getLog()
   }
@@ -137,6 +139,44 @@ let ready = false
 export function setupRemoteSettingsIpc(): void {
   if (ready) return
   ready = true
+  ipcMain.handle('remote-settings:stop-agent', async (event, ...args) => {
+    if (!trustedMainFrame(event) || args.length !== 0) return { ok: false, code: 'forbidden' }
+    await remoteHostStarted()
+    const before = await remoteHost().agentState()
+    if (
+      before.phase !== 'responding' ||
+      before.ownership !== 'agent' ||
+      !before.deviceId ||
+      !(await remoteHost().nativeStopAvailable())
+    )
+      return { ok: false, code: 'local_agent_control_unavailable' }
+    const spanish = (await getLanguage()) === 'es'
+    const account = currentSession()
+    const parent = getMainWindow()
+    if (!parent) return { ok: false, code: 'cancelled' }
+    const response = await dialog.showMessageBox(parent, {
+      type: 'warning',
+      title: 'Absor Connect',
+      message: spanish ? '¿Detener el host nativo de este PC?' : 'Stop the native host on this PC?',
+      detail: spanish
+        ? 'Se cortará la sesión remota y hará falta una nueva alta autorizada para reactivarlo. Salir de la interfaz no requiere esta parada.'
+        : 'This ends the remote session and requires a new authorized enrollment to reactivate the host. Quitting the interface does not require this stop.',
+      buttons: spanish ? ['Cancelar', 'Detener host'] : ['Cancel', 'Stop host'],
+      defaultId: 0,
+      cancelId: 0,
+      noLink: true
+    })
+    if (response.response !== 1 || currentSession() !== account || !trustedMainFrame(event))
+      return { ok: false, code: 'cancelled' }
+    const after = await remoteHost().agentState()
+    if (
+      after.deviceId !== before.deviceId ||
+      after.phase !== 'responding' ||
+      after.ownership !== 'agent'
+    )
+      return { ok: false, code: 'local_agent_unverified' }
+    return remoteHost().stopNativeHost()
+  })
   ipcMain.handle('remote-settings:get', async (event, ...args) => {
     if (!trustedMainFrame(event) || args.length !== 0) return FORBIDDEN
     await bindToCurrentAccount()

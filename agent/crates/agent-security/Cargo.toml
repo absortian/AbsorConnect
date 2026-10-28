@@ -11,6 +11,7 @@ lab-http = ["absor-agent-api/lab-http"]
 protected-ipc-lab = ["lab-http"]
 input-lease-lab = []
 ui-status-lab = ["protected-ipc-lab"]
+ui-control-lab = ["ui-status-lab"]
 
 [dependencies]
 absor-agent-api = { path = "../agent-api" }
@@ -38,3 +39,8 @@ required-features = ["protected-ipc-lab"]
 name = "absor-agent-status-lab"
 path = "src/ui_main.rs"
 required-features = ["ui-status-lab"]
+
+[[bin]]
+name = "absor-agent-control-lab"
+path = "src/control_main.rs"
+required-features = ["ui-control-lab"]

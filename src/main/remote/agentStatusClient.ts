@@ -177,7 +177,7 @@ const LOCATIONS: Partial<Record<NodeJS.Platform, InstalledStatusCommand>> = {
     platform: 'darwin'
   }
 }
-async function protectedLinuxHelper(path: string): Promise<void> {
+export async function protectedLinuxHelper(path: string): Promise<void> {
   if (!isAbsolute(path)) throw new Error('agent_helper_invalid')
   const file = await fs.lstat(path)
   if (
