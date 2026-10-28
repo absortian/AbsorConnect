@@ -1,0 +1,11 @@
+[Unit]
+Description=AbsorConnect owned VM X11 descriptor laboratory socket
+
+[Socket]
+ListenStream=/run/absorconnect-seat-authority-lab/authority.sock
+SocketMode=0660
+SocketUser=root
+SocketGroup=absorlab
+DirectoryMode=0755
+RemoveOnStop=yes
+Service=absorconnect-seat-authority-lab.service

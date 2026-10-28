@@ -94,3 +94,51 @@ los descriptores recibidos al rechazar multiplicidad o truncamiento. Es solo
 transporte local: no autentica, no otorga permiso y todavía no lo usa el P2P.
 La entrega final deberá ocurrir después de HMAC y validar UID/PID/unidad del
 trabajador y el asiento vigente. No se debe heredar la cookie antes de autenticar.
+
+
+## Concesión efímera optativa de laboratorio
+
+`authority-lab` añade `absor-seat-authority-lab`, un proveedor local separado
+activado por socket systemd. Arranca únicamente con el marcador de VM propia y
+un perfil instalado por root. No tiene red IP, capacidades, acceso al home ni
+RPC para shell, rutas, UID o administración. La única petición es el byte fijo
+`G`, con una respuesta SCM_RIGHTS. Su cliente exige listener UID 0/PID 1, inode
+root, grupo del trabajador, modo cerrado, sellos completos y CLOEXEC.
+
+El broker sigue siendo la autoridad de HMAC/API. Solo después de una prueba
+correcta publica una concesión de hasta 400 ms, limitada además por el plazo de
+API. Vincula boot, PID/UID/inicio de proceso del broker y trabajador y un digest
+de la sesión X11 local fijada durante el desafío. Se refresca como mucho cada
+100 ms; desconectar, cambiar sesión o caducar la API la vacía. Reiniciar el
+broker borra el archivo antes de aceptar conexiones. Una escritura incompleta
+se rechaza; nunca se confunde con una concesión anterior válida.
+
+Root crea el archivo efímero con propietario root y grupo exclusivo del broker
+(0660), en directorio root sin escritura ajena. El trabajador no puede leerlo
+ni modificarlo. El proveedor comprueba MainPID de las dos unidades protegidas,
+credenciales del núcleo, inicio de proceso, reloj, concesión y asiento antes y
+después de preparar el descriptor. No acepta identidad o display del mensaje.
+Lee solo la ruta cerrada de autoridad de LightDM correspondiente al display
+local y entrega una única cookie, sin copiarla a argumentos, entorno o archivos.
+El lector binario rechaza truncamiento, ambigüedad y otros protocolos/displays.
+
+La sonda del trabajador recibe y cierra el descriptor sin abrir X11. Esto une
+HMAC → concesión → fd; **todavía no** une el descriptor a libwebrtc o al trabajador
+general. La cuenta de la sonda sigue siendo la de escritorio del laboratorio,
+con unidad sin red IP/home: falta el perfil dedicado del trabajador P2P.
+No garantiza borrar criptográficamente todas las copias temporales de memoria.
+No añade acciones, capacidades certificadas o disponibilidad de producción.
+
+```bash
+cargo build --manifest-path agent/Cargo.toml --locked --release --all-features
+python3 -B prototypes/backend-agent-check/isolated-webrtc-renewal.py \
+  /ruta/lab --secure-ipc-vm /ruta/lab/linux-arm-vm-20261025 --secure-ipc-authority
+```
+
+El complemento root vive solo en `/opt/absorconnect-seat-authority-lab`, sus dos
+unidades, un drop-in propio del broker y `/run/absorconnect-seat-authority-lab`.
+No crea usuarios nuevos. Exige grupos separados; no cambia LightDM/PAM/polkit.
+Su retirada verifica marcador/hashes, para las unidades y borra solo archivos
+propios, incluido el drop-in; conserva otros drop-ins. El lanzador lo retira
+antes del laboratorio base y elimina cuenta API/BD/túnel temporales incluso si
+una comprobación falla. El informe distingue entrega de descriptor de captura.

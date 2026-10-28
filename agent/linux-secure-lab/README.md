@@ -180,3 +180,17 @@ autoridad activa y desafío pendiente se anulan, mientras el broker conserva
 su PID. La nueva sesión necesita otro desafío; esto no certifica captura de
 escritorio general o entrada en greeter. La unidad raíz de selección y la sonda
 de Xauthority se describen en `agent-linux-session/README.md` del crate.
+
+
+### Complemento de concesión X11 posterior a HMAC
+
+El modo `--secure-ipc-authority` del lanzador instala temporalmente el proveedor
+root sin capacidades/red IP y un archivo de concesión root:grupo del broker,
+0660. HMAC/API siguen en el broker; token/K no llegan al proveedor ni a la sonda.
+La concesión de hasta 400 ms vincula los procesos y el asiento real; solo el PID
+de unidad autenticado puede recibir un memfd Xauthority sellado. El trabajador
+no puede escribir el ejecutable/perfil/concesión, y otro PID de su UID se rechaza.
+La sonda cierra el descriptor sin capturar o enviar entrada. Falta unirlo a un
+trabajador P2P dedicado y a los contextos generales; no cierra 6.2/6.4.
+Véase `crates/agent-linux-session/README.md` para contrato y retirada. No activar
+este complemento fuera de la VM propia ni presentar su éxito como certificación.

@@ -5,7 +5,13 @@ use absor_agent_core::{
     clock::{BootClock, Clock},
     CloseReason, Session, SessionHandle,
 };
-use absor_agent_linux_session::{binding::SeatBinding, monitor::Monitor, query::LogindSource};
+use absor_agent_linux_session::{
+    binding::SeatBinding,
+    grant::{Grant, WorkerIdentity},
+    grant_file::{self, Publisher},
+    monitor::Monitor,
+    query::LogindSource,
+};
 use absor_agent_security::{
     linux::{self, FramedPeer, HostLock, ProtectedAttemptStore},
     secrets::{self, WallClock, WrappingKey},
@@ -146,6 +152,12 @@ struct Authority {
     signaling: Option<ApiSignaling>,
     seat_monitor: Option<Monitor<BootClock>>,
     seat: SeatBinding,
+    grants: Option<Publisher>,
+    grant_failed: bool,
+    grant_instance: String,
+    boot_id: String,
+    worker_identity: Option<WorkerIdentity>,
+    last_grant: Duration,
 }
 impl Authority {
     fn disconnect(&mut self) {
@@ -154,11 +166,64 @@ impl Authority {
         }
         self.verifier.cancel();
         self.seat.clear();
+        if let Some(publisher) = self.grants.as_mut() {
+            if publisher.clear().is_err() {
+                self.grant_failed = true;
+            }
+        }
     }
     fn end_connection(&mut self) {
         self.disconnect();
         if let Some(s) = self.signaling.as_mut() {
             s.reset();
+        }
+    }
+    fn publish_grant(&mut self, now: Duration) -> Result<(), ()> {
+        if self.grant_failed {
+            return Err(());
+        }
+        if self.grants.is_none() || now.saturating_sub(self.last_grant) < Duration::from_millis(100)
+        {
+            return Ok(());
+        }
+        self.last_grant = now;
+        let allowed = self.terminal.is_none()
+            && self.flag.load(Ordering::SeqCst) == 0
+            && self
+                .handle
+                .as_ref()
+                .is_some_and(|h| self.agent.with_session(h, |_| ()).is_ok());
+        let grant = if allowed {
+            match (self.seat.pinned_snapshot(), self.worker_identity) {
+                (Some(seat), Some(worker)) => Some(
+                    Grant::issue(
+                        &self.grant_instance,
+                        &self.boot_id,
+                        u64::try_from(now.as_millis()).map_err(|_| ())?,
+                        u64::try_from(
+                            self.agent
+                                .authorization_deadline()
+                                .map_err(|_| ())?
+                                .as_millis(),
+                        )
+                        .map_err(|_| ())?,
+                        grant_file::process_identity(std::process::id(), linux::uid())
+                            .map_err(|_| ())?,
+                        worker,
+                        seat,
+                    )
+                    .map_err(|_| ())?,
+                ),
+                _ => None,
+            }
+        } else {
+            None
+        };
+        let publisher = self.grants.as_mut().ok_or(())?;
+        if let Some(grant) = grant {
+            publisher.publish(&grant).map_err(|_| ())
+        } else {
+            publisher.clear().map_err(|_| ())
         }
     }
     fn refresh_seat(&mut self) -> Result<(), ()> {
@@ -387,6 +452,25 @@ pub fn run() -> Result<i32, ()> {
         .map_err(|_| ())?;
     let native = native_mode()?;
     let signaling = native.then(|| ApiSignaling::new(api.signaling(), None));
+    let grants = Publisher::open_if_provisioned(linux::gid()).map_err(|_| ())?;
+    let boot_id = fs::read_to_string("/proc/sys/kernel/random/boot_id")
+        .map_err(|_| ())?
+        .trim()
+        .to_owned();
+    if !absor_agent_linux_session::status::is_boot_id(&boot_id) {
+        return Err(());
+    }
+    let mut random = [0u8; 16];
+    File::open("/dev/urandom")
+        .and_then(|mut f| f.read_exact(&mut random))
+        .map_err(|_| ())?;
+    let grant_instance = random
+        .iter()
+        .flat_map(|v| {
+            let h = b"0123456789abcdef";
+            [h[(v >> 4) as usize] as char, h[(v & 15) as usize] as char]
+        })
+        .collect();
     let mut authority = Authority {
         agent: RenewingAgent::new(BootClock, api),
         verifier,
@@ -399,6 +483,12 @@ pub fn run() -> Result<i32, ()> {
             Monitor::new(BootClock, LogindSource::new().map_err(|_| ())?).map_err(|_| ())?,
         ),
         seat: SeatBinding::default(),
+        grants,
+        grant_failed: false,
+        grant_instance,
+        boot_id,
+        worker_identity: None,
+        last_grant: Duration::ZERO,
         audit: AuditLog::open(&directory.join("audit.json")).map_err(|_| ())?,
     };
     authority
@@ -476,6 +566,8 @@ pub fn run() -> Result<i32, ()> {
                 Ok((stream, _)) => {
                     let cred = linux::peer_credentials(&stream).map_err(|_| ())?;
                     if cred.uid == 1000 && cred.pid == expected_worker(native).unwrap_or(0) {
+                        authority.worker_identity =
+                            Some(grant_file::process_identity(cred.pid, cred.uid).map_err(|_| ())?);
                         peer = Some(FramedPeer::new(stream).map_err(|_| ())?);
                         last_sequence = 0;
                         last_message = now;
@@ -532,8 +624,10 @@ pub fn run() -> Result<i32, ()> {
                     .map_err(|_| ())?;
             }
             authority.end_connection();
+            authority.worker_identity = None;
             peer.take();
         }
+        authority.publish_grant(BootClock.now().map_err(|_| ())?)?;
         thread::sleep(Duration::from_millis(20));
     }
 }

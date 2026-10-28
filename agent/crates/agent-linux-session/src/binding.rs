@@ -36,6 +36,9 @@ impl SeatBinding {
     pub fn is_pinned(&self) -> bool {
         self.pinned.is_some() && self.pinned == self.current && self.eligible()
     }
+    pub fn pinned_snapshot(&self) -> Option<&Snapshot> {
+        self.is_pinned().then_some(self.pinned.as_ref()).flatten()
+    }
     pub fn clear(&mut self) {
         self.pinned = None;
     }
