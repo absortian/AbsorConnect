@@ -2941,3 +2941,16 @@ termina. La sincronización inicial espera el primer pulso del supervisor; no
 amplía los watchdogs. Las pruebas completas y clippy pasan localmente en Mac y
 Linux; la CI nueva en los tres SO y la regresión P2P se revisan antes de fusionar.
 Este arreglo no cierra otra tarea ni incrementa el 21/57.
+
+
+La revisión de CI posterior confirmó salida correcta en Windows/Mac y encontró
+otro fallo de preparación Linux, reproducido bajo concurrencia: `spawn` devolvía
+ETXTBSY (26) porque otro fork heredaba temporalmente el descriptor abierto de una
+copia del fixture. Un mutex coordina solo copia → primer saludo; después los
+fallos y watchdogs continúan en paralelo. El diagnóstico queda acotado a etapa
+numérica y código del SO. En VM pasan las pruebas completas y doce repeticiones
+de los trece casos de procesos (156 ejecuciones) con 64 hilos de prueba. Las
+aserciones de salida normal aceptan ambos órdenes válidos de planificación;
+exigen código 0, ausencia de corte y un solo hijo. Las pruebas de hijo retenido
+siguen exigiendo corte, recolección y plazos originales. La regresión de diez
+conexiones WebRTC tras corregir el cierre pasa y retira servicios/secretos.

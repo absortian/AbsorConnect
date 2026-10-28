@@ -6,12 +6,19 @@ use std::{
     io::{BufRead, BufReader, Read, Write},
     path::PathBuf,
     process::{Command, Stdio},
-    sync::atomic::{AtomicU64, Ordering},
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Mutex,
+    },
     thread,
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 struct Scratch(PathBuf);
 static NEXT: AtomicU64 = AtomicU64::new(1);
+// fork concurrente puede heredar el fd de copia aún abierto de otro caso y
+// provocar ETXTBSY (26) al ejecutar ese fixture en Linux. Solo se serializa
+// copia → primer saludo; los fallos y watchdogs siguen ejecutándose en paralelo.
+static STARTING: Mutex<()> = Mutex::new(());
 impl Drop for Scratch {
     fn drop(&mut self) {
         let _ = fs::remove_dir_all(&self.0);
@@ -24,6 +31,7 @@ fn run_case(fault: Option<u8>, mode: &str) -> (i32, String, Duration) {
     run_controlled(fault, mode, None)
 }
 fn run_controlled(fault: Option<u8>, mode: &str, broker: Option<&str>) -> (i32, String, Duration) {
+    let startup = STARTING.lock().unwrap();
     let candidate = std::env::temp_dir().join(format!(
         "absor-supervisor-{}-{}-{}",
         std::process::id(),
@@ -48,6 +56,7 @@ fn run_controlled(fault: Option<u8>, mode: &str, broker: Option<&str>) -> (i32, 
     if broker.is_some() {
         command.env("ABSOR_LAB_BROKER_WATCH", "1");
     }
+    let errors = scratch.0.join("stderr.log");
     let mut child = command
         .args([
             &report,
@@ -58,7 +67,7 @@ fn run_controlled(fault: Option<u8>, mode: &str, broker: Option<&str>) -> (i32, 
         ])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
-        .stderr(Stdio::null())
+        .stderr(Stdio::from(fs::File::create(&errors).unwrap()))
         .spawn()
         .unwrap();
     let mut output = BufReader::new(child.stdout.take().unwrap());
@@ -72,10 +81,19 @@ fn run_controlled(fault: Option<u8>, mode: &str, broker: Option<&str>) -> (i32, 
         output.read_to_string(&mut rest).unwrap();
         rest
     });
-    assert_eq!(
-        first.recv_timeout(Duration::from_secs(5)).unwrap(),
-        "fixture-alive\n"
-    );
+    let greeting = first.recv_timeout(Duration::from_secs(5));
+    if greeting.as_deref() != Ok("fixture-alive\n") {
+        let _ = child.kill();
+        let _ = child.wait();
+        let mut detail = String::new();
+        fs::File::open(errors)
+            .unwrap()
+            .take(4096)
+            .read_to_string(&mut detail)
+            .unwrap();
+        panic!("saludo del fixture: {greeting:?}; diagnóstico acotado: {detail}");
+    }
+    drop(startup);
     let started = Instant::now();
     if let Some(fault) = fault {
         child

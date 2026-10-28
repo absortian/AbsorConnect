@@ -90,7 +90,9 @@ fn run() -> Result<i32, ()> {
             .stdout(Stdio::inherit())
             .stderr(Stdio::piped())
             .spawn()
-            .map_err(|_| ())?,
+            .map_err(|error| {
+                eprintln!("lab_supervisor_spawn_os_error={:?}", error.raw_os_error());
+            })?,
     );
     STAGE.store(3, Ordering::Relaxed);
     record(
