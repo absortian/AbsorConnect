@@ -8,6 +8,11 @@ pub mod binding;
 pub mod grant;
 #[cfg(target_os = "linux")]
 pub mod grant_file;
+#[cfg(all(target_os = "linux", feature = "input-lease-lab"))]
+mod input_device;
+pub mod input_lease;
+#[cfg(all(target_os = "linux", feature = "input-lease-lab"))]
+pub mod input_probe;
 pub mod monitor;
 #[cfg(target_os = "linux")]
 pub mod query;

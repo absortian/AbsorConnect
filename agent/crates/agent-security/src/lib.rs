@@ -16,3 +16,7 @@ pub mod client;
 
 #[cfg(all(target_os = "linux", feature = "protected-ipc-lab"))]
 pub mod profile;
+
+#[cfg(all(target_os = "linux", feature = "input-lease-lab"))]
+#[allow(unsafe_code)]
+pub mod uinput;

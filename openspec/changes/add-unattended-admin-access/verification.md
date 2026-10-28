@@ -2954,3 +2954,66 @@ aserciones de salida normal aceptan ambos órdenes válidos de planificación;
 exigen código 0, ausencia de corte y un solo hijo. Las pruebas de hijo retenido
 siguen exigiendo corte, recolección y plazos originales. La regresión de diez
 conexiones WebRTC tras corregir el cierre pasa y retira servicios/secretos.
+
+
+### Concesión por conexión y guardián de entrada propio — 28/10/2026
+
+PR 59 quedó fusionada como `0daf745945aa21fbc3ae0ef52b5c40fe618c41d7` tras
+revisar logs completos y anotaciones de los tres jobs del head `e02353aa`:
+Linux 254, Mac 220 y Windows 218 pruebas Rust (default/all-features), formato,
+clippy y ambos builds release. Las anotaciones solo avisaban de capacidad del
+runner Mac y migración de imagen Ubuntu. La regresión final de diez conexiones
+WebRTC pasó y retiró servicios/secretos; la prueba ETXTBSY se repitió 156 veces.
+
+La integración posterior pasa 41 casos en VM, con diez ensayos de entrada fija:
+no autenticado, cierre normal de tecla/botón, desconexión, autenticación nueva,
+pérdida de foco, broker detenido, SIGKILL/SIGSTOP del guardián y caída del
+trabajador. Se verifica también que no-root no puede crear el dispositivo ni
+pasar argumentos, y que el trabajador dedicado no puede abrir uinput o los fd
+del guardián. El observador comprueba down y posterior liberación sin keyup
+explícito, texto, imágenes o contraseñas. Una repetición inicial de la comprobación
+de permisos falló por escape del script remoto; se corrigió y la matriz completa
+posterior pasa, conservando los informes y verificando su limpieza.
+
+El broker genera concesión aleatoria por HMAC nuevo. `ValidatedGrant` es evidencia
+local sin Deserialize; el guardián no permite trasladar dispositivo/estado entre
+concesiones, alargarlo por entrada o resucitarlo con una respuesta tardía. Siete
+pruebas puras cubren reloj/caducidad, posesión, secuencia, cambio de autenticación,
+llamada que sobrevive al plazo y fallo del dispositivo. El fd queda exclusivamente
+en el componente sin IP y el kernel lo retira si el proceso muere; watchdog
+independiente y systemd cubren bloqueos del actor y del proceso entero.
+
+El informe `linux-input-lease-results.json` conserva los límites: entrada fija en
+ventana propia, sin receptor WebRTC/teclado general, captura de escritorio o
+matriz protegida completa. 3.5/6.2 siguen parciales; **21/57 (37 %)**, sin adelantar
+el 50 % solicitado. Las pruebas físicas y la revisión Mac permanecen al final.
+
+También se recuperó el SSH de la VM Windows mediante su agente: UTM había rotado
+la subred y el listener seguía fijado a la anterior. Se verificó el hash original,
+se conservaron ACL/clave/puerto y una copia protegida, y se movieron solo listener,
+AllowUsers y la regla a la nueva pareja anfitrión/VM. Se verifican acceso por clave
+de host ya fijada, ausencia de contraseña/TCP forwarding/agent forwarding/GatewayPorts
+y regla general desactivada. Los detalles de red y recuperación quedan privados;
+no se cambió el acceso de equipos físicos o del router.
+
+
+### Límite de simultaneidad Xorg, no aceptado — 28/10/2026
+
+Una prueba adicional con **dos dispositivos virtuales propios**, sin consultar
+teclados físicos, mantiene A y el botón izquierdo en ambos y retira el remoto.
+El kernel conserva el estado del otro dispositivo; Xorg pierde el estado maestro
+de A, también cuando primero se emite keyup normal. El botón izquierdo sí lo
+conserva en esta VM. El informe público `linux-input-overlap-results.json` emite
+`ok:false`; el lanzador reproducible devuelve 3 y comprueba su limpieza. No se
+reduce el criterio para convertirlo en un pase. La adopción del teclado general
+queda bloqueada en D8, sin activar nada en equipos reales, y 3.5/6.2 siguen
+pendientes. Las 41 comprobaciones de un dispositivo, seis de retirada y siete
+pruebas puras conservan su alcance. El objetivo sigue **21/57 (37 %)**.
+
+
+La revisión de retirada añadió preflight de las unidades fijas antes de cualquier
+mutación. Se creó un centinela desechable con nombre coincidente para comprobar
+que el instalador lo rechaza y lo deja activo con el mismo PID, sin crear sus
+archivos/marcador. Solo el propio ensayo retira después ese centinela. Tras el
+cambio vuelven a pasar los seis casos de retirada y los 41 de API/HMAC/guardián;
+se mantiene independiente el fallo de simultaneidad Xorg ya registrado.

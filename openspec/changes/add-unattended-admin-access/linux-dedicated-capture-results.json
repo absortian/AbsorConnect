@@ -257,5 +257,31 @@
       }
     ],
     "notes": "Solo avisos de runners; siete casos Python de Linux se omiten en Windows."
-  }
+  },
+  "finalReviewedCi": {
+    "headRevision": "e02353aa3be0876d46b1dc3ae46827f98796add9",
+    "jobs": [
+      {
+        "id": 123030883407,
+        "os": "linux",
+        "rustTests": 254
+      },
+      {
+        "id": 123030884030,
+        "os": "macos",
+        "rustTests": 220
+      },
+      {
+        "id": 123030884469,
+        "os": "windows",
+        "rustTests": 218
+      }
+    ],
+    "logsAndAnnotationsReviewed": true,
+    "fmtClippyDefaultAllFeaturesAndBothReleaseBuildsPassed": true
+  },
+  "mergedPullRequest": 59,
+  "mergeCommit": "0daf745945aa21fbc3ae0ef52b5c40fe618c41d7",
+  "supervisorStartupRegressionRuns": 156,
+  "supervisorFinalP2pRegressionCases": 10
 }

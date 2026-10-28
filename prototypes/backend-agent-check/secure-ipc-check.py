@@ -46,8 +46,10 @@ def main():
     parser.add_argument('--api-base', required=True)
     parser.add_argument('--authority-fd',action='store_true')
     parser.add_argument('--dedicated-worker',action='store_true')
+    parser.add_argument('--input-lease',action='store_true')
     args = parser.parse_args()
     assert not args.dedicated_worker or args.authority_fd
+    assert not args.input_lease or args.dedicated_worker
     uri = urlsplit(args.api_base)
     assert uri.scheme == 'http' and uri.hostname == '127.0.0.1' and uri.port and 1024 <= uri.port <= 65535 and uri.path in ('', '/') and not (uri.username or uri.password or uri.query or uri.fragment)
     vm_directory = args.vm.resolve()
@@ -390,6 +392,28 @@ print(json.dumps({'denied':count==3}))
         assert worker({'op':'diagnostic_operation'})['kind'] == 'denied'
         proof = authenticate()
         if args.authority_fd:
+            def authority_tag(previous=None):
+                # Solo huella de la concesión efímera; no devuelve K/token/cookie.
+                code="""import hashlib,json,time
+from pathlib import Path
+end=time.monotonic()+3
+while time.monotonic()<end:
+ try:
+  value=json.loads(Path('/run/absorconnect-seat-authority-lab/grant.json').read_bytes())
+  tag=hashlib.sha256(value['instance'].encode('ascii')).hexdigest()
+  if tag!=PREVIOUS:
+   print(json.dumps({'tag':tag,'brokerPid':value['broker']['pid'],'workerPid':value['worker']['pid']}));break
+ except (ValueError,KeyError):pass
+ time.sleep(.02)
+else:raise RuntimeError('fresh_authority_tag_not_observed')
+""".replace('PREVIOUS',repr(previous))
+                return json.loads(root(code))
+            first_authority=authority_tag()
+            worker({'op':'disconnect'});ready();proof=authenticate()
+            second_authority=authority_tag(first_authority['tag'])
+            assert first_authority['tag']!=second_authority['tag']
+            assert first_authority['brokerPid']==second_authority['brokerPid'] and first_authority['workerPid']==second_authority['workerPid']
+            check('new-hmac-authentication-gets-distinct-authority-with-same-broker-and-worker')
             granted=worker(action='authority_probe')
             assert granted['authorityReceived'] and not granted['cookieBytesReported']
             check('root-sealed-fd-delivered-only-to-authenticated-worker')
@@ -423,6 +447,10 @@ print(json.dumps({'denied':denied}))
             # La pausa también puede caducar la muestra de logind; nunca reusar la sesión.
             worker({'op':'disconnect'});ready();proof=authenticate()
 
+
+        if args.input_lease:
+            module=load('owned_input_lease',Path(__file__).with_name('linux-input-lease-matrix.py'))
+            module.run(vm,root,worker,authenticate,ready,output,check)
 
         value = worker({'op':'diagnostic_operation'})
         assert value['operation_count'] == 1 and value['os_operations_enabled'] is False

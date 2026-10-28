@@ -30,6 +30,7 @@ def main():
     parser.add_argument('--secure-ipc-vm', type=Path)
     parser.add_argument('--secure-ipc-authority', action='store_true')
     parser.add_argument('--secure-ipc-dedicated', action='store_true')
+    parser.add_argument('--secure-ipc-input-lease', action='store_true')
     parser.add_argument('--protected-p2p-vm', type=Path)
     parser.add_argument('--mobile-device')
     parser.add_argument('--turn-config', type=Path)
@@ -40,6 +41,7 @@ def main():
     args = parser.parse_args()
     assert not args.secure_ipc_authority or args.secure_ipc_vm, 'authority_requires_owned_vm_ipc'
     assert not args.secure_ipc_dedicated or args.secure_ipc_authority, 'dedicated_requires_authority'
+    assert not args.secure_ipc_input_lease or args.secure_ipc_dedicated, 'input_lease_requires_dedicated_owned_vm'
     assert not (args.mobile_device or args.turn_config or args.stun_config or args.android_mapped_direct) or args.protected_p2p_vm, 'mobile_requires_protected_vm'
     assert not args.mobile_runtime or args.mobile_device, 'runtime_requires_mobile_device'
     assert not args.flutter_tests or not (args.protected_p2p_vm or args.secure_ipc_vm or args.linux_broker or args.linux_webrtc_vm or args.x11_worker_vm), 'choose_one_matrix'
@@ -108,6 +110,9 @@ def main():
                           str(lab), str(args.secure_ipc_vm), '--api-base', 'http://127.0.0.1:'+str(port)]
             if args.secure_ipc_authority:child_args += ['--authority-fd']
             if args.secure_ipc_dedicated:child_args += ['--dedicated-worker']
+            if args.secure_ipc_input_lease:
+                assert args.secure_ipc_dedicated and args.secure_ipc_authority
+                child_args += ['--input-lease']
         else:
             child_args = ['python3', '-B', str(Path(__file__).with_name('webrtc-renewal.py')),
                           str(lab), '--node', args.node, '--api-base', 'http://127.0.0.1:'+str(port)]

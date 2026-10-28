@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "ok": false,
+  "cases": [
+    {
+      "case": "key",
+      "otherOwnedDeviceStillDownInKernel": true,
+      "masterStateAfterExplicitUp": false,
+      "masterStateStillDown": false,
+      "ownWindowFocusVerified": true
+    },
+    {
+      "case": "button",
+      "otherOwnedDeviceStillDownInKernel": true,
+      "masterStateAfterExplicitUp": true,
+      "masterStateStillDown": true,
+      "ownWindowFocusVerified": true
+    }
+  ],
+  "imagesStored": false,
+  "keyboardTextRead": false,
+  "readyForUnattended": false,
+  "ownedFilesAndDevicesRemoved": true,
+  "sourceSha256": {
+    "probe.py": "8dc5477c372c9425088722834a6a93cf411a3a2c742e207feacd4761361026a5",
+    "linux-xauthority-fd-probe.py": "2ba84dd60e27dbcf352ac169239b72ac48b6a2112314531acdf43662c67b714d",
+    "isolation.py": "7f8e5c9195c1176b142bc2493dd83fa4b48672d5b1341133e665c8b504659d08"
+  },
+  "productionTested": false,
+  "physicalMachinesTested": false,
+  "date": "2026-10-28",
+  "scope": "Dos dispositivos virtuales propios, sin entrada física ni red",
+  "status": "xorg_shared_master_keyboard_limitation_reproduced",
+  "acceptedTasks": [],
+  "blocksGeneralKeyboardAdoption": true,
+  "localKeyboardOverlapSafe": false,
+  "physicalDevicesRead": false,
+  "limits": [
+    "La tecla sigue pulsada en el dispositivo local simulado del kernel, pero Xorg borra su estado maestro al recibir keyup del otro teclado, antes incluso de retirarlo.",
+    "El botón izquierdo conserva su estado maestro en esta configuración. No certifica otros botones o sistemas.",
+    "El ensayo termina con código 3, conserva el informe y verifica que retira sus archivos/dispositivos. No cuenta como una prueba de aislamiento aprobada.",
+    "La propuesta de teclado general no se activa con este resultado. Permanecen pendientes aislamiento, transiciones y pruebas de los sistemas objetivo."
+  ]
+}

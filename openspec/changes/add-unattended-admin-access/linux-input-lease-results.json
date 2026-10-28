@@ -1,0 +1,431 @@
+{
+  "schema": 1,
+  "date": "2026-10-28",
+  "scope": "Guardián Linux de entrada fija sin simultaneidad de teclados",
+  "acceptedTasks": [],
+  "partialTasks": [
+    "3.5",
+    "6.2"
+  ],
+  "ok": true,
+  "configuration": {
+    "environment": "VM Ubuntu ARM64 propia con Cinnamon/X11/LightDM",
+    "kernel": "6.8.0-147-generic",
+    "libevdevPackageVersion": "1.13.1+dfsg-1build1"
+  },
+  "ipcCases": [
+    {
+      "case": "failed-local-seal-retires-native-enrollment-and-removes-partial-storage",
+      "passed": true
+    },
+    {
+      "case": "native-one-use-enrollment-encrypted-storage",
+      "passed": true,
+      "brokerUidDifferentFromWorker": true,
+      "accountTokenSentToService": false
+    },
+    {
+      "case": "worker-cannot-read-secret-files-proc-or-replace-root-socket",
+      "passed": true
+    },
+    {
+      "case": "foreign-uid-and-unregistered-same-uid-pid-denied",
+      "passed": true
+    },
+    {
+      "case": "authority-fd-denied-before-hmac",
+      "passed": true
+    },
+    {
+      "case": "authority-provider-root-without-capabilities-or-ip-network",
+      "passed": true
+    },
+    {
+      "case": "authority-grant-and-executable-inaccessible-to-worker-writes",
+      "passed": true
+    },
+    {
+      "case": "dedicated-identity-cannot-substitute-profile-or-impersonate-worker-pid",
+      "passed": true
+    },
+    {
+      "case": "new-hmac-authentication-gets-distinct-authority-with-same-broker-and-worker",
+      "passed": true
+    },
+    {
+      "case": "root-sealed-fd-delivered-only-to-authenticated-worker",
+      "passed": true
+    },
+    {
+      "case": "dedicated-worker-counts-x11-only-after-authenticated-fd",
+      "passed": true,
+      "frames": 10,
+      "nonUniformFrames": 10
+    },
+    {
+      "case": "authority-fd-denies-foreign-uid-and-same-uid-other-pid",
+      "passed": true
+    },
+    {
+      "case": "authority-fd-expires-during-broker-stall-before-api-deadline",
+      "passed": true
+    },
+    {
+      "case": "owned-input-lease-non-root-cannot-create-device",
+      "passed": true
+    },
+    {
+      "case": "owned-input-lease-arbitrary-arguments-denied",
+      "passed": true
+    },
+    {
+      "case": "owned-input-lease-unauthenticated",
+      "passed": true,
+      "inputBeforeAuthentication": false
+    },
+    {
+      "case": "owned-input-lease-normal-key",
+      "passed": true,
+      "fixedInputDownObserved": true,
+      "releaseObserved": true,
+      "releaseObservationMilliseconds": null,
+      "observationIncludesSshRoundTrips": false,
+      "heldAtEnd": false
+    },
+    {
+      "case": "owned-input-lease-normal-button",
+      "passed": true,
+      "fixedInputDownObserved": true,
+      "releaseObserved": true,
+      "releaseObservationMilliseconds": null,
+      "observationIncludesSshRoundTrips": false,
+      "heldAtEnd": false
+    },
+    {
+      "case": "owned-input-lease-hardening-and-worker-descriptor-denial",
+      "passed": true,
+      "noCapabilities": true,
+      "privateNetwork": true,
+      "noNewPrivileges": true,
+      "workerCannotOpenDeviceOrDescriptors": true
+    },
+    {
+      "case": "owned-input-lease-disconnect-key",
+      "passed": true,
+      "fixedInputDownObserved": true,
+      "releaseObserved": true,
+      "releaseObservationMilliseconds": 464,
+      "observationIncludesSshRoundTrips": true,
+      "heldAtEnd": false
+    },
+    {
+      "case": "owned-input-lease-reauthentication-key",
+      "passed": true,
+      "fixedInputDownObserved": true,
+      "releaseObserved": true,
+      "releaseObservationMilliseconds": 737,
+      "observationIncludesSshRoundTrips": true,
+      "heldAtEnd": false
+    },
+    {
+      "case": "owned-input-lease-focus-loss-button",
+      "passed": true,
+      "fixedInputDownObserved": true,
+      "releaseObserved": true,
+      "releaseObservationMilliseconds": 175,
+      "observationIncludesSshRoundTrips": true,
+      "heldAtEnd": false
+    },
+    {
+      "case": "owned-input-lease-broker-stall-button",
+      "passed": true,
+      "fixedInputDownObserved": true,
+      "releaseObserved": true,
+      "releaseObservationMilliseconds": 391,
+      "observationIncludesSshRoundTrips": true,
+      "heldAtEnd": false
+    },
+    {
+      "case": "owned-input-lease-guard-kill-key",
+      "passed": true,
+      "fixedInputDownObserved": true,
+      "releaseObserved": true,
+      "releaseObservationMilliseconds": 157,
+      "observationIncludesSshRoundTrips": true,
+      "heldAtEnd": false
+    },
+    {
+      "case": "owned-input-lease-guard-stop-button",
+      "passed": true,
+      "fixedInputDownObserved": true,
+      "releaseObserved": true,
+      "releaseObservationMilliseconds": 619,
+      "observationIncludesSshRoundTrips": true,
+      "heldAtEnd": false
+    },
+    {
+      "case": "owned-input-lease-worker-crash-key",
+      "passed": true,
+      "fixedInputDownObserved": true,
+      "releaseObserved": true,
+      "releaseObservationMilliseconds": 475,
+      "observationIncludesSshRoundTrips": true,
+      "heldAtEnd": false
+    },
+    {
+      "case": "unique-key-proof-required-and-proof-replay-closes-diagnostic-session",
+      "passed": true
+    },
+    {
+      "case": "logind-greeter-drops-active-authority-and-denies-challenges",
+      "passed": true
+    },
+    {
+      "case": "new-user-session-requires-new-proof-with-same-broker",
+      "passed": true
+    },
+    {
+      "case": "seat-change-invalidates-unfinished-challenge-before-login",
+      "passed": true
+    },
+    {
+      "case": "frame-sequence-replay-and-worker-restart-do-not-revive-session",
+      "passed": true
+    },
+    {
+      "case": "broker-crash-drops-authority-and-recovery-requires-new-proof",
+      "passed": true
+    },
+    {
+      "case": "api-expiry-and-restoration-require-new-proof",
+      "passed": true,
+      "denialObservedMilliseconds": 30190,
+      "observationIncludesSshRoundTrips": true
+    },
+    {
+      "case": "lockout-survives-service-and-worker-restart-without-state-reset",
+      "passed": true
+    },
+    {
+      "case": "tampered-encrypted-configuration-fails-closed-without-erasing-lockout",
+      "passed": true
+    },
+    {
+      "case": "missing-corrupt-attempt-store-and-wrong-wrapping-key-never-reset-state",
+      "passed": true
+    },
+    {
+      "case": "absent-corrupt-linked-permissive-and-mismatched-profile-fail-closed",
+      "passed": true
+    },
+    {
+      "case": "worker-and-audit-contain-no-host-key-agent-token-or-account-token",
+      "passed": true
+    },
+    {
+      "case": "real-api-revocation-is-terminal-across-service-restart",
+      "passed": true
+    },
+    {
+      "case": "reversible-removal-of-service-account-socket-state-and-secrets",
+      "passed": true,
+      "lightdmModified": false
+    },
+    {
+      "case": "lightdm-login-recovers-after-dedicated-service-and-account-removal",
+      "passed": true
+    }
+  ],
+  "nativeOwnedInputCases": [
+    {
+      "case": "unauthenticated",
+      "passed": true,
+      "inputBeforeAuthentication": false
+    },
+    {
+      "case": "normal-key",
+      "passed": true,
+      "fixedInputDownObserved": true,
+      "releaseObserved": true,
+      "releaseObservationMilliseconds": null,
+      "observationIncludesSshRoundTrips": false,
+      "heldAtEnd": false
+    },
+    {
+      "case": "normal-button",
+      "passed": true,
+      "fixedInputDownObserved": true,
+      "releaseObserved": true,
+      "releaseObservationMilliseconds": null,
+      "observationIncludesSshRoundTrips": false,
+      "heldAtEnd": false
+    },
+    {
+      "case": "disconnect-key",
+      "passed": true,
+      "fixedInputDownObserved": true,
+      "releaseObserved": true,
+      "releaseObservationMilliseconds": 464,
+      "observationIncludesSshRoundTrips": true,
+      "heldAtEnd": false
+    },
+    {
+      "case": "reauthentication-key",
+      "passed": true,
+      "fixedInputDownObserved": true,
+      "releaseObserved": true,
+      "releaseObservationMilliseconds": 737,
+      "observationIncludesSshRoundTrips": true,
+      "heldAtEnd": false
+    },
+    {
+      "case": "focus-loss-button",
+      "passed": true,
+      "fixedInputDownObserved": true,
+      "releaseObserved": true,
+      "releaseObservationMilliseconds": 175,
+      "observationIncludesSshRoundTrips": true,
+      "heldAtEnd": false
+    },
+    {
+      "case": "broker-stall-button",
+      "passed": true,
+      "fixedInputDownObserved": true,
+      "releaseObserved": true,
+      "releaseObservationMilliseconds": 391,
+      "observationIncludesSshRoundTrips": true,
+      "heldAtEnd": false
+    },
+    {
+      "case": "guard-kill-key",
+      "passed": true,
+      "fixedInputDownObserved": true,
+      "releaseObserved": true,
+      "releaseObservationMilliseconds": 157,
+      "observationIncludesSshRoundTrips": true,
+      "heldAtEnd": false
+    },
+    {
+      "case": "guard-stop-button",
+      "passed": true,
+      "fixedInputDownObserved": true,
+      "releaseObserved": true,
+      "releaseObservationMilliseconds": 619,
+      "observationIncludesSshRoundTrips": true,
+      "heldAtEnd": false
+    },
+    {
+      "case": "worker-crash-key",
+      "passed": true,
+      "fixedInputDownObserved": true,
+      "releaseObserved": true,
+      "releaseObservationMilliseconds": 475,
+      "observationIncludesSshRoundTrips": true,
+      "heldAtEnd": false
+    }
+  ],
+  "inputArtifactsSha256": {
+    "probe.py": "8dc5477c372c9425088722834a6a93cf411a3a2c742e207feacd4761361026a5",
+    "linux-xauthority-fd-probe.py": "2ba84dd60e27dbcf352ac169239b72ac48b6a2112314531acdf43662c67b714d",
+    "absorconnect-input-lease-probe-lab.service": "f2883e574b4950425df5094b85aa0c3286180ad756ef355f7d2ad26127f8c51b",
+    "absor-input-lease-probe-lab": "db06b52d7ec60716a4d1740fcc22180c217841c96dd5a5bc39913a06fc6ba493"
+  },
+  "matrixSourceSha256": "11ca1a9592fd6e0c432d602b054d90d1ed51a853d0ab491c5d0d63f50af2704c",
+  "sourceSha256": {
+    "agent/crates/agent-linux-session/examples/seat-inventory.rs": "1865c21a2c715633bd512857a77006a728361877e4bf00f84b60ad75826ff48e",
+    "agent/crates/agent-linux-session/src/input_probe_main.rs": "86352714d916528dbdbf7283564957ffe6bf8abfada71f3e6d2b60e60fd56c70",
+    "agent/crates/agent-linux-session/src/input_device.rs": "eb15aba3f74f6739c125522decaf39fb25fbd2a857a284ee6e8b35e2cd4d9cc8",
+    "agent/crates/agent-linux-session/src/grant_file.rs": "02aada65a8794b289daafcb969971ed635e2e4bcc9d1b170d1e683253e85c3d9",
+    "agent/crates/agent-linux-session/src/monitor.rs": "a05aa454317e7907edda5135c220a4397322308750363296b2c6e51a42a865da",
+    "agent/crates/agent-linux-session/src/lib.rs": "231d73d6305e3c1b5908e24836e1cac357360abe827c22c6c11ebb6fd09c4eb3",
+    "agent/crates/agent-linux-session/src/query.rs": "d475fd419f19c0e325184c11bd68b106aac909a626bd6eee34eeee3d1fd59214",
+    "agent/crates/agent-linux-session/src/service.rs": "c59faf7b7ee59657c24414b0af5160ca813e2ce641e15d46fcb320662836ad0a",
+    "agent/crates/agent-linux-session/src/input_lease.rs": "6b037e619b0cd05423916a75d344b1c5fef0e1ef23329ea5f2e4c396890267af",
+    "agent/crates/agent-linux-session/src/status.rs": "24ff9c97e6a633b73bdbe7b7fc389c1ee72628b2096a2f0aa1eedbb32486ce76",
+    "agent/crates/agent-linux-session/src/binding.rs": "4fa7ee5891476dd644c025b0dbc32a126a55a0b5b725d83f661f070c8e0f5d84",
+    "agent/crates/agent-linux-session/src/main.rs": "d9a74d5bddc3ae4f7e987799abb0f3d3dc96daae2f0ec7141a72c0c717c436e5",
+    "agent/crates/agent-linux-session/src/authority_main.rs": "68a02cd054a09c0a3f2e97af4858e618326e6b788e686c0badf2d4f6440f54e4",
+    "agent/crates/agent-linux-session/src/xauthority.rs": "89451e9f144357bafb66cc7dcffd52b3ce77dcae97e70b79497b450167dbe634",
+    "agent/crates/agent-linux-session/src/authority_service.rs": "9b0b5207a4a2ca3508c9a72f19a9fab39838de8863b34549e348b69fde8967a9",
+    "agent/crates/agent-linux-session/src/grant.rs": "fa8f5da625229f3fd864efe5b2a52a207c7613e485dba524fa39e9c000be546e",
+    "agent/crates/agent-linux-session/src/input_probe.rs": "a93a37696e65ef6b4e66e2d973143187a8956694e77fc147b6aede2925893031",
+    "agent/crates/agent-security/src/uinput.rs": "0e63d9498dd93662d8210178e960dbdc628233c77847c048f79b95cfe885e458",
+    "agent/crates/agent-security/src/profile.rs": "0eed7f8a73e932df75fae094b00e5b81f56cb1f4e2d93ec21703ed51648050dc",
+    "agent/crates/agent-security/src/client.rs": "fa9b0e5eaea2d06f4d0d6b604bfc2d9cf93b0ff5e067c642b6ef59aee8a4c115",
+    "agent/crates/agent-security/src/lib.rs": "495cc5aa7278ea1c238fce087d2bbb39820d35f3718ca4f4ef31051cc6ac6e89",
+    "agent/crates/agent-security/src/worker.rs": "ef27fc6cbda6896b91933d075834bb04d833a9ce73ac8173868e54775339b633",
+    "agent/crates/agent-security/src/fd.rs": "40b40bbfba73a7ca8071b30262d6dc6aa7ad26b5e29d423eba5a12f9a0d32910",
+    "agent/crates/agent-security/src/linux.rs": "18a92e410ad02157e0908890c580af093b5ac6b70a6778c566fef72acb9b086d",
+    "agent/crates/agent-security/src/authority_client.rs": "8d1577a1a2e9903a255913e158af2351377f554c19c660da8209494f077fcb9e",
+    "agent/crates/agent-security/src/wire.rs": "42fa038c35a157764ec39ea3c79f24f7126177e868205b2227d4b07c94bd684d",
+    "agent/crates/agent-security/src/secrets.rs": "f7e61489110439d9d1d116c26e565b8c9079b0219669c1be538eab65ce9f1b2a",
+    "agent/crates/agent-security/src/provision.rs": "c81e312b6fc3a093d9923f3ad66e765454a5ff7fea560acac97fcebce2667f9d",
+    "agent/crates/agent-broker/src/secure_linux.rs": "1ba1d03fe79f6ad61870fc055b0452116d7f06934c23ba21998abd0dade0ae5f",
+    "agent/linux-secure-lab/authority-install-vm.py": "6ccda78520e2a9bf545739437a71eca972b689e679fe080ae6fc1adebabae0a8",
+    "prototypes/backend-agent-check/secure-ipc-check.py": "0b5b0888becd91b91ae12438be929ff5fc8d6c6fa6c73267b4c0f213c2685469"
+  },
+  "dedicatedWorkerRemoved": true,
+  "lightdmRecoveredAfterRemoval": true,
+  "authorityServiceRemoved": true,
+  "temporaryAccountRemoved": true,
+  "baseServiceRemoved": true,
+  "inputGuardUnitFilesAndDeviceRemoved": true,
+  "pureLeaseTests": 7,
+  "webRtcGeneralInputTested": false,
+  "protectedContextGeneralInputTested": false,
+  "productionTested": false,
+  "physicalMachinesTested": false,
+  "readyForUnattended": false,
+  "limits": [
+    "El componente envía solo A o botón izquierdo a una ventana propia de la VM, sin texto, contraseñas, imágenes guardadas ni órdenes de administración.",
+    "La concesión se valida con API/HMAC, PID/UID/start_ticks y logind. Cada autenticación cambia de concesión aunque conserve los procesos; no la renueva un evento de entrada.",
+    "El fd permanece en el guardián sin red IP; el trabajador dedicado no puede abrir /dev/uinput ni sus descriptores. Un observador independiente comprueba la liberación.",
+    "Los tiempos incluyen los recorridos SSH de observación y no certifican un plazo de tiempo real ni la máquina física.",
+    "La caída/caducidad corta el proceso/dispositivo. No une aún teclado/ratón general o captura de escritorio a WebRTC, ni acepta 3.5/6.2.",
+    "La prueba adicional linux-input-overlap-results.json detecta pérdida de estado maestro Xorg al soltar la misma tecla en otro teclado virtual. Conserva el estado del kernel, pero no permite afirmar aislamiento de teclado local/remoto. Bloquea su adopción general."
+  ],
+  "localKeyboardOverlapSafe": false,
+  "generalKeyboardAdoptionBlocked": true,
+  "localValidation": {
+    "linuxRustTestsDefaultAndAllFeatures": 268,
+    "macRustTestsDefaultAndAllFeatures": 234,
+    "typecheck": true,
+    "vitestPassed": 334,
+    "vitestApiSkipped": 6,
+    "phpunitTests": 162,
+    "phpunitAssertions": 1077,
+    "diagnosticTests": 7,
+    "runnerTests": 10,
+    "authorityParserTests": 7,
+    "openspecStrict": true,
+    "standaloneDeviceRemovalCases": 6,
+    "p2pRegressionCases": 10
+  },
+  "firstReviewedCi": {
+    "headRevision": "06c12470c412e583bb98162cae03873bcdbfa21c",
+    "jobs": [
+      {
+        "id": 123056523562,
+        "os": "linux",
+        "rustTests": 268
+      },
+      {
+        "id": 123056523603,
+        "os": "macos",
+        "rustTests": 234
+      },
+      {
+        "id": 123056522999,
+        "os": "windows",
+        "rustTests": 232
+      }
+    ],
+    "logsAndAnnotationsReviewed": true,
+    "fmtClippyDefaultAllFeaturesAndBothReleaseBuildsPassed": true
+  },
+  "foreignUnitGuard": {
+    "foreignUnitRejectedBeforeMutation": true,
+    "foreignUnitLeftRunning": true,
+    "noOwnedFilesCreated": true
+  }
+}

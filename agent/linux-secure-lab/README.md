@@ -216,3 +216,59 @@ No guarda/transmite imágenes o entrada. Su salida solo admite contadores y
 booleanos conocidos y se descarta si la autenticación dejó de ser válida. La
 cuenta gráfica anterior ya no tiene acceso al buzón/socket dedicado. Faltan la
 unión P2P y la captura/entrada/contextos generales; no cambia la certificación.
+
+
+## Guardián de entrada fija, optativo de VM
+
+`--secure-ipc-input-lease` requiere `--secure-ipc-dedicated`, autoridad y la VM
+propia. Añade `absor-input-lease-probe-lab`, compilado solo con `input-lease-lab`.
+No recibe entrada WebRTC: el operador inicia un único evento A/izquierdo en una
+ventana propia, después de validar la concesión HMAC/API y su foco. Cada prueba
+usa una concesión diferente. El tipo `ValidatedGrant` no admite deserialización
+por IPC; el guardián corta al caducar, cambiar autorización, retroceder/fallar el
+reloj, repetir secuencia, liberar entrada no poseída o fallar el dispositivo.
+
+El adaptador Rust carga dinámicamente la biblioteca de sistema `libevdev.so.2`
+desde un árbol root protegido. El fd uinput nunca sale del proceso. Exige marcador
+propio, UID root, NoNewPrivileges y cero capacidades, y no expone texto/rutas/
+comandos. La unidad no tiene red IP, limita dispositivos y usa watchdog de 500 ms;
+un hilo independiente comprueba el plazo durante las consultas del actor.
+SIGKILL o un fallo de ese proceso retiran el dispositivo por el kernel, sin
+necesitar enviar keyup globales de XTest. La sonda no se instala al arrancar.
+
+```bash
+python3 -B prototypes/backend-agent-check/isolated-webrtc-renewal.py /ruta/lab \
+  --secure-ipc-vm /ruta/vm-lab --secure-ipc-authority \
+  --secure-ipc-dedicated --secure-ipc-input-lease
+```
+
+Archivos adicionales del ensayo: `/opt/absorconnect-input-release-lab/` y su
+marcador `/run/absorconnect-owned-vm-input-release-probe`; binario propio bajo
+`/opt/absorconnect-seat-authority-lab/` y unidad
+`/etc/systemd/system/absorconnect-input-lease-probe-lab.service`. El observador
+usa una unidad transitoria distinta. La retirada comprueba nonce/hashes, detiene
+ambas unidades y verifica que no queda su dispositivo, antes de retirar los
+archivos. No modifica LightDM, PAM, polkit ni políticas del dispositivo.
+
+Pasan 41 comprobaciones del laboratorio, incluidas diez de entrada propia y tres
+de denegación/aislamiento. El informe `linux-input-lease-results.json` no acepta
+3.5/6.2: faltan receptor local de entrada, trabajador P2P/captura general,
+transiciones protegidas y aislamiento de contenido de cada configuración.
+
+
+**Límite detectado antes de la adopción:** con dos teclados virtuales propios
+manteniendo A, un keyup/retirada de uno puede borrar el estado maestro de Xorg
+aunque el otro continúe pulsado en el kernel. No se certifica aislamiento de
+teclado local/remoto ni se adopta este teclado general. Se reproduce sin entrada
+física con el mismo lanzador independiente:
+
+```bash
+python3 -B prototypes/backend-agent-check/linux-uinput-release-check.py /ruta/lab \
+  /ruta/vm-lab --verify-local-hold
+```
+
+Devuelve 3 por el límite observado, **después** de guardar el informe y retirar
+los recursos. Las 41 pruebas de entrada fija/IPC anterior no prueban esa
+simultaneidad. `linux-input-overlap-results.json` conserva ambos resultados sin
+contabilizar la limitación como éxito. Las pruebas del laboratorio requieren
+mantener libres teclado/ratón de esa VM.
