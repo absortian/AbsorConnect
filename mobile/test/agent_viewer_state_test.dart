@@ -93,4 +93,11 @@ void main() {
     s.accept(jsonEncode(allowed.toJson()));
     expect(s.status.inputAllowed, true);
   });
+  test('retira acciones aunque las capacidades no cambien', () {
+    final state=AgentViewerState();state.announce(1,true);
+    const message=AgentCapabilitiesMessage(agentVersion:'0.1.0', actions:[AgentAction.lock], capabilities:AgentCapabilities(administration:false,login:false,secureAttention:false,restart:false));
+    expect(state.accept(jsonEncode(message.toJson())),true);expect(state.actions,[AgentAction.lock]);
+    expect(state.accept(jsonEncode(caps.toJson())),true);expect(state.actions,isEmpty);
+  });
+
 }

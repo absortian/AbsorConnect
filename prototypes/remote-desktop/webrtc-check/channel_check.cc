@@ -46,7 +46,9 @@
 namespace {
 using BoolResult = std::shared_ptr<std::promise<bool>>;
 #ifdef ABSOR_RUST_BRIDGE
-constexpr auto kTimeout = std::chrono::seconds(45);
+// El laboratorio incluye autenticación, comprobación visual y una pausa real de 31 s.
+// Este plazo del ensayo no cambia la autorización del broker ni sus watchdogs.
+constexpr auto kTimeout = std::chrono::seconds(75);
 #else
 constexpr auto kTimeout = std::chrono::seconds(20);
 #endif
@@ -142,6 +144,7 @@ class Observer final : public webrtc::PeerConnectionObserver, public webrtc::Dat
   bool authenticated = false;
   bool attempted = false;
   bool connected = false;
+  int completed_by = 0;
   std::function<void()> on_authenticated;
 #ifdef ABSOR_RUST_BRIDGE
   std::function<void()> on_cut;
@@ -151,6 +154,7 @@ class Observer final : public webrtc::PeerConnectionObserver, public webrtc::Dat
     const int state = absor_bridge_poll(bridge_);
     if (state < 0) {
       bridge_cut = state;
+      completed_by = 2;
       if (on_cut) on_cut();
       if (!acknowledged_) { acknowledged_ = true; acknowledged.set_value(true); }
       return;
@@ -170,6 +174,13 @@ class Observer final : public webrtc::PeerConnectionObserver, public webrtc::Dat
   }
   void OnConnectionChange(webrtc::PeerConnectionInterface::PeerConnectionState state) override {
     if (state == webrtc::PeerConnectionInterface::PeerConnectionState::kConnected) connected = true;
+    if (authenticated && !acknowledged_ &&
+        (state == webrtc::PeerConnectionInterface::PeerConnectionState::kClosed ||
+         state == webrtc::PeerConnectionInterface::PeerConnectionState::kFailed)) {
+      completed_by = 4;
+      acknowledged_ = true;
+      acknowledged.set_value(true);
+    }
   }
   void OnIceGatheringChange(webrtc::PeerConnectionInterface::IceGatheringState state) override {
     if (state == webrtc::PeerConnectionInterface::kIceGatheringComplete && !gathered_.exchange(true)) {
@@ -204,6 +215,13 @@ class Observer final : public webrtc::PeerConnectionObserver, public webrtc::Dat
   void OnStateChange() override {
     // La API exige salir del callback antes de volver a llamar a WebRTC.
     signaling_->PostTask([this] {
+      // En segundo plano el SO puede cerrar el transporte antes de entregar bye.
+      // Solo finaliza un intercambio ya autenticado; una caída previa nunca lo acredita.
+      if (channel && (channel->state() == webrtc::DataChannelInterface::kClosing || channel->state() == webrtc::DataChannelInterface::kClosed) && authenticated && !acknowledged_) {
+        completed_by = 3;
+        acknowledged_ = true;
+        acknowledged.set_value(true);
+      }
       if (!channel || channel->state() != webrtc::DataChannelInterface::kOpen || hello_sent_) return;
       hello_sent_ = true;
       Json::Value hello;
@@ -248,6 +266,7 @@ class Observer final : public webrtc::PeerConnectionObserver, public webrtc::Dat
       if (!Json::parseFromStream(builder, input, &message, &errors) ||
           !message.isObject() || message["v"] != 1 || !message["type"].isString()) return;
       if (message["type"] == "bye" && attempted && !acknowledged_) {
+        completed_by = 1;
         acknowledged_ = true;
         acknowledged.set_value(true);
         return;
@@ -476,7 +495,10 @@ int Run(const std::string& offer, const char* answer_path,
       );
   bool connected = false;
   bool authenticated = false;
+  int completed_by = 0, channel_state = -1;
   signaling->BlockingCall([&] {
+    completed_by = observer.completed_by;
+    if (observer.channel) channel_state = static_cast<int>(observer.channel->state());
     connected = observer.connected;
     authenticated = observer.authenticated;
 #ifdef ABSOR_SYNTHETIC_VIDEO
@@ -489,7 +511,13 @@ int Run(const std::string& offer, const char* answer_path,
   factory = nullptr;
   signaling->Stop();
   network->Stop();
-  if (!exchanged || !connected) return 5;
+  if (!exchanged || !connected) {
+    // Solo estados acotados; sin SDP, direcciones, mensajes ni claves.
+    std::cerr << "native_exchange_failed exchanged=" << exchanged << " connected=" << connected
+              << " authenticated=" << authenticated << " source=" << completed_by
+              << " channel=" << channel_state << std::endl;
+    return 5;
+  }
 #ifdef ABSOR_NATIVE_FIXTURE
   std::array<uint8_t, 1024> native_status{};
   int native_length = absor_bridge_native_status(bridge, native_status.data(), native_status.size());

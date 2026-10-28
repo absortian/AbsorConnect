@@ -74,5 +74,33 @@
     "El host nativo actual no anuncia acciones; el laboratorio no reinicia el SO",
     "La presencia API no certifica un reinicio del SO: el visor exige autenticarse de nuevo",
     "Agentes finales, control móvil y pilotos físicos pendientes"
-  ]
+  ],
+  "mergedPullRequest": {
+    "number": 55,
+    "head": "64b83dd038cd1cef2a239f263dc14ce5670eb926",
+    "merge": "f6c8490e6f08ad7c365ea31964564d1e2009e8eb",
+    "fullCiLogsAndAnnotationsReviewed": true,
+    "desktopJobs": [
+      {
+        "id": 122570196639,
+        "testsPassed": 334,
+        "apiTestsSkipped": 6,
+        "packagingPassed": true
+      },
+      {
+        "id": 122570196417,
+        "testsPassed": 334,
+        "apiTestsSkipped": 6,
+        "packagingPassed": true
+      },
+      {
+        "id": 122570196176,
+        "testsPassed": 334,
+        "apiTestsSkipped": 6,
+        "packagingPassed": true
+      }
+    ],
+    "mobileJobsSkippedBecauseUnchanged": true,
+    "localWithApiTestsPassed": 340
+  }
 }

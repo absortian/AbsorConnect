@@ -6,6 +6,7 @@ import 'package:absor_connect/l10n/app_localizations.dart';
 import 'package:absor_connect/src/api.dart';
 import 'package:absor_connect/src/session.dart';
 import 'package:absor_connect/src/remote/input.dart';
+import 'package:absor_connect/src/remote/monotonic_clock.dart';
 import 'package:absor_connect/src/remote/remote_api.dart';
 import 'package:absor_connect/src/remote/viewer_session.dart';
 import 'package:absor_connect/ui/viewer_screen.dart';
@@ -37,8 +38,9 @@ Future<void> until(
 ]) async {
   final deadline = DateTime.now().add(const Duration(seconds: 35));
   while (!condition()) {
-    if (DateTime.now().isAfter(deadline))
+    if (DateTime.now().isAfter(deadline)) {
       throw StateError('runtime_timeout_${detail?.call() ?? 'no_detail'}');
+    }
     await Future<void>.delayed(const Duration(milliseconds: 30));
   }
 }
@@ -69,20 +71,23 @@ class LocalApi extends RemoteApi {
   Future<Map<String, dynamic>>? native;
   String answer = '';
   bool requested = false;
+  int requests = 0;
   @override
   Future<List<Map<String, dynamic>>> iceServers() async =>
       (config['iceServers'] as List).cast<Map<String, dynamic>>();
   @override
   Future<String> createRequest(String id, String offer) async {
+    requests++;
     if (id != deviceId) throw StateError('wrong_device');
-    if (requested) throw ApiError('device_not_found', 404);
+    if (requested && (name != 'correct' || requests > 2)) throw ApiError('device_not_found', 404);
+    final slot = requested ? 'correct-auto-reconnect' : name;
     requested = true;
-    native = request('protected/$name/run', {});
+    native = request('protected/$slot/run', {});
     unawaited(
       native!.then<void>((_) {}, onError: (Object _, StackTrace __) {}),
     );
     answer =
-        (await request('mobile/offer/$name', {'sdp': offer}))['sdp'] as String;
+        (await request('mobile/offer/$slot', {'sdp': offer}))['sdp'] as String;
     final audio = answer
         .replaceAll('\r\n', '\n')
         .split('\nm=')
@@ -144,8 +149,9 @@ void main() {
                 (session.phase == ViewerPhase.connected ||
                 session.phase == ViewerPhase.failed),
           );
-          if (session.phase == ViewerPhase.failed)
+          if (session.phase == ViewerPhase.failed) {
             throw StateError('runtime_failed_${session.failure?.code}');
+          }
           await until(
             () =>
                 session.contextImageCurrent &&
@@ -190,6 +196,9 @@ void main() {
           }
         });
         await tester.pump();
+        late Map<String, dynamic> report;
+        late int elapsed;
+        late Map<String,dynamic> background;
         await runLive(tester, () async {
           expect(
             (await request(
@@ -205,7 +214,7 @@ void main() {
                 ? 'relay'
                 : isIn(['host', 'prflx', 'srflx']),
           );
-          final report = {
+          report = {
             'nativeGreenVerified': true,
             'challengeId': session.challengeId,
             'helloCount': session.challengeCount,
@@ -228,6 +237,39 @@ void main() {
               'relayProtocol': stats.relayProtocol,
             },
           };
+          final clock=MobileMonotonicClock();
+          final left=clock.nowMicros(); expect(left,isNotNull);
+          background=await request('mobile/background/$name',{});
+          elapsed=clock.nowMicros()!-left!;
+        });
+        // Los callbacks de ciclo de vida pertenecen al binding de pruebas: avanzar
+        // sus temporizadores no sustituye la pausa/reanudación real del SO anterior.
+        await tester.pump(const Duration(milliseconds:300));
+        await runLive(tester, () async {
+          if(name=='correct') {
+            await until(()=>session.phase==ViewerPhase.connected && session.inputAllowed, ()=>jsonEncode({'stage':'resume','phase':session.phase.name,'failure':session.failure?.code,'requests':api.requests,'keyPresent':session.hasKey}));
+            if(api.requests==2) {
+              expect(session.challengeId,isNot(report['challengeId']));
+              session.sendInputs([
+                RemoteInput.button(0,down:true),RemoteInput.button(0,down:false),
+                RemoteInput.key('KeyA',down:true),RemoteInput.key('KeyA',down:false),
+              ]);
+              await until(()=>session.contextImageCurrent && (session.stats.decodedFrames??0)>=2);
+              expect((await request('mobile/screenshot/correct-auto-reconnect',{}))['nativeGreenVerified'],true);
+              report.addAll({'challengeId':session.challengeId,'helloCount':session.challengeCount,'decodedFrames':session.stats.decodedFrames,'width':session.renderer.videoWidth,'height':session.renderer.videoHeight,'candidates':{'local':session.stats.localCandidateType,'remote':session.stats.remoteCandidateType,'relayProtocol':session.stats.relayProtocol}});
+            }
+          } else {
+            await until(()=>session.phase==ViewerPhase.closed);
+            expect(session.hasKey,false);
+          }
+          report.addAll({
+            'backgroundSeconds':background['seconds'],
+            'backgroundElapsedMicros':elapsed,
+            'backgroundRecovered':name=='correct' && session.connected,
+            'backgroundClosed':name=='correct-reconnect' && session.phase==ViewerPhase.closed && !session.hasKey,
+            'requestsAfterResume':api.requests,
+          });
+          await request('mobile/checkpoint/$name', report);
           await session.close();
           expect((await api.native!)['protectedIpc'], true);
           expect((await request('mobile/result/$name', report))['ok'], true);
@@ -235,10 +277,11 @@ void main() {
       } finally {
         await tester.runAsync(() async {
           await session.close();
-          if (api.native != null)
+          if (api.native != null) {
             try {
               await api.native!.timeout(const Duration(seconds: 90));
             } on Object catch (_) {}
+          }
         });
         await tester.pumpWidget(const SizedBox.shrink());
         await tester.pump();

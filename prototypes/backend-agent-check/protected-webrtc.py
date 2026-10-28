@@ -100,8 +100,8 @@ def main():
         nonlocal installed,locked
         item=owned[name]
         completed=False
-        reconnect=name=='correct-reconnect'
-        assert not installed or name=='correct-reconnect'
+        reconnect=name in ('correct-reconnect','correct-auto-reconnect')
+        assert not installed or name in ('correct-reconnect','correct-auto-reconnect')
         if vm.context().get('Class')=='greeter':vm.login()
         if helper.screen_state(vm)=='(true,)':vm.logout();vm.login()
         assert helper.screen_state(vm)=='(false,)'
@@ -117,6 +117,7 @@ def main():
                 assert int(vm.remote('systemctl show '+SERVICE+' -p MainPID --value'))==item['brokerPid']
                 root("from pathlib import Path;Path('/var/lib/absorconnect-protected-worker-lab/result.json').write_bytes(b'')")
                 vm.remote('sudo -n systemctl start '+WORKER)
+                if name=='correct-auto-reconnect':item['autoWorkerReady'].set()
             else:
                 install=json.loads(root('import sys;sys.argv=["install-vm.py","install-native"];\n'+installer,json.dumps(data).encode()))
                 installed=True;assert install['brokerUid'] not in (0,1000)
@@ -124,7 +125,7 @@ def main():
             # Las denegaciones se comprueban antes de que llegue la prueba HMAC del visor.
             wait='''import json,subprocess,time
 from pathlib import Path
-p=Path('/var/lib/absorconnect-protected-worker-lab/result.json');deadline=time.monotonic()+75
+p=Path('/var/lib/absorconnect-protected-worker-lab/result.json');deadline=time.monotonic()+105
 while time.monotonic()<deadline:
  state=subprocess.check_output(['systemctl','show','absorconnect-protected-worker-lab.service','-p','ActiveState','--value']).strip()
  if state in (b'inactive',b'failed'):
@@ -139,7 +140,7 @@ while time.monotonic()<deadline:
 else:raise AssertionError('native_worker_timeout')
 '''
             fault=name in ['worker-stall','broker-stall','broker-crash']
-            value=json.loads(root(wait.replace('FAULT',str(fault)),timeout=85))
+            value=json.loads(root(wait.replace('FAULT',str(fault)),timeout=115))
             if fault:
                 assert item.get('faultAt')
                 value={'fault':{'name':name,'workerExitCode':value['exitCode'],'processCutMilliseconds':round((time.monotonic()-item['faultAt'])*1000)}}
@@ -147,7 +148,7 @@ else:raise AssertionError('native_worker_timeout')
             assert len(attempts['failures'])==(1 if name in ['wrong-proof','fingerprint-mismatch'] else 0)
             audit=json.loads(root("from pathlib import Path;print(Path('/var/lib/absorconnect-secure-lab/audit.json').read_text())"))
             p=output/(name+'-audit.json');p.write_text(json.dumps(audit,indent=2)+'\n');p.chmod(0o600)
-            if name!='correct':cleanup_install()
+            if name not in ('correct','correct-auto-reconnect'):cleanup_install()
             value['systemd']={'systemService':True,'exitCode':0,'activeAfterExit':False,'runtimeRemoved':True,'restart':'no','privileged':False,'workerSupervised':True,'brokerWatchdog':True}
             value['protectedIpc']=True
             saved=output/(name+'-native-result.json');saved.write_text(json.dumps(value,indent=2)+'\n');saved.chmod(0o600)
@@ -159,7 +160,7 @@ else:raise AssertionError('native_worker_timeout')
                 error=output/'root-stderr.txt'
                 if error.exists():
                     saved=output/(name+'-root-stderr.txt');saved.write_bytes(error.read_bytes());saved.chmod(0o600)
-            if name!='correct' or not completed:cleanup_install()
+            if name not in ('correct','correct-auto-reconnect') or not completed:cleanup_install()
             if locked:
                 vm.logout();vm.login();locked=False
 
@@ -181,6 +182,10 @@ else:raise AssertionError('native_worker_timeout')
             assert request('PUT',item['path'],info,item['owner'],device_key)[0]==200
             status,enrollment=request('POST',item['path']+'/agent-enrollments',{},item['owner'],device_key);assert status==201;item['grant']=enrollment['enrollmentToken']
 
+        if args.mobile_runtime:
+            owned['correct-auto-reconnect']=owned['correct']
+            owned['correct']['autoWorkerReady']=threading.Event()
+
         mapping=mobile_module.VmDirectMapping(vm) if args.android_mapped_direct else None
         def prepare_mobile():
             if args.mobile_device!='emulator-5554':return
@@ -198,8 +203,26 @@ else:raise AssertionError('native_worker_timeout')
                     subprocess.run(command+['shell','input','tap',str((points[0]+points[2])//2),str((points[1]+points[3])//2)],capture_output=True,check=True,timeout=10)
             finally:subprocess.run(command+['shell','rm',path],capture_output=True,timeout=10)
 
+        def background(seconds):
+            assert args.mobile_runtime and seconds in (10,31)
+            if args.mobile_device=='emulator-5554':
+                adb='/opt/homebrew/share/android-commandlinetools/platform-tools/adb'
+                assert subprocess.check_output([adb,'-s',args.mobile_device,'emu','avd','name'],timeout=10).splitlines()[0]==b'absorconnect'
+                pause=[adb,'-s',args.mobile_device,'shell','input','keyevent','KEYCODE_HOME']
+                resume=[adb,'-s',args.mobile_device,'shell','am','start','-W','-n','com.absor.connect/.MainActivity']
+            else:
+                assert args.mobile_device=='0D9B8664-A2FF-46C4-95AC-D30591167441'
+                import plistlib
+                app=lab/'mobile-simulator/build/ios/iphonesimulator/Runner.app/Info.plist'
+                bundle=plistlib.loads(app.read_bytes())['CFBundleIdentifier'];assert bundle=='com.absor.connect'
+                pause=['xcrun','simctl','launch',args.mobile_device,'com.apple.Preferences']
+                resume=['xcrun','simctl','launch',args.mobile_device,bundle]
+            subprocess.run(pause,capture_output=True,check=True,timeout=20)
+            try:time.sleep(seconds)
+            finally:subprocess.run(resume,capture_output=True,check=True,timeout=25)
+
         def screenshot(name):
-            assert args.mobile_runtime and name in ('correct','correct-reconnect')
+            assert args.mobile_runtime and name in ('correct','correct-reconnect','correct-auto-reconnect')
             path=output/(name+'-production-mobile-screen.png');assert not path.exists()
             deadline=time.monotonic()+18
             while True:
@@ -221,7 +244,7 @@ else:raise AssertionError('native_worker_timeout')
                 assert time.monotonic()<deadline,'native_green_frame_not_rendered'
                 path.unlink();time.sleep(.1)
 
-        mobile=mobile_module.MobileController(owned,signals,request,output,controller_ice,mapping,runtime=args.mobile_runtime,screenshot=screenshot,prepare=prepare_mobile) if mobile_module else None
+        mobile=mobile_module.MobileController(owned,signals,request,output,controller_ice,mapping,runtime=args.mobile_runtime,screenshot=screenshot,prepare=prepare_mobile,background=background) if mobile_module else None
 
         class Proxy(http.server.BaseHTTPRequestHandler):
             def log_message(self,*_):pass

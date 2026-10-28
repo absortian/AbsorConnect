@@ -135,7 +135,8 @@ permiten ejecutar operaciones: hacen falta la autenticación y la negociación d
 canal control. Los analizadores de `agent_protocol.dart` comparten los vectores
 con TypeScript y Rust. `RemoteApi.revokeAgent(id)` valida el ID y da de baja solo
 ese equipo; no reintenta en segundo plano ni borra conexiones S3/SSH. La UI móvil
-de esa operación y los controles administrativos aún están pendientes.
+de esa operación aún está pendiente. Los controles administrativos se negocian
+por sesión como se describe más abajo.
 
 No hay una configuración final certificada para viajes. Android/iOS son
 controladores, no hosts. La guía de
@@ -160,6 +161,41 @@ el contexto en cada trozo. Esto también impide reanudar una selección de archi
 que respondiera tarde. Los hosts anteriores conservan su funcionamiento.
 
 Este visor no certifica el host. El laboratorio nativo solo captura una ventana
-propia y declara falsas las capacidades administrativas. Siguen pendientes las
-acciones administrativas, la espera de reinicio y la matriz protegida Windows,
+propia y declara falsas las capacidades administrativas. Sigue pendiente la matriz protegida Windows,
 Mac y Mint; véase `../docs/unattended-access.md`.
+
+
+## Administración y vuelta después de reiniciar
+
+En un PC autenticado que anuncie acciones y un contexto vigente, **Administrar**
+permite elegir únicamente las operaciones ofrecidas: bloquear, cerrar sesión,
+reiniciar o atención segura. Todos los botones piden confirmación con el nombre
+del PC. Abrir el diálogo libera la entrada y aparta el teclado del móvil; un
+cambio de contexto, una retirada de capacidades o pasar a segundo plano lo
+invalida. Un host anterior no muestra este menú.
+
+Solo hay una orden pendiente. El resultado tiene que coincidir en ID y acción;
+se ignoran duplicados y nunca se repite una orden automáticamente. Sin resultado
+a los quince segundos, la administración queda suspendida hasta una conexión
+nueva. «Aceptada» significa que el PC aceptó la orden, no que acabara de reiniciar.
+
+Un reinicio aceptado cierra el visor y borra K. Durante un máximo de cinco minutos
+se consulta solo la presencia del mismo equipo, con una petición pendiente y sin
+crear ofertas de sesión. La espera se puede cancelar; eso no deshace el reinicio.
+Para anunciar disponibilidad se exige una ausencia observada o un heartbeat
+posterior al anterior a la orden. Una respuesta HTTP colgada no prolonga el plazo.
+Después hay que pulsar Conectar e introducir otra vez la contraseña del PC.
+Cancelar o agotar la espera también obliga a comprobar disponibilidad antes de
+publicar una oferta; no se ofrecen conexiones a un PC fuera de línea.
+
+El límite de segundo plano sigue siendo treinta segundos, también durante la
+espera de reinicio. No se consulta presencia ni se reconecta automáticamente en
+segundo plano. Volver antes del límite permite recuperar una sesión que aún sea
+válida; al superar el límite, se cierra y se borra K. Cuando el SO suspende la app,
+la comprobación se hace al reanudar con un reloj que incluye la suspensión
+(`mach_continuous_time` / `CLOCK_BOOTTIME`), antes de permitir recuperar la sesión.
+Un reloj ausente o que retrocede causa cierre conservador. Esto no garantiza que
+el sistema ejecute código de la app mientras la mantiene suspendida.
+
+Estos flujos tienen textos en español e inglés. No certifican operaciones reales
+del SO ni resuelven por sí solos las pruebas pendientes de UAC, Mac o LightDM.

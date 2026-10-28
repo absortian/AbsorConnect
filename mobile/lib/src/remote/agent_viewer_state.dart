@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 
 import 'agent_protocol.dart';
 
@@ -22,6 +23,8 @@ class AgentViewerState {
   bool _enabled = false, _sensitiveTainted = false;
   AgentCapabilities? _capabilities;
   AgentContextMessage? _context;
+  List<AgentAction> _actions = const [];
+  List<AgentAction> get actions => List.unmodifiable(_actions);
 
   bool announce(Object? version, Object? supported) {
     if (_enabled || version != 1 || supported != true) return false;
@@ -32,12 +35,13 @@ class AgentViewerState {
   bool accept(String raw) {
     if (!_enabled) return false;
     switch (parseAgentHostMessage(raw)) {
-      case AgentCapabilitiesMessage(:final capabilities):
+      case AgentCapabilitiesMessage(:final capabilities, :final actions):
         if (jsonEncode(_capabilities?.toJson()) ==
-            jsonEncode(capabilities.toJson())) {
+            jsonEncode(capabilities.toJson()) && listEquals(_actions, actions)) {
           return false;
         }
         _capabilities = capabilities;
+        _actions = List.of(actions);
         return true;
       case AgentContextMessage message:
         if (message.sequence <= (_context?.sequence ?? 0)) return false;

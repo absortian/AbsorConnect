@@ -1,0 +1,304 @@
+{
+  "schema": 1,
+  "date": "2026-10-28",
+  "scope": "Flutter: acciones confirmadas, espera y ciclo de vida; host de ventana propia Linux por IPC protegido",
+  "ok": true,
+  "acceptedTask": "10.3",
+  "cases": [
+    {
+      "platform": "android",
+      "transport": "direct",
+      "secondsInBackground": 10,
+      "elapsedMicros": 10203467,
+      "connectedAfterReturn": true,
+      "closedAndKeyClearedAfterReturn": false,
+      "authenticatedRequests": 1,
+      "nativeFramePresented": true,
+      "nativeInputEvents": 4,
+      "imageSize": [
+        320,
+        180
+      ],
+      "decodedFrames": 21,
+      "sensitiveFeaturesDisabled": true,
+      "temporaryVmUdpMapping": true,
+      "fixtureManifestSha256": "3ca87f2a69f8de84424d08220de0524159dedf51d70a1c1019468998a26c703a"
+    },
+    {
+      "platform": "android",
+      "transport": "direct",
+      "secondsInBackground": 31,
+      "elapsedMicros": 31307361,
+      "connectedAfterReturn": false,
+      "closedAndKeyClearedAfterReturn": true,
+      "authenticatedRequests": 1,
+      "nativeFramePresented": true,
+      "nativeInputEvents": 4,
+      "imageSize": [
+        320,
+        180
+      ],
+      "decodedFrames": 9,
+      "sensitiveFeaturesDisabled": true,
+      "temporaryVmUdpMapping": true,
+      "fixtureManifestSha256": "3ca87f2a69f8de84424d08220de0524159dedf51d70a1c1019468998a26c703a"
+    },
+    {
+      "platform": "android",
+      "transport": "turn_udp",
+      "secondsInBackground": 10,
+      "elapsedMicros": 10227829,
+      "connectedAfterReturn": true,
+      "closedAndKeyClearedAfterReturn": false,
+      "authenticatedRequests": 1,
+      "nativeFramePresented": true,
+      "nativeInputEvents": 4,
+      "imageSize": [
+        320,
+        180
+      ],
+      "decodedFrames": 14,
+      "sensitiveFeaturesDisabled": true,
+      "temporaryVmUdpMapping": false,
+      "fixtureManifestSha256": "3ca87f2a69f8de84424d08220de0524159dedf51d70a1c1019468998a26c703a"
+    },
+    {
+      "platform": "android",
+      "transport": "turn_udp",
+      "secondsInBackground": 31,
+      "elapsedMicros": 31201169,
+      "connectedAfterReturn": false,
+      "closedAndKeyClearedAfterReturn": true,
+      "authenticatedRequests": 1,
+      "nativeFramePresented": true,
+      "nativeInputEvents": 4,
+      "imageSize": [
+        320,
+        180
+      ],
+      "decodedFrames": 14,
+      "sensitiveFeaturesDisabled": true,
+      "temporaryVmUdpMapping": false,
+      "fixtureManifestSha256": "3ca87f2a69f8de84424d08220de0524159dedf51d70a1c1019468998a26c703a"
+    },
+    {
+      "platform": "android",
+      "transport": "turn_tls",
+      "secondsInBackground": 10,
+      "elapsedMicros": 10223492,
+      "connectedAfterReturn": true,
+      "closedAndKeyClearedAfterReturn": false,
+      "authenticatedRequests": 2,
+      "nativeFramePresented": true,
+      "nativeInputEvents": 4,
+      "imageSize": [
+        320,
+        180
+      ],
+      "decodedFrames": 2,
+      "sensitiveFeaturesDisabled": true,
+      "temporaryVmUdpMapping": false,
+      "fixtureManifestSha256": "b540ee27cbc8bb193e97ae874c241a9be54fb30f95df5450d3b9ff47683eb3df"
+    },
+    {
+      "platform": "android",
+      "transport": "turn_tls",
+      "secondsInBackground": 31,
+      "elapsedMicros": 31257881,
+      "connectedAfterReturn": false,
+      "closedAndKeyClearedAfterReturn": true,
+      "authenticatedRequests": 1,
+      "nativeFramePresented": true,
+      "nativeInputEvents": 4,
+      "imageSize": [
+        320,
+        180
+      ],
+      "decodedFrames": 8,
+      "sensitiveFeaturesDisabled": true,
+      "temporaryVmUdpMapping": false,
+      "fixtureManifestSha256": "b540ee27cbc8bb193e97ae874c241a9be54fb30f95df5450d3b9ff47683eb3df"
+    },
+    {
+      "platform": "ios",
+      "transport": "direct",
+      "secondsInBackground": 10,
+      "elapsedMicros": 10336531,
+      "connectedAfterReturn": true,
+      "closedAndKeyClearedAfterReturn": false,
+      "authenticatedRequests": 1,
+      "nativeFramePresented": true,
+      "nativeInputEvents": 4,
+      "imageSize": [
+        320,
+        180
+      ],
+      "decodedFrames": 22,
+      "sensitiveFeaturesDisabled": true,
+      "temporaryVmUdpMapping": false,
+      "fixtureManifestSha256": "b540ee27cbc8bb193e97ae874c241a9be54fb30f95df5450d3b9ff47683eb3df"
+    },
+    {
+      "platform": "ios",
+      "transport": "direct",
+      "secondsInBackground": 31,
+      "elapsedMicros": 31392205,
+      "connectedAfterReturn": false,
+      "closedAndKeyClearedAfterReturn": true,
+      "authenticatedRequests": 1,
+      "nativeFramePresented": true,
+      "nativeInputEvents": 4,
+      "imageSize": [
+        320,
+        180
+      ],
+      "decodedFrames": 15,
+      "sensitiveFeaturesDisabled": true,
+      "temporaryVmUdpMapping": false,
+      "fixtureManifestSha256": "b540ee27cbc8bb193e97ae874c241a9be54fb30f95df5450d3b9ff47683eb3df"
+    },
+    {
+      "platform": "ios",
+      "transport": "turn_udp",
+      "secondsInBackground": 10,
+      "elapsedMicros": 10327494,
+      "connectedAfterReturn": true,
+      "closedAndKeyClearedAfterReturn": false,
+      "authenticatedRequests": 1,
+      "nativeFramePresented": true,
+      "nativeInputEvents": 4,
+      "imageSize": [
+        320,
+        180
+      ],
+      "decodedFrames": 21,
+      "sensitiveFeaturesDisabled": true,
+      "temporaryVmUdpMapping": false,
+      "fixtureManifestSha256": "b540ee27cbc8bb193e97ae874c241a9be54fb30f95df5450d3b9ff47683eb3df"
+    },
+    {
+      "platform": "ios",
+      "transport": "turn_udp",
+      "secondsInBackground": 31,
+      "elapsedMicros": 31373695,
+      "connectedAfterReturn": false,
+      "closedAndKeyClearedAfterReturn": true,
+      "authenticatedRequests": 1,
+      "nativeFramePresented": true,
+      "nativeInputEvents": 4,
+      "imageSize": [
+        320,
+        180
+      ],
+      "decodedFrames": 10,
+      "sensitiveFeaturesDisabled": true,
+      "temporaryVmUdpMapping": false,
+      "fixtureManifestSha256": "b540ee27cbc8bb193e97ae874c241a9be54fb30f95df5450d3b9ff47683eb3df"
+    },
+    {
+      "platform": "ios",
+      "transport": "turn_tls",
+      "secondsInBackground": 10,
+      "elapsedMicros": 10319792,
+      "connectedAfterReturn": true,
+      "closedAndKeyClearedAfterReturn": false,
+      "authenticatedRequests": 1,
+      "nativeFramePresented": true,
+      "nativeInputEvents": 4,
+      "imageSize": [
+        320,
+        180
+      ],
+      "decodedFrames": 14,
+      "sensitiveFeaturesDisabled": true,
+      "temporaryVmUdpMapping": false,
+      "fixtureManifestSha256": "b540ee27cbc8bb193e97ae874c241a9be54fb30f95df5450d3b9ff47683eb3df"
+    },
+    {
+      "platform": "ios",
+      "transport": "turn_tls",
+      "secondsInBackground": 31,
+      "elapsedMicros": 31291547,
+      "connectedAfterReturn": false,
+      "closedAndKeyClearedAfterReturn": true,
+      "authenticatedRequests": 1,
+      "nativeFramePresented": true,
+      "nativeInputEvents": 4,
+      "imageSize": [
+        320,
+        180
+      ],
+      "decodedFrames": 7,
+      "sensitiveFeaturesDisabled": true,
+      "temporaryVmUdpMapping": false,
+      "fixtureManifestSha256": "b540ee27cbc8bb193e97ae874c241a9be54fb30f95df5450d3b9ff47683eb3df"
+    }
+  ],
+  "automaticRecoveryWithNewChallengeCount": 1,
+  "fiveMinuteWait": "temporizador independiente y reloj continuo; expiración/cancelación/HTTP colgado/RetryAfter probados con reloj de pruebas",
+  "freshPasswordAfterAcceptedRestart": "interfaz de producción con sesión simulada; ninguna orden de reinicio del SO ejecutada",
+  "operations": "negociación y correlación real del cliente; host nativo sigue con NoOperations",
+  "unitTests": {
+    "flutterWithIsolatedApiSshS3": 201,
+    "flutterAnalyze": "sin incidencias",
+    "vitestWithApi": 340,
+    "phpunit": 162,
+    "phpunitAssertions": 1077,
+    "pythonRunnerGuards": 10,
+    "rustMacDefault": 66,
+    "rustMacAllFeatures": 86,
+    "fmtAndClippy": true,
+    "flutterWithoutIntegrationEnvironment": {
+      "passed": 185,
+      "skippedIntegrationTests": 16
+    }
+  },
+  "twoConnectionsSameBroker": true,
+  "freshAuthenticationChallenge": true,
+  "allRoutesSameMobileDartSources": true,
+  "allRoutesSameNativeArtifacts": true,
+  "allMobileDartSourceManifestSha256": "a0da714f5892dcd97a69c63fdf57112d4594ecf7d1f7d220511b5e39fa33a1d1",
+  "nativeArtifactsManifestSha256": "4c3b48b0991d29c2da3b9249d4f16ceee5f16fd2e6aab52ed682438f24f292f0",
+  "sourceSha256": {
+    "mobile/lib/src/remote/host_actions.dart": "cd3a19d513f07c54935a2283ddab95988a5bddac07aba6ff0e85d38c77dda95d",
+    "mobile/lib/src/remote/restart_wait.dart": "d4d8a2ba437c4c434ffb7cb3ec16b08a340df90a9c401edc125e94752be969ea",
+    "mobile/lib/src/remote/background_lease.dart": "e76cb1d80206455561df69d8dbdf8f597de718c627fe1d7eb8367d2a679e8c10",
+    "mobile/lib/src/remote/monotonic_clock.dart": "1fb8fcd20e71361967c97d74cfe71a1cb6955da427a4b90d67c169874e96ce0c",
+    "mobile/lib/src/remote/viewer_session.dart": "1dd36ab015d6f882b6a51d6069dca8d047c92ef5359afdf981b7892e0a463dfd",
+    "mobile/lib/src/remote/agent_viewer_state.dart": "3e427c5cdada56a48db76a51656ef296dbc2872b15de10040e58f6391a09f668",
+    "mobile/lib/src/remote/remote_api.dart": "145f2a501820cb98222a78ee22a98042727f31e57c5689267d13af9b1c50b65b",
+    "mobile/lib/ui/viewer_screen.dart": "e3579a5476fafb40e360a4fa2c466cd77d766c06f55af9673415409e916b3ce6",
+    "prototypes/backend-agent-check/mobile-protected-runner.py": "9ab6df5886b6c15fe47f803be8ab8779a84fe7e686fad76a4f06d5fa45c482f2",
+    "prototypes/backend-agent-check/protected-webrtc.py": "a2eff13b08f7c18e7480b1ab6d33512a065dcc2a69af0710562f9876c07207d3",
+    "prototypes/remote-desktop/webrtc-check/mobile-runtime-interop-test.dart": "cdb567f63df4ed3a80a839bc2390f28c8360a5330eebdbd6ea2350c18c299e5a",
+    "prototypes/remote-desktop/webrtc-check/channel_check.cc": "f50d6547a312530218fff7e5bb4a95d7cc3a1c91c14800a6252dfdf25e6fcfcf"
+  },
+  "privateReportSha256": {
+    "android-actions-complete-direct": "524e31db43798dd3bc85ce010b212d09c19f99b48ed441877ce9d8e1deda9d68",
+    "android-actions-complete-udp": "5419fd58f731da0991c0686529c3ea155a13e594f3d2ba68a3f014a7d281607e",
+    "android-actions-recovery-v2-tls": "dbe3a7f7507364b09442f852888af0db73568deb23db685de060c8f38d9d0b16",
+    "ios-actions-recovery-v2-direct": "10a90540f7873f9eef4f3c30d5f945f78e59825db0db9e86cdcfe3cf64c04e80",
+    "ios-actions-recovery-v2-udp": "a22c2e565e1f2de6810acb6a6aa91b8e94123a99ca13c0fc17f7fbc6b45e6635",
+    "ios-actions-recovery-v2-tls": "34c84f3fa5f248a20009468a334036941312ccea6691f3aef7a22a38daedd534",
+    "electron-regression": "cc9eaecc76ba2ee00241529180ac2beb0160f3723075466f87df760da2fc23e4",
+    "post-run-cleanup": "0b93822a7f00acc005fad8d2c7f16544bf6253393da1e8036e8fd561beefb9dc"
+  },
+  "temporaryAccountsRemoved": true,
+  "servicesAndSecretsRemoved": true,
+  "electronRegressionPending": false,
+  "physicalMachinesTested": false,
+  "protectedOsScreensTested": false,
+  "operatingSystemActionsExecuted": false,
+  "productionTested": false,
+  "readyForUnattended": false,
+  "limitations": [
+    "La VM Linux solo captura su ventana propia; no certifica UAC, Mac o LightDM.",
+    "Android directo necesita NAT UDP temporal entre las VM: no demuestra traversal exterior automático.",
+    "Los pasos de primer plano se probaron en AVD/simulador; no certifican suspensión o energía de hardware físico.",
+    "El cierre tras suspensión se comprueba al reanudar, antes de permitir recuperación; el SO puede impedir ejecutar código durante la suspensión.",
+    "Se conserva evidencia privada de intentos fallidos: temporizadores del binding, cierre del canal y coordinación del trabajador de recuperación.",
+    "Las rutas iniciales conservan su manifiesto del laboratorio; todas usan exactamente la misma app y artefactos nativos."
+  ],
+  "electronRegressionCases": 10,
+  "postRunCleanupVerified": true
+}

@@ -181,7 +181,7 @@ reconectar por la ausencia de etiquetas de contexto en v1. Evidencia:
 
 - [x] 10.1 Extender API/modelos/analizadores de control para capacidades y revocación; verificar `remote_api_test.dart`, `remote_protocol_test.dart` y vectores de autenticación con host legado y nativo.
 - [ ] 10.2 Añadir controles administrativos, resultados, contexto protegido y entrada de credenciales; verificar desde Android e iOS UAC, diálogo Mac y LightDM sin portapapeles/ficheros/audio en pantallas protegidas.
-- [ ] 10.3 Añadir espera tras reinicio y autenticación nueva manteniendo el límite de segundo plano; verificar vuelta a los 10 segundos, cierre después de 30 segundos y espera/cancelación de 5 minutos en primer plano. Documentar los flujos en `mobile/README.md` con textos en ambos idiomas.
+- [x] 10.3 Añadir espera tras reinicio y autenticación nueva manteniendo el límite de segundo plano; verificar vuelta a los 10 segundos, cierre después de 30 segundos y espera/cancelación de 5 minutos en primer plano. Documentar los flujos en `mobile/README.md` con textos en ambos idiomas.
 
 ## 11. Empaquetado, CI y documentación operativa
 
@@ -220,3 +220,17 @@ correlacionados, confirmación invalidable, espera cancelable acotada, nueva pru
 y cero ofertas fuera de línea en el visor real con host simulado/WebRTC. Esto
 acepta el controlador; no las operaciones del SO de 4.3/5.4/6.3 ni el piloto.
 Avance **18/57 (32 %)**; continúa por debajo del 50 % solicitado.
+
+
+El bloque móvil del 28/10 acepta **10.3**: acciones confirmadas y resultados,
+espera cancelable de cinco minutos sin ofertas, contraseña nueva tras reinicio
+y cierre al superar treinta segundos de segundo plano con reloj continuo.
+Se verifican 201 pruebas Flutter con API/SSH/S3 aislados, doce casos de la app real
+Android/iPad en directo/TURN UDP/TLS y diez regresiones nativas de Electron/IPC.
+En Android/TLS se reproduce además una recuperación automática con el mismo
+broker, una segunda solicitud autenticada y un desafío nuevo. Todas las rutas
+usan la misma app y artefactos nativos; servicios/secretos/cuentas temporales se
+retiran. Evidencia: `mobile-actions-results.json`. La administración del SO no se
+simula como certificación: el host de VM conserva NoOperations y captura solo su
+ventana. **10.2 sigue parcial**, sin matriz UAC/Mac/LightDM ni piloto físico.
+El avance aceptado pasa a **19/57 (33 %)**; el objetivo de 50 % sigue pendiente.

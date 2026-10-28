@@ -213,5 +213,33 @@
   "remoteAgentImageWaiting": "Esperando una imagen nueva del contexto actual.",
   "remoteAgentInputUnavailable": "El host no admite entrada en este contexto. Las funciones sensibles están suspendidas.",
   "remoteAgentReconnectContent": "Archivos, portapapeles y sonido permanecen suspendidos hasta reconectar.",
-  "remoteAgentSensitiveSuspended": "Contexto protegido: portapapeles, archivos y sonido suspendidos."
+  "remoteAgentSensitiveSuspended": "Contexto protegido: portapapeles, archivos y sonido suspendidos.",
+  "remoteAdmin": "Administrar",
+  "remoteActionLock": "Bloquear",
+  "remoteActionLogout": "Cerrar sesión",
+  "remoteActionRestart": "Reiniciar",
+  "remoteActionSecureAttention": "Atención segura",
+  "remoteActionConfirm": "¿Quieres {action} en «{name}»?",
+  "@remoteActionConfirm": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "remoteActionConfirmHint": "Esta orden afecta al PC remoto. El reinicio y el cierre de sesión desconectan el visor; después debes volver a autenticarte.",
+  "remoteActionAccepted": "El PC aceptó la orden.",
+  "remoteActionRejected": "El PC rechazó la orden.",
+  "remoteActionFailed": "La orden no se completó.",
+  "remoteActionTimedOut": "Sin resultado. No se repetirá la orden; reconecta para volver a administrar.",
+  "remoteActionUnavailable": "La acción ya no está disponible.",
+  "remoteRestartWaiting": "Esperando al PC, hasta cinco minutos. Solo se consulta su disponibilidad; no se intenta conectar.",
+  "remoteRestartReady": "El PC vuelve a estar disponible. Conecta e introduce de nuevo su contraseña.",
+  "remoteRestartExpired": "La espera terminó. Comprueba el PC o vuelve a intentarlo cuando esté disponible.",
+  "remoteRestartCancelled": "Espera cancelada. La orden enviada al PC no se deshace.",
+  "remoteRestartFailed": "No se puede comprobar el PC. Revisa tu cuenta y su disponibilidad.",
+  "remoteRestartCancel": "Cancelar espera"
 }

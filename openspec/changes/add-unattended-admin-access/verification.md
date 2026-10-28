@@ -2785,3 +2785,56 @@ reloj prueban vuelta a diez segundos, cinco minutos con consulta bloqueada,
 respuesta tardía, cancelación y Retry-After. Las operaciones del host artificial
 solo incrementan contadores; no se reinicia ni administra un SO. No acepta las
 tareas de agente 4.3/5.4/6.3, Flutter ni piloto exterior. **18/57 (32 %)**.
+
+
+### 28/10 — Administración del controlador Flutter y ciclo de vida (10.3)
+
+`mobile-actions-results.json` identifica las fuentes, los manifiestos de la app y
+del binario nativo y los hashes de seis informes privados. Se ejecutan doce casos
+con `ViewerScreen`, `ViewerSession`, el plugin Flutter real, DTLS/VP8 y el broker
+persistente con IPC protegido: Android e iPad × directo/TURN UDP/TLS × vuelta a
+los 10 s/cierre a los 31 s. Se verifica imagen verde de ventana propia y cuatro
+eventos nativos de entrada, no solo contadores del decodificador. Android directo
+usa el mapeo UDP temporal documentado; no certifica traversal exterior.
+
+Las doce ejecuciones usan exactamente las mismas fuentes Dart y artefactos
+nativos. Android/TLS pierde una conexión al pasar a segundo plano: al volver
+obtiene otra oferta/respuesta y una prueba con desafío nuevo del mismo broker,
+recibe vídeo y envía entrada a una ventana nueva. La recuperación no usa otra alta
+ni copia credenciales al trabajador. Se verifica una única solicitud mientras
+permanece en segundo plano. Tras 31 s, el estado es cerrado y `hasKey` es falso;
+no se crea otra solicitud al reanudar. La prueba real se complementa con reloj
+simulado para cinco minutos, HTTP colgado, cancelación, respuestas tardías,
+RetryAfter, retroceso/fallo del reloj y 64 operaciones sin desalojar IDs.
+
+Las pruebas de interfaz en español/inglés a 360 px comprueban confirmar, cancelar,
+retirar una capacidad, mostrar el resultado y cancelar la espera. El reinicio es
+una operación simulada del controlador: volver disponible exige una contraseña
+nueva antes de otra oferta; un PC fuera de línea no recibe ofertas. El host nativo
+sigue declarando NoOperations. No se ha ejecutado un reinicio administrativo ni
+se certifica 10.2, UAC, Mac, LightDM o hardware físico.
+
+Se conservan intentos fallidos del laboratorio: faltaba avanzar los temporizadores
+del binding tras la pausa real, reconocer el canal/PeerConnection terminados y
+coordinar un trabajador nuevo antes de su oferta de recuperación. El ensayo da
+75 s a la fase nativa; ese límite no cambia autorización de 30 s ni watchdogs.
+El caso de diagnóstico previo a publicar el resultado ya no consume el desafío;
+las pruebas de límites también se ejecutan al invocar su archivo directamente.
+
+Validación local: Flutter analyze sin incidencias, 201 pruebas completas con API,
+SSH y S3 aislados; typecheck y 340 Vitest con API; PHPUnit 162/1077; diez límites
+Python; Rust fmt/clippy, 66 pruebas por omisión y 86 con features en Mac. La
+regresión nativa posterior pasa sus diez casos: credencial/huella rechazadas,
+bloqueo, revocación/corte de API, caída/bloqueo de procesos y recuperación.
+Todos los ensayos retiran unidades, secretos, cuentas y mapeos propios. Los AVD y
+simulador propios se apagan. El Mint físico y el Mac base no se modifican.
+
+Se acepta únicamente 10.3: **19/57 (33 %)**. Continúan pendientes los servicios
+finales y la matriz protegida de los tres SO, empaquetado y piloto exterior.
+
+CI móvil ejecuta ahora `flutter analyze --no-pub` y `flutter test --no-pub` antes
+de preparar la clave de firma Android o construir la IPA. Sin entorno de
+integración, la ejecución local equivalente pasa 185 pruebas y omite 16 casos
+que requieren servicios; esos mismos casos sí se verificaron en las 201 pruebas
+completas del entorno aislado. El diagnóstico de límites Python ejecuta sus diez
+casos tanto por discovery como mediante el archivo directo usado por CI.
