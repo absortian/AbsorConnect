@@ -33,6 +33,33 @@ fn record(file: &mut File, value: serde_json::Value) -> Result<(), ()> {
         .and_then(|_| file.sync_all())
         .map_err(|_| ())
 }
+// Tras cierre de lectura o escritura solo se espera la publicación del estado final.
+// No se envían más pulsos ni se reactiva el hijo; la gracia sigue acotada a 250 ms.
+fn finish_after_close(child: &mut Child, report: &mut File, write_closed: bool) -> Result<i32, ()> {
+    let started = BootClock.now().map_err(|_| ())?;
+    let deadline = started.checked_add(Duration::from_millis(250)).ok_or(())?;
+    loop {
+        if let Some(status) = child.try_wait().map_err(|_| ())? {
+            record(
+                report,
+                json!({"event":"exited","workerCode":status.code(),"eofBeforeExit":!write_closed,"writeClosedBeforeExit":write_closed}),
+            )?;
+            return Ok(status.code().unwrap_or(70));
+        }
+        let now = BootClock.now().map_err(|_| ())?;
+        if now < started || now >= deadline {
+            break;
+        }
+        thread::sleep(POLL_INTERVAL.min(deadline - now));
+    }
+    child.kill().map_err(|_| ())?;
+    let status = child.wait().map_err(|_| ())?;
+    record(
+        report,
+        json!({"event":"cut","reason":"Closed","workerCode":status.code(),"workerReaped":true,"writeClosedBeforeExit":write_closed}),
+    )?;
+    Ok(70)
+}
 fn run() -> Result<i32, ()> {
     let args: Vec<_> = std::env::args_os().skip(1).map(PathBuf::from).collect();
     if !(args.len() == 5 || args.len() == 6)
@@ -63,7 +90,9 @@ fn run() -> Result<i32, ()> {
             .stdout(Stdio::inherit())
             .stderr(Stdio::piped())
             .spawn()
-            .map_err(|_| ())?,
+            .map_err(|error| {
+                eprintln!("lab_supervisor_spawn_os_error={:?}", error.raw_os_error());
+            })?,
     );
     STAGE.store(3, Ordering::Relaxed);
     record(
@@ -159,25 +188,7 @@ fn run() -> Result<i32, ()> {
         })();
         if let Err(fault) = result {
             if fault == absor_agent_supervisor::Fault::Closed {
-                // EOF puede preceder a la publicación del estado final en Windows.
-                // No enviar más pulsos ni reactivar al hijo. Si no termina por sí
-                // mismo en 250 ms, se fuerza el corte como cualquier cierre anómalo.
-                let started = BootClock.now().map_err(|_| ())?;
-                let deadline = started.checked_add(Duration::from_millis(250)).ok_or(())?;
-                loop {
-                    if let Some(status) = child.0.try_wait().map_err(|_| ())? {
-                        record(
-                            &mut report,
-                            json!({"event":"exited","workerCode":status.code(),"eofBeforeExit":true}),
-                        )?;
-                        return Ok(status.code().unwrap_or(70));
-                    }
-                    let now = BootClock.now().map_err(|_| ())?;
-                    if now < started || now >= deadline {
-                        break;
-                    }
-                    thread::sleep(POLL_INTERVAL.min(deadline - now));
-                }
+                return finish_after_close(&mut child.0, &mut report, false);
             }
             child.0.kill().map_err(|_| ())?;
             let status = child.0.wait().map_err(|_| ())?;
@@ -191,13 +202,17 @@ fn run() -> Result<i32, ()> {
         let now = BootClock.now().map_err(|_| ())?;
         if now >= next {
             sequence = sequence.checked_add(1).ok_or(())?;
-            pipe.write_all(
-                Pulse::new(sequence, now)
-                    .map_err(|_| ())?
-                    .encode()
-                    .as_bytes(),
-            )
-            .map_err(|_| ())?;
+            if pipe
+                .write_all(
+                    Pulse::new(sequence, now)
+                        .map_err(|_| ())?
+                        .encode()
+                        .as_bytes(),
+                )
+                .is_err()
+            {
+                return finish_after_close(&mut child.0, &mut report, true);
+            }
             next = now.checked_add(HEARTBEAT_INTERVAL).ok_or(())?;
         }
         thread::sleep(POLL_INTERVAL);

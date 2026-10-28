@@ -194,3 +194,25 @@ La sonda cierra el descriptor sin capturar o enviar entrada. Falta unirlo a un
 trabajador P2P dedicado y a los contextos generales; no cierra 6.2/6.4.
 Véase `crates/agent-linux-session/README.md` para contrato y retirada. No activar
 este complemento fuera de la VM propia ni presentar su éxito como certificación.
+
+
+### Cuenta dedicada y captura contada
+
+```bash
+python3 -B prototypes/backend-agent-check/isolated-webrtc-renewal.py /ruta/lab \
+  --secure-ipc-vm /ruta/vm --secure-ipc-authority --secure-ipc-dedicated
+```
+
+El modo dedicado crea `absorconnect-worker-lab` sin contraseña de login/home y
+con shell nologin. Root instala un perfil local cerrado y drop-ins propios para
+separar UID/GID de broker, sonda y usuario gráfico. La cuenta y grupo se retiran
+al terminar; el buzón se vacía de sus archivos conocidos y se devuelve al usuario
+del laboratorio antes de retirar el laboratorio base. Se conservan drop-ins o
+archivos ajenos; una colisión se rechaza. No es un instalador de producción.
+
+Tras HMAC, la sonda fija recibe el fd como stdin y cuenta imágenes de una región
+128×72 en X11 con red privada, sin capacidades/home ni lectura de archivos root.
+No guarda/transmite imágenes o entrada. Su salida solo admite contadores y
+booleanos conocidos y se descarta si la autenticación dejó de ser válida. La
+cuenta gráfica anterior ya no tiene acceso al buzón/socket dedicado. Faltan la
+unión P2P y la captura/entrada/contextos generales; no cambia la certificación.

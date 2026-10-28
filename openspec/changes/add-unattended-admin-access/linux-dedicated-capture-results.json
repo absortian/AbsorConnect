@@ -1,0 +1,261 @@
+{
+  "schema": 1,
+  "date": "2026-10-28",
+  "scope": "Identidades locales Linux separadas, captura contada por fd y protección de configuración",
+  "ok": true,
+  "acceptedTasks": [
+    "6.4"
+  ],
+  "partialTasks": [
+    "6.2"
+  ],
+  "linuxRustTestsDefaultAndAllFeatures": 252,
+  "macRustTestsDefaultAndAllFeatures": 218,
+  "profileAndReportPureTests": 7,
+  "ipcCases": [
+    {
+      "case": "failed-local-seal-retires-native-enrollment-and-removes-partial-storage",
+      "passed": true
+    },
+    {
+      "case": "native-one-use-enrollment-encrypted-storage",
+      "passed": true,
+      "brokerUidDifferentFromWorker": true,
+      "accountTokenSentToService": false
+    },
+    {
+      "case": "worker-cannot-read-secret-files-proc-or-replace-root-socket",
+      "passed": true
+    },
+    {
+      "case": "foreign-uid-and-unregistered-same-uid-pid-denied",
+      "passed": true
+    },
+    {
+      "case": "authority-fd-denied-before-hmac",
+      "passed": true
+    },
+    {
+      "case": "authority-provider-root-without-capabilities-or-ip-network",
+      "passed": true
+    },
+    {
+      "case": "authority-grant-and-executable-inaccessible-to-worker-writes",
+      "passed": true
+    },
+    {
+      "case": "dedicated-identity-cannot-substitute-profile-or-impersonate-worker-pid",
+      "passed": true
+    },
+    {
+      "case": "root-sealed-fd-delivered-only-to-authenticated-worker",
+      "passed": true
+    },
+    {
+      "case": "dedicated-worker-counts-x11-only-after-authenticated-fd",
+      "passed": true,
+      "frames": 10,
+      "nonUniformFrames": 10
+    },
+    {
+      "case": "authority-fd-denies-foreign-uid-and-same-uid-other-pid",
+      "passed": true
+    },
+    {
+      "case": "authority-fd-expires-during-broker-stall-before-api-deadline",
+      "passed": true
+    },
+    {
+      "case": "unique-key-proof-required-and-proof-replay-closes-diagnostic-session",
+      "passed": true
+    },
+    {
+      "case": "logind-greeter-drops-active-authority-and-denies-challenges",
+      "passed": true
+    },
+    {
+      "case": "new-user-session-requires-new-proof-with-same-broker",
+      "passed": true
+    },
+    {
+      "case": "seat-change-invalidates-unfinished-challenge-before-login",
+      "passed": true
+    },
+    {
+      "case": "frame-sequence-replay-and-worker-restart-do-not-revive-session",
+      "passed": true
+    },
+    {
+      "case": "broker-crash-drops-authority-and-recovery-requires-new-proof",
+      "passed": true
+    },
+    {
+      "case": "api-expiry-and-restoration-require-new-proof",
+      "passed": true,
+      "denialObservedMilliseconds": 30088,
+      "observationIncludesSshRoundTrips": true
+    },
+    {
+      "case": "lockout-survives-service-and-worker-restart-without-state-reset",
+      "passed": true
+    },
+    {
+      "case": "tampered-encrypted-configuration-fails-closed-without-erasing-lockout",
+      "passed": true
+    },
+    {
+      "case": "missing-corrupt-attempt-store-and-wrong-wrapping-key-never-reset-state",
+      "passed": true
+    },
+    {
+      "case": "absent-corrupt-linked-permissive-and-mismatched-profile-fail-closed",
+      "passed": true
+    },
+    {
+      "case": "worker-and-audit-contain-no-host-key-agent-token-or-account-token",
+      "passed": true
+    },
+    {
+      "case": "real-api-revocation-is-terminal-across-service-restart",
+      "passed": true
+    },
+    {
+      "case": "reversible-removal-of-service-account-socket-state-and-secrets",
+      "passed": true,
+      "lightdmModified": false
+    },
+    {
+      "case": "lightdm-login-recovers-after-dedicated-service-and-account-removal",
+      "passed": true
+    }
+  ],
+  "dedicatedWorkerRemoved": true,
+  "lightdmRecoveredAfterRemoval": true,
+  "authorityServiceRemoved": true,
+  "brokerServiceRemoved": true,
+  "temporaryAccountRemoved": true,
+  "profileFaults": [
+    "missing",
+    "corrupt",
+    "symlink",
+    "permissive",
+    "wrong-identity"
+  ],
+  "profileFaultsPreserveAttemptLedger": true,
+  "capturesBeforeHmac": false,
+  "captureTested": true,
+  "captureScope": "128x72_region_frame_counts_only",
+  "inputTested": false,
+  "imagesStoredOrTransmittedOutsideVm": false,
+  "rootFilesReadByWorker": false,
+  "hostKeyOrTokenInWorker": false,
+  "sourceSha256": {
+    "agent/crates/agent-linux-session/examples/seat-inventory.rs": "1865c21a2c715633bd512857a77006a728361877e4bf00f84b60ad75826ff48e",
+    "agent/crates/agent-linux-session/src/grant_file.rs": "02aada65a8794b289daafcb969971ed635e2e4bcc9d1b170d1e683253e85c3d9",
+    "agent/crates/agent-linux-session/src/monitor.rs": "a05aa454317e7907edda5135c220a4397322308750363296b2c6e51a42a865da",
+    "agent/crates/agent-linux-session/src/lib.rs": "709aee4eab98929b4be194d13f9dc173b5d2186668797a0a9cb160860577814c",
+    "agent/crates/agent-linux-session/src/query.rs": "d475fd419f19c0e325184c11bd68b106aac909a626bd6eee34eeee3d1fd59214",
+    "agent/crates/agent-linux-session/src/service.rs": "c59faf7b7ee59657c24414b0af5160ca813e2ce641e15d46fcb320662836ad0a",
+    "agent/crates/agent-linux-session/src/status.rs": "24ff9c97e6a633b73bdbe7b7fc389c1ee72628b2096a2f0aa1eedbb32486ce76",
+    "agent/crates/agent-linux-session/src/binding.rs": "4fa7ee5891476dd644c025b0dbc32a126a55a0b5b725d83f661f070c8e0f5d84",
+    "agent/crates/agent-linux-session/src/main.rs": "d9a74d5bddc3ae4f7e987799abb0f3d3dc96daae2f0ec7141a72c0c717c436e5",
+    "agent/crates/agent-linux-session/src/authority_main.rs": "68a02cd054a09c0a3f2e97af4858e618326e6b788e686c0badf2d4f6440f54e4",
+    "agent/crates/agent-linux-session/src/xauthority.rs": "89451e9f144357bafb66cc7dcffd52b3ce77dcae97e70b79497b450167dbe634",
+    "agent/crates/agent-linux-session/src/authority_service.rs": "1451b2bd3361d4d8b529bf72d93c37ebf64bd38ec67cfc259955248f4d833f74",
+    "agent/crates/agent-linux-session/src/grant.rs": "ceee7820775f3ac22349e16ed45dfc65afbbc10109527158dc75784efc70ffe0",
+    "agent/crates/agent-security/src/profile.rs": "0eed7f8a73e932df75fae094b00e5b81f56cb1f4e2d93ec21703ed51648050dc",
+    "agent/crates/agent-security/src/client.rs": "fa9b0e5eaea2d06f4d0d6b604bfc2d9cf93b0ff5e067c642b6ef59aee8a4c115",
+    "agent/crates/agent-security/src/lib.rs": "be9ef5eed4701113556044113e8a7ec691972ed1f684bd1e84612764f0259f98",
+    "agent/crates/agent-security/src/worker.rs": "ef27fc6cbda6896b91933d075834bb04d833a9ce73ac8173868e54775339b633",
+    "agent/crates/agent-security/src/fd.rs": "40b40bbfba73a7ca8071b30262d6dc6aa7ad26b5e29d423eba5a12f9a0d32910",
+    "agent/crates/agent-security/src/linux.rs": "18a92e410ad02157e0908890c580af093b5ac6b70a6778c566fef72acb9b086d",
+    "agent/crates/agent-security/src/authority_client.rs": "8d1577a1a2e9903a255913e158af2351377f554c19c660da8209494f077fcb9e",
+    "agent/crates/agent-security/src/wire.rs": "42fa038c35a157764ec39ea3c79f24f7126177e868205b2227d4b07c94bd684d",
+    "agent/crates/agent-security/src/secrets.rs": "f7e61489110439d9d1d116c26e565b8c9079b0219669c1be538eab65ce9f1b2a",
+    "agent/crates/agent-security/src/provision.rs": "c81e312b6fc3a093d9923f3ad66e765454a5ff7fea560acac97fcebce2667f9d",
+    "agent/crates/agent-broker/src/secure_linux.rs": "4fa7eaf7a1f04951ceb5cc364ba096b2d28580e4253c6cd5474fac9dc3f84f3d",
+    "agent/linux-secure-lab/authority-install-vm.py": "6ccda78520e2a9bf545739437a71eca972b689e679fe080ae6fc1adebabae0a8",
+    "prototypes/backend-agent-check/secure-ipc-check.py": "15353c903c31a9c76ff092da0cde0b01da77ac1bdd109f94ca3e8d0e42945f4b"
+  },
+  "artifactHashes": {
+    "absor-secure-broker-lab": "a64b021d50a40663e88ffa9fb66309dd713019fd6b2ab99d0f8ea7bcbb8f2c84",
+    "absor-secret-provision-lab": "5691f12ee2a1cca5781e82f27f9e5836b2de8b249a3e16ca3990f9954f905a4f",
+    "absor-ipc-worker-lab": "be89520152c5f291cb9f5f9b1f181dc249f9d57a89d7131fa3d32df178feace7",
+    "absorconnect-secure-lab.service": "e003badc8619e6ae3f202344df47825ca1306c9b08809b0f346a467773f650c0",
+    "absorconnect-ipc-worker-lab.service": "984cbe35e072e0890eb8a05fa1a63767137040b399710b2da9b869f4eca8273c",
+    "absorconnect-secure-lab.socket": "a36677cff3914a8d3f3973e82d8b6ae8a4f66138fe2c0dd5df42885849653bad"
+  },
+  "authorityInputArtifactHashes": {
+    "absor-seat-authority-lab": "f2cdc3b854c1627d38483db3d395bd84c1f85f4e4d119e933cc49e0598a3866e",
+    "absorconnect-seat-authority-lab.socket": "6dead467cb453ef0ddcddb797f516169e64915532ea404c30edbbf52225fbaa2",
+    "absorconnect-seat-authority-lab.service": "e156478167828984ca8c48c35a392ac2ddb9be6659c8f52ad13355f26d08e84f",
+    "capture-worker.py": "e64f562dbc69d43c6baf14bd02b150fc0db97f834f82f0587f35e8a06ec6c983",
+    "linux-probe.py": "5c6dc1a14a6a0c8d4e2fc0eaf8816bfed9be3caae19733aa11ad5002a79b7d5e"
+  },
+  "authorityInstalledArtifactHashes": {
+    "absor-seat-authority-lab": "f2cdc3b854c1627d38483db3d395bd84c1f85f4e4d119e933cc49e0598a3866e",
+    "absorconnect-seat-authority-lab.socket": "962eadf8a33ccf48cb6e815fa83d41acaebc920cf0636346dc73fd771d43d504",
+    "absorconnect-seat-authority-lab.service": "e156478167828984ca8c48c35a392ac2ddb9be6659c8f52ad13355f26d08e84f",
+    "capture-worker.py": "e64f562dbc69d43c6baf14bd02b150fc0db97f834f82f0587f35e8a06ec6c983",
+    "linux-probe.py": "5c6dc1a14a6a0c8d4e2fc0eaf8816bfed9be3caae19733aa11ad5002a79b7d5e"
+  },
+  "privateReportSha256": "f9090e8c88a45c181098b056bda258f73c89e8fc0fef253bb6553210cb0a71a3",
+  "legacyIpcRegression": {
+    "cases": 23,
+    "privateReportSha256": "12ba52193818915ef16c209a09e6b78652155f8b5e85efb56b715c4488e46ce9"
+  },
+  "p2pRegression": {
+    "cases": 10,
+    "ownWindowOnly": true,
+    "descriptorIntegratedWithWebRtc": false,
+    "privateReportSha256": "40e6f0b11fad3d7dcb5ebff5fd5586ffa3308c63474ee75a8535d995e422b74f",
+    "artifactHashes": {
+      "absor-protected-channel-lab": "82c855050c0e91a452f9ed6a7f52dcd561b5d9c07a140bd4a5eab7f3c21a7f9d",
+      "libabsor_agent_webrtc_lab.so": "e3b2e75d90b28ebad044a3a3151762ef9e08138daf15a53a3dfef3d6721afdfb",
+      "absor-secure-broker-lab": "a64b021d50a40663e88ffa9fb66309dd713019fd6b2ab99d0f8ea7bcbb8f2c84",
+      "absor-secret-provision-lab": "5691f12ee2a1cca5781e82f27f9e5836b2de8b249a3e16ca3990f9954f905a4f",
+      "absorconnect-secure-lab.service": "e003badc8619e6ae3f202344df47825ca1306c9b08809b0f346a467773f650c0",
+      "absorconnect-secure-lab.socket": "a36677cff3914a8d3f3973e82d8b6ae8a4f66138fe2c0dd5df42885849653bad",
+      "absorconnect-protected-worker-lab.service": "2b8139420e60a7175bf3b4a176dbe94b8efd7a96e1b6bf747ee151a20e2d76d2"
+    }
+  },
+  "typecheck": true,
+  "vitestPassed": 334,
+  "vitestIntegrationSkipped": 6,
+  "phpunitTests": 162,
+  "phpunitAssertions": 1077,
+  "physicalMachinesTested": false,
+  "productionTested": false,
+  "readyForUnattended": false,
+  "limitations": [
+    "La captura contada de región todavía no está unida a libwebrtc ni acredita escritorio/entrada generales.",
+    "El paquete y la migración final de Electron siguen pendientes; estos servicios exigen marcador de VM.",
+    "No certifica Mint físico, otros sistemas, cambios de usuario completos o resolución/monitores generales.",
+    "La investigación de liberación por dispositivo virtual no es aún una capacidad implementada."
+  ],
+  "acceptanceScope": "Protección de socket, secretos y configuración del servicio Linux ensayado; no acepta escritorio general, paquete/migración final o piloto físico.",
+  "ci": {
+    "testedHead": "30655a431c3365334d29e6ec9e4d260dabbedcd9",
+    "allSuccessful": true,
+    "fullLogsAndAnnotationsReviewed": true,
+    "releaseBuildsDefaultAndAllFeatures": true,
+    "jobs": [
+      {
+        "platform": "linux",
+        "id": 122650087943,
+        "rustTestsDefaultAndAllFeatures": 252
+      },
+      {
+        "platform": "macos",
+        "id": 122650088283,
+        "rustTestsDefaultAndAllFeatures": 218
+      },
+      {
+        "platform": "windows",
+        "id": 122650088145,
+        "rustTestsDefaultAndAllFeatures": 216
+      }
+    ],
+    "notes": "Solo avisos de runners; siete casos Python de Linux se omiten en Windows."
+  }
+}

@@ -13,3 +13,6 @@ pub mod wire;
 pub mod authority_client;
 #[cfg(all(target_os = "linux", feature = "protected-ipc-lab"))]
 pub mod client;
+
+#[cfg(all(target_os = "linux", feature = "protected-ipc-lab"))]
+pub mod profile;

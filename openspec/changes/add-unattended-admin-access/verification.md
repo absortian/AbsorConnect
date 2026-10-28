@@ -2897,3 +2897,60 @@ contada de la sonda independiente anterior. Faltan el trabajador P2P con UID
 dedicado y la captura/entrada/contextos generales: no se cierra 6.2/6.4 ni se
 anuncia soporte desatendido de producción. Avance aceptado **20/57 (35 %)**,
 con el objetivo mínimo de 50 % todavía pendiente.
+
+
+### 28/10 — protección Linux con identidad dedicada (6.4)
+
+El perfil root 0444 cerrado sustituye UID/GID fijos cuando el instalador de VM
+habilita el modo dedicado. Broker/cliente comprueban metadatos root, credenciales
+del núcleo y PID de unidad; no existe selección de UID por IPC. El trabajador
+sin login, home, capacidades o red IP recibe un fd Xauthority sellado solo tras
+HMAC y cuenta imágenes 128×72, sin guardarlas, transmitirlas fuera de la VM o
+enviar entrada. El informe es de esquema cerrado y solo contiene contadores.
+
+Pasan 27 comprobaciones de API/credenciales/IPC/configuración: incluyen archivos
+inaccesibles, PID ajeno, perfil ausente, corrupto, enlazado, permisivo o con otra
+identidad; ningún fallo reinicia los intentos. Se verifica retirada de cuenta y
+grupo de sistema, perfil, drop-ins y servicios, seguida de cierre/entrada reales
+de LightDM. El broker rechaza un segundo cliente local activo sin dejarlo en
+espera y consume EOF antes de aceptar la reconexión legítima. También pasan
+23 regresiones IPC del modo anterior y diez conexiones WebRTC de ventana propia.
+
+CI Linux 252, Mac 218 y Windows 216 pruebas Rust (default/all-features), fmt,
+clippy y ambos builds release: logs completos/anotaciones revisados. Typecheck,
+334 Vitest con seis integraciones omitidas, PHP 162/1077, diagnóstico y protecciones
+del lanzador pasan. No se tocaron equipos físicos ni el Mac base.
+
+Se acepta **6.4 como protección del servicio Linux ensayado**. Los instaladores
+de producción/migración, el trabajador general y el piloto conservan sus tareas
+pendientes. La captura por este fd no se presenta como P2P: la regresión P2P usa
+la ventana propia anterior. No se cierra 6.2/3.5 ni se anuncia una configuración
+preparada para viajes. Evidencia: `linux-dedicated-capture-results.json`.
+Avance aceptado **21/57 (37 %)**; el mínimo del 50 % todavía no se ha alcanzado.
+
+
+### Regresión del cierre del supervisor — 28/10/2026
+
+La CI final de Windows de la PR 59 detectó una carrera en el lanzador artificial:
+el hijo podía salir entre `try_wait()` y la escritura del pulso; un pipe cerrado
+se convertía en error genérico 71. Se unifica con la gracia existente de EOF
+(250 ms), sin reiniciar ni enviar más pulsos: se recoge el código real si el hijo
+termina y se mata/recoge si conserva el proceso vivo. Dos pruebas de procesos
+reproducen el cierre de stdin, tanto con salida normal como con un hijo que no
+termina. La sincronización inicial espera el primer pulso del supervisor; no
+amplía los watchdogs. Las pruebas completas y clippy pasan localmente en Mac y
+Linux; la CI nueva en los tres SO y la regresión P2P se revisan antes de fusionar.
+Este arreglo no cierra otra tarea ni incrementa el 21/57.
+
+
+La revisión de CI posterior confirmó salida correcta en Windows/Mac y encontró
+otro fallo de preparación Linux, reproducido bajo concurrencia: `spawn` devolvía
+ETXTBSY (26) porque otro fork heredaba temporalmente el descriptor abierto de una
+copia del fixture. Un mutex coordina solo copia → primer saludo; después los
+fallos y watchdogs continúan en paralelo. El diagnóstico queda acotado a etapa
+numérica y código del SO. En VM pasan las pruebas completas y doce repeticiones
+de los trece casos de procesos (156 ejecuciones) con 64 hilos de prueba. Las
+aserciones de salida normal aceptan ambos órdenes válidos de planificación;
+exigen código 0, ausencia de corte y un solo hijo. Las pruebas de hijo retenido
+siguen exigiendo corte, recolección y plazos originales. La regresión de diez
+conexiones WebRTC tras corregir el cierre pasa y retira servicios/secretos.

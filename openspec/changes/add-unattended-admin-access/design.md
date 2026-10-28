@@ -323,3 +323,30 @@ es transporte, no autorización. Falta unir la concesión al broker después de
 HMAC, validar al trabajador por credenciales del núcleo/unidad y renovar/cortar
 la autoridad por contexto. Esta sonda no certifica aún 6.2/6.4 ni debe incluirse
 en instalaciones físicas. No se cambian LightDM, PAM, polkit ni acceso X global.
+
+
+### D7 — identidad dedicada y liberación de entrada, en evaluación
+
+El perfil local root cerrado separa broker, trabajador y usuario gráfico por
+UID/GID. La sonda dedicada enlaza HMAC con el fd de Xauthority y captura contada
+128×72; el trabajador P2P general continúa pendiente. No se anuncian capacidades
+por el éxito de esta sonda.
+
+Antes de adoptar entrada general se verificará que la caída del inyector no
+puede dejar teclas retenidas y que la limpieza no suelta teclas locales. Se
+estudia un dispositivo virtual propio mantenido por un componente local sin
+red, con eventos enumerados y plazo/identidad/sesión verificados. El [contrato
+de libevdev](https://www.freedesktop.org/software/libevdev/doc/latest/group__uinput.html)
+vincula el dispositivo uinput al descriptor. El [kernel Linux 6.8](https://github.com/torvalds/linux/blob/v6.8/drivers/input/misc/uinput.c)
+destruye el dispositivo al cerrar ese descriptor y el [núcleo de entrada](https://github.com/torvalds/linux/blob/v6.8/drivers/input/input.c)
+libera sus teclas al desconectarlo. Esta es evidencia del mecanismo, no una
+prueba de su integración Xorg/LightDM o de la versión del propietario.
+
+Se preparará una prueba limitada a la VM propia y una ventana propia, sin
+captura de texto o imágenes, para cierre normal, SIGKILL y watchdog. Solo usará
+una tecla fija, con comprobación de foco y liberación; no acepta rutas, teclas,
+credenciales o acciones del solicitante. No cambia todavía el diseño publicado
+XTest ni activa uinput en instalaciones reales. La adopción y su política de
+acceso al dispositivo se decidirán con la evidencia y quedarán documentadas
+antes de integrar el trabajador general. No se marca completa 3.5 o 6.2 por
+esta investigación.

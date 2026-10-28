@@ -12,7 +12,7 @@ siguen pendientes API completa, autenticador, trabajador P2P y watchdog del
 servicio. La tarea 3.4 no se cierra solo con el proceso de prueba; su aceptación posterior
 añade el gate/API/DTLS y trabajador nativo conectados, con la evidencia del 26/10.
 
-Avance cerrado: **20/57 tareas (35 %)**. Es proporción de tareas aceptadas, no
+Avance cerrado: **21/57 tareas (37 %)**. Es proporción de tareas aceptadas, no
 porcentaje del tiempo restante. La tarea 3.2 se acepta como protocolo común:
 vectores compartidos, HMAC/huellas aplicadas, intentos durables/reinicio, sesión
 única y denegación de captura/entrada antes de autenticar, con integración IPC
@@ -155,7 +155,7 @@ reconectar por la ausencia de etiquetas de contexto en v1. Evidencia:
 - [x] 6.1 Implementar unidad systemd, recuperación y selección de asiento/sesión X11 con logind; verificar arranque hasta LightDM y reinicio del proceso sin sesión de usuario ni Electron.
 - [ ] 6.2 Integrar acceso acotado a Xauthority, captura/entrada y transición LightDM/Cinnamon; verificar bloqueo, entrada/salida, cambio de usuario y rechazo de Wayland sin habilitar acceso X global.
 - [ ] 6.3 Implementar acciones administrativas y acceso a archivos con identidad del usuario; verificar polkit, reinicio y que Descargas/archivos de root no se ofrecen en el greeter ni en una sesión ordinaria.
-- [ ] 6.4 Proteger socket, secretos y configuración del servicio; verificar denegaciones a usuarios locales ajenos, desinstalación y recuperación de LightDM. Documentar los archivos propios creados y su retirada reversible.
+- [x] 6.4 Proteger socket, secretos y configuración del servicio; verificar denegaciones a usuarios locales ajenos, desinstalación y recuperación de LightDM. Documentar los archivos propios creados y su retirada reversible.
 
 ## 7. Main: integración Electron y traspaso
 
@@ -255,3 +255,17 @@ a ambos procesos y al asiento. Pasa 23 comprobaciones y conserva diez regresione
 WebRTC; retira todos sus recursos temporales. La sonda no captura ni envía
 entrada y falta el trabajador P2P dedicado: 6.2/6.4 continúan parciales. Evidencia:
 `linux-authority-grant-results.json`. Se mantiene **20/57 (35 %)**.
+
+
+El bloque de identidad dedicada del 28/10 acepta **6.4**, para la protección de
+socket/secretos/configuración del servicio Linux ensayado. El perfil root cerrado
+separa UID/GID de broker, trabajador y sesión gráfica; las identidades proceden
+del núcleo/unidad, no del mensaje. Se verifican 27 casos: credenciales únicas y
+cifradas, denegaciones locales y a otro PID del mismo UID, perfil ausente/corrupto/
+enlazado/permisivo/con otra identidad sin borrar intentos, retirada de cuenta/
+grupo/perfil/drop-ins y recuperación posterior de LightDM. La sonda dedicada
+cuenta imágenes 128×72 solo tras HMAC y fd sellado. CI Linux/Mac/Windows y las
+23 regresiones IPC y diez P2P del modo anterior pasan. Evidencia:
+`linux-dedicated-capture-results.json`. No acepta 6.2, el paquete/migración final,
+Windows/Mac o el piloto físico; no anuncia acceso desatendido disponible.
+Avance **21/57 (37 %)**; el mínimo de 50 % sigue pendiente.

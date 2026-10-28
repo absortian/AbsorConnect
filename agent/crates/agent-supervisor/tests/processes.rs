@@ -6,12 +6,19 @@ use std::{
     io::{BufRead, BufReader, Read, Write},
     path::PathBuf,
     process::{Command, Stdio},
-    sync::atomic::{AtomicU64, Ordering},
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Mutex,
+    },
     thread,
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 struct Scratch(PathBuf);
 static NEXT: AtomicU64 = AtomicU64::new(1);
+// fork concurrente puede heredar el fd de copia aún abierto de otro caso y
+// provocar ETXTBSY (26) al ejecutar ese fixture en Linux. Solo se serializa
+// copia → primer saludo; los fallos y watchdogs siguen ejecutándose en paralelo.
+static STARTING: Mutex<()> = Mutex::new(());
 impl Drop for Scratch {
     fn drop(&mut self) {
         let _ = fs::remove_dir_all(&self.0);
@@ -24,6 +31,7 @@ fn run_case(fault: Option<u8>, mode: &str) -> (i32, String, Duration) {
     run_controlled(fault, mode, None)
 }
 fn run_controlled(fault: Option<u8>, mode: &str, broker: Option<&str>) -> (i32, String, Duration) {
+    let startup = STARTING.lock().unwrap();
     let candidate = std::env::temp_dir().join(format!(
         "absor-supervisor-{}-{}-{}",
         std::process::id(),
@@ -48,6 +56,7 @@ fn run_controlled(fault: Option<u8>, mode: &str, broker: Option<&str>) -> (i32, 
     if broker.is_some() {
         command.env("ABSOR_LAB_BROKER_WATCH", "1");
     }
+    let errors = scratch.0.join("stderr.log");
     let mut child = command
         .args([
             &report,
@@ -58,7 +67,7 @@ fn run_controlled(fault: Option<u8>, mode: &str, broker: Option<&str>) -> (i32, 
         ])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
-        .stderr(Stdio::null())
+        .stderr(Stdio::from(fs::File::create(&errors).unwrap()))
         .spawn()
         .unwrap();
     let mut output = BufReader::new(child.stdout.take().unwrap());
@@ -72,10 +81,19 @@ fn run_controlled(fault: Option<u8>, mode: &str, broker: Option<&str>) -> (i32, 
         output.read_to_string(&mut rest).unwrap();
         rest
     });
-    assert_eq!(
-        first.recv_timeout(Duration::from_secs(5)).unwrap(),
-        "fixture-alive\n"
-    );
+    let greeting = first.recv_timeout(Duration::from_secs(5));
+    if greeting.as_deref() != Ok("fixture-alive\n") {
+        let _ = child.kill();
+        let _ = child.wait();
+        let mut detail = String::new();
+        fs::File::open(errors)
+            .unwrap()
+            .take(4096)
+            .read_to_string(&mut detail)
+            .unwrap();
+        panic!("saludo del fixture: {greeting:?}; diagnóstico acotado: {detail}");
+    }
+    drop(startup);
     let started = Instant::now();
     if let Some(fault) = fault {
         child
@@ -142,7 +160,10 @@ fn run_controlled(fault: Option<u8>, mode: &str, broker: Option<&str>) -> (i32, 
 fn pipe_eof_before_normal_process_exit_is_not_a_crash() {
     let (code, report, elapsed) = run_case(None, "normal-eof");
     assert_eq!(code, 0);
-    assert!(report.contains("\"eofBeforeExit\":true"));
+    // El SO puede publicar la salida antes de que vuelva a ejecutarse el actor.
+    // Ambas ordenaciones deben conservar el código real, sin cortar ni reiniciar.
+    assert!(report.contains("\"workerCode\":0"));
+    assert!(!report.contains("\"event\":\"cut\""));
     assert!(elapsed < Duration::from_secs(2));
 }
 #[test]
@@ -215,4 +236,25 @@ fn broker_replay_and_eof_cut_worker() {
         assert_eq!(code, 71);
         assert!(elapsed < Duration::from_secs(3));
     }
+}
+
+#[test]
+fn stdin_close_before_normal_exit_is_reaped_without_restart() {
+    let (code, report, elapsed) = run_case(None, "normal-write-eof");
+    assert_eq!(code, 0, "{report}");
+    assert!(report.contains("\"workerCode\":0"), "{report}");
+    assert!(!report.contains("\"event\":\"cut\""), "{report}");
+    assert_eq!(report.matches("spawned").count(), 1);
+    assert!(elapsed < Duration::from_secs(2));
+}
+#[test]
+fn closing_stdin_without_exiting_is_cut_within_existing_grace() {
+    let (code, report, elapsed) = run_case(None, "fault-write-eof");
+    assert_eq!(code, 70, "{report}");
+    assert!(report.contains("\"workerReaped\":true"), "{report}");
+    assert!(
+        report.contains("\"writeClosedBeforeExit\":true"),
+        "{report}"
+    );
+    assert!(elapsed < Duration::from_secs(2));
 }

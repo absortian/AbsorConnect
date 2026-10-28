@@ -218,6 +218,13 @@
       }
     ],
     "releaseBuildsDefaultAndAllFeatures": true,
-    "notes": "Solo avisos de disponibilidad de runners; siete pruebas del lector Python Linux se omiten en Windows."
+    "notes": "Solo avisos de disponibilidad de runners; siete pruebas del lector Python Linux se omiten en Windows.",
+    "finalReviewedHead": "e63948148122984c4b7c24f564f826f322be004b",
+    "finalReviewedJobs": [
+      122634503660,
+      122634503287,
+      122634503514
+    ],
+    "mergedSha": "b40c0d10bebf54661902c90eff11d84bc2dc59df"
   }
 }

@@ -418,7 +418,8 @@ impl Authority {
 }
 pub fn run() -> Result<i32, ()> {
     let uid = linux::uid();
-    if uid == 0 || uid == 1000 || std::env::args_os().len() != 1 {
+    let worker_profile = absor_agent_security::profile::WorkerProfile::load().map_err(|_| ())?;
+    if uid == 0 || uid == worker_profile.uid() || std::env::args_os().len() != 1 {
         return Err(());
     }
     linux::disable_dumping().map_err(|_| ())?;
@@ -437,7 +438,10 @@ pub fn run() -> Result<i32, ()> {
         return Err(());
     }
     let m = fs::symlink_metadata(SOCKET).map_err(|_| ())?;
-    if !m.file_type().is_socket() || m.uid() != uid || m.gid() != 1000 || m.mode() & 0o7777 != 0o660
+    if !m.file_type().is_socket()
+        || m.uid() != uid
+        || m.gid() != worker_profile.gid()
+        || m.mode() & 0o7777 != 0o660
     {
         return Err(());
     }
@@ -561,24 +565,6 @@ pub fn run() -> Result<i32, ()> {
                 return Ok(code);
             }
         }
-        if peer.is_none() {
-            match listener.accept() {
-                Ok((stream, _)) => {
-                    let cred = linux::peer_credentials(&stream).map_err(|_| ())?;
-                    if cred.uid == 1000 && cred.pid == expected_worker(native).unwrap_or(0) {
-                        authority.worker_identity =
-                            Some(grant_file::process_identity(cred.pid, cred.uid).map_err(|_| ())?);
-                        peer = Some(FramedPeer::new(stream).map_err(|_| ())?);
-                        last_sequence = 0;
-                        last_message = now;
-                        authority.flag.store(0, Ordering::SeqCst);
-                        authority.operations.store(0, Ordering::SeqCst);
-                    }
-                }
-                Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => (),
-                Err(_) => return Err(()),
-            }
-        }
         let mut lost = false;
         if let Some(p) = peer.as_mut() {
             if now.saturating_sub(last_message) >= Duration::from_secs(3) {
@@ -626,6 +612,26 @@ pub fn run() -> Result<i32, ()> {
             authority.end_connection();
             authority.worker_identity = None;
             peer.take();
+        }
+        match listener.accept() {
+            Ok((stream, _)) => {
+                let cred = linux::peer_credentials(&stream).map_err(|_| ())?;
+                if peer.is_none()
+                    && cred.uid == worker_profile.uid()
+                    && cred.gid == worker_profile.gid()
+                    && cred.pid == expected_worker(native).unwrap_or(0)
+                {
+                    authority.worker_identity =
+                        Some(grant_file::process_identity(cred.pid, cred.uid).map_err(|_| ())?);
+                    peer = Some(FramedPeer::new(stream).map_err(|_| ())?);
+                    last_sequence = 0;
+                    last_message = now;
+                    authority.flag.store(0, Ordering::SeqCst);
+                    authority.operations.store(0, Ordering::SeqCst);
+                }
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => (),
+            Err(_) => return Err(()),
         }
         authority.publish_grant(BootClock.now().map_err(|_| ())?)?;
         thread::sleep(Duration::from_millis(20));
