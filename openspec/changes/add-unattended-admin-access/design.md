@@ -366,11 +366,31 @@ rutas o configuración. Cada conexión autenticada tendrá una concesión aleato
 diferente, aunque conserve broker/PID/asiento; observar otra concesión cerrará el
 dispositivo anterior. Los refrescos no podrán resucitar una concesión caducada.
 El guardián comprobará reloj, secuencia y concesión antes/después de la entrada y
-también sin tráfico. Cualquier error cerrará el dispositivo propio, sin soltar
-teclas de otros dispositivos. Un watchdog externo cubre bloqueo/SIGSTOP del
+también sin tráfico. Cualquier error cerrará el dispositivo propio, sin emitir liberaciones globales de XTest; no presume
+aislamiento del estado maestro de Xorg. Un watchdog externo cubre bloqueo/SIGSTOP del
 componente; el plazo de la concesión no se renueva por recibir entrada.
 
 Primero se integra el guardián con los eventos fijos del laboratorio y la
 concesión HMAC/API. El teclado y ratón generales, el capturador/P2P dedicado,
 las transiciones protegidas y su aislamiento de contenido conservan 3.5/6.2
 pendientes. El modo de producción sigue usando su implementación anterior.
+
+
+D8 sigue **en evaluación**. El ensayo de dos teclados virtuales propios del
+28/10 encontró que Xorg pierde el estado maestro de una tecla que continúa
+pulsada en el otro dispositivo, tanto con keyup explícito como con retirada.
+El estado del dispositivo local en el kernel permanece pulsado. El botón
+izquierdo sí conserva el estado maestro en esa configuración. No se interpreta
+el cierre correcto de un único dispositivo como aislamiento aprobado.
+`linux-input-overlap-results.json` y el lanzador `--verify-local-hold` reproducen
+el límite; este último devuelve 3 después de retirar todos sus recursos.
+
+La adopción del teclado general queda bloqueada hasta resolver o revisar ese
+comportamiento. No se cambiará el control de dispositivos físicos, no se
+interceptará su teclado y no se activará el mecanismo en producción para
+sortearlo. Se investigará una separación admitida por XInput2/MPX, comprobando
+primero entrega a aplicaciones, foco, grabs de diálogos y retirada de objetos
+propios; la [documentación de Xorg](https://www.x.org/Development/Documentation/MPX/)
+advierte de límites de ClientPointer/grabs con varios maestros. No se adopta MPX
+por esa referencia sin las pruebas. Continúan disponibles las partes comunes,
+los servicios y el resto de plataformas que no dependen de esta decisión.

@@ -2995,3 +2995,17 @@ AllowUsers y la regla a la nueva pareja anfitrión/VM. Se verifican acceso por c
 de host ya fijada, ausencia de contraseña/TCP forwarding/agent forwarding/GatewayPorts
 y regla general desactivada. Los detalles de red y recuperación quedan privados;
 no se cambió el acceso de equipos físicos o del router.
+
+
+### Límite de simultaneidad Xorg, no aceptado — 28/10/2026
+
+Una prueba adicional con **dos dispositivos virtuales propios**, sin consultar
+teclados físicos, mantiene A y el botón izquierdo en ambos y retira el remoto.
+El kernel conserva el estado del otro dispositivo; Xorg pierde el estado maestro
+de A, también cuando primero se emite keyup normal. El botón izquierdo sí lo
+conserva en esta VM. El informe público `linux-input-overlap-results.json` emite
+`ok:false`; el lanzador reproducible devuelve 3 y comprueba su limpieza. No se
+reduce el criterio para convertirlo en un pase. La adopción del teclado general
+queda bloqueada en D8, sin activar nada en equipos reales, y 3.5/6.2 siguen
+pendientes. Las 41 comprobaciones de un dispositivo, seis de retirada y siete
+pruebas puras conservan su alcance. El objetivo sigue **21/57 (37 %)**.

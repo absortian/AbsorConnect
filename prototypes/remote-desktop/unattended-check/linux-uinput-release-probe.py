@@ -94,7 +94,7 @@ def adopted_by_xorg(display,label):
     try:return any(devices[n].name==label.encode() for n in range(count.value))
     finally:xi.XFreeDeviceList(devices)
 
-def child(mode):
+def child(mode, allow_owned_overlap=False):
     marker();assert mode in MODES
     kind=mode.rsplit('-',1)[1]
     config=json.loads((PREFIX/'window.json').read_text());assert config['mode']==mode and config['window']>1
@@ -130,7 +130,7 @@ def child(mode):
         if adopted:break
         assert time.monotonic()<end,'device_not_adopted_by_xorg';time.sleep(.05)
     assert focus(lib,display)==config['window']
-    key=lib.XKeysymToKeycode(display,0x61);assert key>0 and not down(lib,display,key,kind)
+    key=lib.XKeysymToKeycode(display,0x61);assert key>0 and (allow_owned_overlap or not down(lib,display,key,kind))
     notify(b'READY=1')
     assert ev.libevdev_uinput_write_event(virtual,1,30 if kind=='key' else 272,1)==0
     assert ev.libevdev_uinput_write_event(virtual,0,0,0)==0
@@ -138,6 +138,12 @@ def child(mode):
         time.sleep(.25)
         # Sin keyup ni UI_DEV_DESTROY: el cierre del fd es lo que se evalúa.
         os.close(fd);ev.libevdev_free(device);lib.XCloseDisplay(display);return
+    if allow_owned_overlap:
+        # Solo el diagnóstico de dos dispositivos propios; no se habilita en el modo normal.
+        def release_fixed(_signal,_frame):
+            assert ev.libevdev_uinput_write_event(virtual,1,30 if kind=='key' else 272,0)==0
+            assert ev.libevdev_uinput_write_event(virtual,0,0,0)==0
+        signal.signal(signal.SIGUSR1,release_fixed)
     end=time.monotonic()+8
     while time.monotonic()<end:
         notify(b'WATCHDOG=1');time.sleep(.1)

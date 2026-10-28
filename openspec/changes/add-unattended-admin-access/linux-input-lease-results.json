@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "date": "2026-10-28",
-  "scope": "Guardián nativo Linux de entrada fija con concesión por autenticación",
+  "scope": "Guardián Linux de entrada fija sin simultaneidad de teclados",
   "acceptedTasks": [],
   "partialTasks": [
     "3.5",
@@ -114,7 +114,7 @@
       "passed": true,
       "fixedInputDownObserved": true,
       "releaseObserved": true,
-      "releaseObservationMilliseconds": 472,
+      "releaseObservationMilliseconds": 467,
       "observationIncludesSshRoundTrips": true,
       "heldAtEnd": false
     },
@@ -123,7 +123,7 @@
       "passed": true,
       "fixedInputDownObserved": true,
       "releaseObserved": true,
-      "releaseObservationMilliseconds": 733,
+      "releaseObservationMilliseconds": 722,
       "observationIncludesSshRoundTrips": true,
       "heldAtEnd": false
     },
@@ -132,7 +132,7 @@
       "passed": true,
       "fixedInputDownObserved": true,
       "releaseObserved": true,
-      "releaseObservationMilliseconds": 179,
+      "releaseObservationMilliseconds": 177,
       "observationIncludesSshRoundTrips": true,
       "heldAtEnd": false
     },
@@ -141,7 +141,7 @@
       "passed": true,
       "fixedInputDownObserved": true,
       "releaseObserved": true,
-      "releaseObservationMilliseconds": 519,
+      "releaseObservationMilliseconds": 491,
       "observationIncludesSshRoundTrips": true,
       "heldAtEnd": false
     },
@@ -150,7 +150,7 @@
       "passed": true,
       "fixedInputDownObserved": true,
       "releaseObserved": true,
-      "releaseObservationMilliseconds": 150,
+      "releaseObservationMilliseconds": 155,
       "observationIncludesSshRoundTrips": true,
       "heldAtEnd": false
     },
@@ -159,7 +159,7 @@
       "passed": true,
       "fixedInputDownObserved": true,
       "releaseObserved": true,
-      "releaseObservationMilliseconds": 594,
+      "releaseObservationMilliseconds": 646,
       "observationIncludesSshRoundTrips": true,
       "heldAtEnd": false
     },
@@ -168,7 +168,7 @@
       "passed": true,
       "fixedInputDownObserved": true,
       "releaseObserved": true,
-      "releaseObservationMilliseconds": 506,
+      "releaseObservationMilliseconds": 508,
       "observationIncludesSshRoundTrips": true,
       "heldAtEnd": false
     },
@@ -199,7 +199,7 @@
     {
       "case": "api-expiry-and-restoration-require-new-proof",
       "passed": true,
-      "denialObservedMilliseconds": 30231,
+      "denialObservedMilliseconds": 30167,
       "observationIncludesSshRoundTrips": true
     },
     {
@@ -265,7 +265,7 @@
       "passed": true,
       "fixedInputDownObserved": true,
       "releaseObserved": true,
-      "releaseObservationMilliseconds": 472,
+      "releaseObservationMilliseconds": 467,
       "observationIncludesSshRoundTrips": true,
       "heldAtEnd": false
     },
@@ -274,7 +274,7 @@
       "passed": true,
       "fixedInputDownObserved": true,
       "releaseObserved": true,
-      "releaseObservationMilliseconds": 733,
+      "releaseObservationMilliseconds": 722,
       "observationIncludesSshRoundTrips": true,
       "heldAtEnd": false
     },
@@ -283,7 +283,7 @@
       "passed": true,
       "fixedInputDownObserved": true,
       "releaseObserved": true,
-      "releaseObservationMilliseconds": 179,
+      "releaseObservationMilliseconds": 177,
       "observationIncludesSshRoundTrips": true,
       "heldAtEnd": false
     },
@@ -292,7 +292,7 @@
       "passed": true,
       "fixedInputDownObserved": true,
       "releaseObserved": true,
-      "releaseObservationMilliseconds": 519,
+      "releaseObservationMilliseconds": 491,
       "observationIncludesSshRoundTrips": true,
       "heldAtEnd": false
     },
@@ -301,7 +301,7 @@
       "passed": true,
       "fixedInputDownObserved": true,
       "releaseObserved": true,
-      "releaseObservationMilliseconds": 150,
+      "releaseObservationMilliseconds": 155,
       "observationIncludesSshRoundTrips": true,
       "heldAtEnd": false
     },
@@ -310,7 +310,7 @@
       "passed": true,
       "fixedInputDownObserved": true,
       "releaseObserved": true,
-      "releaseObservationMilliseconds": 594,
+      "releaseObservationMilliseconds": 646,
       "observationIncludesSshRoundTrips": true,
       "heldAtEnd": false
     },
@@ -319,13 +319,13 @@
       "passed": true,
       "fixedInputDownObserved": true,
       "releaseObserved": true,
-      "releaseObservationMilliseconds": 506,
+      "releaseObservationMilliseconds": 508,
       "observationIncludesSshRoundTrips": true,
       "heldAtEnd": false
     }
   ],
   "inputArtifactsSha256": {
-    "probe.py": "c40a29f4f93b5a61d64d038e8df523175abd8dc172a97115660e41e3d67f7963",
+    "probe.py": "8dc5477c372c9425088722834a6a93cf411a3a2c742e207feacd4761361026a5",
     "linux-xauthority-fd-probe.py": "2ba84dd60e27dbcf352ac169239b72ac48b6a2112314531acdf43662c67b714d",
     "absorconnect-input-lease-probe-lab.service": "f2883e574b4950425df5094b85aa0c3286180ad756ef355f7d2ad26127f8c51b",
     "absor-input-lease-probe-lab": "db06b52d7ec60716a4d1740fcc22180c217841c96dd5a5bc39913a06fc6ba493"
@@ -381,6 +381,46 @@
     "La concesión se valida con API/HMAC, PID/UID/start_ticks y logind. Cada autenticación cambia de concesión aunque conserve los procesos; no la renueva un evento de entrada.",
     "El fd permanece en el guardián sin red IP; el trabajador dedicado no puede abrir /dev/uinput ni sus descriptores. Un observador independiente comprueba la liberación.",
     "Los tiempos incluyen los recorridos SSH de observación y no certifican un plazo de tiempo real ni la máquina física.",
-    "La caída/caducidad corta el proceso/dispositivo. No une aún teclado/ratón general o captura de escritorio a WebRTC, ni acepta 3.5/6.2."
-  ]
+    "La caída/caducidad corta el proceso/dispositivo. No une aún teclado/ratón general o captura de escritorio a WebRTC, ni acepta 3.5/6.2.",
+    "La prueba adicional linux-input-overlap-results.json detecta pérdida de estado maestro Xorg al soltar la misma tecla en otro teclado virtual. Conserva el estado del kernel, pero no permite afirmar aislamiento de teclado local/remoto. Bloquea su adopción general."
+  ],
+  "localKeyboardOverlapSafe": false,
+  "generalKeyboardAdoptionBlocked": true,
+  "localValidation": {
+    "linuxRustTestsDefaultAndAllFeatures": 268,
+    "macRustTestsDefaultAndAllFeatures": 234,
+    "typecheck": true,
+    "vitestPassed": 334,
+    "vitestApiSkipped": 6,
+    "phpunitTests": 162,
+    "phpunitAssertions": 1077,
+    "diagnosticTests": 7,
+    "runnerTests": 10,
+    "authorityParserTests": 7,
+    "openspecStrict": true,
+    "standaloneDeviceRemovalCases": 6,
+    "p2pRegressionCases": 10
+  },
+  "firstReviewedCi": {
+    "headRevision": "06c12470c412e583bb98162cae03873bcdbfa21c",
+    "jobs": [
+      {
+        "id": 123056523562,
+        "os": "linux",
+        "rustTests": 268
+      },
+      {
+        "id": 123056523603,
+        "os": "macos",
+        "rustTests": 234
+      },
+      {
+        "id": 123056522999,
+        "os": "windows",
+        "rustTests": 232
+      }
+    ],
+    "logsAndAnnotationsReviewed": true,
+    "fmtClippyDefaultAllFeaturesAndBothReleaseBuildsPassed": true
+  }
 }

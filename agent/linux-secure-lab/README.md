@@ -254,3 +254,21 @@ Pasan 41 comprobaciones del laboratorio, incluidas diez de entrada propia y tres
 de denegación/aislamiento. El informe `linux-input-lease-results.json` no acepta
 3.5/6.2: faltan receptor local de entrada, trabajador P2P/captura general,
 transiciones protegidas y aislamiento de contenido de cada configuración.
+
+
+**Límite detectado antes de la adopción:** con dos teclados virtuales propios
+manteniendo A, un keyup/retirada de uno puede borrar el estado maestro de Xorg
+aunque el otro continúe pulsado en el kernel. No se certifica aislamiento de
+teclado local/remoto ni se adopta este teclado general. Se reproduce sin entrada
+física con el mismo lanzador independiente:
+
+```bash
+python3 -B prototypes/backend-agent-check/linux-uinput-release-check.py /ruta/lab \
+  /ruta/vm-lab --verify-local-hold
+```
+
+Devuelve 3 por el límite observado, **después** de guardar el informe y retirar
+los recursos. Las 41 pruebas de entrada fija/IPC anterior no prueban esa
+simultaneidad. `linux-input-overlap-results.json` conserva ambos resultados sin
+contabilizar la limitación como éxito. Las pruebas del laboratorio requieren
+mantener libres teclado/ratón de esa VM.
