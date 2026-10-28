@@ -23,6 +23,11 @@ def run_root(source,data=None,timeout=30):
 setup="""import hashlib,json,os,stat,sys
 from pathlib import Path
 r=json.load(sys.stdin);prefix=Path('/opt/absorconnect-input-release-lab');marker=Path('/run/absorconnect-owned-vm-input-release-probe');assert not prefix.exists() and not marker.exists()
+import subprocess
+for mode in [action+'-'+kind for action in ['normal','kill','watchdog'] for kind in ['key','button']]:
+ state=subprocess.run(['systemctl','show','absorconnect-input-release-lab-'+mode+'.service','-p','LoadState','--value'],capture_output=True,text=True,timeout=3)
+ assert state.returncode in (0,1) and state.stdout.strip()=='not-found','foreign_unit_requires_review'
+
 stage=Path(r['stage']);assert stage.parent==Path('/home/absorlab/AbsorConnectLab') and stage.name.startswith('uinput-stage-')
 raw={}
 for name,digest in r['hashes'].items():

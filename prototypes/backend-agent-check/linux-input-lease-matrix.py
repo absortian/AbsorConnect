@@ -21,6 +21,9 @@ import hashlib,json,os,stat,subprocess,sys
 from pathlib import Path
 r=json.load(sys.stdin);prefix=Path('/opt/absorconnect-input-release-lab');marker=Path('/run/absorconnect-owned-vm-input-release-probe')
 assert not prefix.exists() and not marker.exists()
+for unit in ['absorconnect-input-lease-probe-lab.service','absorconnect-input-observer-lab.service']:
+ state=subprocess.run(['systemctl','show',unit,'-p','LoadState','--value'],capture_output=True,text=True,timeout=3)
+ assert state.returncode in (0,1) and state.stdout.strip()=='not-found','foreign_unit_requires_review'
 paths={'probe.py':prefix/'probe.py','linux-xauthority-fd-probe.py':prefix/'linux-xauthority-fd-probe.py','absor-input-lease-probe-lab':Path('/opt/absorconnect-seat-authority-lab/absor-input-lease-probe-lab'),'absorconnect-input-lease-probe-lab.service':Path('/etc/systemd/system/absorconnect-input-lease-probe-lab.service')}
 assert set(r['hashes'])==set(paths)
 stage=Path(r['stage']);m=stage.lstat();assert stat.S_ISDIR(m.st_mode) and m.st_uid==1000 and m.st_mode&0o077==0 and stage.parent==Path('/home/absorlab/AbsorConnectLab') and stage.name.startswith('input-lease-staging-')

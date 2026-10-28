@@ -3009,3 +3009,11 @@ reduce el criterio para convertirlo en un pase. La adopción del teclado general
 queda bloqueada en D8, sin activar nada en equipos reales, y 3.5/6.2 siguen
 pendientes. Las 41 comprobaciones de un dispositivo, seis de retirada y siete
 pruebas puras conservan su alcance. El objetivo sigue **21/57 (37 %)**.
+
+
+La revisión de retirada añadió preflight de las unidades fijas antes de cualquier
+mutación. Se creó un centinela desechable con nombre coincidente para comprobar
+que el instalador lo rechaza y lo deja activo con el mismo PID, sin crear sus
+archivos/marcador. Solo el propio ensayo retira después ese centinela. Tras el
+cambio vuelven a pasar los seis casos de retirada y los 41 de API/HMAC/guardián;
+se mantiene independiente el fallo de simultaneidad Xorg ya registrado.

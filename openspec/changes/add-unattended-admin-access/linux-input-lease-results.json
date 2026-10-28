@@ -114,7 +114,7 @@
       "passed": true,
       "fixedInputDownObserved": true,
       "releaseObserved": true,
-      "releaseObservationMilliseconds": 467,
+      "releaseObservationMilliseconds": 464,
       "observationIncludesSshRoundTrips": true,
       "heldAtEnd": false
     },
@@ -123,7 +123,7 @@
       "passed": true,
       "fixedInputDownObserved": true,
       "releaseObserved": true,
-      "releaseObservationMilliseconds": 722,
+      "releaseObservationMilliseconds": 737,
       "observationIncludesSshRoundTrips": true,
       "heldAtEnd": false
     },
@@ -132,7 +132,7 @@
       "passed": true,
       "fixedInputDownObserved": true,
       "releaseObserved": true,
-      "releaseObservationMilliseconds": 177,
+      "releaseObservationMilliseconds": 175,
       "observationIncludesSshRoundTrips": true,
       "heldAtEnd": false
     },
@@ -141,7 +141,7 @@
       "passed": true,
       "fixedInputDownObserved": true,
       "releaseObserved": true,
-      "releaseObservationMilliseconds": 491,
+      "releaseObservationMilliseconds": 391,
       "observationIncludesSshRoundTrips": true,
       "heldAtEnd": false
     },
@@ -150,7 +150,7 @@
       "passed": true,
       "fixedInputDownObserved": true,
       "releaseObserved": true,
-      "releaseObservationMilliseconds": 155,
+      "releaseObservationMilliseconds": 157,
       "observationIncludesSshRoundTrips": true,
       "heldAtEnd": false
     },
@@ -159,7 +159,7 @@
       "passed": true,
       "fixedInputDownObserved": true,
       "releaseObserved": true,
-      "releaseObservationMilliseconds": 646,
+      "releaseObservationMilliseconds": 619,
       "observationIncludesSshRoundTrips": true,
       "heldAtEnd": false
     },
@@ -168,7 +168,7 @@
       "passed": true,
       "fixedInputDownObserved": true,
       "releaseObserved": true,
-      "releaseObservationMilliseconds": 508,
+      "releaseObservationMilliseconds": 475,
       "observationIncludesSshRoundTrips": true,
       "heldAtEnd": false
     },
@@ -199,7 +199,7 @@
     {
       "case": "api-expiry-and-restoration-require-new-proof",
       "passed": true,
-      "denialObservedMilliseconds": 30167,
+      "denialObservedMilliseconds": 30190,
       "observationIncludesSshRoundTrips": true
     },
     {
@@ -265,7 +265,7 @@
       "passed": true,
       "fixedInputDownObserved": true,
       "releaseObserved": true,
-      "releaseObservationMilliseconds": 467,
+      "releaseObservationMilliseconds": 464,
       "observationIncludesSshRoundTrips": true,
       "heldAtEnd": false
     },
@@ -274,7 +274,7 @@
       "passed": true,
       "fixedInputDownObserved": true,
       "releaseObserved": true,
-      "releaseObservationMilliseconds": 722,
+      "releaseObservationMilliseconds": 737,
       "observationIncludesSshRoundTrips": true,
       "heldAtEnd": false
     },
@@ -283,7 +283,7 @@
       "passed": true,
       "fixedInputDownObserved": true,
       "releaseObserved": true,
-      "releaseObservationMilliseconds": 177,
+      "releaseObservationMilliseconds": 175,
       "observationIncludesSshRoundTrips": true,
       "heldAtEnd": false
     },
@@ -292,7 +292,7 @@
       "passed": true,
       "fixedInputDownObserved": true,
       "releaseObserved": true,
-      "releaseObservationMilliseconds": 491,
+      "releaseObservationMilliseconds": 391,
       "observationIncludesSshRoundTrips": true,
       "heldAtEnd": false
     },
@@ -301,7 +301,7 @@
       "passed": true,
       "fixedInputDownObserved": true,
       "releaseObserved": true,
-      "releaseObservationMilliseconds": 155,
+      "releaseObservationMilliseconds": 157,
       "observationIncludesSshRoundTrips": true,
       "heldAtEnd": false
     },
@@ -310,7 +310,7 @@
       "passed": true,
       "fixedInputDownObserved": true,
       "releaseObserved": true,
-      "releaseObservationMilliseconds": 646,
+      "releaseObservationMilliseconds": 619,
       "observationIncludesSshRoundTrips": true,
       "heldAtEnd": false
     },
@@ -319,7 +319,7 @@
       "passed": true,
       "fixedInputDownObserved": true,
       "releaseObserved": true,
-      "releaseObservationMilliseconds": 508,
+      "releaseObservationMilliseconds": 475,
       "observationIncludesSshRoundTrips": true,
       "heldAtEnd": false
     }
@@ -330,7 +330,7 @@
     "absorconnect-input-lease-probe-lab.service": "f2883e574b4950425df5094b85aa0c3286180ad756ef355f7d2ad26127f8c51b",
     "absor-input-lease-probe-lab": "db06b52d7ec60716a4d1740fcc22180c217841c96dd5a5bc39913a06fc6ba493"
   },
-  "matrixSourceSha256": "657e8de11c00bcc486952ebfb2abfe9e652171b3fe2dd4a70f8960f622d3040f",
+  "matrixSourceSha256": "11ca1a9592fd6e0c432d602b054d90d1ed51a853d0ab491c5d0d63f50af2704c",
   "sourceSha256": {
     "agent/crates/agent-linux-session/examples/seat-inventory.rs": "1865c21a2c715633bd512857a77006a728361877e4bf00f84b60ad75826ff48e",
     "agent/crates/agent-linux-session/src/input_probe_main.rs": "86352714d916528dbdbf7283564957ffe6bf8abfada71f3e6d2b60e60fd56c70",
@@ -422,5 +422,10 @@
     ],
     "logsAndAnnotationsReviewed": true,
     "fmtClippyDefaultAllFeaturesAndBothReleaseBuildsPassed": true
+  },
+  "foreignUnitGuard": {
+    "foreignUnitRejectedBeforeMutation": true,
+    "foreignUnitLeftRunning": true,
+    "noOwnedFilesCreated": true
   }
 }
