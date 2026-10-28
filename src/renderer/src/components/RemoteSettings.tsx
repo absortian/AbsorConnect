@@ -234,10 +234,11 @@ function RemoteAccess(props: RemoteAccessProps): React.JSX.Element {
     else setName(remote.deviceName)
   }
 
-  if (remote.agentOwned) {
+  if (remote.agentOwned || (remote.localAgent && remote.localAgent.ownership !== 'legacy')) {
     return (
       <div className="settings-warning" role="status" style={{ display: 'block' }}>
-        {t('remoteAccess.agentOwned')}
+        {t(remote.agentOwned ? 'remoteAccess.agentOwned' : 'remoteAccess.localAgentManaged')}
+        {remote.localAgent && <p>{t(`remoteAccess.localAgentState.${remote.localAgent.phase}`)}</p>}
         {remote.agentOwnershipPersistenceFailed && (
           <p>{t('remoteAccess.agentPersistenceFailed')}</p>
         )}

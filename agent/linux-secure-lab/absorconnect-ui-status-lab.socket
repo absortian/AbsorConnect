@@ -1,0 +1,14 @@
+[Unit]
+Description=AbsorConnect read-only UI status laboratory socket
+PartOf=absorconnect-secure-lab.service
+
+[Socket]
+ListenStream=/run/absorconnect-ui-lab/status.sock
+SocketUser=absorconnect-lab
+SocketGroup=absorlab
+SocketMode=0660
+DirectoryMode=0755
+RemoveOnStop=yes
+Accept=no
+Service=absorconnect-secure-lab.service
+Backlog=4

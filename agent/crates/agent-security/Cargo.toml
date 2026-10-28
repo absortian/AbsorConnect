@@ -10,6 +10,7 @@ publish.workspace = true
 lab-http = ["absor-agent-api/lab-http"]
 protected-ipc-lab = ["lab-http"]
 input-lease-lab = []
+ui-status-lab = ["protected-ipc-lab"]
 
 [dependencies]
 absor-agent-api = { path = "../agent-api" }
@@ -32,3 +33,8 @@ required-features = ["protected-ipc-lab"]
 name = "absor-ipc-worker-lab"
 path = "src/worker.rs"
 required-features = ["protected-ipc-lab"]
+
+[[bin]]
+name = "absor-agent-status-lab"
+path = "src/ui_main.rs"
+required-features = ["ui-status-lab"]

@@ -31,7 +31,9 @@ def main():
     parser.add_argument('--secure-ipc-authority', action='store_true')
     parser.add_argument('--secure-ipc-dedicated', action='store_true')
     parser.add_argument('--secure-ipc-input-lease', action='store_true')
+    parser.add_argument('--secure-ipc-ui-status', action='store_true')
     parser.add_argument('--protected-p2p-vm', type=Path)
+    parser.add_argument('--protected-p2p-ui-status', action='store_true')
     parser.add_argument('--mobile-device')
     parser.add_argument('--turn-config', type=Path)
     parser.add_argument('--stun-config', type=Path)
@@ -39,6 +41,8 @@ def main():
     parser.add_argument('--flutter-tests', action='store_true')
     parser.add_argument('--mobile-runtime', action='store_true')
     args = parser.parse_args()
+    assert not args.protected_p2p_ui_status or args.protected_p2p_vm, 'ui_p2p_requires_owned_vm'
+    assert not args.secure_ipc_ui_status or args.secure_ipc_vm, 'ui_status_requires_owned_vm_ipc'
     assert not args.secure_ipc_authority or args.secure_ipc_vm, 'authority_requires_owned_vm_ipc'
     assert not args.secure_ipc_dedicated or args.secure_ipc_authority, 'dedicated_requires_authority'
     assert not args.secure_ipc_input_lease or args.secure_ipc_dedicated, 'input_lease_requires_dedicated_owned_vm'
@@ -100,6 +104,7 @@ def main():
         php_version = command(['docker', 'exec', container, 'php', '-r', 'echo PHP_VERSION;']).decode().strip()
         if args.protected_p2p_vm:
             child_args=['python3','-B',str(Path(__file__).with_name('protected-webrtc.py')),str(lab),str(args.protected_p2p_vm),'--api-base','http://127.0.0.1:'+str(port),'--node',args.node]
+            if args.protected_p2p_ui_status:child_args += ['--ui-status']
             if args.mobile_device:child_args += ['--mobile-device',args.mobile_device]
             if args.mobile_runtime:child_args += ['--mobile-runtime']
             if args.turn_config:child_args += ['--turn-config',str(args.turn_config.resolve())]
@@ -109,6 +114,7 @@ def main():
             child_args = ['python3', '-B', str(Path(__file__).with_name('secure-ipc-check.py')),
                           str(lab), str(args.secure_ipc_vm), '--api-base', 'http://127.0.0.1:'+str(port)]
             if args.secure_ipc_authority:child_args += ['--authority-fd']
+            if args.secure_ipc_ui_status:child_args += ['--ui-status']
             if args.secure_ipc_dedicated:child_args += ['--dedicated-worker']
             if args.secure_ipc_input_lease:
                 assert args.secure_ipc_dedicated and args.secure_ipc_authority

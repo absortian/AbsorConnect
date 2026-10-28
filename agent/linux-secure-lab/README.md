@@ -272,3 +272,38 @@ los recursos. Las 41 pruebas de entrada fija/IPC anterior no prueban esa
 simultaneidad. `linux-input-overlap-results.json` conserva ambos resultados sin
 contabilizar la limitación como éxito. Las pruebas del laboratorio requieren
 mantener libres teclado/ratón de esa VM.
+
+
+### Consulta local de estado independiente (D10)
+
+El modo optativo `ui-status-lab` añade un segundo socket de solo consulta, separado
+por completo del par que autoriza al trabajador. El perfil root público
+`/opt/absorconnect-secure-lab/ui-profile.json` fija UID/GID del dueño del escritorio
+y UID del broker. La unidad `absorconnect-ui-status-lab.socket` crea
+`/run/absorconnect-ui-lab/status.sock` con modo 0660. El cliente sin privilegios
+`absor-agent-status-lab status --json` comprueba ruta, identidades del kernel,
+nonce y plazo antes de devolver un máximo de 512 bytes. El broker comprueba el
+UID/GID del cliente y permite una respuesta pendiente durante 250 ms.
+
+La respuesta solo contiene identidad pública y estado; nunca K, token, SDP,
+concesiones o autoridad X11. No hay operaciones de configuración, parada o shell.
+Cerrar Electron solo cancela esa consulta. Un marcador nativo observado que deja
+de responder bloquea el retorno automático al host legado; no demuestra salud.
+El DTO público siempre declara `readyForUnattended: false`.
+
+```bash
+python3 -B prototypes/backend-agent-check/isolated-webrtc-renewal.py /ruta/lab \
+  --secure-ipc-vm /ruta/vm-lab --secure-ipc-ui-status
+python3 -B prototypes/backend-agent-check/isolated-webrtc-renewal.py /ruta/lab \
+  --protected-p2p-vm /ruta/vm-lab --protected-p2p-ui-status --node /ruta/node
+```
+
+La primera matriz comprueba consultas repetidas, UID ajeno, tramas malformadas,
+clientes parciales y argumentos rechazados sin tocar al trabajador. La segunda
+ejecuta seis ciclos de las clases Main reales como usuario sin privilegios, con
+vídeo WebRTC activo en Electron y el mismo broker/equipo. No es una prueba del
+instalador final ni de una app Electron empaquetada: usa un adaptador explícito de
+laboratorio. Requiere el Node 22 privado del laboratorio y conserva su versión y
+hash del arnés en el informe. La retirada elimina socket, perfil y drop-in propios.
+Los clientes Windows/ACL y Mac/XPC permanecen pendientes y se muestran como no
+verificados si existe intención nativa; no se invoca un ejecutable sin validarla.

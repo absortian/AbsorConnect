@@ -7,6 +7,7 @@ pub mod fd;
 #[allow(unsafe_code)]
 pub mod linux;
 pub mod secrets;
+pub mod status_wire;
 pub mod wire;
 
 #[cfg(all(target_os = "linux", feature = "protected-ipc-lab"))]
@@ -20,3 +21,11 @@ pub mod profile;
 #[cfg(all(target_os = "linux", feature = "input-lease-lab"))]
 #[allow(unsafe_code)]
 pub mod uinput;
+
+#[cfg(all(target_os = "linux", feature = "ui-status-lab"))]
+pub mod ui_profile;
+
+#[cfg(all(target_os = "linux", feature = "ui-status-lab"))]
+pub mod ui_client;
+#[cfg(all(target_os = "linux", feature = "ui-status-lab"))]
+pub mod ui_server;

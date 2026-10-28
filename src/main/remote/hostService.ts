@@ -22,6 +22,7 @@ import {
 } from './hostPolicy'
 import { RemoteAccessStore } from './remoteAccessStore'
 import { RemoteSupport } from './support'
+import type { LocalAgentSnapshot } from '../../shared/remote/localAgent'
 
 export const POLL_INTERVAL_MS = 3_000
 export const REGISTER_INTERVAL_MS = 5 * 60_000
@@ -78,6 +79,8 @@ export interface HostServiceDeps {
   notify: (event: 'session-start' | 'session-end', controller: string) => void
   /** Persistir la desactivación del host de usuario al detectar propietario nativo. */
   onAgentOwned?: () => Promise<void>
+  /** Consulta de solo lectura: nunca concede captura ni para el servicio nativo. */
+  nativeAgent?: () => Promise<LocalAgentSnapshot>
   now?: () => number
 }
 
@@ -90,6 +93,7 @@ interface Current {
 export class HostService {
   private running = false
   private agentOwned = false
+  private nativeReserved = false
   private ownershipPersistenceFailed = false
   /** Fuera de la cuenta (tarea 4.10): ni registro ni consultas hasta `resume()`. */
   private suspended = false
@@ -124,7 +128,7 @@ export class HostService {
     this.current?.session.close(reason)
     await this.ticking
     this.setKeepAwake(false)
-    this.setStatus(this.agentOwned ? 'agent' : 'off', null)
+    this.setStatus(this.isAgentManaged() ? 'agent' : 'off', null)
   }
 
   /**
@@ -133,7 +137,7 @@ export class HostService {
    * equipo cuando ya no queda ninguna vuelta en marcha, para darlo de baja sin que una vuelta
    * atrasada lo vuelva a registrar.
    */
-  async suspend(): Promise<DeviceCredentials> {
+  async suspend(): Promise<DeviceCredentials | null> {
     this.suspended = true
     if (this.timer) clearTimeout(this.timer)
     this.timer = null
@@ -143,7 +147,7 @@ export class HostService {
     this.current?.session.close('signed_out')
     this.registered = null
     this.updateLocal(null)
-    return this.deps.identity.get()
+    return this.nativeReserved ? null : this.deps.identity.get()
   }
 
   /** Tras iniciar sesión: registrarse y consultar en el momento. */
@@ -161,7 +165,7 @@ export class HostService {
 
   /** Tras cambiar Ajustes. Desactivar el control remoto corta la sesión al momento. */
   async settingsChanged(): Promise<void> {
-    if (this.agentOwned) {
+    if (this.isAgentManaged()) {
       // Una escritura de Ajustes iniciada antes del 409 no puede reactivar el host.
       try {
         await this.deps.onAgentOwned?.()
@@ -196,6 +200,29 @@ export class HostService {
     return this.agentOwned
   }
 
+  /** Presencia nativa ambigua también reserva el host; no afirma salud o propiedad API. */
+  isAgentManaged(): boolean {
+    return this.agentOwned || this.nativeReserved
+  }
+
+  async reserveForLocalAgent(): Promise<void> {
+    if (this.nativeReserved) return
+    this.nativeReserved = true
+    await this.reserveHost()
+  }
+
+  private async observeNativeOwnership(): Promise<boolean> {
+    if (this.isAgentManaged()) return true
+    try {
+      const state = await this.deps.nativeAgent?.()
+      if (state && state.ownership !== 'legacy') await this.reserveForLocalAgent()
+    } catch {
+      // Una consulta ambigua tampoco autoriza un segundo host.
+      await this.reserveForLocalAgent()
+    }
+    return this.isAgentManaged()
+  }
+
   didOwnershipPersistenceFail(): boolean {
     return this.ownershipPersistenceFailed
   }
@@ -203,6 +230,10 @@ export class HostService {
   private async transferOwnership(): Promise<void> {
     if (this.agentOwned) return
     this.agentOwned = true
+    await this.reserveHost()
+  }
+
+  private async reserveHost(): Promise<void> {
     this.registrationDirty = true
     this.registered = null
     if (this.timer) clearTimeout(this.timer)
@@ -218,7 +249,7 @@ export class HostService {
   }
 
   private schedule(delay: number): void {
-    if (!this.running || this.suspended || this.agentOwned) return
+    if (!this.running || this.suspended || this.isAgentManaged()) return
     if (this.timer) clearTimeout(this.timer)
     this.timer = setTimeout(() => {
       this.timer = null
@@ -231,6 +262,8 @@ export class HostService {
   private async tick(): Promise<void> {
     let delay = POLL_INTERVAL_MS
     try {
+      if (await this.observeNativeOwnership()) return
+      if (!this.running || this.suspended) return
       if (!this.deps.signedIn()) {
         this.updateLocal(null)
         delay = SIGNED_OUT_RETRY_MS
@@ -239,6 +272,7 @@ export class HostService {
       const conditions = await this.conditions()
       this.updateLocal(conditions)
       await this.register(conditions)
+      if (this.isAgentManaged()) return
       if (!shouldPoll(conditions)) {
         delay = REGISTER_INTERVAL_MS
         return
@@ -272,7 +306,7 @@ export class HostService {
   /** Bandeja y "mantener despierto" según el estado; solo avisa cuando cambian. */
   private updateLocal(conditions: HostConditions | null): void {
     void this.applyKeepAwake(conditions)
-    if (this.agentOwned) {
+    if (this.isAgentManaged()) {
       this.setStatus('agent', null)
       return
     }
@@ -287,7 +321,7 @@ export class HostService {
   private async applyKeepAwake(conditions: HostConditions | null): Promise<void> {
     const on =
       conditions !== null && conditions.enabled && (await this.deps.store.snapshot()).preventSleep
-    this.setKeepAwake(on && this.running && !this.agentOwned)
+    this.setKeepAwake(on && this.running && !this.isAgentManaged())
   }
 
   private setKeepAwake(on: boolean): void {
@@ -319,13 +353,17 @@ export class HostService {
       this.now() - this.registered.at < REGISTER_INTERVAL_MS
     if (fresh && !this.registrationDirty) return
 
+    if (await this.observeNativeOwnership()) return
     let device = await this.deps.identity.get()
+    if (this.isAgentManaged()) return
     try {
       await this.deps.api.register(device, info)
     } catch (error) {
       // El identificador es de otra cuenta, o esta cuenta lo tiene con otra clave: identidad nueva
       if (!isCode(error, 'device_taken', 'device_key_invalid')) throw error
+      if (await this.observeNativeOwnership()) return
       device = await this.deps.identity.reset()
+      if (this.isAgentManaged()) return
       await this.deps.api.register(device, info)
     }
     this.registered = { fingerprint, at: this.now() }
@@ -334,10 +372,12 @@ export class HostService {
 
   /** Solicitudes pendientes; null si hay que volver a registrar el equipo antes. */
   private async poll(): Promise<PendingRequest[] | null> {
+    if (await this.observeNativeOwnership()) return []
     try {
       return await this.deps.api.poll(await this.deps.identity.get())
     } catch (error) {
       if (isCode(error, 'device_key_invalid')) {
+        if (await this.observeNativeOwnership()) return []
         await this.deps.identity.reset()
         this.registrationDirty = true
         return null
@@ -351,7 +391,7 @@ export class HostService {
   }
 
   private async handle(request: PendingRequest): Promise<void> {
-    if (this.agentOwned) return
+    if (await this.observeNativeOwnership()) return
     const device = await this.deps.identity.get()
     const rejection = earlyRejection(await this.conditions())
     if (rejection) {
@@ -369,6 +409,11 @@ export class HostService {
       await this.reject(device, request.id, { reason: 'unsupported' })
       return
     }
+    if (this.isAgentManaged()) {
+      this.opening = false
+      session.close('stopped')
+      return
+    }
     try {
       await this.deps.api.answer(device, request.id, session.answer)
     } catch (error) {
@@ -384,6 +429,10 @@ export class HostService {
       return
     }
     this.opening = false
+    if (this.isAgentManaged()) {
+      session.close('stopped')
+      return
+    }
     const current: Current = { request, session, startedAt: null }
     this.current = current
     session.started.then(
@@ -410,7 +459,7 @@ export class HostService {
   }
 
   private onStarted(current: Current): void {
-    if (this.current !== current || this.agentOwned) {
+    if (this.current !== current || this.isAgentManaged()) {
       current.session.close('stopped')
       return
     }

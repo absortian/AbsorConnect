@@ -1,7 +1,9 @@
 // Ajustes del control remoto de ESTE PC (add-remote-desktop D14, tarea 6.2): lo que lee y cambia la
 // ventana principal. Cada cambio avisa a HostService: desactivar o cambiar la contraseña corta la
 // sesión en curso, y el resto se publica en la cuenta en la siguiente vuelta.
-import { ipcMain } from 'electron'
+import { ipcMain, type IpcMainInvokeEvent } from 'electron'
+import { getMainWindow } from '../background'
+import { publicLocalAgentSnapshot } from '../../shared/remote/localAgent'
 import { currentSession } from '../cloud/session'
 import {
   MAX_DEVICE_NAME_LENGTH,
@@ -17,7 +19,7 @@ import { accessibilityRenamed } from './support'
 import { PasswordTooShortError } from './remoteAccessStore'
 
 async function state(): Promise<RemoteSettingsState | null> {
-  const { store, service, support } = remoteHost()
+  const { store, service, support, agentState } = remoteHost()
   if (!store) return null
   const snapshot = await store.snapshot()
   return {
@@ -36,6 +38,7 @@ async function state(): Promise<RemoteSettingsState | null> {
       process.platform === 'darwin' && accessibilityRenamed(process.getSystemVersion()),
     active: service?.isActive() ?? false,
     agentOwned: service?.isAgentOwned() ?? false,
+    localAgent: publicLocalAgentSnapshot(await agentState()),
     agentOwnershipPersistenceFailed: service?.didOwnershipPersistenceFail() ?? false,
     log: await store.getLog()
   }
@@ -58,7 +61,7 @@ async function bindToCurrentAccount(): Promise<void> {
 async function setPassword(password: unknown): Promise<RemoteSettingsResult> {
   const { store, service } = remoteHost()
   if (!store) return UNAVAILABLE
-  if (service?.isAgentOwned())
+  if (service?.isAgentManaged())
     return { ok: false, code: 'device_agent_owned', state: (await state())! }
   if (typeof password !== 'string' || password.length < MIN_PC_PASSWORD_LENGTH) {
     return { ok: false, code: 'password_too_short' }
@@ -77,7 +80,7 @@ async function setPassword(password: unknown): Promise<RemoteSettingsResult> {
 async function setEnabled(enabled: unknown): Promise<RemoteSettingsResult> {
   const { store, service, support } = remoteHost()
   if (!store || typeof enabled !== 'boolean') return UNAVAILABLE
-  if (service?.isAgentOwned())
+  if (service?.isAgentManaged())
     return { ok: false, code: 'device_agent_owned', state: (await state())! }
   if (enabled) {
     if (!currentSession()) return { ok: false, code: 'not_signed_in', state: (await state())! }
@@ -97,7 +100,7 @@ async function setEnabled(enabled: unknown): Promise<RemoteSettingsResult> {
 async function update(changes: unknown): Promise<RemoteSettingsResult> {
   const { store, service } = remoteHost()
   if (!store || typeof changes !== 'object' || changes === null) return UNAVAILABLE
-  if (service?.isAgentOwned())
+  if (service?.isAgentManaged())
     return { ok: false, code: 'device_agent_owned', state: (await state())! }
   const c = changes as RemoteSettingsChanges
   if (c.deviceName !== undefined) {
@@ -120,28 +123,42 @@ async function update(changes: unknown): Promise<RemoteSettingsResult> {
   return result()
 }
 
+/** Ni visores, host oculto o subframes pueden consultar/configurar el host local. */
+function trustedMainFrame(event: IpcMainInvokeEvent): boolean {
+  const main = getMainWindow()
+  return (
+    !!main && event.sender === main.webContents && event.senderFrame === main.webContents.mainFrame
+  )
+}
+const FORBIDDEN: RemoteSettingsResult = { ok: false, code: 'forbidden' }
+
 let ready = false
 
 export function setupRemoteSettingsIpc(): void {
   if (ready) return
   ready = true
-  ipcMain.handle('remote-settings:get', async () => {
+  ipcMain.handle('remote-settings:get', async (event, ...args) => {
+    if (!trustedMainFrame(event) || args.length !== 0) return FORBIDDEN
     await bindToCurrentAccount()
     return result()
   })
-  ipcMain.handle('remote-settings:set-password', async (_event, password) => {
+  ipcMain.handle('remote-settings:set-password', async (event, password, ...args) => {
+    if (!trustedMainFrame(event) || args.length !== 0) return FORBIDDEN
     await bindToCurrentAccount()
     return setPassword(password)
   })
-  ipcMain.handle('remote-settings:set-enabled', async (_event, enabled) => {
+  ipcMain.handle('remote-settings:set-enabled', async (event, enabled, ...args) => {
+    if (!trustedMainFrame(event) || args.length !== 0) return FORBIDDEN
     await bindToCurrentAccount()
     return setEnabled(enabled)
   })
-  ipcMain.handle('remote-settings:update', async (_event, changes) => {
+  ipcMain.handle('remote-settings:update', async (event, changes, ...args) => {
+    if (!trustedMainFrame(event) || args.length !== 0) return FORBIDDEN
     await bindToCurrentAccount()
     return update(changes)
   })
-  ipcMain.handle('remote-settings:open-permission', async (_event, permission) => {
+  ipcMain.handle('remote-settings:open-permission', async (event, permission, ...args) => {
+    if (!trustedMainFrame(event) || args.length !== 0) return FORBIDDEN
     await remoteHostStarted()
     if (permission === 'screen' || permission === 'accessibility') {
       await openPermissionSettings(permission)

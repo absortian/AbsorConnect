@@ -352,7 +352,13 @@
       "device_agent_owned": "La API ha asignado este equipo a un agente. Los ajustes del host de usuario quedan desactivados para conservar su identidad y evitar una segunda sesión. Puedes revocar su acceso desde Equipos. Esto no verifica la salud ni la preparación del servicio."
     },
     "agentOwned": "La API ha asignado este equipo a un agente. Los ajustes del host de usuario quedan desactivados para conservar su identidad y evitar una segunda sesión. Puedes revocar su acceso desde Equipos. Esto no verifica la salud ni la preparación del servicio.",
-    "agentPersistenceFailed": "No se ha podido guardar la desactivación local. El host de usuario está detenido en esta ejecución; revisa el acceso alternativo antes de cerrar o reiniciar la app."
+    "agentPersistenceFailed": "No se ha podido guardar la desactivación local. El host de usuario está detenido en esta ejecución; revisa el acceso alternativo antes de cerrar o reiniciar la app.",
+    "localAgentManaged": "Este PC está reservado al servicio nativo. Los ajustes del host de usuario están desactivados para evitar otra sesión o identidad.",
+    "localAgentState": {
+      "absent": "No se ha detectado una instalación nativa activa.",
+      "responding": "El servicio responde. Esta configuración aún no está certificada para acceso desatendido.",
+      "unverified": "No se puede verificar el servicio. Revisa la instalación; salir de la interfaz no lo detiene."
+    }
   },
   "remoteStream": {
     "quality": "Calidad de vídeo",

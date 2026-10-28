@@ -352,7 +352,13 @@
       "device_agent_owned": "The API has assigned this device to an agent. User-host settings are disabled to preserve its identity and prevent a second session. You can revoke access from Devices. This does not verify service health or readiness."
     },
     "agentOwned": "The API has assigned this device to an agent. User-host settings are disabled to preserve its identity and prevent a second session. You can revoke access from Devices. This does not verify service health or readiness.",
-    "agentPersistenceFailed": "The local disabled setting could not be saved. The user host is stopped for this run; check alternative access before quitting or restarting the app."
+    "agentPersistenceFailed": "The local disabled setting could not be saved. The user host is stopped for this run; check alternative access before quitting or restarting the app.",
+    "localAgentManaged": "This PC is reserved for the native service. User-host settings are disabled to prevent another session or identity.",
+    "localAgentState": {
+      "absent": "No active native installation was detected.",
+      "responding": "The service responds. This configuration is not yet certified for unattended access.",
+      "unverified": "The service could not be verified. Check its installation; quitting the interface does not stop it."
+    }
   },
   "remoteStream": {
     "quality": "Video quality",

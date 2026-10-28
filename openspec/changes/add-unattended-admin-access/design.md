@@ -421,3 +421,35 @@ cerrados de instalación local; no se admite una RPC de shell o un PID arbitrari
 Los secretos/DPAPI, enlace API/HMAC y capturador final conservarán sus verificaciones
 específicas: compilar o consultar metadatos no los acredita. La instalación y
 retirada iniciales se limitarán a esa VM y a archivos/unidades propios.
+
+### D10. Consulta local de Electron sin autoridad del trabajador
+
+La integración 7.1 comenzará con una consulta de estado de solo lectura, separada
+del socket que autentica al trabajador. En Linux, otro socket de activación
+systemd restringirá grupo/UID al propietario local configurado por root. El broker
+aceptará en él únicamente un mensaje `status` pequeño, con nonce y plazo, y no
+pasará sus mensajes al verificador, señalización ni entrada. Cerrar ese cliente
+no terminará la conexión del trabajador ni renovará su autorización.
+
+Un cliente nativo sin privilegios verificará directorios/socket, perfil root y
+credenciales del kernel del socket activado por PID 1; no recibe rutas o comandos
+de la interfaz. Su respuesta contiene versión, identidad pública del equipo,
+instancia/progreso y estado enumerado. Nunca token, K, contraseña, SDP, nombres de
+usuario ni una capacidad de captura. Se verificará plazo y asociación de la
+respuesta con la consulta; una respuesta antigua no prueba salud actual.
+
+Main ejecutará exclusivamente el cliente instalado y protegido, con argumentos
+y salida acotados. El runtime distingue ausencia, propietario nativo y presencia
+sin verificar. Un agente averiado o una consulta fallida después de detectar su
+propiedad no autorizan otra identidad ni el retorno automático al host de usuario.
+La propiedad local se observa antes de registrar o abrir una sesión legado y se
+conserva al cerrar/reiniciar la interfaz. No se enviará una parada del servicio al
+salir de Electron. Los cambios de cuenta, alta/migración y baja conservan sus
+transacciones y autorización específicas de 7.2/7.3/8.1.
+
+El laboratorio se limita inicialmente a Linux y conserva rutas/unidades distintas
+del producto. La ausencia de un adaptador final Windows/Mac se representa de
+forma explícita; no habilita esos servicios ni sustituye su revisión. La lectura
+de salud no certifica preparación para viajes. La matriz real mantendrá un P2P
+activo mientras consulta/cierra/reabre clientes; las pruebas de Main verificarán
+carreras de arranque/registro, persistencia y cero acceso a secretos del agente.

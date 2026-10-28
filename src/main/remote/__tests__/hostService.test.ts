@@ -10,6 +10,7 @@ import {
 } from '../hostService'
 import { RemoteLogEntry } from '../sessionLog'
 import { RemoteSupport } from '../support'
+import { absentLocalAgent } from '../../../shared/remote/localAgent'
 
 class FakeApi {
   registrations: { id: string; info: DeviceInfo }[] = []
@@ -94,7 +95,7 @@ function fakeSession(): {
   return { session, start, end }
 }
 
-function setup(): {
+function setup(nativeAgent?: HostServiceDeps['nativeAgent']): {
   api: FakeApi
   state: {
     enabled: boolean
@@ -104,6 +105,8 @@ function setup(): {
     signedIn: boolean
     ownershipWrites: number
     ownershipWriteFails: boolean
+    identityReads: number
+    identityResets: number
   }
   logs: RemoteLogEntry[]
   statuses: string[]
@@ -121,7 +124,9 @@ function setup(): {
     support: { state: 'available' } as RemoteSupport,
     signedIn: true,
     ownershipWrites: 0,
-    ownershipWriteFails: false
+    ownershipWriteFails: false,
+    identityReads: 0,
+    identityResets: 0
   }
   const logs: RemoteLogEntry[] = []
   const statuses: string[] = []
@@ -130,9 +135,16 @@ function setup(): {
   const sessions: ReturnType<typeof fakeSession>[] = []
   const deps: HostServiceDeps = {
     api,
+    nativeAgent,
     identity: {
-      get: async () => identity,
-      reset: async () => (identity = { id: 'equipo-2', key: 'clave-2' })
+      get: async () => {
+        state.identityReads++
+        return identity
+      },
+      reset: async () => {
+        state.identityResets++
+        return (identity = { id: 'equipo-2', key: 'clave-2' })
+      }
     },
     store: {
       isEnabled: async () => state.enabled,
@@ -248,6 +260,104 @@ describe('HostService — registro y consulta', () => {
     service.start()
     await flush()
     expect(api.registrations.map((r) => r.id)).toEqual(['equipo-2'])
+    await service.stop()
+  })
+
+  it('un servicio nativo activo reserva el host antes de leer su identidad legado', async () => {
+    const native = {
+      ...absentLocalAgent(),
+      ownership: 'agent' as const,
+      phase: 'responding' as const,
+      active: true
+    }
+    const { api, state, service, sessions } = setup(async () => native)
+    service.start()
+    await flush()
+    expect(service.isAgentManaged()).toBe(true)
+    expect(service.isAgentOwned()).toBe(false) // La reserva local no inventa una confirmación API.
+    expect(api.registrations).toEqual([])
+    expect(api.polls).toBe(0)
+    expect(state.identityReads).toBe(0)
+    expect(state.identityResets).toBe(0)
+    expect(sessions).toEqual([])
+    expect(await service.suspend()).toBeNull()
+    await service.stop()
+    expect(native.active).toBe(true) // Salir de la interfaz no envía una parada nativa.
+  })
+
+  it('una reserva ambigua tampoco permite otra identidad al cerrar/reabrir Electron', async () => {
+    const native = {
+      ...absentLocalAgent(),
+      ownership: 'unknown' as const,
+      phase: 'unverified' as const
+    }
+    for (let run = 0; run < 2; run++) {
+      const { api, state, service } = setup(async () => native)
+      service.start()
+      await flush()
+      service.refresh()
+      service.resume()
+      await flush(60_000)
+      expect(api.registrations).toEqual([])
+      expect(state.identityReads).toBe(0)
+      expect(state.identityResets).toBe(0)
+      await service.stop()
+    }
+  })
+
+  it('una adopción con respuesta pendiente cierra la sesión legado sin mantenerla', async () => {
+    const { api, state, service, sessions } = setup()
+    api.pending.push(request('r-native-race'))
+    api.answerGate = new Promise<void>((resolve) => {
+      setTimeout(() => {
+        void service.reserveForLocalAgent().then(resolve)
+      }, 10)
+    })
+    service.start()
+    await flush(100)
+    expect(service.isAgentManaged()).toBe(true)
+    expect(sessions[0].session.closedWith).toBe('stopped')
+    expect(service.isActive()).toBe(false)
+    expect(state.enabled).toBe(false)
+    const resets = state.identityResets
+    await service.settingsChanged()
+    service.resume()
+    await flush(60_000)
+    expect(state.identityResets).toBe(resets)
+    await service.stop()
+  })
+
+  it('la reserva que aparece tras un conflicto de clave impide el reset y otro registro', async () => {
+    let queries = 0
+    const { api, state, service } = setup(async () =>
+      ++queries < 3
+        ? absentLocalAgent()
+        : { ...absentLocalAgent(), ownership: 'agent', phase: 'responding' }
+    )
+    api.registerErrors.push(new ApiError('device_key_invalid', 403))
+    service.start()
+    await flush()
+    expect(service.isAgentManaged()).toBe(true)
+    expect(state.identityResets).toBe(0)
+    expect(api.registrations).toEqual([])
+    await service.stop()
+  })
+
+  it('fallar al persistir una reserva local no autoriza registro ni reactivación', async () => {
+    const { api, state, service } = setup(async () => ({
+      ...absentLocalAgent(),
+      ownership: 'unknown',
+      phase: 'unverified'
+    }))
+    state.ownershipWriteFails = true
+    service.start()
+    await flush()
+    expect(service.didOwnershipPersistenceFail()).toBe(true)
+    expect(api.registrations).toEqual([])
+    expect(state.identityReads).toBe(0)
+    state.ownershipWriteFails = false
+    await service.settingsChanged()
+    expect(state.enabled).toBe(false)
     await service.stop()
   })
 
