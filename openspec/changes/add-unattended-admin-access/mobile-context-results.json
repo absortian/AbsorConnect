@@ -314,7 +314,51 @@
   "limitations": [
     "Windows/macOS/Mint protegidos pendientes; tarea 10.2 parcial",
     "Operaciones administrativas y espera de reinicio pendientes",
-    "No se certifica NAT exterior ni audio general",
-    "CI de este commit pendiente de revisión antes de fusionar"
-  ]
+    "No se certifica NAT exterior ni audio general"
+  ],
+  "historicalRevision": "fd7b46e2f3a44ba594530590e7c95e2f3258957a",
+  "mergedByPr": 54,
+  "ciReview": {
+    "allPassed": true,
+    "fullLogsAndAnnotationsReviewed": true,
+    "jobs": [
+      {
+        "id": 122551500653,
+        "name": "android",
+        "logSha256": "706ec4d865aa235c292f196b59578e9569c7f0e160728556651e64d38dcb50d0"
+      },
+      {
+        "id": 122551500364,
+        "name": "ios",
+        "logSha256": "16d73f3c46475c59709e2cf9ddf19b715d86e828c224b8c5e733c7aa8c365990"
+      },
+      {
+        "id": 122551499979,
+        "name": "macos",
+        "logSha256": "02fde703b8e3e96fee3032915d2a71b9a4af7b89fbd326a95e63a99a17ce43a2"
+      },
+      {
+        "id": 122551499961,
+        "name": "linux",
+        "logSha256": "9d9b81ef0f891cfe573598ef73997e5d20ac608827bf7d815434193f6784761d"
+      },
+      {
+        "id": 122551499860,
+        "name": "windows",
+        "logSha256": "016c05d187ab34213292e31817ecbd3426a588d45398618e776afceddce3ab43"
+      }
+    ],
+    "rustTests": {
+      "windows": 150,
+      "macos": 152,
+      "linux": 167
+    },
+    "pythonGuards": 7,
+    "releaseBuildsPerOs": 2,
+    "androidApkMb": 98.5,
+    "iosUnsignedRunnerMb": 34.5,
+    "warnings": "Avisos previos de runners/Node de acciones y Java/KGP; sin errores"
+  },
+  "electronRegressionCases": 10,
+  "postRunCleanupVerified": true
 }

@@ -2,6 +2,12 @@
 // con transceptores recvonly y los canales, la publica a través del proceso principal y espera la
 // respuesta; luego responde al `hello` con la prueba de la contraseña. K (nunca la contraseña) se
 // queda en memoria mientras dure la ventana, para reconectar sin volver a pedirla.
+import {
+  HostActions,
+  type HostActionState,
+  type HostActionResult
+} from '../../shared/remote/hostActions'
+import { parseAgentHostMessage, type AgentAction } from '../../shared/remote/agentProtocol'
 import { AgentViewerState, type AgentViewerStatus } from '../../shared/remote/agentViewerState'
 import { computeProof, sdpFingerprint } from '../../shared/remote/auth'
 import type { AbsorViewerApi } from '../../shared/remote/viewerBridge'
@@ -36,6 +42,7 @@ export interface SessionEvents {
   features(features: Omit<FeaturesMessage, 'v' | 'type'>): void
   quality?(profile: StreamProfile): void
   agentContext?(status: AgentViewerStatus): void
+  agentOperations?(state: HostActionState): void
   stats(stats: Stats): void
   /** Canal de ficheros de la conexión en marcha, o null cuando se cierra (D9). */
   fileChannel(channel: RTCDataChannel | null): void
@@ -115,6 +122,25 @@ export class ViewerSession {
   private agentState = new AgentViewerState()
   private declaredFeatures = { clipboard: false, files: false, audio: false, streamQuality: false }
   private readonly audioTracks = new Set<MediaStreamTrack>()
+  private readonly agentActions = new HostActions({
+    active: () =>
+      this.authenticated &&
+      !this.closed &&
+      this.agentState.status.enabled &&
+      this.agentState.status.sequence > 0 &&
+      this.control?.readyState === 'open',
+    send: (message) => this.sendControl(message),
+    changed: (state) => this.events.agentOperations?.(state)
+  })
+  get operationState(): HostActionState {
+    return this.agentActions.state
+  }
+  performOperation(
+    action: AgentAction,
+    confirm: () => Promise<boolean>
+  ): Promise<HostActionResult> {
+    return this.agentActions.run(action, confirm)
+  }
   private desiredProfile: StreamProfile | null = null
 
   constructor(
@@ -188,7 +214,10 @@ export class ViewerSession {
     this.releaseInput()
     this.closed = true
     this.sendControl({ v: PROTOCOL_VERSION, type: 'bye', reason: 'closed' })
-    setTimeout(() => this.teardown(), 200)
+    const pc = this.pc
+    setTimeout(() => {
+      if (pc === this.pc) this.teardown()
+    }, 200)
   }
 
   /** Pasos de la conexión; mientras se reconecta se sigue mostrando "Reconectando". */
@@ -339,7 +368,24 @@ export class ViewerSession {
       }
       if (!message || typeof message !== 'object' || Array.isArray(message)) return
       if (message.extension === 1) {
-        if (this.agentState.accept(String(event.data))) {
+        const parsed = parseAgentHostMessage(String(event.data))
+        if (parsed?.type === 'host-operation-result') {
+          if (
+            this.agentActions.receive(parsed) &&
+            parsed.status === 'accepted' &&
+            ['restart', 'logout'].includes(parsed.action)
+          ) {
+            // No recuperar con K una conexión que ha pedido cambiar de arranque/usuario.
+            this.key?.fill(0)
+            this.key = null
+            this.closed = true
+            this.releaseInput()
+          }
+        } else if (this.agentState.accept(String(event.data))) {
+          this.agentActions.invalidateConfirmation()
+          this.agentActions.setActions(
+            this.agentState.status.sequence > 0 ? this.agentState.availableActions : []
+          )
           this.releaseInput()
           this.events.agentContext?.(this.agentState.status)
           this.publishFeatures()
@@ -451,7 +497,7 @@ export class ViewerSession {
     }
   }
 
-  private releaseInput(): void {
+  releaseInput(): void {
     if (this.authenticated && this.input?.readyState === 'open')
       this.input.send(JSON.stringify({ v: 1, type: 'release-all' }))
   }
@@ -470,6 +516,7 @@ export class ViewerSession {
   private teardown(): void {
     this.releaseInput()
     this.authenticated = false
+    this.agentActions.reset()
     this.agentState = new AgentViewerState()
     for (const track of this.audioTracks) track.enabled = false
     this.audioTracks.clear()

@@ -1,5 +1,10 @@
 // Política del controlador; el host sigue obligado a aplicar sus propios gates.
-import { parseAgentHostMessage, type AgentCapabilities, type AgentContext } from './agentProtocol'
+import {
+  parseAgentHostMessage,
+  type AgentCapabilities,
+  type AgentContext,
+  type AgentAction
+} from './agentProtocol'
 
 export interface AgentViewerStatus {
   enabled: boolean
@@ -12,6 +17,10 @@ export interface AgentViewerStatus {
 
 /** Una instancia por PeerConnection autenticada. Ningún estado sobrevive al reconectar. */
 export class AgentViewerState {
+  private actions: AgentAction[] = []
+  get availableActions(): readonly AgentAction[] {
+    return [...this.actions]
+  }
   private enabled = false
   private capabilities: AgentCapabilities | null = null
   private sensitiveTainted = false
@@ -27,8 +36,13 @@ export class AgentViewerState {
     if (!this.enabled) return false
     const message = parseAgentHostMessage(raw)
     if (message?.type === 'agent-capabilities') {
-      if (JSON.stringify(this.capabilities) === JSON.stringify(message.capabilities)) return false
+      if (
+        JSON.stringify(this.capabilities) === JSON.stringify(message.capabilities) &&
+        JSON.stringify(this.actions) === JSON.stringify(message.actions)
+      )
+        return false
       this.capabilities = message.capabilities
+      this.actions = [...message.actions]
       return true
     }
     if (message?.type !== 'agent-context' || message.sequence <= (this.context?.sequence ?? 0))

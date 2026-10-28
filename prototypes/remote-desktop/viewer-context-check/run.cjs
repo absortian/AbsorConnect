@@ -16,4 +16,6 @@ const html = fs.readFileSync(path.join(root,'src/renderer/viewer.html'),'utf8')
 fs.writeFileSync(path.join(output,'index.html'),html)
 const run = spawnSync(require('electron'), [path.join(__dirname,'main.cjs'),'--output='+output], {cwd:root,stdio:'inherit',timeout:55000})
 console.log('Informe local: '+path.join(output,'report.json'))
-process.exit(run.status ?? 1)
+const reportPath = path.join(output, 'report.json')
+const valid = fs.existsSync(reportPath) && JSON.parse(fs.readFileSync(reportPath, 'utf8')).ok === true
+process.exit(run.status === 0 && valid ? 0 : 1)

@@ -376,5 +376,48 @@
     "reconnectHint": "Archivos, portapapeles y sonido permanecen suspendidos hasta reconectar.",
     "soundSuspended": "Sonido suspendido",
     "inputUnavailable": "El host no admite entrada en este contexto. Portapapeles, archivos y sonido suspendidos."
+  },
+  "viewerOperations": {
+    "title": "Administrar el PC",
+    "choose": "Acción",
+    "confirmTitle": "Confirmar acción remota",
+    "confirm": "Confirmar",
+    "cancel": "Cancelar",
+    "actions": {
+      "lock": "Bloquear",
+      "logout": "Cerrar sesión del sistema",
+      "restart": "Reiniciar",
+      "secure_attention": "Enviar atención segura (Ctrl+Alt+Supr)"
+    },
+    "details": {
+      "lock": "Se bloqueará la sesión del PC.",
+      "logout": "Guarda el trabajo del PC antes de cerrar su sesión. Tendrás que autenticarte otra vez.",
+      "restart": "Guarda el trabajo del PC. Se solicitará un reinicio normal; las aplicaciones pueden impedirlo.",
+      "secure_attention": "Windows abrirá su pantalla de seguridad si el agente lo admite."
+    },
+    "pending": "Esperando respuesta del PC…",
+    "accepted": "El PC ha aceptado la solicitud.",
+    "cancelled": "Acción cancelada.",
+    "unavailable": "La acción ya no está disponible en esta conexión.",
+    "connection_lost": "La conexión terminó sin confirmar el resultado.",
+    "timed_out": "No llegó la confirmación. No se reenviará la orden; reconecta antes de otra acción.",
+    "rejected": "El PC rechazó la solicitud.",
+    "failed": "El PC no pudo realizar la acción.",
+    "codes": {
+      "not_supported": "No admitida.",
+      "not_allowed": "No autorizada.",
+      "busy": "PC ocupado.",
+      "cancelled": "Cancelada en el PC.",
+      "system_error": "Error del sistema.",
+      "session_expired": "Autorización caducada."
+    },
+    "waiting": "Reinicio solicitado. Esperando disponibilidad del PC…",
+    "waitHint": "Hasta cinco minutos. La señal de disponibilidad no confirma por sí sola que el sistema haya acabado de reiniciar.",
+    "cancelWait": "Cancelar espera",
+    "ready": "El PC anuncia disponibilidad de nuevo.",
+    "expired": "El PC no anunció disponibilidad en cinco minutos.",
+    "waitCancelled": "Espera cancelada.",
+    "waitFailed": "No se pudo continuar la espera.",
+    "authenticateAgain": "Autentícate de nuevo con la contraseña del PC para conectar."
   }
 }

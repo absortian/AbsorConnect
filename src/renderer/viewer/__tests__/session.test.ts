@@ -4,6 +4,8 @@ import type { AbsorViewerApi } from '../../../shared/remote/viewerBridge'
 
 type SessionInternals = {
   pc: RTCPeerConnection | null
+  key: Uint8Array | null
+  closed: boolean
   control: RTCDataChannel
   input: RTCDataChannel
   pointer: RTCDataChannel
@@ -219,6 +221,110 @@ describe('contexto de agente en la sesión autenticada', () => {
       imageAvailable: true
     })
     expect(track.enabled).toBe(false)
+    f.internal.teardown()
+  })
+})
+
+describe('resultado administrativo ligado a la conexión', () => {
+  for (const action of ['restart', 'logout'] as const) {
+    it(`aceptar ${action} elimina K y detiene recuperación automática`, async () => {
+      vi.useFakeTimers()
+      const f = fixture(),
+        key = new Uint8Array([7, 8, 9])
+      f.internal.key = key
+      f.message({ v: 1, type: 'features', unattendedControl: true })
+      f.message({
+        v: 1,
+        extension: 1,
+        type: 'agent-capabilities',
+        agentVersion: '0.1.0',
+        capabilities: {
+          administration: false,
+          login: false,
+          secureAttention: false,
+          restart: true
+        },
+        actions: [action]
+      })
+      expect((await f.session.performOperation(action, async () => true)).status).toBe(
+        'unavailable'
+      )
+      f.message({
+        v: 1,
+        extension: 1,
+        type: 'agent-context',
+        sequence: 1,
+        state: 'user_desktop',
+        imageAvailable: true
+      })
+      const result = f.session.performOperation(action, async () => true)
+      await Promise.resolve()
+      const command = JSON.parse(vi.mocked(f.channel.send).mock.calls.at(-1)![0] as string)
+      f.message({ ...command, type: 'host-operation-result', status: 'accepted' })
+      expect((await result).status).toBe('accepted')
+      expect(f.session.hasKey).toBe(false)
+      expect([...key]).toEqual([0, 0, 0])
+      expect(f.internal.closed).toBe(true)
+      f.internal.teardown()
+    })
+  }
+  it('rechazo conserva autenticación y retirar solo acciones invalida la confirmación', async () => {
+    vi.useFakeTimers()
+    const f = fixture()
+    f.internal.key = new Uint8Array([1])
+    f.message({ v: 1, type: 'features', unattendedControl: true })
+    const caps = {
+      v: 1,
+      extension: 1,
+      type: 'agent-capabilities',
+      agentVersion: '0.1.0',
+      capabilities: { administration: false, login: false, secureAttention: false, restart: true },
+      actions: ['restart']
+    }
+    f.message(caps)
+    f.message({
+      v: 1,
+      extension: 1,
+      type: 'agent-context',
+      sequence: 1,
+      state: 'user_desktop',
+      imageAvailable: true
+    })
+    const result = f.session.performOperation('restart', async () => true)
+    await Promise.resolve()
+    const command = JSON.parse(vi.mocked(f.channel.send).mock.calls.at(-1)![0] as string)
+    f.message({
+      ...command,
+      type: 'host-operation-result',
+      status: 'rejected',
+      code: 'not_allowed'
+    })
+    expect((await result).status).toBe('rejected')
+    expect(f.session.hasKey).toBe(true)
+    expect(f.internal.closed).toBe(false)
+    let confirm!: (v: boolean) => void
+    const second = f.session.performOperation(
+      'restart',
+      () =>
+        new Promise<boolean>((r) => {
+          confirm = r
+        })
+    )
+    f.message({ ...caps, actions: [] })
+    confirm(true)
+    expect((await second).status).toBe('unavailable')
+    expect(f.session.operationState.actions).toEqual([])
+    f.internal.teardown()
+  })
+  it('un cierre anterior no destruye el peer de una reconexión inmediata', async () => {
+    vi.useFakeTimers()
+    const f = fixture()
+    f.session.close()
+    const next = { close: vi.fn() } as unknown as RTCPeerConnection
+    f.internal.pc = next
+    await vi.advanceTimersByTimeAsync(201)
+    expect(next.close).not.toHaveBeenCalled()
+    expect(f.internal.pc).toBe(next)
     f.internal.teardown()
   })
 })

@@ -1,0 +1,78 @@
+{
+  "schema": 1,
+  "date": "2026-10-28",
+  "ok": true,
+  "scope": "Controlador de escritorio; host y API de interfaz simulados con peers WebRTC reales",
+  "acceptedTask": "9.3",
+  "unitTests": {
+    "vitestWithRealDevelopmentApi": 340,
+    "newTests": 23,
+    "targetedTests": 26,
+    "phpunit": 162,
+    "phpAssertions": 1077
+  },
+  "browser": {
+    "actualViewer": true,
+    "actualWebRtc": true,
+    "syntheticVideoOnly": true,
+    "authentications": 3,
+    "uniqueChallenges": 3,
+    "commandsDelivered": 5,
+    "offersWhileOffline": 0,
+    "keysForwardedFromConfirmation": 0,
+    "releaseInputObserved": true,
+    "confirmationCancelled": true,
+    "capabilityWithdrawalCancelledConfirmation": true,
+    "rejectionDidNotStartRestartWait": true,
+    "lostResultNotRetried": true,
+    "legacyCommandsHidden": true,
+    "cancelWaitHitTestPassed": true,
+    "esAndEnScreensReviewed": true
+  },
+  "clockTests": {
+    "returnAtTenSeconds": true,
+    "fiveMinuteExpiry": true,
+    "lateStatusIgnored": true,
+    "cancellation": true,
+    "retryAfter": true,
+    "noOverlappingStatusQueries": true
+  },
+  "ipcTests": {
+    "mainFrameOnly": true,
+    "accountBound": true,
+    "canonicalNameFromApi": true,
+    "requestBoundToViewer": true,
+    "lateSaveCancelled": true,
+    "secretFieldsNotExposedByBridge": true,
+    "clipboardOwnerChangedDropsMessage": true
+  },
+  "physicalMachinesTested": false,
+  "operatingSystemActionsExecuted": false,
+  "productionTested": false,
+  "readyForUnattended": false,
+  "sourceSha256": {
+    "src/shared/remote/hostActions.ts": "1bd8b10d5df123fbfdbb9a700668b6ac0d2889c42830518c5a80596cd490aa06",
+    "src/shared/remote/restartWait.ts": "c41d72d7fcb5f23f4653b232fc32bff083bf340b053cfeb64eafcd3523113e1d",
+    "src/shared/remote/agentViewerState.ts": "5777e341a9d20bd159626f94f598fb2baa3c63a0545a5c2dc11693b398efb580",
+    "src/shared/remote/viewerBridge.ts": "e1fd8d9a3a32b07432aef9a6e2a1d43b7dafac54f97af9f3408dc36d16488b74",
+    "src/main/remote/controllerRuntime.ts": "7e2b7c45d8c8ab4345975b15f7fbe2954227cb348bfc2c9be56b282565da7fc6",
+    "src/main/remote/viewerAvailability.ts": "a4d3a3393f0c2338350da940d3b08f6f8ebc3a209d829b2305d04ba6e4ccaddd",
+    "src/main/remote/viewerRequestScope.ts": "614e05ea283ff6ba90cdfd8e0abea680c24f3356e8d7f2e980b98abe86a66f56",
+    "src/preload/viewer.ts": "00d5a517922874d398d8b9f9fb8604c5f527d3fc0cbea5d02a1cb28eed3854ff",
+    "src/renderer/viewer/session.ts": "176c500606bd26faa48ac3248aa5854a52bd7d64c022557dd2a49fca533600fb",
+    "src/renderer/viewer/main.ts": "30325959308d97d97177532522cac33fd4bc59c5f7948310e4b08f70db2795b7",
+    "src/renderer/viewer.html": "04031023679dfba6c0cb5b0bca1e957e6bc9ac87c09a864b4466ca1514ced5d1",
+    "src/renderer/viewer/viewer.css": "4c5c184fefd4c2966b91308704729d6d474a85dfec36c13bcce6f0c9b2c0785f",
+    "src/renderer/src/locales/es.json": "1672090d992ccb0a571eb3cda67625364690b52c390d651c9f50c2570404e70c",
+    "src/renderer/src/locales/en.json": "d7cf39498c1ebe0dc31e0fba64fb9dc401348d65d1c710367422e814a6379796",
+    "prototypes/remote-desktop/viewer-actions-check/fixture.ts": "c34fa4a43bab3cea3377c76bec45ee26fd1367071ca7659612509c8d185ed48e",
+    "prototypes/remote-desktop/viewer-actions-check/main.cjs": "352bb293dd5c71a947377260f458b61f55e7c6876a9ea54839d3b9ce06f312bb",
+    "prototypes/remote-desktop/viewer-actions-check/run.cjs": "5ecb39c8e7f938dee0f15b79278f1fecfb5a9d887458d3ba784b47c204b36ddd"
+  },
+  "browserReportSha256": "0a02c4cbc6b1b18ab455051e50c8320982547f285ab380ecba108ff0562f1275",
+  "limitations": [
+    "El host nativo actual no anuncia acciones; el laboratorio no reinicia el SO",
+    "La presencia API no certifica un reinicio del SO: el visor exige autenticarse de nuevo",
+    "Agentes finales, control móvil y pilotos físicos pendientes"
+  ]
+}

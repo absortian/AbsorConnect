@@ -17,6 +17,9 @@ import { basename, dirname, join } from 'path'
 import { is } from '@electron-toolkit/utils'
 import { ApiError, apiRequest } from '../cloud/apiClient'
 import { getMainWindow } from '../background'
+import { isDeviceId } from '../../shared/remote/agentDevice'
+import { ViewerRequestScope } from './viewerRequestScope'
+import { viewerAvailability, viewerTarget } from './viewerAvailability'
 import { revokeAccountAgent } from './agentRevocation'
 import es from '../../renderer/src/locales/es.json'
 import en from '../../renderer/src/locales/en.json'
@@ -52,6 +55,8 @@ interface ViewerWindow {
   window: BrowserWindow
   deviceId: string
   deviceName: string
+  account: object
+  requests: ViewerRequestScope
   /** Portapapeles de este equipo mientras la sesión lo comparte (y no está en pausa). */
   clipboard: ClipboardWatcher | null
   saves: Map<number, SaveJob>
@@ -78,8 +83,27 @@ function retryAfterOf(error: unknown): number | undefined {
   return Number.isFinite(value) && value > 0 ? value : undefined
 }
 
+function viewerLive(viewer: ViewerWindow): boolean {
+  return (
+    !viewer.window.isDestroyed() &&
+    currentSession() === viewer.account &&
+    viewers.get(viewer.window.webContents.id) === viewer
+  )
+}
 function viewerFor(event: IpcMainInvokeEvent | IpcMainEvent): ViewerWindow | undefined {
-  return viewers.get(event.sender.id)
+  const viewer = viewers.get(event.sender.id)
+  return viewer && viewerLive(viewer) && event.senderFrame === viewer.window.webContents.mainFrame
+    ? viewer
+    : undefined
+}
+function isMainSender(event: IpcMainInvokeEvent | IpcMainEvent): boolean {
+  const main = getMainWindow()
+  return (
+    !!main &&
+    !main.isDestroyed() &&
+    event.sender === main.webContents &&
+    event.senderFrame === main.webContents.mainFrame
+  )
 }
 
 const isId = (value: unknown): value is number =>
@@ -117,9 +141,15 @@ async function saveBegin(
     dir = dirname(target)
   }
   try {
+    if (!viewerLive(viewer)) return { ok: false, reason: 'cancelled' }
     await fs.mkdir(dir, { recursive: true })
     const part = join(dir, `.${basename(target ?? clean)}.${randomUUID().slice(0, 8)}.part`)
-    viewer.saves.set(id, { sink: await FileSink.create(part, size), target, dir, name: clean })
+    const sink = await FileSink.create(part, size)
+    if (!viewerLive(viewer)) {
+      await sink.abort()
+      return { ok: false, reason: 'cancelled' }
+    }
+    viewer.saves.set(id, { sink, target, dir, name: clean })
     return { ok: true }
   } catch {
     return { ok: false, reason: 'io' }
@@ -136,6 +166,10 @@ async function saveFinish(
   viewer.saves.delete(id)
   try {
     await job.sink.finish(sha256)
+    if (!viewerLive(viewer)) {
+      await job.sink.abort()
+      return { ok: false, reason: 'io' }
+    }
     let path: string
     if (job.target) {
       // El diálogo ya ha preguntado si se sustituye un fichero existente
@@ -144,6 +178,7 @@ async function saveFinish(
     } else {
       path = join(job.dir, await placeWithFreeName(job.sink.partPath, job.dir, job.name))
     }
+    if (!viewerLive(viewer)) return { ok: false, reason: 'io' }
     viewer.saved.add(path)
     return { ok: true, path }
   } catch (error) {
@@ -198,20 +233,29 @@ async function requestSession(viewer: ViewerWindow, offer: unknown): Promise<Vie
   if (typeof offer !== 'string' || offer.length === 0 || offer.length > MAX_SDP_BYTES) {
     return { ok: false, code: 'remote_request_invalid' }
   }
-  try {
-    const data = await apiRequest<{ id: string }>(
-      'POST',
-      `/api/devices/${viewer.deviceId}/remote-requests`,
-      { token: token(), body: { offer } }
-    )
-    return { ok: true, id: data.id }
-  } catch (error) {
-    return { ok: false, code: codeOf(error), retryAfter: retryAfterOf(error) }
-  }
+  return viewer.requests.create(
+    () => viewerLive(viewer),
+    async () => {
+      try {
+        const data = await apiRequest<{ id: string }>(
+          'POST',
+          `/api/devices/${viewer.deviceId}/remote-requests`,
+          { token: token(), body: { offer } }
+        )
+        return { ok: true, id: data.id }
+      } catch (error) {
+        return { ok: false, code: codeOf(error), retryAfter: retryAfterOf(error) }
+      }
+    }
+  )
 }
 
-async function pollRequest(requestId: unknown): Promise<ViewerPollResult> {
-  if (typeof requestId !== 'string' || !/^[0-9a-f-]{36}$/i.test(requestId)) {
+async function pollRequest(viewer: ViewerWindow, requestId: unknown): Promise<ViewerPollResult> {
+  if (
+    !viewer.requests.permits(requestId) ||
+    typeof requestId !== 'string' ||
+    !/^[0-9a-f-]{36}$/i.test(requestId)
+  ) {
     return { status: 'error', code: 'remote_request_not_found' }
   }
   try {
@@ -220,6 +264,8 @@ async function pollRequest(requestId: unknown): Promise<ViewerPollResult> {
       answer?: string
       rejection?: { reason: string; retryAfter?: number }
     }>('GET', `/api/remote-requests/${requestId}`, { token: token() })
+    if (!viewerLive(viewer) || !viewer.requests.permits(requestId))
+      return { status: 'error', code: 'forbidden' }
     if (data.status === 'answered' && typeof data.answer === 'string') {
       return { status: 'answered', answer: data.answer }
     }
@@ -232,12 +278,12 @@ async function pollRequest(requestId: unknown): Promise<ViewerPollResult> {
   }
 }
 
-async function iceServers(): Promise<IceServer[]> {
+async function iceServers(viewer: ViewerWindow): Promise<IceServer[]> {
   try {
     const data = await apiRequest<{ iceServers?: IceServer[] }>('GET', '/api/remote/ice-servers', {
       token: token()
     })
-    return Array.isArray(data?.iceServers) ? data.iceServers : []
+    return viewerLive(viewer) && Array.isArray(data?.iceServers) ? data.iceServers : []
   } catch {
     return []
   }
@@ -247,10 +293,27 @@ async function iceServers(): Promise<IceServer[]> {
  * Abre la ventana de visor de un equipo (o enfoca la que ya esté abierta). Una ventana por
  * sesión: se pueden controlar varios PCs a la vez.
  */
-export async function openViewer(deviceId: unknown, deviceName: unknown): Promise<boolean> {
-  if (typeof deviceId !== 'string' || typeof deviceName !== 'string') return false
+export async function openViewer(deviceId: unknown): Promise<boolean> {
+  if (!isDeviceId(deviceId)) return false
+  const account = currentSession()
+  if (!account) return false
+  let target: { id: string; name: string } | null = null
+  try {
+    target = await viewerTarget(deviceId, {
+      account: currentSession,
+      allowed: () => {
+        const main = getMainWindow()
+        return !!main && !main.isDestroyed()
+      },
+      devices: () => apiRequest('GET', '/api/devices', { token: account.token })
+    })
+  } catch {
+    return false
+  }
+  if (!target || currentSession() !== account) return false
+  const deviceName = target.name
   for (const viewer of viewers.values()) {
-    if (viewer.deviceId === deviceId && !viewer.window.isDestroyed()) {
+    if (viewer.deviceId === deviceId && viewerLive(viewer)) {
       viewer.window.show()
       viewer.window.focus()
       return true
@@ -276,7 +339,9 @@ export async function openViewer(deviceId: unknown, deviceName: unknown): Promis
   const viewer: ViewerWindow = {
     window,
     deviceId,
-    deviceName: deviceName.slice(0, 100),
+    deviceName,
+    account,
+    requests: new ViewerRequestScope(),
     clipboard: null,
     saves: new Map(),
     saved: new Set()
@@ -302,7 +367,9 @@ let ready = false
 export function setupControllerIpc(): void {
   if (ready) return
   ready = true
-  ipcMain.handle('remote-devices', () => accountDevices())
+  ipcMain.handle('remote-devices', (event) =>
+    isMainSender(event) ? accountDevices() : { ok: false, code: 'forbidden' }
+  )
   ipcMain.handle('remote-revoke-agent', async (event, deviceId: unknown) => {
     const main = getMainWindow()
     if (
@@ -351,8 +418,8 @@ export function setupControllerIpc(): void {
       revoking.delete(deviceId)
     }
   })
-  ipcMain.handle('remote-open-viewer', (_event, deviceId, deviceName) =>
-    openViewer(deviceId, deviceName)
+  ipcMain.handle('remote-open-viewer', (event, deviceId) =>
+    isMainSender(event) ? openViewer(deviceId) : false
   )
 
   ipcMain.handle(VIEWER_IPC.init, async (event): Promise<ViewerInit | null> => {
@@ -367,13 +434,35 @@ export function setupControllerIpc(): void {
       forceRelay: process.env['ABSOR_CONNECT_FORCE_RELAY'] === '1'
     }
   })
-  ipcMain.handle(VIEWER_IPC.iceServers, (event) => (viewerFor(event) ? iceServers() : []))
+  ipcMain.handle(VIEWER_IPC.availability, async (event) => {
+    const viewer = viewerFor(event)
+    if (!viewer) return { ok: false, code: 'forbidden' }
+    const account = currentSession()
+    try {
+      return await viewerAvailability(viewer.deviceId, {
+        account: currentSession,
+        allowed: () => viewerFor(event) === viewer,
+        devices: () => apiRequest('GET', '/api/devices', { token: account?.token })
+      })
+    } catch (error) {
+      return {
+        ok: false,
+        code: error instanceof ApiError && error.status === 401 ? 'unauthenticated' : codeOf(error),
+        retryAfter: retryAfterOf(error)
+      }
+    }
+  })
+  ipcMain.handle(VIEWER_IPC.iceServers, (event) =>
+    viewerFor(event) ? iceServers(viewerFor(event)!) : []
+  )
   ipcMain.handle(VIEWER_IPC.request, (event, offer) => {
     const viewer = viewerFor(event)
     return viewer ? requestSession(viewer, offer) : { ok: false, code: 'forbidden' }
   })
   ipcMain.handle(VIEWER_IPC.poll, (event, requestId) =>
-    viewerFor(event) ? pollRequest(requestId) : { status: 'error', code: 'forbidden' }
+    viewerFor(event)
+      ? pollRequest(viewerFor(event)!, requestId)
+      : { status: 'error', code: 'forbidden' }
   )
 
   // Portapapeles de este equipo (D9): se vigila solo mientras el visor lo pide
@@ -382,8 +471,8 @@ export function setupControllerIpc(): void {
     if (!viewer) return
     if (on === true) {
       viewer.clipboard ??= new ClipboardWatcher((content) => {
-        if (!viewer.window.isDestroyed())
-          viewer.window.webContents.send(VIEWER_IPC.clipboard, content)
+        if (viewerLive(viewer)) viewer.window.webContents.send(VIEWER_IPC.clipboard, content)
+        else viewer.clipboard?.stop()
       })
       viewer.clipboard.start()
     } else {

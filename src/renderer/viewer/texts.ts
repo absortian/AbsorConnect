@@ -7,6 +7,7 @@ import enLocale from '../src/locales/en.json'
 export interface ViewerTexts {
   stream: typeof esLocale.remoteStream
   agent: typeof esLocale.viewerAgent
+  operations: typeof esLocale.viewerOperations
   passwordTitle: (pc: string) => string
   passwordHint: string
   password: string
@@ -59,6 +60,7 @@ function minutes(seconds?: number): string {
 const es: ViewerTexts = {
   stream: esLocale.remoteStream,
   agent: esLocale.viewerAgent,
+  operations: esLocale.viewerOperations,
   passwordTitle: (pc) => `Conectar con ${pc}`,
   passwordHint: 'Escribe la contraseña de control remoto de ese PC.',
   password: 'Contraseña del PC',
@@ -145,6 +147,7 @@ const es: ViewerTexts = {
 const en: ViewerTexts = {
   stream: enLocale.remoteStream,
   agent: enLocale.viewerAgent,
+  operations: enLocale.viewerOperations,
   passwordTitle: (pc) => `Connect to ${pc}`,
   passwordHint: "Enter that PC's remote control password.",
   password: 'PC password',

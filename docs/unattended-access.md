@@ -153,3 +153,31 @@ Estos comandos comprueban protocolo/plazos; no instalan servicios ni certifican
 el equipo donde se ejecutan. La guía del agente explica las características de
 compilación optativas y la separación del IPC:
 [`agent/README.md`](../agent/README.md).
+
+
+## Acciones del visor de escritorio
+
+El menú **Administrar el PC** solo aparece tras autenticar y recibir contexto y
+acciones anunciadas por el host. Cada operación pide confirmación con el nombre
+del equipo obtenido por main desde la API. Bloqueo, cierre de sesión del sistema,
+reinicio y atención segura son operaciones enumeradas: no se envían programas,
+rutas ni comandos de terminal. Un host anterior no recibe estas órdenes.
+
+«Aceptada» confirma que el host aceptó la solicitud, no que el SO haya terminado.
+Un rechazo no inicia una espera. Si el resultado no llega en quince segundos,
+la orden no se reenvía y otra operación exige una conexión nueva. Cambiar de
+contexto o retirar una capacidad invalida una confirmación que estaba abierta.
+
+Un reinicio aceptado cierra el contenido de la sesión y descarta K. El visor
+consulta la disponibilidad del mismo equipo cada dos segundos, hasta cinco
+minutos, sin crear ofertas mientras espera. Se puede cancelar desde el panel
+central. Solo considera una presencia nueva tras observar indisponibilidad o
+un heartbeat posterior al registrado antes de confirmar. Esa señal no certifica
+el reinicio del SO: al volver se pide la contraseña del PC y una prueba nueva.
+Cerrar sesión del sistema también exige autenticar de nuevo. La contraseña no
+se conserva en el campo al conectar y las teclas de la confirmación son locales.
+
+La prueba de este controlador usa un host artificial y WebRTC real, sin acciones
+del SO. El agente nativo de laboratorio sigue sin anunciar operaciones. Los
+servicios finales y el piloto de reinicio Windows/Mac/Mint continúan pendientes.
+No se anuncia preparación para viajes por el mero hecho de mostrar este menú.
