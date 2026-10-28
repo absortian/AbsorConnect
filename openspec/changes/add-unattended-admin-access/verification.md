@@ -2838,3 +2838,37 @@ integración, la ejecución local equivalente pasa 185 pruebas y omite 16 casos
 que requieren servicios; esos mismos casos sí se verificaron en las 201 pruebas
 completas del entorno aislado. El diagnóstico de límites Python ejecuta sus diez
 casos tanto por discovery como mediante el archivo directo usado por CI.
+
+
+### 28/10 — selección de sesión y servicio Linux (6.1)
+
+La unidad `absorconnect-sessiond.service` y `absor-agent-linux-session` pasan
+11 casos con desktop, LightDM, sesión nueva, denegaciones locales, caída,
+selección caducada antes del watchdog, recuperación, parada explícita y arranque
+en frío sin usuario o Electron. La salida pública es diagnóstico root de solo
+lectura; nunca concede captura. Tras observar un apagado que excedió el plazo
+del laboratorio se esperó su final limpio, se retiró la instalación y se repitió
+con espera suficiente. El intento fallido se conserva y no cuenta como pase.
+
+El broker usa el lector de logind en su propio carril. El ensayo IPC pasa 17
+casos, incluidos cierre en LightDM, desafío pendiente anulado y nueva prueba al
+volver, con PID de broker conservado. La regresión P2P pasa diez casos con las
+fuentes finales: ventana propia, prueba/huella rechazadas, API revocada/ausente,
+Cinnamon bloqueado y trabajadores/broker detenidos o caídos. Se retiraron cuentas,
+servicios, secretos y bases API temporales; el host físico no se tocó.
+
+CI verificado mediante logs completos y anotaciones: Linux 223, Mac 196 y
+Windows 194 pruebas Rust sumando default/all-features, fmt/clippy y ambos builds
+release; diagnóstico y diez protecciones del lanzador. El lector Xauthority
+pasa siete pruebas en Linux/Mac y se omite explícitamente en Windows. También
+pasan typecheck, 334 Vitest (seis integraciones omitidas) y PHP 162/1077.
+Se acepta 6.1, con evidencia/hash en `linux-session-service-results.json`.
+
+La sonda independiente de Xauthority cuenta imágenes en tres contextos usando
+un UID sin login, grupos suplementarios, capacidades o red IP. Solo conecta con
+el memfd root sellado; sin él se deniega, igual que leer los archivos root
+comprobados. El transporte Rust SCM_RIGHTS tiene seis pruebas de sellos,
+CLOEXEC, denegaciones, plazos y cierre de descriptores sobrantes/truncados.
+No está unido al P2P ni certifica entrada o escritorio general: 6.2/6.4 quedan
+parciales. No se anuncia acceso desatendido disponible ni se instala en físico.
+Avance aceptado: **20/57, 35 %**; objetivo mínimo 50 % aún pendiente.

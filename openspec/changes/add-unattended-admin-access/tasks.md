@@ -12,7 +12,7 @@ siguen pendientes API completa, autenticador, trabajador P2P y watchdog del
 servicio. La tarea 3.4 no se cierra solo con el proceso de prueba; su aceptación posterior
 añade el gate/API/DTLS y trabajador nativo conectados, con la evidencia del 26/10.
 
-Avance cerrado: **18/57 tareas (32 %)**. Es proporción de tareas aceptadas, no
+Avance cerrado: **20/57 tareas (35 %)**. Es proporción de tareas aceptadas, no
 porcentaje del tiempo restante. La tarea 3.2 se acepta como protocolo común:
 vectores compartidos, HMAC/huellas aplicadas, intentos durables/reinicio, sesión
 única y denegación de captura/entrada antes de autenticar, con integración IPC
@@ -152,7 +152,7 @@ reconectar por la ausencia de etiquetas de contexto en v1. Evidencia:
 
 ## 6. Agente Mint
 
-- [ ] 6.1 Implementar unidad systemd, recuperación y selección de asiento/sesión X11 con logind; verificar arranque hasta LightDM y reinicio del proceso sin sesión de usuario ni Electron.
+- [x] 6.1 Implementar unidad systemd, recuperación y selección de asiento/sesión X11 con logind; verificar arranque hasta LightDM y reinicio del proceso sin sesión de usuario ni Electron.
 - [ ] 6.2 Integrar acceso acotado a Xauthority, captura/entrada y transición LightDM/Cinnamon; verificar bloqueo, entrada/salida, cambio de usuario y rechazo de Wayland sin habilitar acceso X global.
 - [ ] 6.3 Implementar acciones administrativas y acceso a archivos con identidad del usuario; verificar polkit, reinicio y que Descargas/archivos de root no se ofrecen en el greeter ni en una sesión ordinaria.
 - [ ] 6.4 Proteger socket, secretos y configuración del servicio; verificar denegaciones a usuarios locales ajenos, desinstalación y recuperación de LightDM. Documentar los archivos propios creados y su retirada reversible.
@@ -234,3 +234,16 @@ retiran. Evidencia: `mobile-actions-results.json`. La administración del SO no 
 simula como certificación: el host de VM conserva NoOperations y captura solo su
 ventana. **10.2 sigue parcial**, sin matriz UAC/Mac/LightDM ni piloto físico.
 El avance aceptado pasa a **19/57 (33 %)**; el objetivo de 50 % sigue pendiente.
+
+
+El bloque Linux del 28/10 acepta **6.1**: unidad systemd de selección sin red IP
+ni capacidades, consulta logind acotada y asíncrona, parada explícita, watchdog,
+recuperación y arranque en frío en LightDM. El broker protegido usa ese mismo
+lector y fija la sesión al comenzar HMAC; cambios o caducidad invalidan conexión
+y desafío. Se verifican 11 casos de la unidad, 17 de credenciales/IPC con cambios
+reales de sesión, 10 regresiones WebRTC de ventana propia y builds/pruebas CI
+en Linux/Mac/Windows. Evidencia: `linux-session-service-results.json`.
+Se acepta el componente de selección y su integración en el broker, sin cerrar
+6.2/6.4: el trabajador general y la entrega de autoridad posterior a HMAC siguen
+pendientes. La sonda independiente de memfd/SCM_RIGHTS conserva esos límites en
+`linux-authority-fd-results.json`. Avance **20/57 (35 %)**; sigue pendiente el 50 %.

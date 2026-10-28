@@ -1,11 +1,14 @@
 {
   "schema": 1,
   "date": "2026-10-28",
-  "scope": "Selección logind/systemd y vinculación del desafío del broker; trabajador general pendiente",
+  "scope": "Componente systemd de selección X11/logind y vinculación del broker protegido; servicio remoto general pendiente",
   "ok": true,
-  "acceptedTasks": [],
-  "partialTasks": [
+  "acceptedTasks": [
     "6.1"
+  ],
+  "partialTasks": [
+    "6.2",
+    "6.4"
   ],
   "rustUnitTests": 22,
   "vmChecks": [
@@ -80,9 +83,9 @@
   ],
   "linuxRustTestsCombined": 223,
   "fmtClippyAndReleaseBuilds": true,
-  "binarySha256": "1494e0222184287930623ee13e8114da174efef27d3e0c5e7a8402d17180d7f6",
+  "binarySha256": "f1f6c99754538bda43f870f77842e4e9ac16a7871401168be4bd633c2c738f19",
   "unitSha256": "5cb6627fcaf212bcc70efc66f7e6e57df2f6e3cc2ceb310be5afd101aba00fd1",
-  "privateReportSha256": "5b836fc33f5eb81eea3ffc30703c8fb40817e1b1f336c2d94a81cf1071ead8a4",
+  "privateReportSha256": "65e6d1e361e50a1d38d7eb1946cc0377effc6c0461daf717f3244aa8482dbfd1",
   "sourceSha256": {
     "agent/crates/agent-linux-session/Cargo.toml": "1b4ddddd8197f2708dd0eef355e3358ef7e513fcea86c6e76b488ef824424998",
     "agent/crates/agent-linux-session/README.md": "59bbc215aa58604fd12b6609d2d7e8551a6545c0d5198d05f97f7bef17f03ed9",
@@ -107,7 +110,7 @@
   "productionTested": false,
   "readyForUnattended": false,
   "limitations": [
-    "La selección está conectada al broker; falta la regresión P2P final para aceptar 6.1.",
+    "Se acepta 6.1 como selección/recuperación del componente systemd y su uso en el broker; no acepta el trabajador general ni la entrega P2P de Xauthority.",
     "La VM es Ubuntu ARM con Cinnamon/LightDM: no certifica Mint x86 físico.",
     "El contexto de usuario no acredita desbloqueo de Cinnamon sin evidencia adicional.",
     "El estado público es diagnóstico, nunca un permiso para ver o manejar una sesión."
@@ -118,5 +121,57 @@
     "logind-greeter-drops-active-authority-and-denies-challenges",
     "new-user-session-requires-new-proof-with-same-broker",
     "seat-change-invalidates-unfinished-challenge-before-login"
-  ]
+  ],
+  "p2pRegression": {
+    "ok": true,
+    "cases": 10,
+    "captureScope": "own_window_only",
+    "inputScope": "fixed_click_and_KeyA_in_own_window",
+    "privateReportSha256": "33c5760295f00ccd205d6ae17cd7e33a21e74b484a658b15c915e36b4654271d",
+    "servicesAndSecretsRemoved": true,
+    "temporaryAccountsRemoved": true,
+    "artifactHashes": {
+      "absor-protected-channel-lab": "82c855050c0e91a452f9ed6a7f52dcd561b5d9c07a140bd4a5eab7f3c21a7f9d",
+      "libabsor_agent_webrtc_lab.so": "7c9d4dc8f2eb13f1a89f4716c82856d46d2b7173cef50d0b0f6e15836dfd4abd",
+      "absor-secure-broker-lab": "38082c8567eb9a31f811c80c0ce26da77e02574fccb6145dca7a17af48a2fb65",
+      "absor-secret-provision-lab": "32943beee5b0ea0125d32cd35edc4b141f2f1578bdead6068be904861f3091bc",
+      "absorconnect-secure-lab.service": "e003badc8619e6ae3f202344df47825ca1306c9b08809b0f346a467773f650c0",
+      "absorconnect-secure-lab.socket": "a36677cff3914a8d3f3973e82d8b6ae8a4f66138fe2c0dd5df42885849653bad",
+      "absorconnect-protected-worker-lab.service": "2b8139420e60a7175bf3b4a176dbe94b8efd7a96e1b6bf747ee151a20e2d76d2"
+    }
+  },
+  "ci": {
+    "testedHead": "0c80867b9fa21dba6ae6272333e0a93acd5c3c19",
+    "allSuccessful": true,
+    "fullLogsAndAnnotationsReviewed": true,
+    "jobs": [
+      {
+        "platform": "linux",
+        "id": 122623120929,
+        "rustTestsDefaultAndAllFeatures": 223
+      },
+      {
+        "platform": "macos",
+        "id": 122623121198,
+        "rustTestsDefaultAndAllFeatures": 196
+      },
+      {
+        "platform": "windows",
+        "id": 122623121235,
+        "rustTestsDefaultAndAllFeatures": 194
+      }
+    ],
+    "releaseBuildsDefaultAndAllFeatures": true,
+    "warnings": "Solo avisos de disponibilidad de runners y migración de ubuntu-latest; siete pruebas del lector Linux se omiten en Windows."
+  },
+  "checks": {
+    "typecheck": true,
+    "vitestPassed": 334,
+    "vitestIntegrationSkipped": 6,
+    "phpunitTests": 162,
+    "phpunitAssertions": 1077,
+    "diagnoseSelfTests": 7,
+    "runnerGuardTests": 10,
+    "xauthorityParserTests": 7
+  }
 }
