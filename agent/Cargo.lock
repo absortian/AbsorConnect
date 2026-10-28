@@ -101,6 +101,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "absor-agent-windows-session"
+version = "0.1.0"
+dependencies = [
+ "absor-agent-core",
+ "absor-agent-supervisor",
+ "serde",
+ "serde_json",
+ "windows-sys",
+]
+
+[[package]]
 name = "absor-agent-x11-lab"
 version = "0.1.0"
 dependencies = [

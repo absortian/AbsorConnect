@@ -394,3 +394,30 @@ propios; la [documentación de Xorg](https://www.x.org/Development/Documentation
 advierte de límites de ClientPointer/grabs con varios maestros. No se adopta MPX
 por esa referencia sin las pruebas. Continúan disponibles las partes comunes,
 los servicios y el resto de plataformas que no dependen de esta decisión.
+
+
+### D9. Supervisor Windows y trabajadores de metadatos, antes del capturador final
+
+Se desarrollará primero el ciclo SCM en la VM Windows propia: servicio SYSTEM
+sin UI en sesión 0, selección exclusivamente de la consola por WTS y un
+trabajador fijo que consulta metadatos del escritorio. Ese trabajador no tiene
+red, credenciales de cuenta/agente, captura ni entrada. Permite verificar arranque
+sin usuario, cambio de sesión, caída/limpieza, recuperación y parada explícita
+sin declarar preparado el acceso remoto ni aceptar el capturador final.
+
+El modelo genera asignaciones consumibles por sesión/época, evita arranques
+duplicados, corta la generación anterior y limita reintentos con backoff. Parar,
+retroceder/fallar el reloj o reutilizar una asignación lo inhabilita. El supervisor
+conservará el Job Object con Kill-on-close; el trabajador nace suspendido, entra
+en el Job y solo continúa tras volver a comprobar la selección. Un monitor
+independiente cubrirá bloqueo del actor/proceso, sin reactivar una parada pedida.
+
+El canal con el trabajador de otra sesión será un named pipe local con DACL y
+comprobaciones de PID/sesión/SID contra el proceso creado, no datos declarados
+por el cliente. [Microsoft](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessasuserw)
+no permite heredar handles entre sesiones; no se usará un pipe anónimo heredado
+como atajo entre sesión 0 y la consola. Rutas/ejecutables/escritorios serán
+cerrados de instalación local; no se admite una RPC de shell o un PID arbitrario.
+Los secretos/DPAPI, enlace API/HMAC y capturador final conservarán sus verificaciones
+específicas: compilar o consultar metadatos no los acredita. La instalación y
+retirada iniciales se limitarán a esa VM y a archivos/unidades propios.

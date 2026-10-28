@@ -1,0 +1,33 @@
+[package]
+name = "absor-agent-windows-session"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[features]
+windows-session-lab = []
+
+[dependencies]
+absor-agent-core = { path = "../agent-core" }
+absor-agent-supervisor = { path = "../agent-supervisor" }
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = "=1.0.154"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "=0.52.0", features = ["Win32_Foundation", "Win32_Security", "Win32_Security_Authorization", "Win32_System_Services", "Win32_System_RemoteDesktop", "Win32_System_Threading", "Win32_System_JobObjects", "Win32_System_Pipes", "Win32_System_IO", "Win32_System_Environment", "Win32_System_Registry", "Win32_Storage_FileSystem", "Win32_System_StationsAndDesktops", "Win32_System_Console"] }
+
+[[bin]]
+name = "absor-win-sessiond-lab"
+path = "src/main.rs"
+required-features = ["windows-session-lab"]
+
+[[bin]]
+name = "absor-win-session-worker-lab"
+path = "src/worker_main.rs"
+required-features = ["windows-session-lab"]
+
+[[bin]]
+name = "absor-win-session-monitor-lab"
+path = "src/monitor_main.rs"
+required-features = ["windows-session-lab"]

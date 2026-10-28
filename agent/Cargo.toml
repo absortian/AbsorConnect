@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/agent-core", "crates/agent-control", "crates/agent-api", "crates/agent-auth", "crates/agent-webrtc-lab", "crates/agent-supervisor", "crates/agent-x11-lab", "crates/agent-broker", "crates/agent-security", "crates/agent-linux-session"]
+members = ["crates/agent-core", "crates/agent-control", "crates/agent-api", "crates/agent-auth", "crates/agent-webrtc-lab", "crates/agent-supervisor", "crates/agent-x11-lab", "crates/agent-broker", "crates/agent-security", "crates/agent-linux-session", "crates/agent-windows-session"]
 resolver = "2"
 
 [workspace.package]

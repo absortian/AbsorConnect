@@ -3017,3 +3017,49 @@ que el instalador lo rechaza y lo deja activo con el mismo PID, sin crear sus
 archivos/marcador. Solo el propio ensayo retira después ese centinela. Tras el
 cambio vuelven a pasar los seis casos de retirada y los 41 de API/HMAC/guardián;
 se mantiene independiente el fallo de simultaneidad Xorg ya registrado.
+
+
+### Supervisor SCM Windows aceptado como componente — 28/10/2026
+
+Se acepta 4.1, con alcance explícito de supervisor/selección/vida de trabajadores
+de metadatos, equivalente a la aceptación del selector systemd en 6.1. No acepta
+el capturador ni el agente completo. `windows-session-service-results.json`
+registra 16 casos reales en Windows 11 Pro ARM64, con tres ejecutables x64 de CI
+Rust 1.85/CRT estático. El servicio de sesión 0 crea el hijo suspendido, lo liga
+a un Job propio, verifica nuevamente WTS y lo continúa en la consola. La pipe
+no hereda handles entre sesiones; comprueba PID/sesión/SYSTEM y el cliente fija
+al padre contra SCM en RUNNING, único estado utilizado para su PID fiable.
+
+Se prueban caída/bloqueo de trabajador y monitor, dos recuperaciones SCM y acción
+NONE final, reintentos de trabajador acotados, parada persistente incluso con el
+actor congelado, rechazo de arranque sin reactivación administrativa y marcador
+dañado sin recuperación ciega. La configuración inválida se comunica a SCM como
+STOPPED/78 después de registrar el dispatcher. Se comprueban por API la DACL,
+los cuatro privilegios requeridos, el flag sin recuperación de salida configurada
+y las acciones de recuperación; no se da por aplicada una orden porque `sc`
+muestre ayuda y devuelva cero.
+
+El reinicio real vuelve a publicar metadatos Winlogon antes de iniciar sesión,
+sin Electron. Dos centinelas de ensayo demuestran que el instalador no adopta ni
+borra un destino/servicio previos. Las comprobaciones de denegación se ejecutan
+con un token restringido de la cuenta SSH existente: no se pide contraseña ni
+se crea otra cuenta, y no se presenta como prueba de usuario estándar interactivo.
+La retirada elimina servicio, procesos y destino; UAC sigue 1/1/5/3. Las fuentes
+y artefactos de laboratorio permanecen privados para repetir la matriz, sin
+servicios activos. No hay capturas, entrada, secretos del agente ni red en esos
+trabajadores. El proceso SYSTEM de metadatos aún no es el transporte aislado final.
+
+La primera CI Mac detectó que el ensayo podía inyectar un bloqueo antes de que el
+supervisor recibiese su primer pulso. Se sincroniza con la vigilancia activa y se
+conservan los plazos; pasan 65 casos concurrentes locales y las CI posteriores.
+La preparación del instalador detectó dueño BA predeterminado incluso bajo SYSTEM:
+se fija SY explícitamente en los archivos nuevos y se conserva la denegación ante
+un propietario distinto. Los fallos intermedios y su limpieza quedan en el
+laboratorio privado; la matriz completa posterior pasa sin relajar ACL.
+
+Verificación revisada: 288/254/252 pruebas Rust en CI Linux/Mac/Windows, formato,
+Clippy, ejemplos y releases, con logs completos y anotaciones revisados; diez
+pruebas de modelo/protocolo, typecheck, 334 Vitest (seis de API omitidas), PHPUnit
+162/1077 y OpenSpec estricto. Se mantiene pendiente el teclado general Xorg de D8,
+Windows 4.2/4.3/4.4, la revisión Mac y el piloto físico. **22/57 (39 %)**; todavía
+no se alcanza el 50 % solicitado ni se anuncia el acceso remoto como disponible.
