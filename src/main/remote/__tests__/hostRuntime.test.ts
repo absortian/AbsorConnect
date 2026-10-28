@@ -28,6 +28,7 @@ vi.mock('../../store', () => ({ getLanguage: async () => 'es' }))
 vi.mock('../../background', () => ({
   getMainWindow: () => null,
   setRemoteStatus: vi.fn(),
+  setLocalAgentState: vi.fn(),
   showMainWindow: vi.fn()
 }))
 vi.mock('../hostNotice', () => ({ notifyAccountExpired: vi.fn(), notifySession: vi.fn() }))

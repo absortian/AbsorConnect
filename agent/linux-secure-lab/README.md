@@ -307,3 +307,34 @@ laboratorio. Requiere el Node 22 privado del laboratorio y conserva su versión 
 hash del arnés en el informe. La retirada elimina socket, perfil y drop-in propios.
 Los clientes Windows/ACL y Mac/XPC permanecen pendientes y se muestran como no
 verificados si existe intención nativa; no se invoca un ejecutable sin validarla.
+
+
+### Parada local explícita optativa (D12)
+
+El modo `ui-control-lab` añade un canal distinto de la consulta D10:
+`/run/absorconnect-ui-control-lab/control.sock`, perfil público root
+`/opt/absorconnect-secure-lab/control-profile.json` y unidad
+`absorconnect-ui-control-lab.socket`. Solo el UID/GID del dueño configurado puede
+solicitar `stop` para el equipo exacto. El cliente sin privilegios
+`absor-agent-control-lab stop --device-id <UUID> --json` no acepta ninguna otra
+operación, ruta o argumento. No lleva token de cuenta, K o contraseña.
+
+El broker retira la sesión y concesiones y guarda/sincroniza su marcador terminal
+antes de confirmar. La parada exige una alta autorizada nueva; consultar, cerrar
+Electron o arrancar el broker no la revierte. Un fallo o respuesta perdida no
+se presenta como parada confirmada. Las ubicaciones de producto siguen sin
+instalarse automáticamente y los proveedores finales Windows/Mac están pendientes.
+
+```bash
+python3 -B prototypes/backend-agent-check/isolated-webrtc-renewal.py /ruta/lab \
+  --secure-ipc-vm /ruta/vm-lab --secure-ipc-ui-control
+python3 -B prototypes/backend-agent-check/isolated-webrtc-renewal.py /ruta/lab \
+  --protected-p2p-vm /ruta/vm-lab --protected-p2p-ui-control --node /ruta/node
+```
+
+La segunda matriz sustituye explícitamente su caso `api-revoked` por parada local
+con API sin respuesta; conserva los otros nueve casos, incluido el corte de API
+por caducidad. El informe identifica esta variante para no atribuirle una prueba
+de revocación HTTP que no se ejecutó. Se repite el arranque del broker con el
+marcador terminal y se exige que continúe parado. El resto de matrices sin esta
+opción mantiene la revocación de API original.

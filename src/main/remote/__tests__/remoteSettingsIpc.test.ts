@@ -8,21 +8,22 @@ const h = vi.hoisted(() => ({
   state: vi.fn(),
   password: vi.fn(),
   permission: vi.fn(),
-  secret: vi.fn()
+  secret: vi.fn(),
+  stop: vi.fn(),
+  available: vi.fn(),
+  confirm: vi.fn(),
+  account: { email: 'owner@example.invalid', token: 'account-token-not-for-renderer' } as object
 }))
 vi.mock('electron', () => ({
+  dialog: { showMessageBox: h.confirm },
   ipcMain: {
     handle: (name: string, handler: (event: unknown, ...args: unknown[]) => Promise<unknown>) =>
       h.handlers.set(name, handler)
   }
 }))
 vi.mock('../../background', () => ({ getMainWindow: () => h.main }))
-vi.mock('../../cloud/session', () => ({
-  currentSession: () => ({
-    email: 'owner@example.invalid',
-    token: 'account-token-not-for-renderer'
-  })
-}))
+vi.mock('../../cloud/session', () => ({ currentSession: () => h.account }))
+vi.mock('../../store', () => ({ getLanguage: async () => 'es' }))
 vi.mock('../hostSession', () => ({ primeFirewall: vi.fn() }))
 vi.mock('../platformSupport', () => ({ openPermissionSettings: h.permission }))
 vi.mock('../hostRuntime', () => ({
@@ -42,7 +43,9 @@ vi.mock('../hostRuntime', () => ({
     },
     support: () => ({ state: 'available' }),
     bindToAccount: h.bind,
-    agentState: h.state
+    agentState: h.state,
+    nativeStopAvailable: h.available,
+    stopNativeHost: h.stop
   })
 }))
 const original = Object.getOwnPropertyDescriptor(process, 'getSystemVersion')
@@ -57,6 +60,10 @@ afterAll(() => {
 })
 beforeEach(() => {
   vi.clearAllMocks()
+  h.available.mockResolvedValue(true)
+  h.confirm.mockResolvedValue({ response: 0 })
+  h.stop.mockResolvedValue({ ok: true, freshEnrollmentRequired: true })
+  h.account = { email: 'owner@example.invalid', token: 'account-token-not-for-renderer' }
   h.snapshot.mockResolvedValue({
     enabled: false,
     deviceName: 'PC datos ficticios',
@@ -127,4 +134,40 @@ it('ni el frame principal puede añadir argumentos no definidos al contrato', as
   }
   expect(h.bind).not.toHaveBeenCalled()
   expect(h.state).not.toHaveBeenCalled()
+})
+
+it('la parada local exige confirmación Main y devuelve únicamente el resultado público', async () => {
+  const stop = h.handlers.get('remote-settings:stop-agent')!
+  expect(await stop(main())).toEqual({ ok: false, code: 'cancelled' })
+  expect(h.stop).not.toHaveBeenCalled()
+  h.confirm.mockResolvedValueOnce({ response: 1 })
+  expect(await stop(main())).toEqual({ ok: true, freshEnrollmentRequired: true })
+  expect(h.stop).toHaveBeenCalledTimes(1)
+  expect(h.stop).toHaveBeenCalledWith()
+  expect(h.secret).not.toHaveBeenCalled()
+})
+it('un cambio de cuenta o de equipo durante la confirmación invalida la parada', async () => {
+  const stop = h.handlers.get('remote-settings:stop-agent')!
+  h.confirm.mockImplementationOnce(async () => {
+    h.account = {}
+    return { response: 1 }
+  })
+  expect(await stop(main())).toEqual({ ok: false, code: 'cancelled' })
+  const before = await h.state()
+  h.state
+    .mockResolvedValueOnce(before)
+    .mockResolvedValueOnce({ ...before, deviceId: '22345678-1234-4abc-8def-123456789abc' })
+  h.confirm.mockResolvedValueOnce({ response: 1 })
+  expect(await stop(main())).toEqual({ ok: false, code: 'local_agent_unverified' })
+  expect(h.stop).not.toHaveBeenCalled()
+})
+it('componente ausente o servicio sin verificar no abre confirmación ni envía parada', async () => {
+  const stop = h.handlers.get('remote-settings:stop-agent')!
+  h.available.mockResolvedValue(false)
+  expect(await stop(main())).toEqual({ ok: false, code: 'local_agent_control_unavailable' })
+  h.available.mockResolvedValue(true)
+  h.state.mockResolvedValue({ ...absentLocalAgent(), ownership: 'unknown', phase: 'unverified' })
+  expect(await stop(main())).toEqual({ ok: false, code: 'local_agent_control_unavailable' })
+  expect(h.confirm).not.toHaveBeenCalled()
+  expect(h.stop).not.toHaveBeenCalled()
 })

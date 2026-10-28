@@ -122,7 +122,7 @@ pub fn activation_listener(expected: &Path) -> Result<UnixListener, IpcError> {
 }
 /// Roles cerrados de socket: toma cada fd una sola vez y ordena por dirección verificada.
 pub fn activation_listeners(expected: &[&Path]) -> Result<Vec<UnixListener>, IpcError> {
-    if !(1..=2).contains(&expected.len())
+    if !(1..=3).contains(&expected.len())
         || std::env::var("LISTEN_PID")
             .ok()
             .and_then(|v| v.parse::<u32>().ok())

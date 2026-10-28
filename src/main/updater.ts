@@ -5,6 +5,7 @@ import {
   getMainWindow,
   isAgentHostOwned,
   isRemoteControlActive,
+  isRemoteOwnershipResolved,
   setTrayUpdate,
   showMainWindow
 } from './background'
@@ -65,9 +66,10 @@ export function initUpdater(): void {
   })
 }
 
-/** Sin un cliente local de salud no se presupone que el agente esté libre. */
+/** El host nativo requiere la actualización conjunta de 11.4, incluso si ahora está idle. */
 export function refreshAgentUpdateGuard(): void {
-  autoUpdater.autoInstallOnAppQuit = !isAgentHostOwned()
+  autoUpdater.autoInstallOnAppQuit =
+    isRemoteOwnershipResolved() && !isAgentHostOwned() && !isRemoteControlActive()
 }
 
 /** Busca al arrancar y cada 6 h mientras la app sigue en marcha (incluso sin ventana). */
@@ -108,7 +110,7 @@ export async function downloadUpdate(): Promise<void> {
  * caso no hace nada y el aviso de la interfaz explica que se instalará al terminar la sesión.
  */
 export function quitAndInstall(): boolean {
-  if (isRemoteControlActive() || isAgentHostOwned()) return false
+  if (!isRemoteOwnershipResolved() || isRemoteControlActive() || isAgentHostOwned()) return false
   // quitAndInstall llama a app.quit(), que dispara 'before-quit' (marca la salida real) antes de
   // cerrar las ventanas, así que "mantener en segundo plano" no bloquea este cierre.
   autoUpdater.quitAndInstall()

@@ -175,6 +175,30 @@ struct Authority {
     last_grant: Duration,
 }
 impl Authority {
+    #[cfg(feature = "ui-control-lab")]
+    fn stop_locally(&mut self, now: Duration, directory: &Path) -> Result<(), ()> {
+        if self.terminal.is_some() {
+            return Ok(());
+        }
+        self.agent.stop();
+        self.verifier.stop();
+        self.end_connection();
+        self.flag.store(2, Ordering::SeqCst);
+        self.terminal = Some((now, 77));
+        // No confirmar hasta que la parada sobreviva a una caída/reinicio.
+        linux::private_create(
+            &directory.join("terminal"),
+            b"fresh-local-enrollment-required\n",
+        )
+        .map_err(|_| ())?;
+        File::open(directory)
+            .and_then(|f| f.sync_all())
+            .map_err(|_| ())?;
+        self.audit
+            .append(Event::AuthorizationRevoked)
+            .map_err(|_| ())?;
+        Ok(())
+    }
     fn disconnect(&mut self) {
         if let Some(h) = self.handle.take() {
             let _ = self.agent.disconnect(&h);
@@ -465,24 +489,52 @@ pub fn run() -> Result<i32, ()> {
     let ui_profile =
         absor_agent_security::ui_profile::UiProfile::load_optional().map_err(|_| ())?;
     #[cfg(feature = "ui-status-lab")]
-    let (listener, ui_listener) = if let Some(profile) = ui_profile {
+    let control_profile =
+        absor_agent_security::ui_profile::UiProfile::load_control_optional().map_err(|_| ())?;
+    #[cfg(all(feature = "ui-status-lab", not(feature = "ui-control-lab")))]
+    if control_profile.is_some() {
+        return Err(());
+    }
+    #[cfg(feature = "ui-status-lab")]
+    let (listener, ui_listener, control_listener) = if let Some(profile) = ui_profile {
         if profile.broker_uid != uid {
             return Err(());
         }
         profile.validate_socket().map_err(|_| ())?;
-        let mut listeners = linux::activation_listeners(&[
+        let mut paths = vec![
             Path::new(SOCKET),
             Path::new(absor_agent_security::ui_profile::SOCKET),
-        ])
-        .map_err(|_| ())?;
+        ];
+        if let Some(control) = control_profile {
+            if control.broker_uid != uid
+                || control.owner_uid != profile.owner_uid
+                || control.owner_gid != profile.owner_gid
+            {
+                return Err(());
+            }
+            control.validate_control_socket().map_err(|_| ())?;
+            paths.push(Path::new(absor_agent_security::ui_profile::CONTROL_SOCKET));
+        }
+        let mut listeners = linux::activation_listeners(&paths).map_err(|_| ())?;
+        let control = if control_profile.is_some() {
+            Some(listeners.pop().ok_or(())?)
+        } else {
+            None
+        };
         let ui = listeners.pop().ok_or(())?;
-        (listeners.pop().ok_or(())?, Some(ui))
+        (listeners.pop().ok_or(())?, Some(ui), control)
     } else {
+        if control_profile.is_some() {
+            return Err(());
+        }
         (
             linux::activation_listener(Path::new(SOCKET)).map_err(|_| ())?,
             None,
+            None,
         )
     };
+    #[cfg(all(feature = "ui-status-lab", not(feature = "ui-control-lab")))]
+    let _ = &control_listener;
     #[cfg(not(feature = "ui-status-lab"))]
     let listener = linux::activation_listener(Path::new(SOCKET)).map_err(|_| ())?;
     let key = WrappingKey::from_bytes(&credentials("wrapping.key", 32)?).map_err(|_| ())?;
@@ -512,9 +564,22 @@ pub fn run() -> Result<i32, ()> {
             absor_agent_security::ui_server::StatusServer::new(
                 listener,
                 profile,
-                public_device_id,
+                public_device_id.clone(),
                 new_grant_instance()?,
                 boot_id.clone(),
+            )
+            .map_err(|_| ())?,
+        ),
+        (None, None) => None,
+        _ => return Err(()),
+    };
+    #[cfg(feature = "ui-control-lab")]
+    let mut control_server = match (control_listener, control_profile) {
+        (Some(listener), Some(profile)) => Some(
+            absor_agent_security::control_server::ControlServer::new(
+                listener,
+                profile,
+                public_device_id,
             )
             .map_err(|_| ())?,
         ),
@@ -552,6 +617,16 @@ pub fn run() -> Result<i32, ()> {
     loop {
         let now = BootClock.now().map_err(|_| ())?;
         linux::notify(b"WATCHDOG=1").map_err(|_| ())?;
+        #[cfg(feature = "ui-control-lab")]
+        if let Some(control) = control_server.as_mut() {
+            control
+                .poll(now, || {
+                    authority
+                        .stop_locally(now, directory)
+                        .map_err(|_| linux::IpcError::Io)
+                })
+                .map_err(|_| ())?;
+        }
         if authority.terminal.is_none() {
             authority.refresh_seat()?;
             let progress = authority.agent.tick();

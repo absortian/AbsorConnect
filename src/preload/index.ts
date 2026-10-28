@@ -19,6 +19,7 @@ const api = {
     ipcRenderer.invoke('remote-open-viewer', deviceId, deviceName),
   // Control remoto de este PC (Ajustes): la contraseña solo viaja una vez, al definirla
   remoteSettings: () => ipcRenderer.invoke('remote-settings:get'),
+  stopLocalAgent: () => ipcRenderer.invoke('remote-settings:stop-agent'),
   setRemotePassword: (password: string) =>
     ipcRenderer.invoke('remote-settings:set-password', password),
   setRemoteEnabled: (enabled: boolean) =>

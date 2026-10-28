@@ -10,6 +10,7 @@ publish.workspace = true
 linux-broker-lab = ["absor-agent-api/lab-http"]
 protected-ipc-lab = ["absor-agent-security/protected-ipc-lab"]
 ui-status-lab = ["protected-ipc-lab", "absor-agent-security/ui-status-lab"]
+ui-control-lab = ["ui-status-lab", "absor-agent-security/ui-control-lab"]
 
 [dependencies]
 absor-agent-linux-session = { path = "../agent-linux-session" }

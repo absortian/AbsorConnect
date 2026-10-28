@@ -1,5 +1,17 @@
 /** Estado informativo local. No contiene autoridad ni secretos del agente. */
 export type LocalBrokerState = 'idle' | 'active' | 'validation_required' | 'revoked'
+export type LocalAgentStopResult =
+  | { ok: true; freshEnrollmentRequired: true }
+  | {
+      ok: false
+      code:
+        | 'forbidden'
+        | 'cancelled'
+        | 'local_agent_unverified'
+        | 'local_agent_busy'
+        | 'local_agent_control_unavailable'
+        | 'local_agent_stop_unconfirmed'
+    }
 export interface LocalAgentSnapshot {
   ownership: 'legacy' | 'agent' | 'unknown'
   phase: 'absent' | 'responding' | 'unverified'

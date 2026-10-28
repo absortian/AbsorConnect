@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AlertTriangle, KeyRound, Loader2 } from 'lucide-react'
 import { LocalTravelReadiness } from './LocalTravelReadiness'
+import type { LocalAgentStopResult } from '../../../shared/remote/localAgent'
 import {
   MIN_PC_PASSWORD_LENGTH,
   RemoteLogInfo,
@@ -176,6 +177,7 @@ export default function RemoteSettings(): React.JSX.Element {
         {remote && (
           <RemoteAccess
             remote={remote}
+            onStopAgent={() => window.api.stopLocalAgent()}
             error={error}
             passwordForm={passwordForm}
             suggestBackground={suggestBackground}
@@ -207,6 +209,7 @@ export default function RemoteSettings(): React.JSX.Element {
 }
 
 interface RemoteAccessProps {
+  onStopAgent: () => Promise<LocalAgentStopResult>
   remote: RemoteSettingsState
   error: string | null
   passwordForm: 'create' | 'change' | null
@@ -223,6 +226,19 @@ interface RemoteAccessProps {
 function RemoteAccess(props: RemoteAccessProps): React.JSX.Element {
   const { t } = useTranslation()
   const { remote } = props
+  const [stopping, setStopping] = useState(false)
+  const [stopReport, setStopReport] = useState<LocalAgentStopResult | null>(null)
+  const stopAgent = async (): Promise<void> => {
+    if (stopping) return
+    setStopping(true)
+    try {
+      setStopReport(await props.onStopAgent())
+    } catch {
+      setStopReport({ ok: false, code: 'local_agent_stop_unconfirmed' })
+    } finally {
+      setStopping(false)
+    }
+  }
   const wayland = remote.support.state === 'unsupported'
   const [name, setName] = useState(remote.deviceName)
   const [showLog, setShowLog] = useState(false)
@@ -243,6 +259,30 @@ function RemoteAccess(props: RemoteAccessProps): React.JSX.Element {
       <div className="settings-warning" role="status" style={{ display: 'block' }}>
         {t(remote.agentOwned ? 'remoteAccess.agentOwned' : 'remoteAccess.localAgentManaged')}
         {remote.localAgent && <p>{t(`remoteAccess.localAgentState.${remote.localAgent.phase}`)}</p>}
+        <p>{t('remoteAccess.stop.requireEnrollment')}</p>
+        <button
+          className="btn-secondary"
+          disabled={
+            !remote.localStopAvailable ||
+            remote.localAgent?.phase !== 'responding' ||
+            remote.localAgent?.ownership !== 'agent' ||
+            stopping ||
+            (stopReport?.ok ?? false)
+          }
+          onClick={() => void stopAgent()}
+        >
+          {t(stopping ? 'remoteAccess.stop.pending' : 'remoteAccess.stop.action')}
+        </button>
+        {!remote.localStopAvailable && <p>{t('remoteAccess.stop.unavailable')}</p>}
+        {stopReport && (stopReport.ok || stopReport.code !== 'cancelled') && (
+          <p role="status">
+            {t(
+              stopReport.ok
+                ? 'remoteAccess.stop.confirmed'
+                : `remoteAccess.stop.errors.${stopReport.code}`
+            )}
+          </p>
+        )}
         {remote.agentOwnershipPersistenceFailed && (
           <p>{t('remoteAccess.agentPersistenceFailed')}</p>
         )}

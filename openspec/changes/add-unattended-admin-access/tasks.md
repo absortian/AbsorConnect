@@ -12,7 +12,7 @@ siguen pendientes API completa, autenticador, trabajador P2P y watchdog del
 servicio. La tarea 3.4 no se cierra solo con el proceso de prueba; su aceptación posterior
 añade el gate/API/DTLS y trabajador nativo conectados, con la evidencia del 26/10.
 
-Avance cerrado: **24/57 tareas (42 %)**. Es proporción de tareas aceptadas, no
+Avance cerrado: **25/57 tareas (44 %)**. Es proporción de tareas aceptadas, no
 porcentaje del tiempo restante. La tarea 3.2 se acepta como protocolo común:
 vectores compartidos, HMAC/huellas aplicadas, intentos durables/reinicio, sesión
 única y denegación de captura/entrada antes de autenticar, con integración IPC
@@ -162,7 +162,7 @@ reconectar por la ausencia de etiquetas de contexto en v1. Evidencia:
 - [x] 7.1 Añadir cliente del agente y estado de propiedad al runtime remoto; verificar en Vitest que abrir/cerrar/reiniciar Electron no duplica equipos ni interrumpe una sesión del agente.
 - [ ] 7.2 Implementar alta y migración transaccional de identidad, K, opciones y bloqueo con recuperación; verificar fallos en cada fase, preservación de identidad/contraseña y que el token de cuenta nunca llega al servicio.
 - [ ] 7.3 Integrar cambio de contraseña, logout, cuenta distinta, revocación local y desinstalación; verificar corte inmediato local, alta nueva obligatoria y conservación de conexiones S3/SSH.
-- [ ] 7.4 Adaptar bandeja y actualizador para separar salir de la interfaz de detener el host; verificar modo legado sin cambios y modo desatendido con estado real, parada explícita y actualizaciones pospuestas durante sesiones.
+- [x] 7.4 Adaptar bandeja y actualizador para separar salir de la interfaz de detener el host; verificar modo legado sin cambios y modo desatendido con estado real, parada explícita y actualizaciones pospuestas durante sesiones.
 - [x] 7.5 Documentar en `AGENTS.md` la propiedad del host y el protocolo local; verificar que los comandos de diagnóstico descritos funcionan en desarrollo y no imprimen secretos.
 
 ## 8. Preload y tipos compartidos
@@ -307,3 +307,18 @@ propiedad ambigua y límites de salir de la interfaz, con ambos idiomas y las
 migración/alta/baja local, parada explícita de servicio, actualización transaccional,
 servicios finales Windows/Mac ni piloto físico. Avance **24/57 (42 %)**; el objetivo
 de 50 % sigue pendiente y se conserva el denominador de 57 tareas.
+
+
+El bloque del 29/10 acepta **7.4**: bandeja con estado consultado/ambiguo,
+salida de interfaz separada de parada y actualización bloqueada antes de resolver
+propiedad, durante sesiones y para agentes que aún requieren actualización conjunta.
+El canal Linux de parada es distinto de la lectura D10: UID/GID del dueño,
+equipo exacto, nonce/plazo y confirmación Main revalidada. El broker corta y
+sincroniza el marcador terminal antes de responder. Pasan 25 casos IPC y diez
+WebRTC: Main confirma la parada en 178 ms y el visor corta en 406 ms con API sin
+respuesta; arrancar el broker no lo reactiva. Se retiran servicios/secretos/cuentas.
+Se verifican 374 Vitest, PHPUnit 162/1077 y CI nativo Linux/Mac/Windows.
+Evidencia: `local-agent-stop-results.json`. No acepta alta/migración/baja final,
+proveedores de control Windows/Mac, actualizador conjunto ni piloto. El modo
+legado conserva su salida y el agente no anuncia certificación. Avance **25/57
+(44 %)**; el mínimo de 50 % sigue pendiente.

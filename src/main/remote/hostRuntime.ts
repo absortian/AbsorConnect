@@ -8,7 +8,7 @@ import type { AccountExit } from '../cloud/account'
 import { currentSession, loadSession } from '../cloud/session'
 import { refreshAgentUpdateGuard } from '../updater'
 import { getLanguage } from '../store'
-import { getMainWindow, setRemoteStatus, showMainWindow } from '../background'
+import { getMainWindow, setLocalAgentState, setRemoteStatus, showMainWindow } from '../background'
 import { DeviceApi, devicePlatform } from './deviceApi'
 import { DeviceIdentity } from './deviceIdentity'
 import { notifyAccountExpired, notifySession } from './hostNotice'
@@ -20,6 +20,8 @@ import { RemoteSupport, SupportMonitor } from './support'
 import { RemoteAccessStore } from './remoteAccessStore'
 import { createSafeBox } from './safeBox'
 import { AgentStatusClient, installedAgentSource } from './agentStatusClient'
+import { AgentControlClient, installedAgentControlSource } from './agentControlClient'
+import type { LocalAgentStopResult } from '../../shared/remote/localAgent'
 import { absentLocalAgent, type LocalAgentSnapshot } from '../../shared/remote/localAgent'
 
 let service: HostService | null = null
@@ -27,6 +29,7 @@ let store: RemoteAccessStore | null = null
 let identity: DeviceIdentity | null = null
 let monitor: SupportMonitor | null = null
 let nativeClient: AgentStatusClient | null = null
+const nativeControl = new AgentControlClient(installedAgentControlSource())
 let keepAwakeId: number | null = null
 
 function setKeepAwake(on: boolean): void {
@@ -67,6 +70,10 @@ async function start(): Promise<void> {
   if (stopRequested) return
   nativeClient = new AgentStatusClient(installedAgentSource())
   const native = await nativeClient.read()
+  if (!stopRequested) {
+    setLocalAgentState(native)
+    refreshAgentUpdateGuard()
+  }
   if (stopRequested || nativeClient.isClosed) return
   // Fuente de sonido que quedó de una sesión anterior si la app se cerró de golpe (D8)
   if (process.platform === 'linux' && native.ownership === 'legacy') void linuxAudio.cleanup()
@@ -119,6 +126,8 @@ async function start(): Promise<void> {
   if (stopRequested || nativeClient.isClosed) return
   service.start()
   nativeClient.watch((state) => {
+    setLocalAgentState(state)
+    refreshAgentUpdateGuard()
     if (state.ownership !== 'legacy') void service?.reserveForLocalAgent()
   })
 }
@@ -162,6 +171,8 @@ export function remoteHost(): {
   ownDeviceId: () => Promise<string | null>
   /** Estado del sistema para Ajustes, que ya lo muestra: sin notificación. */
   agentState: () => Promise<LocalAgentSnapshot>
+  nativeStopAvailable: () => Promise<boolean>
+  stopNativeHost: () => Promise<LocalAgentStopResult>
   support: () => RemoteSupport
   /** Tras iniciar sesión: si la configuración era de otra cuenta, se borra y se desactiva. */
   bindToAccount: (email: string) => Promise<void>
@@ -175,6 +186,13 @@ export function remoteHost(): {
       return identity ? (await identity.get()).id : null
     },
     agentState: () => nativeClient?.read() ?? Promise.resolve(absentLocalAgent()),
+    nativeStopAvailable: () => nativeControl.available(),
+    stopNativeHost: async () => {
+      const value = await nativeClient?.read()
+      if (!value || value.ownership !== 'agent' || value.phase !== 'responding' || !value.deviceId)
+        return { ok: false, code: 'local_agent_unverified' }
+      return nativeControl.stop(value.deviceId)
+    },
     support: () => monitor?.check({ quiet: true }) ?? detectSupport(),
     bindToAccount: async (email) => {
       if (!store || service?.isAgentManaged()) return

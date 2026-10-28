@@ -358,6 +358,20 @@
       "absent": "No active native installation was detected.",
       "responding": "The service responds. This configuration is not yet certified for unattended access.",
       "unverified": "The service could not be verified. Check its installation; quitting the interface does not stop it."
+    },
+    "stop": {
+      "action": "Stop native host",
+      "pending": "Confirming stop…",
+      "requireEnrollment": "This stop ends the session and requires a new authorized enrollment to reactivate the host. Quitting the interface does not stop it.",
+      "unavailable": "The local stop component is not installed or cannot be verified.",
+      "confirmed": "The service saved and confirmed the stop. A new authorized enrollment is required.",
+      "errors": {
+        "forbidden": "This window cannot request a stop.",
+        "local_agent_unverified": "The service state changed; no stop was sent.",
+        "local_agent_busy": "A local request is already in progress.",
+        "local_agent_control_unavailable": "The local stop component cannot be verified.",
+        "local_agent_stop_unconfirmed": "The stop could not be confirmed. Do not assume the host has stopped; local review is required."
+      }
     }
   },
   "remoteStream": {

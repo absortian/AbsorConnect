@@ -84,7 +84,7 @@ docker compose exec php php bin/phpunit
   para sortearlo. Solo la baja autorizada devuelve la propiedad. El traspaso local final
   continúa pendiente; no activar los servicios de laboratorio en instalaciones reales.
 - Cuenta, sesión del SO e interfaz son distintas. Salir de Electron detiene el host
-  publicado; todavía no certifica un servicio. La matriz certificada y las limitaciones
+  de usuario; el cliente del agente solo cancela su consulta. La matriz certificada y las limitaciones
   están en `docs/unattended-access.md`. La API declara capacidades, no las certifica.
 - El IPC implementado en Linux es optativo de laboratorio: broker con UID distinto,
   credenciales cifradas y LoadCredential; socket con metadatos raíz, SO_PEERCRED y PID
@@ -105,3 +105,11 @@ docker compose exec php php bin/phpunit
   Usa lista permitida de booleanos/contadores y hash; no imprime rutas, casos, errores
   libres, contraseña, K, token ni teclas. Un informe de laboratorio nunca certifica
   el servicio. No hacer `cat` de almacenes/credenciales para diagnosticar.
+
+- La parada local Linux optativa usa un canal separado de la lectura D10, solo
+  `stop` para el equipo exacto y UID/GID del dueño. Main confirma/revalida frame,
+  cuenta y equipo; no envía token de cuenta. Un ACK exige marcador terminal durable,
+  y reiniciar el broker no lo reactiva. No añadir reanudación/shell ni devolver la
+  propiedad al legado por timeout. Sin ACK, indicar intervención; salir de la
+  interfaz no llama a esa parada. La actualización conjunta de app/agente sigue
+  pendiente: no instalar al salir durante arranque, sesión o propiedad nativa.

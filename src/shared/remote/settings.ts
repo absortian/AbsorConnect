@@ -46,6 +46,8 @@ export interface RemoteSettingsState {
   agentOwned?: boolean
   /** Consulta local separada del canal del trabajador; no acredita soporte. */
   localAgent?: LocalAgentSnapshot
+  /** Solo operación local de parada; no declara una capacidad de administración remota. */
+  localStopAvailable?: boolean
   agentOwnershipPersistenceFailed?: boolean
   log: RemoteLogInfo[]
 }

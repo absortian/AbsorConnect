@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-const state = vi.hoisted(() => ({ owned: false, active: false }))
+const state = vi.hoisted(() => ({ owned: false, active: false, resolved: true }))
 const updater = vi.hoisted(() => ({
   autoDownload: true,
   autoInstallOnAppQuit: true,
@@ -12,11 +12,13 @@ vi.mock('../background', () => ({
   getMainWindow: () => null,
   isAgentHostOwned: () => state.owned,
   isRemoteControlActive: () => state.active,
+  isRemoteOwnershipResolved: () => state.resolved,
   setTrayUpdate: vi.fn(),
   showMainWindow: vi.fn()
 }))
 import { initUpdater, quitAndInstall, refreshAgentUpdateGuard } from '../updater'
 beforeEach(() => {
+  state.resolved = true
   state.owned = false
   state.active = false
   updater.quitAndInstall.mockClear()
@@ -45,4 +47,24 @@ describe('actualizador y propiedad nativa', () => {
     refreshAgentUpdateGuard()
     expect(updater.autoInstallOnAppQuit).toBe(false)
   })
+})
+
+it('bloquea instalación manual y automática antes de resolver la propiedad inicial', () => {
+  state.resolved = false
+  initUpdater()
+  expect(updater.autoInstallOnAppQuit).toBe(false)
+  expect(quitAndInstall()).toBe(false)
+  expect(updater.quitAndInstall).not.toHaveBeenCalled()
+  state.resolved = true
+  refreshAgentUpdateGuard()
+  expect(updater.autoInstallOnAppQuit).toBe(true)
+})
+it('pospone instalación automática durante una sesión legado y la permite al acabar', () => {
+  initUpdater()
+  state.active = true
+  refreshAgentUpdateGuard()
+  expect(updater.autoInstallOnAppQuit).toBe(false)
+  state.active = false
+  refreshAgentUpdateGuard()
+  expect(updater.autoInstallOnAppQuit).toBe(true)
 })

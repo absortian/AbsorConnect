@@ -3094,3 +3094,42 @@ estricto pasan. CI nativo del código 684084b pasa con 300/262/260 pruebas combi
 en Linux/Mac/Windows, fmt/clippy/default/all-features y release; registros completos
 y anotaciones revisados (solo avisos de infraestructura). Los JSON de ambos
 bloques conservan hashes y límites. Avance aceptado 24/57 (42 %); mínimo 50 % pendiente.
+
+
+## Parada local, bandeja y actualizador (29/10)
+
+Se acepta 7.4 con un tercer socket optativo Linux separado de la consulta D10.
+Solo el UID/GID configurado por root solicita `stop` para el equipo exacto, en
+tramas ≤512 bytes y plazo de 250 ms. Cliente sin privilegios verifica metadatos,
+peer PID 1 y nonce de la respuesta; Main ejecuta el binario fijo protegido con
+entorno mínimo y comprueba/proyecta el resultado. No hay shell, reanudación,
+PID/ruta arbitraria o token de cuenta en el canal.
+
+El broker retira sesión/concesiones, detiene el verificador y guarda/sincroniza
+su marcador terminal antes del ACK. No se confirma ante error de persistencia o
+respuesta perdida. En la matriz de diez P2P, el caso identificado `api-revoked`
+se sustituye por parada local con API sin respuesta: no se atribuye una revocación
+HTTP a esa variante. Los otros nueve casos mantienen sus criterios originales.
+Main confirma en 178 ms y el canal del visor cierra en 406 ms; un arranque nuevo
+del broker termina con 77 y conserva la parada. El caso `api-cut` sigue probando
+el vencimiento ≤30 s. Se verifica retirada de servicios, secretos y cuentas.
+
+Pasan 25 casos IPC (21 de consulta más cuatro grupos de denegación/parada),
+incluidos UID ajeno aun con GID admitido, equipo distinto, orden no admitida,
+tramas parciales/excesivas/campos adicionales y argumentos de shell. El trabajador
+continúa autenticado y no aparece marcador de parada por peticiones denegadas.
+
+Ajustes exige confirmación Main y revalida cuenta, equipo y frame tras el diálogo;
+no acepta argumentos. La bandeja muestra estado nativo real o sin verificar,
+salir solo cierra la interfaz y el actualizador falla cerrado durante el arranque.
+Se posponen las actualizaciones durante una sesión legado; el agente requiere
+actualización conjunta de 11.4 incluso idle. No se anuncia que el paquete se
+instalará al salir mientras aún se comprueba la propiedad.
+
+Typecheck, 374 Vitest (seis API optativas omitidas), PHPUnit 162/1077, lint de los
+archivos modificados, formato y OpenSpec estricto pasan. CI nativo de b4d28e7 pasa
+304/266/264 pruebas combinadas Linux/Mac/Windows, release/default/all-features y
+fmt/clippy, con registros completos y anotaciones revisados. No se certifican
+adaptadores de control Windows/Mac ni acceso protegido. El alta nueva requerida
+sigue pendiente de la UI/migración de 7.2; no se activan servicios en producto.
+Avance aceptado 25/57 (44 %); mínimo de 50 % pendiente.
