@@ -37,7 +37,7 @@ import { IceServer } from '../../shared/remote/hostBridge'
 import { ClipboardContent, clipboardFits } from '../../shared/remote/transfer'
 import { ClipboardWatcher } from './clipboardSync'
 import { FileSink, placeWithFreeName, sanitizeFileName, TransferError } from './fileTransfer'
-import { remoteHost } from './hostRuntime'
+import { cutNativeHostForAccount, remoteHost } from './hostRuntime'
 
 /** Tamaño máximo de una descripción de sesión (el servicio admite 64 KB). */
 const MAX_SDP_BYTES = 64 * 1024
@@ -406,7 +406,6 @@ export function setupControllerIpc(): void {
         revoke: async (id) => {
           const owner = currentSession()
           if (!owner) throw Error('unauthenticated')
-          const { cutNativeHostForAccount } = await import('./hostRuntime')
           await cutNativeHostForAccount(id)
           if (currentSession() !== owner) throw Error('unauthenticated')
           await apiRequest('DELETE', `/api/devices/${id}/agent`, { token: owner.token })
