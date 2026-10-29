@@ -12,7 +12,7 @@ siguen pendientes API completa, autenticador, trabajador P2P y watchdog del
 servicio. La tarea 3.4 no se cierra solo con el proceso de prueba; su aceptación posterior
 añade el gate/API/DTLS y trabajador nativo conectados, con la evidencia del 26/10.
 
-Avance cerrado: **25/57 tareas (44 %)**. Es proporción de tareas aceptadas, no
+Avance cerrado: **29/57 tareas (51 %)**. Es proporción de tareas aceptadas, no
 porcentaje del tiempo restante. La tarea 3.2 se acepta como protocolo común:
 vectores compartidos, HMAC/huellas aplicadas, intentos durables/reinicio, sesión
 única y denegación de captura/entrada antes de autenticar, con integración IPC
@@ -160,19 +160,19 @@ reconectar por la ausencia de etiquetas de contexto en v1. Evidencia:
 ## 7. Main: integración Electron y traspaso
 
 - [x] 7.1 Añadir cliente del agente y estado de propiedad al runtime remoto; verificar en Vitest que abrir/cerrar/reiniciar Electron no duplica equipos ni interrumpe una sesión del agente.
-- [ ] 7.2 Implementar alta y migración transaccional de identidad, K, opciones y bloqueo con recuperación; verificar fallos en cada fase, preservación de identidad/contraseña y que el token de cuenta nunca llega al servicio.
-- [ ] 7.3 Integrar cambio de contraseña, logout, cuenta distinta, revocación local y desinstalación; verificar corte inmediato local, alta nueva obligatoria y conservación de conexiones S3/SSH.
+- [x] 7.2 Implementar alta y migración transaccional de identidad, K, opciones y bloqueo con recuperación; verificar fallos en cada fase, preservación de identidad/contraseña y que el token de cuenta nunca llega al servicio.
+- [x] 7.3 Integrar cambio de contraseña, logout, cuenta distinta, revocación local y desinstalación; verificar corte inmediato local, alta nueva obligatoria y conservación de conexiones S3/SSH.
 - [x] 7.4 Adaptar bandeja y actualizador para separar salir de la interfaz de detener el host; verificar modo legado sin cambios y modo desatendido con estado real, parada explícita y actualizaciones pospuestas durante sesiones.
 - [x] 7.5 Documentar en `AGENTS.md` la propiedad del host y el protocolo local; verificar que los comandos de diagnóstico descritos funcionan en desarrollo y no imprimen secretos.
 
 ## 8. Preload y tipos compartidos
 
-- [ ] 8.1 Exponer únicamente estado, alta/baja autorizadas y resultados por canales IPC tipados; verificar remitentes, validación de parámetros, permisos y ausencia de token/K/credencial del agente en los renderers.
+- [x] 8.1 Exponer únicamente estado, alta/baja autorizadas y resultados por canales IPC tipados; verificar remitentes, validación de parámetros, permisos y ausencia de token/K/credencial del agente en los renderers.
 - [x] 8.2 Añadir tipos y analizadores de capacidades, contextos y acciones negociadas en `src/shared/remote/`; verificar rechazo de versiones/mensajes inválidos y pruebas de compatibilidad con v1. Documentar campos y límites nuevos junto al protocolo.
 
 ## 9. Renderer y visor
 
-- [ ] 9.1 Añadir Ajustes de acceso desatendido con instalación, elección explícita sobre confirmación local, permisos y estado del agente; verificar recorridos de instalación cancelada, servicio averiado y configuración «requiere intervención».
+- [x] 9.1 Añadir Ajustes de acceso desatendido con instalación, elección explícita sobre confirmación local, permisos y estado del agente; verificar recorridos de instalación cancelada, servicio averiado y configuración «requiere intervención».
 - [x] 9.2 Incorporar estado de preparación para viajes, capacidades certificadas y aviso sobre salir de la app; verificar que un equipo sin pruebas no aparece como preparado y que el modo de usuario conserva sus límites.
 - [x] 9.3 Añadir acciones administrativas con confirmación, resultados y espera de reinicio; verificar host anterior sin comandos, rechazo/cancelación, autenticación nueva, vencimiento/cancelación de espera y que no se generan solicitudes mientras está fuera de línea.
 - [x] 9.4 Añadir contexto protegido y revocación desde Equipos; verificar cancelación de funciones sensibles, fotograma desactualizado identificado y revocación del equipo correcto. Añadir textos `es.json`/`en.json` y documentar el uso del visor con capturas de datos de prueba.
@@ -333,3 +333,32 @@ escribe journal hasta contar con adaptador ACL. Evidencia parcial:
 verificar importación nativa de K/opciones/bloqueo y recuperación por fase; también
 siguen pendientes 7.3/8.1/9.1. Se mantiene **25/57 (44 %)**; el mínimo de 50 % no
 se da por alcanzado con estas bases.
+
+
+El cierre del 29/10 acepta **7.2, 7.3, 8.1 y 9.1** por la integración común de
+Main/IPC/UX: coordinador y journal privados, importación real de identidad,
+K/opciones/bloqueo en el almacén protegido Linux de VM, recuperación entre dos
+procesos Main y compensación exacta antes de volver al legado. Quince escenarios
+nativos cubren fallos por fase, bloqueo/reinicio, contraseña antigua/nueva,
+cuenta distinta y respuesta de commit perdida durante la salida de cuenta.
+La baja de esta transacción retira solo sus unidades/secretos; S3/SSH quedan fuera.
+
+El token de cuenta no llega al servicio ni a renderers. La elección de confirmación
+local carece de preselección; Main confirma y vuelve a comprobar frame/cuenta/
+destino. React/preload/IPC reales pasan cancelación previa, opciones no soportadas,
+preparación/confirmación, baja, avería y recuperación con coordinador ficticio;
+el coordinador/servicio se verifican aparte con API/BD y procesos reales en VM.
+Pasan diez P2P, seis ciclos Main, 466 Vitest en Linux/Mac (7 omitidas), 421 en
+Windows (52 omitidas, incluidos los casos POSIX), PHPUnit 171/1178 y CI nativo
+316/278/276 en Linux/Mac/Windows (default + all-features). Los seis registros de
+CI y sus anotaciones se revisaron sobre `e5626944ae2b48a166ce31dd90b852e79233a166`.
+
+La aceptación **no habilita ni certifica el proveedor distribuible**, que sigue
+indisponible hasta instaladores/ACL/IPC finales. La caja AES de origen del arnés
+no acredita DPAPI/Llavero/libsecret; el destino GCM/LoadCredential es real. Siguen
+pendientes 4.4/5.3/11.x, entrada/contextos generales, la revisión Mac y el piloto
+físico. No se aceptan esas tareas por compilar en CI. Evidencia:
+`agent-migration-results.json`. Avance **29/57 (51 %)**: se supera el mínimo
+solicitado por tareas aceptadas, sin equivaler al tiempo restante o a producto
+listo para viajes. Se conservan los 21 hallazgos npm heredados para su revisión
+antes de la release final.

@@ -1,6 +1,6 @@
 # Acceso remoto y preparación para viajes
 
-Estado del 27/10/2026. La versión publicada 0.4.1 controla escritorios de usuario.
+Estado del 29/10/2026. La versión publicada 0.4.1 controla escritorios de usuario.
 El agente del sistema está en desarrollo. **Todavía no hay una configuración de
 Windows, Mac o Mint certificada para acceso desatendido completo.** El backend
 aditivo ya admite agentes; una actualización de la API no instala ni activa uno.
@@ -15,11 +15,12 @@ aditivo ya admite agentes; una actualización de la API no instala ni activa uno
   Salir de la app detiene el host publicado. «Abrir al iniciar sesión» arranca
   después de entrar en el sistema, no antes.
 
-El futuro servicio tendrá credencial e identidad propias. Mientras sea el
+El agente en desarrollo usa una credencial propia. Mientras sea el
 propietario del host, Electron no debe registrar otro equipo, cambiar su clave
 ni recuperar la propiedad al fallar una consulta. La pérdida de red o del
-trabajador tampoco devuelve la propiedad. El traspaso local de instalaciones
-existentes continúa pendiente: los laboratorios no lo activan automáticamente.
+trabajador tampoco devuelve la propiedad. El traspaso común ya está verificado
+en VM; su distribución en instalaciones reales sigue pendiente de paquetes y
+proveedores finales. Los laboratorios no se activan automáticamente.
 
 ## Lo publicado y lo que sigue pendiente
 
@@ -37,6 +38,30 @@ Los resultados reproducibles viven en
 La matriz certificada de servicio completo está vacía hasta superar el piloto
 con los paquetes finales. Ni «en línea», ni una capacidad declarada por la API,
 ni autenticar correctamente equivale a «preparado para viajar».
+
+## Ajustes del agente en desarrollo
+
+La rama de desarrollo añade **Ajustes → Acceso desatendido**; todavía no forma
+parte de la versión publicada. El instalador aparece como no disponible hasta
+contar con un componente compatible. Esa pantalla no instala prototipos de VM.
+
+Con el futuro componente instalado, el recorrido separa **Preparar traspaso** de
+**Confirmar activación**. La preparación conserva identidad, contraseña, opciones
+y bloqueo; exige elegir explícitamente si se confirma cada conexión delante del
+PC. Pedir confirmación local requiere una persona allí. Una opción que el
+componente no soporte se conserva y evita la activación.
+
+Cancelar antes de preparar conserva el estado anterior. Si falla una operación
+o se pierde su respuesta, se muestra recuperación o intervención; no se crea otro
+equipo automáticamente. La retirada solo vuelve al modo de usuario tras confirmar
+la baja en la cuenta y en el equipo. Una sesión nueva no adopta el traspaso de la
+sesión anterior: puede requerir intervención del propietario/administrador.
+
+Para cambiar la contraseña del PC con agente, primero se retira, se cambia en
+modo de usuario y se realiza una nueva alta. Cerrar sesión, cambiar de cuenta o
+revocar exige también una alta nueva: reiniciar el servicio no deshace la parada.
+Las conexiones S3/SSH se conservan. Estas verificaciones comunes no acreditan
+los instaladores, permisos persistentes ni acceso desatendido completo de cada SO.
 
 ## Antes de salir
 
@@ -114,12 +139,15 @@ La bandeja distingue «propietario agente, estado sin verificar» de «desactiva
 Salir de la interfaz no envía una orden de parada al agente. Sin un cliente local
 de salud verificado, la instalación de actualizaciones queda pospuesta también
 al salir: no se interpreta la ausencia de datos como una sesión libre. La parada
-local del servicio y la actualización compatible del paquete final siguen pendientes.
+local ya está verificada en laboratorio; la actualización compatible y los
+proveedores de control de los paquetes finales siguen pendientes.
 
 Cambiar la contraseña de la cuenta, borrar la cuenta o cerrar/caducar la sesión
 que originó el alta invalida la credencial del agente. Cerrar otra sesión de la
-cuenta no vinculada al alta no lo revoca. La revocación local inmediata y el
-traspaso transaccional desde Electron siguen pendientes de su integración final.
+cuenta no vinculada al alta no lo revoca. La guardia local y el traspaso
+transaccional están integrados y verificados en VM. Su disponibilidad en equipos
+reales depende de los componentes finales; una parada sin confirmar se indica
+como intervención necesaria.
 
 ## Recuperación y diagnóstico
 
