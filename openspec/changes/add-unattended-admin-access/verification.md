@@ -3172,3 +3172,69 @@ visor 436 ms), sin reactivación ni recursos temporales restantes.
 bloqueo, coordinador completo y prueba nativa de los fallos por fase. Tampoco se
 aceptan 7.3/8.1/9.1 o paquetes/proveedores finales. `migration-foundation-results.json`
 conserva hashes y límites; el avance permanece 25/57 (44 %), por debajo del mínimo.
+
+## Traspaso, ciclo de cuenta e interfaz — 29/10/2026 (CI pendiente)
+
+El coordinador Main, el snapshot privado y el importador root ya están unidos a
+la API transaccional. La matriz VM pasó quince escenarios: respuestas perdidas,
+compensaciones fallidas, contador inválido, opciones no soportadas, bloqueo activo
+que sobrevive al broker, cuarto a quinto fallo, contraseña nueva/antigua, salida
+de cuenta local y cambio de cuenta durante prepare/commit, más salud fallida.
+La variante P2P recupera una respuesta perdida desde un segundo proceso Main y
+conserva identidad/K/opciones/cuatro fallos antes de dos conexiones autenticadas.
+Pasó sus diez casos, seis ciclos Main y parada con API sin respuesta (ACK 169 ms,
+corte del visor 436 ms). Ambas matrices retiraron cuentas, unidades y secretos.
+
+El recorrido real de React/preload/IPC verifica elección explícita sin
+preselección, cancelación anterior a preparar, preparación/confirmación separadas,
+opciones no soportadas, baja, fallo de servicio y recuperación. Solo entrega el
+DTO público, sin K/ace/acg/token, vínculo de cuenta o transacción. Vitest: 466
+pruebas y 7 omisiones; PHPUnit: 171/1178; typecheck/lint/validación OpenSpec pasan.
+Los cambios de cuenta invalidan continuaciones y un commit tardío solicita parada
+local sin elevación. Cancelar solo devuelve el legado tras ambas pruebas y una
+última revalidación de cuenta antes de liberar la reserva.
+
+`agent-migration-results.json` conserva resultados públicos. **Todavía no se
+aceptan tareas adicionales** hasta revisar CI nativo/paquetes de los tres SO.
+El proveedor distribuible sigue indisponible: los arneses usan VM propia y caja
+AES de origen ficticia; no acreditan DPAPI/Llavero/libsecret. La integración común
+no completa instaladores/ACL/IPC finales, Mac, entrada general ni piloto físico.
+El avance permanece 25/57 (44 %) durante esta revisión.
+
+La matriz adicional cubre también perder la respuesta de commit al cambiar de
+cuenta. El coordinador solicita parada local en `finally`, incluso ante rechazo
+del proveedor, y conserva la reserva sin devolver el host al legado. Pasan los
+quince casos con todos los recursos retirados; no aumenta el avance antes de CI.
+
+
+## Aceptación común 7.2/7.3/8.1/9.1 — 29/10/2026
+
+Se revisaron completos los seis registros y todas sus anotaciones del código
+`e5626944ae2b48a166ce31dd90b852e79233a166`: núcleo Rust Linux 316, Mac 278 y
+Windows 276 (suma default/all-features); paquetes Linux, Mac arm64/x64 y Windows
+correctos. Vitest pasa 466 + 7 omitidas en Linux/Mac y 421 + 52 omitidas en Windows:
+los casos POSIX omitidos no acreditan ACL/IPC Windows. Las anotaciones finales son
+avisos de infraestructura del runner. El primer CI encontró 30 ms en la fixture
+normal de drenaje; ahora usa los 5 s normales, conservando 30 ms únicamente en el
+ensayo de timeout. Una importación redundante del runtime también se retiró.
+Continúan los 21 hallazgos npm heredados (sin cambios de dependencias), firma de
+release y proveedores/paquetes finales pendientes; no se publica una release.
+
+La matriz final pasa quince casos con todos los recursos retirados. Mide parada
+real de la guardia local en 56 ms; el logout HTTP se cubre por PHPUnit y el vínculo
+de hooks de cuenta por Vitest. La matriz P2P verifica dos procesos Main separados
+ante respuesta de preparación perdida, K/identidad/opciones/cuatro fallos y dos
+conexiones HMAC, seis ciclos de las clases Main y vídeo continuo. El caso
+`api-revoked` se sustituye explícitamente por parada local con API sin respuesta
+(ACK 169 ms; corte del visor 436 ms), manteniendo otros nueve casos. No es un
+ensayo del ciclo de la app Electron empaquetada ni de los instaladores finales.
+
+Se aceptan las cuatro tareas de integración común y el avance llega a **29/57
+(51 %)**. La prueba visual usa React/preload/IPC reales con estado de cuenta y
+coordinador ficticios; la prueba del coordinador/servicio usa API/BD/importador/
+broker reales en VM. La caja AES de origen es fixture; el almacén destino root
+GCM/LoadCredential es real. Esta aceptación no sustituye 4.4/5.3/11.x, la revisión
+de viabilidad Mac, el fallo Xorg de no interferencia ni el piloto físico. La matriz
+certificada de servicio completo sigue vacía y el proveedor distribuible permanece
+indisponible. Los cambios posteriores a ese SHA solo actualizan esta evidencia,
+el recuento y la guía de uso.

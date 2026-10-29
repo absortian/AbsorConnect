@@ -551,3 +551,42 @@ almacenamiento, sin borrar lápidas de una sesión viva. Los errores de cuota o
 compensación conservan la reserva local y exigen intervención. Se prueban
 cancelación antes/después de canje, duplicados, otra sesión/cuenta, alta posterior
 y conservación de capacidades, solicitudes y conexiones ajenas.
+
+### D15. Preparación separada de activación y salida de cuenta
+
+El proveedor Linux de VM conserva un recibo público root, separado del directorio
+que retira. Solo expone IDs, fase y booleanos de importación; sus operaciones son
+preparar, inspeccionar, confirmar y retirar el destino exacto. Preparar importa K,
+nombre, opciones y bloqueo en el blob GCM y el almacén protegido de intentos sin
+arrancar trabajador. Confirmar comprueba manifiesto, política soportada y salud
+consultada por el cliente del dueño antes de persistir el recibo confirmado. Una
+respuesta perdida se recupera con recibo y estado API, sin repetir POST/canje.
+
+La elección de confirmación local es explícita y carece de preselección en Ajustes.
+Cambiarla durante el traspaso es una elección nueva autorizada, no una pérdida de
+la opción importada. Si el proveedor no implementa confirmación, archivos, audio,
+portapapeles o evitar suspensión, conserva las opciones cifradas y rechaza activar.
+El nombre importado se aplica al saludo; los clientes anteriores conservan su
+saludo de laboratorio. Un contador ilegible/futuro no se sustituye por cero. Un
+bloqueo activo conserva los cinco fallos aunque el primero salga de la ventana;
+solo se normalizan datos que ya habían vencido antes del snapshot.
+
+Logout, cambio de cuenta, contraseña de cuenta y revocación local invalidan las
+continuaciones del coordinador y solicitan parada mediante el IPC del dueño,
+sin elevación ni token en el servicio. Un commit que responde después de cambiar
+la cuenta solicita también esa parada. La revocación API conserva su semántica
+de fuente; no se usa una baja global para compensar respuestas inciertas. Si no
+hay ACK local, la reserva persiste y el watchdog sigue imponiendo el límite API.
+La baja desde Ajustes retira la transacción propia y sus archivos/unidades; tras
+ambas pruebas permite cambiar la contraseña en modo de usuario y una alta nueva.
+Una sesión nueva no adopta una intención de otra fuente: necesita recuperación
+con la fuente original o intervención del dueño/administrador. Las conexiones
+S3/SSH no forman parte de la retirada.
+
+Los canales `agent-setup:*` usan el frame principal, parámetros enumerados,
+confirmación con cancelación predeterminada y revalidación de cuenta/destino.
+Publican exclusivamente fase, disponibilidad, espera y resultados estables.
+El proveedor distribuible permanece indisponible hasta los instaladores/ACL de
+4.4/5.3/11.x: no se descubre un prototipo por ruta o variable de entorno, no se
+ejecuta Electron como root y no se instala este laboratorio en equipos reales.
+La aceptación de integración Main/IPC/UX no certifica esos adaptadores ni el piloto.

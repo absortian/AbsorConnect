@@ -13,6 +13,7 @@ import sys
 NAME = 'absorconnect-secure-lab'
 ACCOUNT = 'absorconnect-lab'
 STAGE = Path('/home/absorlab/AbsorConnectLab/secure-ipc-staging')
+ARTIFACT_UID = 1000
 OPT = Path('/opt')/NAME
 CONFIG = Path('/etc')/NAME
 STATE = Path('/var/lib')/NAME
@@ -22,6 +23,7 @@ BINS = ['absor-secure-broker-lab', 'absor-secret-provision-lab', 'absor-ipc-work
 MARK = b'absorconnect-owned-security-install-v1\n'
 UI = False
 CONTROL = False
+PREPARE = False
 CONTROL_UNIT = "absorconnect-ui-control-lab.socket"
 UI_UNIT = 'absorconnect-ui-status-lab.socket'
 UI_DROP = Path('/etc/systemd/system/absorconnect-secure-lab.service.d')
@@ -98,7 +100,7 @@ def install():
         fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
         with os.fdopen(fd, 'rb') as stream:
             meta = os.fstat(stream.fileno())
-            assert stat.S_ISREG(meta.st_mode) and meta.st_uid == 1000 and meta.st_nlink == 1
+            assert stat.S_ISREG(meta.st_mode) and meta.st_uid == ARTIFACT_UID and meta.st_nlink == 1
             raw = stream.read(32*1024*1024+1)
             assert len(raw) <= 32*1024*1024
         assert hashlib.sha256(raw).hexdigest() == config['hashes'][name], 'artifact_hash_mismatch'
@@ -122,20 +124,21 @@ def install():
             worker_state=Path('/var/lib/absorconnect-protected-worker-lab');worker_state.mkdir(mode=0o700);os.chown(worker_state,1000,1000)
             write(worker_state/'result.json',b'',0o600);os.chown(worker_state/'result.json',1000,1000)
             write(OPT/'worker.json',b'{"protectedIpc":true,"apiSignaling":true,"nativeFixture":true}',0o644)
-        result = subprocess.run([str(OPT/BINS[1])], input=json.dumps(config['enrollment']).encode(),
+        result = subprocess.run([str(OPT/BINS[1]), *(['--migration-prepare'] if PREPARE else [])], input=json.dumps(config['enrollment']).encode(),
                                 capture_output=True, timeout=15)
         assert result.returncode == 0, 'native_enrollment_or_seal_failed'
         assert json.loads(result.stdout)['plaintextBundleWritten'] is False
         STATE.mkdir(mode=0o700)
         os.chown(STATE, account.pw_uid, account.pw_gid)
-        write(STATE/'attempts.json', b'{"schema":1,"failures":[],"locked_until":null,"last_seen":0}', 0o600)
+        attempts=(CONFIG/'imported-attempts.json').read_bytes() if PREPARE else b'{"schema":1,"failures":[],"locked_until":null,"last_seen":0}'
+        write(STATE/'attempts.json', attempts, 0o600)
         os.chown(STATE/'attempts.json', account.pw_uid, account.pw_gid)
         for unit in UNITS:
             write(Path('/etc/systemd/system')/unit, artifacts[unit], 0o644)
         call('systemd-analyze', 'verify', *(str(Path('/etc/systemd/system')/u) for u in UNITS))
         call('systemctl', 'daemon-reload')
-        call('systemctl', 'start', UNITS[0], UNITS[2])
-        print(json.dumps({'installed': True, 'brokerUid': account.pw_uid, 'workerUid': 1000,
+        if not PREPARE: call('systemctl', 'start', UNITS[0], UNITS[2])
+        print(json.dumps({'installed': True, 'prepared': PREPARE, 'brokerUid': account.pw_uid, 'workerUid': 1000,
                           'plaintextBundleWritten': False, 'lightdmModified': False}))
     except BaseException:
         # La retirada completa exige unidades instaladas. Antes se retiran solo recursos propios.
@@ -160,8 +163,9 @@ def install():
 
 
 def main():
-    global UNITS, BINS, UI, CONTROL, UI_DROP_BYTES
-    assert os.getuid() == 0 and len(sys.argv) == 2 and sys.argv[1] in ('install', 'remove', 'install-native', 'remove-native','install-ui','remove-ui','install-native-ui','remove-native-ui','install-ui-control','remove-ui-control','install-native-ui-control','remove-native-ui-control')
+    global UNITS, BINS, UI, CONTROL, UI_DROP_BYTES, PREPARE
+    assert os.getuid() == 0 and len(sys.argv) == 2 and sys.argv[1] in ('install', 'remove', 'install-native', 'remove-native','install-ui','remove-ui','install-native-ui','remove-native-ui','install-ui-control','remove-ui-control','install-native-ui-control','remove-native-ui-control','prepare-native-ui-control','prepare-ui-control')
+    PREPARE=sys.argv[1].startswith('prepare-')
     native='native' in sys.argv[1].split('-')
     UI='ui' in sys.argv[1].split('-')
     CONTROL='control' in sys.argv[1].split('-')
@@ -181,7 +185,7 @@ def main():
     assert stat.S_ISREG(meta.st_mode) and meta.st_uid==0 and stat.S_IMODE(meta.st_mode)==0o444
     assert marker.read_bytes() == b'absorconnect-native-window-fixture-v1\n'
     assert pwd.getpwnam('absorlab').pw_uid == 1000
-    if sys.argv[1].startswith('install'):
+    if sys.argv[1].startswith(('install','prepare')):
         install()
     else:
         cleanup()

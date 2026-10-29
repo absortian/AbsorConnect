@@ -6,6 +6,7 @@ pub mod fd;
 #[cfg(target_os = "linux")]
 #[allow(unsafe_code)]
 pub mod linux;
+pub mod migration;
 pub mod secrets;
 pub mod status_wire;
 pub mod wire;

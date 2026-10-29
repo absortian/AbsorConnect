@@ -22,6 +22,8 @@ struct Plain {
     key: String,
     salt: String,
     iterations: u32,
+    #[serde(default)]
+    migration: Option<crate::migration::MigrationImport>,
 }
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -75,6 +77,15 @@ impl SecretBundle {
     pub fn host_id(&self) -> &str {
         &self.plain.host_id
     }
+    /// Nombre público importado; no publica opciones privadas ni material de autenticación.
+    pub fn host_name(&self) -> &str {
+        self.plain
+            .migration
+            .as_ref()
+            .map_or("AbsorConnect isolated IPC diagnostic", |m| {
+                m.options.device_name.as_str()
+            })
+    }
 
     pub fn parse(raw: &[u8]) -> Result<Self, SecretError> {
         if raw.len() > 4096 {
@@ -83,6 +94,12 @@ impl SecretBundle {
         let plain: Plain = serde_json::from_slice(raw).map_err(|_| SecretError)?;
         if plain.schema != 1 || !uuid(&plain.host_id) || plain.iterations != ITERATIONS {
             return Err(SecretError);
+        }
+        if let Some(migration) = plain.migration.as_ref() {
+            migration.attempts().map_err(|_| SecretError)?;
+            if migration.device_id != plain.host_id {
+                return Err(SecretError);
+            }
         }
         let key = decode(&plain.key)?;
         let _: [u8; 16] = decode(&plain.salt)?;
@@ -98,6 +115,10 @@ impl SecretBundle {
         store: L,
         clock: C,
     ) -> Result<(AgentApi, Verifier<L, C>), SecretError> {
+        // El agente final aún no aplica estas opciones; no activar una importación de laboratorio.
+        if self.plain.migration.is_some() {
+            return Err(SecretError);
+        }
         let api = AgentApi::new(
             &self.plain.origin,
             Credential::new(self.plain.credential).map_err(|_| SecretError)?,
@@ -119,6 +140,14 @@ impl SecretBundle {
         store: L,
         clock: C,
     ) -> Result<(AgentApi, Verifier<L, C>), SecretError> {
+        if self
+            .plain
+            .migration
+            .as_ref()
+            .is_some_and(|m| !m.enabled || !m.fixture_policy_supported())
+        {
+            return Err(SecretError);
+        }
         let api = AgentApi::local_lab(
             &self.plain.origin,
             Credential::new(self.plain.credential).map_err(|_| SecretError)?,

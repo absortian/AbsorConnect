@@ -3,7 +3,8 @@
 // (password.ts), que se cifra con la caja inyectada. Los fallos y el bloqueo se persisten, el
 // registro se acota a 50 eventos, y toda la configuración pertenece a la cuenta que la creó.
 import * as fs from 'fs/promises'
-import { writeAtomic } from './atomicWrite'
+import { flushAtomicWrites, writeAtomic } from './atomicWrite'
+import { LegacyMigrationMaterial, readLegacyMigrationMaterial } from './migrationMaterial'
 import { SecretBox } from './secretBox'
 import { deriveKey, MIN_PASSWORD_LENGTH, newPasswordParams, PasswordParams } from './password'
 import {
@@ -59,12 +60,39 @@ export class PasswordTooShortError extends Error {}
 
 export class RemoteAccessStore {
   private data: RemoteAccessFile | null = null
+  private migrationFrozen = false
 
   constructor(
     private readonly path: string,
     private readonly box: SecretBox,
     private readonly defaultDeviceName: string
   ) {}
+
+  private assertWritable(): void {
+    if (this.migrationFrozen) throw new Error('agent_migration_store_frozen')
+  }
+
+  /** El coordinador ya drenó el servicio; ninguna mutación sensible puede cruzar el snapshot. */
+  async freezeForMigration(
+    accountEmail: string,
+    now = Date.now()
+  ): Promise<LegacyMigrationMaterial> {
+    if (this.migrationFrozen) throw new Error('agent_migration_store_frozen')
+    this.migrationFrozen = true
+    await flushAtomicWrites(this.path)
+    return readLegacyMigrationMaterial(
+      this.path,
+      this.box,
+      accountEmail,
+      now,
+      this.data ?? undefined
+    )
+  }
+
+  /** Solo después de compensación API/local verificadas por el coordinador. */
+  releaseMigrationFreeze(): void {
+    this.migrationFrozen = false
+  }
 
   private async load(): Promise<RemoteAccessFile> {
     if (this.data) return this.data
@@ -123,6 +151,7 @@ export class RemoteAccessStore {
   async setPassword(password: string): Promise<void> {
     if (password.length < MIN_PASSWORD_LENGTH) throw new PasswordTooShortError()
     const d = await this.load()
+    this.assertWritable()
     const params = newPasswordParams()
     const key = deriveKey(password, params)
     d.password = { salt: params.salt, iterations: params.iterations, key: this.box.seal(key) }
@@ -132,6 +161,7 @@ export class RemoteAccessStore {
 
   async clearPassword(): Promise<void> {
     const d = await this.load()
+    this.assertWritable()
     d.password = null
     d.enabled = false
     await this.persist()
@@ -162,6 +192,7 @@ export class RemoteAccessStore {
   /** Un intento con la contraseña incorrecta, con el equipo que lo hizo para el registro. */
   async registerFailure(now = Date.now(), controller?: string): Promise<void> {
     const d = await this.load()
+    this.assertWritable()
     const next = registerFailure(this.toLockState(d), now)
     d.failures = next.failures
     const wasLocked = d.lockedUntil
@@ -175,6 +206,7 @@ export class RemoteAccessStore {
 
   async clearFailures(): Promise<void> {
     const d = await this.load()
+    this.assertWritable()
     Object.assign(d, clearFailures())
     await this.persist()
   }
@@ -203,30 +235,35 @@ export class RemoteAccessStore {
 
   async setEnabled(enabled: boolean): Promise<void> {
     const d = await this.load()
+    this.assertWritable()
     d.enabled = enabled
     await this.persist()
   }
 
   async setDeviceName(name: string): Promise<void> {
     const d = await this.load()
+    this.assertWritable()
     d.deviceName = name
     await this.persist()
   }
 
   async setFeatures(features: Partial<RemoteFeatures>): Promise<void> {
     const d = await this.load()
+    this.assertWritable()
     d.features = { ...d.features, ...features }
     await this.persist()
   }
 
   async setConfirmLocal(value: boolean): Promise<void> {
     const d = await this.load()
+    this.assertWritable()
     d.confirmLocal = value
     await this.persist()
   }
 
   async setPreventSleep(value: boolean): Promise<void> {
     const d = await this.load()
+    this.assertWritable()
     d.preventSleep = value
     await this.persist()
   }
@@ -240,6 +277,7 @@ export class RemoteAccessStore {
    */
   async bindToAccount(email: string): Promise<void> {
     const d = await this.load()
+    this.assertWritable()
     // Ajustes lo comprueba en cada lectura: si ya es de esta cuenta no hay nada que escribir
     if (d.accountEmail === email) return
     if (d.accountEmail !== null) {

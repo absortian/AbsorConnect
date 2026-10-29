@@ -5,6 +5,11 @@ import * as fs from 'fs/promises'
 // Se encolan en el orden en que se piden.
 const queues = new Map<string, Promise<void>>()
 
+/** El traspaso espera las escrituras ya solicitadas antes de leer el origen privado. */
+export function flushAtomicWrites(path: string): Promise<void> {
+  return queues.get(path) ?? Promise.resolve()
+}
+
 async function write(path: string, contents: string): Promise<void> {
   const tmp = `${path}.tmp`
   await fs.writeFile(tmp, contents, { encoding: 'utf-8', mode: 0o600 })

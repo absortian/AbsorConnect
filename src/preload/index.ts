@@ -20,6 +20,13 @@ const api = {
   // Control remoto de este PC (Ajustes): la contraseña solo viaja una vez, al definirla
   remoteSettings: () => ipcRenderer.invoke('remote-settings:get'),
   stopLocalAgent: () => ipcRenderer.invoke('remote-settings:stop-agent'),
+  agentSetupState: () => ipcRenderer.invoke('agent-setup:get'),
+  prepareAgent: (choice: import('../shared/remote/agentSetup').AgentSetupChoice) =>
+    ipcRenderer.invoke('agent-setup:prepare', choice),
+  recoverAgentSetup: () => ipcRenderer.invoke('agent-setup:recover'),
+  commitAgentSetup: () => ipcRenderer.invoke('agent-setup:commit'),
+  cancelAgentSetup: () => ipcRenderer.invoke('agent-setup:cancel'),
+  retireLocalAgent: () => ipcRenderer.invoke('agent-setup:retire'),
   setRemotePassword: (password: string) =>
     ipcRenderer.invoke('remote-settings:set-password', password),
   setRemoteEnabled: (enabled: boolean) =>

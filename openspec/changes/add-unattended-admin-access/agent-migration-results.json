@@ -1,0 +1,396 @@
+{
+  "schema": 1,
+  "acceptedTasks": [
+    "7.2",
+    "7.3",
+    "8.1",
+    "9.1"
+  ],
+  "review": "ci_reviewed",
+  "productionTested": false,
+  "physicalMachinesTested": false,
+  "readyForUnattended": false,
+  "availability": {
+    "distributedProviderEnabled": false,
+    "finalWindowsMacProvidersTested": false,
+    "originSecureStorage": "fixture AES-GCM; no certifica almacén del SO",
+    "targetSecureStorage": "AES-GCM/LoadCredential root real en VM"
+  },
+  "localValidation": {
+    "vitestPassed": 466,
+    "vitestSkipped": 7,
+    "phpunitTests": 171,
+    "phpunitAssertions": 1178,
+    "linuxRustDefaultAndAllTests": 316,
+    "typecheck": true,
+    "changedSourceLint": true,
+    "openSpecStrict": true
+  },
+  "nativeMigration": {
+    "cases": [
+      {
+        "schema": 1,
+        "scenario": "create-lost",
+        "passed": true,
+        "sourceUnchanged": true,
+        "legacyCalls": 0,
+        "compensatedAfterBothProofs": true,
+        "nativeLockTested": false,
+        "lockSurvivedBrokerRestart": false,
+        "newPasswordVerified": false,
+        "oldPasswordRejected": false,
+        "localStopAckMilliseconds": null,
+        "readyForUnattended": false
+      },
+      {
+        "schema": 1,
+        "scenario": "prepare-lost",
+        "passed": true,
+        "sourceUnchanged": true,
+        "legacyCalls": 0,
+        "compensatedAfterBothProofs": true,
+        "nativeLockTested": false,
+        "lockSurvivedBrokerRestart": false,
+        "newPasswordVerified": false,
+        "oldPasswordRejected": false,
+        "localStopAckMilliseconds": null,
+        "readyForUnattended": false
+      },
+      {
+        "schema": 1,
+        "scenario": "counter-invalid",
+        "passed": true,
+        "sourceUnchanged": true,
+        "legacyCalls": 0,
+        "compensatedAfterBothProofs": true,
+        "nativeLockTested": false,
+        "lockSurvivedBrokerRestart": false,
+        "newPasswordVerified": false,
+        "oldPasswordRejected": false,
+        "localStopAckMilliseconds": null,
+        "readyForUnattended": false
+      },
+      {
+        "schema": 1,
+        "scenario": "unsupported-policy",
+        "passed": true,
+        "sourceUnchanged": true,
+        "legacyCalls": 0,
+        "compensatedAfterBothProofs": true,
+        "nativeLockTested": false,
+        "lockSurvivedBrokerRestart": false,
+        "newPasswordVerified": false,
+        "oldPasswordRejected": false,
+        "localStopAckMilliseconds": null,
+        "readyForUnattended": false
+      },
+      {
+        "schema": 1,
+        "scenario": "cancel-api-down",
+        "passed": true,
+        "sourceUnchanged": true,
+        "legacyCalls": 0,
+        "compensatedAfterBothProofs": true,
+        "nativeLockTested": false,
+        "lockSurvivedBrokerRestart": false,
+        "newPasswordVerified": false,
+        "oldPasswordRejected": false,
+        "localStopAckMilliseconds": null,
+        "readyForUnattended": false
+      },
+      {
+        "schema": 1,
+        "scenario": "remove-lost",
+        "passed": true,
+        "sourceUnchanged": true,
+        "legacyCalls": 0,
+        "compensatedAfterBothProofs": true,
+        "nativeLockTested": false,
+        "lockSurvivedBrokerRestart": false,
+        "newPasswordVerified": false,
+        "oldPasswordRejected": false,
+        "localStopAckMilliseconds": null,
+        "readyForUnattended": false
+      },
+      {
+        "schema": 1,
+        "scenario": "commit-lost",
+        "passed": true,
+        "sourceUnchanged": true,
+        "legacyCalls": 0,
+        "compensatedAfterBothProofs": true,
+        "nativeLockTested": false,
+        "lockSurvivedBrokerRestart": false,
+        "newPasswordVerified": false,
+        "oldPasswordRejected": false,
+        "localStopAckMilliseconds": null,
+        "readyForUnattended": false
+      },
+      {
+        "schema": 1,
+        "scenario": "active-lock",
+        "passed": true,
+        "sourceUnchanged": true,
+        "legacyCalls": 0,
+        "compensatedAfterBothProofs": true,
+        "nativeLockTested": true,
+        "lockSurvivedBrokerRestart": true,
+        "newPasswordVerified": false,
+        "oldPasswordRejected": false,
+        "localStopAckMilliseconds": null,
+        "readyForUnattended": false
+      },
+      {
+        "schema": 1,
+        "scenario": "four-to-lock",
+        "passed": true,
+        "sourceUnchanged": true,
+        "legacyCalls": 0,
+        "compensatedAfterBothProofs": true,
+        "nativeLockTested": true,
+        "lockSurvivedBrokerRestart": true,
+        "newPasswordVerified": false,
+        "oldPasswordRejected": false,
+        "localStopAckMilliseconds": null,
+        "readyForUnattended": false
+      },
+      {
+        "schema": 1,
+        "scenario": "account-switch",
+        "passed": true,
+        "sourceUnchanged": true,
+        "legacyCalls": 0,
+        "compensatedAfterBothProofs": true,
+        "nativeLockTested": false,
+        "lockSurvivedBrokerRestart": false,
+        "newPasswordVerified": false,
+        "oldPasswordRejected": false,
+        "localStopAckMilliseconds": null,
+        "readyForUnattended": false
+      },
+      {
+        "schema": 1,
+        "scenario": "password-change",
+        "passed": true,
+        "sourceUnchanged": true,
+        "legacyCalls": 0,
+        "compensatedAfterBothProofs": true,
+        "nativeLockTested": false,
+        "lockSurvivedBrokerRestart": false,
+        "newPasswordVerified": true,
+        "oldPasswordRejected": true,
+        "localStopAckMilliseconds": null,
+        "readyForUnattended": false
+      },
+      {
+        "schema": 1,
+        "scenario": "account-logout",
+        "passed": true,
+        "sourceUnchanged": true,
+        "legacyCalls": 0,
+        "compensatedAfterBothProofs": true,
+        "nativeLockTested": false,
+        "lockSurvivedBrokerRestart": false,
+        "newPasswordVerified": true,
+        "oldPasswordRejected": true,
+        "localStopAckMilliseconds": 56,
+        "readyForUnattended": false
+      },
+      {
+        "schema": 1,
+        "scenario": "health-failed",
+        "passed": true,
+        "sourceUnchanged": true,
+        "legacyCalls": 0,
+        "compensatedAfterBothProofs": true,
+        "nativeLockTested": false,
+        "lockSurvivedBrokerRestart": false,
+        "newPasswordVerified": false,
+        "oldPasswordRejected": false,
+        "localStopAckMilliseconds": null,
+        "readyForUnattended": false
+      },
+      {
+        "schema": 1,
+        "scenario": "commit-account-switch",
+        "passed": true,
+        "sourceUnchanged": true,
+        "legacyCalls": 0,
+        "compensatedAfterBothProofs": true,
+        "nativeLockTested": false,
+        "lockSurvivedBrokerRestart": false,
+        "newPasswordVerified": false,
+        "oldPasswordRejected": false,
+        "localStopAckMilliseconds": null,
+        "readyForUnattended": false
+      },
+      {
+        "schema": 1,
+        "scenario": "commit-account-switch-lost",
+        "passed": true,
+        "sourceUnchanged": true,
+        "legacyCalls": 0,
+        "compensatedAfterBothProofs": true,
+        "nativeLockTested": false,
+        "lockSurvivedBrokerRestart": false,
+        "newPasswordVerified": false,
+        "oldPasswordRejected": false,
+        "localStopAckMilliseconds": null,
+        "readyForUnattended": false
+      }
+    ],
+    "accountsRemoved": true,
+    "servicesAndSecretsRemoved": true,
+    "httpLogout": "PHPUnit; la matriz VM mide la guardia local de salida de cuenta",
+    "s3SshPreserved": "API transaccional PHPUnit y ausencia de llamadas a conexiones desde coordinador/baja"
+  },
+  "protectedP2P": {
+    "ok": true,
+    "cases": 10,
+    "migration": {
+      "schema": 1,
+      "preparedBeforeActivation": true,
+      "mainRestartRecovered": true,
+      "sameDevice": true,
+      "sourceUnchanged": true,
+      "accountTokenInProvider": false,
+      "payloadZeroed": true,
+      "optionsImported": true,
+      "failuresImported": 4,
+      "separateMainProcesses": 2,
+      "lostPrepareReplyRecovered": true,
+      "legacyQuiesced": 1,
+      "readyForUnattended": false
+    },
+    "uiLifecycle": {
+      "schema": 1,
+      "episodes": 6,
+      "sameDevice": true,
+      "legacyApiCalls": 0,
+      "legacyIdentityReadsOrResets": 0,
+      "legacySessionsOpened": 0,
+      "nativeStopCommands": 0,
+      "readyForUnattended": false,
+      "nodeVersion": "v22.23.4",
+      "runtimeBundleSha256": "ddd84ca2e2fcfb0771799bcb1a11a45583d8f28885427da0e4b8b67add177fb2",
+      "publicStatusOnly": true,
+      "brokerPidPreserved": true
+    },
+    "localStop": {
+      "acknowledgedAfterMilliseconds": 169,
+      "apiUnavailable": true,
+      "freshEnrollmentRequired": true,
+      "durableReply": true,
+      "mainControlClientTested": true,
+      "survivedBrokerStart": true,
+      "brokerNotReactivated": true,
+      "controllerCutAfterMilliseconds": 436,
+      "apiRevokedCaseReplacedByLocalStopWithApiUnavailable": true
+    },
+    "accountsRemoved": true,
+    "servicesAndSecretsRemoved": true
+  },
+  "settingsUi": {
+    "schema": 1,
+    "ok": true,
+    "cancelledBeforePreparation": true,
+    "explicitConfirmationChoice": true,
+    "unsupportedPolicyBlocked": true,
+    "preparedThenCommitted": true,
+    "retired": true,
+    "serviceFaultShown": true,
+    "recoveryShown": true,
+    "realPreloadAndMainIpc": true,
+    "secretsInRenderer": false,
+    "preparedCalls": 3,
+    "committedCalls": 1,
+    "retiredOrCancelledCalls": 2,
+    "readyForUnattended": false,
+    "productionInstallerTested": false
+  },
+  "sourceSha256": {
+    "src/main/remote/migrationCoordinator.ts": "e9b39e797aa78deb13c94b1b30aafb599daf93e7e81a4558a378b557eb45640a",
+    "src/main/remote/migrationJournal.ts": "d4abea522350a0a65503898b0e7458133b07da8ce67737b8fcd2edf00fa49847",
+    "src/main/remote/migrationProvider.ts": "c4e6e86938812964a3d6306da85908958c7b3f67c42c9b83726c127252eabb44",
+    "src/main/remote/migrationApi.ts": "25e66c87a09e858954393a799a378e4d522a706169982de818cdec05a28cc341",
+    "src/main/remote/migrationMaterial.ts": "1016b5526196f2c410c2bcd1fe860419f867135978c46184ebbfb95ad2f9bd98",
+    "src/main/remote/nativeAccountGuard.ts": "cdfe39e6343679ed591de4f33cf4e64e7f8d20164ffe1042526ac792faeba872",
+    "src/main/remote/agentSetupIpc.ts": "b738b6fc6833dc46028f422e5082e8183b32450ad0fa7902c5d44c964960f8a5",
+    "src/shared/remote/agentSetup.ts": "acf944f1aca5a4cb1ebb48c226f56276a768fb366ed5aff7633abb1cd0644f6d",
+    "src/renderer/src/components/AgentSetup.tsx": "891d5c97684c1c9da76bb8d103dbc75dac703cb69339aa45b906c6b054c9853a",
+    "agent/linux-secure-lab/migration-vm.py": "a5c6450e1c7e160d657294d9475e15713e0a02743ea3c2144c53184732f2a63b"
+  },
+  "validatedCodeCommit": "e5626944ae2b48a166ce31dd90b852e79233a166",
+  "ci": {
+    "allSixLogsAndAnnotationsReviewed": true,
+    "checks": [
+      {
+        "id": 123642829185,
+        "name": "release (windows-latest, npm run build:win)",
+        "head": "e5626944ae2b48a166ce31dd90b852e79233a166",
+        "conclusion": "success",
+        "rustTests": 0,
+        "nodeSummary": [
+          "      Tests  421 passed | 52 skipped (473)\r"
+        ],
+        "characters": 47323
+      },
+      {
+        "id": 123642829013,
+        "name": "release (ubuntu-latest, npm run build:linux)",
+        "head": "e5626944ae2b48a166ce31dd90b852e79233a166",
+        "conclusion": "success",
+        "rustTests": 0,
+        "nodeSummary": [
+          "      Tests  466 passed | 7 skipped (473)"
+        ],
+        "characters": 46149
+      },
+      {
+        "id": 123642828906,
+        "name": "release (macos-latest, npm run build:mac)",
+        "head": "e5626944ae2b48a166ce31dd90b852e79233a166",
+        "conclusion": "success",
+        "rustTests": 0,
+        "nodeSummary": [
+          "      Tests  466 passed | 7 skipped (473)"
+        ],
+        "characters": 56402
+      },
+      {
+        "id": 123642828610,
+        "name": "authorization (ubuntu-latest)",
+        "head": "e5626944ae2b48a166ce31dd90b852e79233a166",
+        "conclusion": "success",
+        "rustTests": 316,
+        "nodeSummary": [],
+        "characters": 100831
+      },
+      {
+        "id": 123642828549,
+        "name": "authorization (macos-latest)",
+        "head": "e5626944ae2b48a166ce31dd90b852e79233a166",
+        "conclusion": "success",
+        "rustTests": 278,
+        "nodeSummary": [],
+        "characters": 96628
+      },
+      {
+        "id": 123642828093,
+        "name": "authorization (windows-latest)",
+        "head": "e5626944ae2b48a166ce31dd90b852e79233a166",
+        "conclusion": "success",
+        "rustTests": 276,
+        "nodeSummary": [],
+        "characters": 101746
+      }
+    ],
+    "inheritedNpmFindings": 21,
+    "earlierFailure": {
+      "head": "586bc6a7e199de6ce8e7b0d822cf1f59ed7996f0",
+      "jobId": 123638536850,
+      "reason": "deadline de 30 ms en fixture general bajo carga; el caso de timeout conserva 30 ms y los demás usan los 5 s de producción",
+      "fixed": true
+    }
+  }
+}

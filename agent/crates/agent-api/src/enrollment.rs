@@ -22,6 +22,15 @@ impl EnrollmentGrant {
 pub struct EnrolledHost {
     pub credential: Credential,
     pub device_id: String,
+    pub transaction_id: Option<String>,
+}
+impl EnrolledHost {
+    fn for_transaction(self, device: &str, transaction: &str) -> Result<Self, ApiError> {
+        if self.device_id != device || self.transaction_id.as_deref() != Some(transaction) {
+            return Err(ApiError::InvalidResponse);
+        }
+        Ok(self)
+    }
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -29,6 +38,8 @@ struct WireEnrollment {
     token: String,
     device_id: String,
     expires_at: String,
+    #[serde(default)]
+    transaction_id: Option<String>,
 }
 pub struct EnrollmentClient {
     client: ureq::Agent,
@@ -52,6 +63,20 @@ impl EnrollmentClient {
                 .to_string(),
         })
     }
+    /// La migración no acepta un canje de otro equipo/transacción ni una respuesta antigua.
+    pub fn enroll_transaction_once(
+        self,
+        grant: EnrollmentGrant,
+        expected_device: &str,
+        expected_transaction: &str,
+    ) -> Result<EnrolledHost, ApiError> {
+        if !uuid(expected_device) || !uuid(expected_transaction) {
+            return Err(ApiError::InvalidConfiguration);
+        }
+        let enrolled = self.enroll_once(grant)?;
+        enrolled.for_transaction(expected_device, expected_transaction)
+    }
+
     /// Consume el permiso incluso ante un fallo: el llamante debe pedir un alta nueva.
     pub fn enroll_once(self, grant: EnrollmentGrant) -> Result<EnrolledHost, ApiError> {
         let body = serde_json::to_string(&serde_json::json!({
@@ -96,12 +121,16 @@ impl EnrollmentClient {
         }
         let wire: WireEnrollment =
             serde_json::from_slice(&bytes).map_err(|_| ApiError::InvalidResponse)?;
-        if !uuid(&wire.device_id) || !super::http::utc_timestamp(&wire.expires_at) {
+        if !uuid(&wire.device_id)
+            || !super::http::utc_timestamp(&wire.expires_at)
+            || wire.transaction_id.as_ref().is_some_and(|id| !uuid(id))
+        {
             return Err(ApiError::InvalidResponse);
         }
         Ok(EnrolledHost {
             credential: Credential::new(wire.token).map_err(|_| ApiError::InvalidResponse)?,
             device_id: wire.device_id,
+            transaction_id: wire.transaction_id,
         })
     }
 }
@@ -189,5 +218,34 @@ mod tests {
             assert_eq!(result.is_ok(), valid);
             server.join().unwrap();
         }
+    }
+}
+
+#[cfg(test)]
+mod transaction_tests {
+    use super::*;
+    const DEVICE: &str = "12345678-1234-4abc-8def-123456789abc";
+    const TRANSACTION: &str = "22345678-1234-4abc-8def-123456789abc";
+    fn enrolled(device: &str, transaction: Option<&str>) -> EnrolledHost {
+        EnrolledHost {
+            credential: Credential::new(format!("acg_{}", "a".repeat(43))).unwrap(),
+            device_id: device.into(),
+            transaction_id: transaction.map(str::to_owned),
+        }
+    }
+    #[test]
+    fn migration_requires_exact_device_and_transaction_without_exporting_credential() {
+        assert!(enrolled(DEVICE, Some(TRANSACTION))
+            .for_transaction(DEVICE, TRANSACTION)
+            .is_ok());
+        assert!(enrolled(TRANSACTION, Some(TRANSACTION))
+            .for_transaction(DEVICE, TRANSACTION)
+            .is_err());
+        assert!(enrolled(DEVICE, Some(DEVICE))
+            .for_transaction(DEVICE, TRANSACTION)
+            .is_err());
+        assert!(enrolled(DEVICE, None)
+            .for_transaction(DEVICE, TRANSACTION)
+            .is_err());
     }
 }

@@ -338,3 +338,40 @@ por caducidad. El informe identifica esta variante para no atribuirle una prueba
 de revocación HTTP que no se ejecutó. Se repite el arranque del broker con el
 marcador terminal y se exige que continúe parado. El resto de matrices sin esta
 opción mantiene la revocación de API original.
+
+## Traspaso transaccional de Main en VM
+
+`migration-vm.py` solo admite la VM propia marcada por root. El arnés copia sus
+artefactos/manifiesto a `/opt/absorconnect-migration-lab` protegido y deja un
+recibo público sin secretos en `/var/lib/absorconnect-migration-lab`. Preparar
+canjea una sola vez, verifica equipo/transacción y conserva K/salt/600000,
+nombre/opciones y bloqueo en el blob GCM y el contador protegido. No arranca
+trabajadores. Confirmar exige política soportada, archivos/manifiesto válidos y
+consulta de salud del cliente del dueño; retirar exige el destino exacto. Un
+recibo ajeno, error o respuesta perdida nunca autoriza al legado.
+
+```bash
+python3 -B prototypes/backend-agent-check/isolated-webrtc-renewal.py /ruta/lab \
+  --migration-vm /ruta/vm-lab
+python3 -B prototypes/backend-agent-check/isolated-webrtc-renewal.py /ruta/lab \
+  --protected-p2p-vm /ruta/vm-lab --protected-p2p-ui-control \
+  --protected-p2p-migration --node /ruta/node
+node prototypes/backend-agent-check/run-agent-setup-ui.cjs /ruta/lab
+```
+
+La matriz de traspaso usa Main sin privilegios, API/BD efímeras, importador y
+broker reales. Incluye canje/respuesta perdida, cancelación sin red, retirada
+incierta, salud fallida, bloqueo activo/reinicio, cuarto a quinto fallo,
+cambio de contraseña con alta nueva y cambio de cuenta durante commit. La
+variante P2P sale de un proceso Main tras perder la respuesta de preparación y
+recupera desde otro antes de confirmar. Después exige dos conexiones HMAC con
+la K original, vídeo nativo y los diez escenarios habituales.
+
+La caja AES de origen de estos arneses es una **fixture**: su clave privada de
+prueba permite recuperar entre procesos y se retira al terminar. No acredita
+Llavero/DPAPI/libsecret. El destino sí usa el almacén GCM/LoadCredential real.
+No se guardan K/ace/acg en argv, archivos de progreso o informes. El arnés de UX
+conecta React y preload/IPC reales con coordinador/cuenta ficticios, sin instalar
+servicios ni solicitar permisos. Los paquetes finales no están disponibles desde
+Ajustes: `installedMigrationProvider()` sigue cerrado hasta 4.4/5.3/11.x. Ningún
+resultado certifica entrada general, login/UAC, Mac o piloto físico.

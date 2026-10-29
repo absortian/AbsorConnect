@@ -18,6 +18,7 @@ import { remoteHost, remoteHostStarted } from './hostRuntime'
 import { openPermissionSettings } from './platformSupport'
 import { accessibilityRenamed } from './support'
 import { PasswordTooShortError } from './remoteAccessStore'
+import { setupAgentSetupIpc } from './agentSetupIpc'
 
 async function state(): Promise<RemoteSettingsState | null> {
   const { store, service, support, agentState } = remoteHost()
@@ -139,6 +140,7 @@ let ready = false
 export function setupRemoteSettingsIpc(): void {
   if (ready) return
   ready = true
+  setupAgentSetupIpc()
   ipcMain.handle('remote-settings:stop-agent', async (event, ...args) => {
     if (!trustedMainFrame(event) || args.length !== 0) return { ok: false, code: 'forbidden' }
     await remoteHostStarted()
@@ -170,6 +172,8 @@ export function setupRemoteSettingsIpc(): void {
       return { ok: false, code: 'cancelled' }
     const after = await remoteHost().agentState()
     if (
+      currentSession() !== account ||
+      !trustedMainFrame(event) ||
       after.deviceId !== before.deviceId ||
       after.phase !== 'responding' ||
       after.ownership !== 'agent'
