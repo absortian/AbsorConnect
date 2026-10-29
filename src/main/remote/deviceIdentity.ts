@@ -3,8 +3,10 @@
 // SHA-256 (se envía en X-Device-Key). La clave se cifra en disco con la caja inyectada.
 import { randomBytes, randomUUID } from 'crypto'
 import * as fs from 'fs/promises'
-import { writeAtomic } from './atomicWrite'
+import { flushAtomicWrites, writeAtomic } from './atomicWrite'
 import { SecretBox } from './secretBox'
+import { isDeviceId } from '../../shared/remote/agentDevice'
+import { MigrationSourceError, readPrivateMigrationJson } from './privateMigrationFile'
 
 interface DeviceFile {
   id: string
@@ -23,6 +25,32 @@ export class DeviceIdentity {
     private readonly path: string,
     private readonly box: SecretBox
   ) {}
+
+  /** Origen de migración: nunca invoca create/reset ni modifica la caché o el disco. */
+  async readExisting(): Promise<DeviceIdentityValue> {
+    await flushAtomicWrites(this.path)
+    const value = await readPrivateMigrationJson(this.path, 16384)
+    if (!value || typeof value !== 'object' || Array.isArray(value))
+      throw new MigrationSourceError()
+    const file = value as Record<string, unknown>
+    if (Object.keys(file).length !== 2 || !isDeviceId(file.id) || typeof file.key !== 'string')
+      throw new MigrationSourceError()
+    let bytes: Buffer
+    try {
+      bytes = Buffer.from(this.box.open(file.key))
+    } catch {
+      throw new MigrationSourceError()
+    }
+    try {
+      if (bytes.length !== 32) throw new MigrationSourceError()
+      const current = { id: file.id, key: bytes.toString('base64url') }
+      if (this.cache && (this.cache.id !== current.id || this.cache.key !== current.key))
+        throw new MigrationSourceError()
+      return current
+    } finally {
+      bytes.fill(0)
+    }
+  }
 
   /** Identidad de este equipo; la crea la primera vez. */
   async get(): Promise<DeviceIdentityValue> {

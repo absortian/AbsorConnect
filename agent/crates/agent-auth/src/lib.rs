@@ -52,6 +52,34 @@ impl AttemptState {
         }
     }
 
+    /// Importación explícita de la política legado. No restablece un bloqueo activo.
+    pub fn migrated(
+        mut failures: Vec<u64>,
+        locked_until: Option<u64>,
+        observed_at: u64,
+    ) -> Result<Self, AuthError> {
+        if failures.len() > 64
+            || !failures.windows(2).all(|w| w[0] <= w[1])
+            || failures.iter().any(|t| *t > observed_at)
+        {
+            return Err(AuthError::InvalidConfiguration);
+        }
+        let active = locked_until.filter(|end| *end > observed_at);
+        if active.is_none() {
+            failures.retain(|t| observed_at - *t < WINDOW_MS);
+        }
+        let state = Self {
+            schema: 1,
+            failures,
+            locked_until: active,
+            last_seen: observed_at,
+        };
+        if !state.valid() {
+            return Err(AuthError::InvalidConfiguration);
+        }
+        Ok(state)
+    }
+
     fn valid(&self) -> bool {
         self.schema == 1
             && self.failures.len() <= MAX_FAILURES
@@ -326,3 +354,38 @@ impl<L: AttemptStore, C: AttemptClock> Verifier<L, C> {
 
 #[cfg(test)]
 mod vectors;
+
+#[cfg(test)]
+mod migration_tests {
+    use super::*;
+    #[test]
+    fn active_lock_survives_import_even_if_early_failures_left_window() {
+        let state =
+            AttemptState::migrated(vec![1, 2, 3, 4, 100_000], Some(1_000_000), 950_000).unwrap();
+        assert_eq!(state.failures, vec![1, 2, 3, 4, 100_000]);
+        assert_eq!(state.locked_until, Some(1_000_000));
+        assert_eq!(state.last_seen, 950_000);
+    }
+    #[test]
+    fn only_expired_markers_and_failures_are_normalized() {
+        let state = AttemptState::migrated(vec![1, 2, 999_999], Some(100), 1_000_000).unwrap();
+        assert_eq!(state.failures, vec![999_999]);
+        assert_eq!(state.locked_until, None);
+        let state =
+            AttemptState::migrated(vec![1, 2, 3, 4, 100_000], Some(1_000_000), 1_000_000).unwrap();
+        assert!(state.failures.is_empty());
+    }
+    #[test]
+    fn malformed_or_future_state_cannot_silently_reset_counter() {
+        for (failures, locked, at) in [
+            (vec![2, 1], None, 100),
+            (vec![101], None, 100),
+            (vec![1, 2, 3, 4, 5], None, 100),
+            (vec![1, 2, 3, 4, 5], Some(1000), 100),
+            (vec![1], Some(900_001), 100),
+            (vec![1; 65], None, 100),
+        ] {
+            assert!(AttemptState::migrated(failures, locked, at).is_err());
+        }
+    }
+}

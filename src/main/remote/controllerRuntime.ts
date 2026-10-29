@@ -404,7 +404,12 @@ export function setupControllerIpc(): void {
           return choice.response === 1
         },
         revoke: async (id) => {
-          await apiRequest('DELETE', `/api/devices/${id}/agent`, { token: token() })
+          const owner = currentSession()
+          if (!owner) throw Error('unauthenticated')
+          const { cutNativeHostForAccount } = await import('./hostRuntime')
+          await cutNativeHostForAccount(id)
+          if (currentSession() !== owner) throw Error('unauthenticated')
+          await apiRequest('DELETE', `/api/devices/${id}/agent`, { token: owner.token })
         },
         closeViewers: (id) => {
           for (const viewer of viewers.values()) {

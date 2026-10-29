@@ -465,5 +465,36 @@
     },
     "declaredYes": "declared by the agent, not certified",
     "declaredNo": "not declared"
+  },
+  "agentSetup": {
+    "title": "Unattended access",
+    "notCertified": "The native service is still being validated. This configuration is not certified for travel without alternate access.",
+    "phase": {
+      "unavailable": "An agent installer is not yet available for this PC.",
+      "idle": "User mode. You can prepare migration when a compatible component is available.",
+      "preparing": "Preparing migration. The user host is reserved.",
+      "prepared": "Migration prepared; activation still needs confirmation.",
+      "committed": "Migration confirmed. Also check the agent’s actual status and permissions.",
+      "compensating": "Removal is awaiting local and account confirmation.",
+      "intervention_required": "Intervention required: another host will not be enabled automatically."
+    },
+    "packageUnavailable": "Lab prototypes are not installed from this screen. Final installers for each OS remain pending.",
+    "cancelled": "Operation cancelled. The previous state is preserved.",
+    "error": "The operation could not be confirmed. Check the status and recover or remove the migration; do not enroll a second device.",
+    "signIn": "Sign in to the owner account.",
+    "password": "Create this PC’s password in user mode first.",
+    "encryption": "An available secure store is required to import the password.",
+    "confirmChoice": "Explicitly choose confirmation for each connection",
+    "confirmRequired": "Ask for confirmation at the PC (someone must be there).",
+    "confirmUnattended": "Allow connections without local confirmation, after verifying the account and PC password.",
+    "adminPermission": "The OS will request administrator permission when a compatible installer is available. Preparation preserves identity, password, options and lockout; it does not activate the worker yet.",
+    "prepare": "Prepare migration",
+    "commit": "Confirm activation",
+    "cancel": "Remove this migration",
+    "policyIntervention": "The imported options require features this component does not support yet. They are preserved and the worker is not activated.",
+    "recoveryHint": "Recovery requires the protected component and the account session that started enrollment. A lost reply does not authorize regenerating the identity or password.",
+    "recover": "Check recovery",
+    "retire": "Retire this PC’s agent",
+    "passwordChange": "To change the PC password, retire the agent first, change the password in user mode and enroll again. Signing out or revoking also requires a new enrollment."
   }
 }

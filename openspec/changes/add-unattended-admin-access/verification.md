@@ -3172,3 +3172,31 @@ visor 436 ms), sin reactivación ni recursos temporales restantes.
 bloqueo, coordinador completo y prueba nativa de los fallos por fase. Tampoco se
 aceptan 7.3/8.1/9.1 o paquetes/proveedores finales. `migration-foundation-results.json`
 conserva hashes y límites; el avance permanece 25/57 (44 %), por debajo del mínimo.
+
+## Traspaso, ciclo de cuenta e interfaz — 29/10/2026 (CI pendiente)
+
+El coordinador Main, el snapshot privado y el importador root ya están unidos a
+la API transaccional. La matriz VM pasó catorce escenarios: respuestas perdidas,
+compensaciones fallidas, contador inválido, opciones no soportadas, bloqueo activo
+que sobrevive al broker, cuarto a quinto fallo, contraseña nueva/antigua, salida
+de cuenta local y cambio de cuenta durante prepare/commit, más salud fallida.
+La variante P2P recupera una respuesta perdida desde un segundo proceso Main y
+conserva identidad/K/opciones/cuatro fallos antes de dos conexiones autenticadas.
+Pasó sus diez casos, seis ciclos Main y parada con API sin respuesta (ACK 169 ms,
+corte del visor 436 ms). Ambas matrices retiraron cuentas, unidades y secretos.
+
+El recorrido real de React/preload/IPC verifica elección explícita sin
+preselección, cancelación anterior a preparar, preparación/confirmación separadas,
+opciones no soportadas, baja, fallo de servicio y recuperación. Solo entrega el
+DTO público, sin K/ace/acg/token, vínculo de cuenta o transacción. Vitest: 465
+pruebas y 7 omisiones; PHPUnit: 171/1178; typecheck/lint/validación OpenSpec pasan.
+Los cambios de cuenta invalidan continuaciones y un commit tardío solicita parada
+local sin elevación. Cancelar solo devuelve el legado tras ambas pruebas y una
+última revalidación de cuenta antes de liberar la reserva.
+
+`agent-migration-results.json` conserva resultados públicos. **Todavía no se
+aceptan tareas adicionales** hasta revisar CI nativo/paquetes de los tres SO.
+El proveedor distribuible sigue indisponible: los arneses usan VM propia y caja
+AES de origen ficticia; no acreditan DPAPI/Llavero/libsecret. La integración común
+no completa instaladores/ACL/IPC finales, Mac, entrada general ni piloto físico.
+El avance permanece 25/57 (44 %) durante esta revisión.

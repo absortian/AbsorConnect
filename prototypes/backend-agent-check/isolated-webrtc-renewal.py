@@ -42,8 +42,11 @@ def main():
     parser.add_argument('--android-mapped-direct', action='store_true')
     parser.add_argument('--flutter-tests', action='store_true')
     parser.add_argument('--enrollment-transactions', action='store_true')
+    parser.add_argument('--protected-p2p-migration', action='store_true')
+    parser.add_argument('--migration-vm', type=Path)
     parser.add_argument('--mobile-runtime', action='store_true')
     args = parser.parse_args()
+    assert not args.protected_p2p_migration or args.protected_p2p_vm and args.protected_p2p_ui_control and not args.mobile_device, 'migration_requires_owned_vm_and_control'
     assert not args.enrollment_transactions or not (args.flutter_tests or args.protected_p2p_vm or args.secure_ipc_vm or args.linux_broker or args.linux_webrtc_vm or args.x11_worker_vm), 'choose_one_matrix'
     assert not args.protected_p2p_ui_control or args.protected_p2p_vm, 'ui_control_requires_owned_p2p_vm'
     assert not args.secure_ipc_ui_control or args.secure_ipc_vm, 'ui_control_requires_owned_ipc_vm'
@@ -108,12 +111,15 @@ def main():
             assert time.monotonic() < deadline, 'isolated_api_readiness_timeout'
             time.sleep(0.5)
         php_version = command(['docker', 'exec', container, 'php', '-r', 'echo PHP_VERSION;']).decode().strip()
-        if args.enrollment_transactions:
+        if args.migration_vm:
+            child_args=['python3','-B',str(Path(__file__).with_name('migration-check.py')),str(lab),str(args.migration_vm),'--api-base','http://127.0.0.1:'+str(port)]
+        elif args.enrollment_transactions:
             child_args=['python3','-B',str(Path(__file__).with_name('enrollment-transactions.py')),str(lab),'--api-base','http://127.0.0.1:'+str(port)]
         elif args.protected_p2p_vm:
             child_args=['python3','-B',str(Path(__file__).with_name('protected-webrtc.py')),str(lab),str(args.protected_p2p_vm),'--api-base','http://127.0.0.1:'+str(port),'--node',args.node]
             if args.protected_p2p_ui_status or args.protected_p2p_ui_control:child_args += ['--ui-status']
             if args.protected_p2p_ui_control:child_args += ['--ui-control']
+            if args.protected_p2p_migration:child_args += ['--migration']
             if args.mobile_device:child_args += ['--mobile-device',args.mobile_device]
             if args.mobile_runtime:child_args += ['--mobile-runtime']
             if args.turn_config:child_args += ['--turn-config',str(args.turn_config.resolve())]

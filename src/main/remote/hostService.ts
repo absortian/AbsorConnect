@@ -226,6 +226,18 @@ export class HostService {
       throw new Error('agent_migration_legacy_not_quiescent')
   }
 
+  /** Main ya verificó compensación API y retirada local; jamás se llama por un timeout. */
+  releaseAfterMigrationCompensation(): void {
+    if (this.lifetimeSessions.size || this.opening || this.ticking || this.drainFailed)
+      throw new Error('agent_migration_legacy_not_quiescent')
+    this.nativeReserved = false
+    this.agentOwned = false
+    this.localReservation = null
+    this.ownershipPersistenceFailed = false
+    this.registrationDirty = true
+    this.refresh()
+  }
+
   private async observeNativeOwnership(): Promise<boolean> {
     if (this.isAgentManaged()) return true
     try {

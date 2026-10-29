@@ -12,6 +12,9 @@ const h = vi.hoisted(() => ({
   start: vi.fn(),
   stop: vi.fn(),
   reserve: vi.fn(),
+  disable: vi.fn(),
+  intent: vi.fn(),
+  owned: undefined as undefined | (() => Promise<void>),
   managed: false,
   closed: false
 }))
@@ -44,8 +47,14 @@ vi.mock('../deviceIdentity', () => ({
 vi.mock('../remoteAccessStore', () => ({
   RemoteAccessStore: class {
     bindToAccount = h.bind
-    setEnabled = vi.fn()
+    setEnabled = h.disable
   }
+}))
+vi.mock('../migrationJournal', () => ({
+  MigrationJournal: class {
+    intentPresent = h.intent
+  },
+  migrationStatusSource: vi.fn()
 }))
 vi.mock('../platformSupport', () => ({
   createSupportMonitor: () => ({ check: vi.fn() }),
@@ -67,6 +76,9 @@ vi.mock('../agentStatusClient', () => ({
 }))
 vi.mock('../hostService', () => ({
   HostService: class {
+    constructor(deps: { onAgentOwned: () => Promise<void> }) {
+      h.owned = deps.onAgentOwned
+    }
     start = h.start
     stop = h.stop
     async reserveForLocalAgent(): Promise<void> {
@@ -85,10 +97,25 @@ beforeEach(() => {
   h.state = absentLocalAgent()
   h.closed = false
   h.managed = false
+  h.owned = undefined
+  h.intent.mockResolvedValue(false)
   h.read.mockImplementation(async () => h.state)
   h.load.mockResolvedValue(undefined)
   h.identity.mockResolvedValue({ id: 'legacy-device' })
 })
+it.each(['present', 'corrupt', 'absent'])(
+  'la reserva conserva el origen de migración %s',
+  async (mode) => {
+    if (mode === 'corrupt') h.intent.mockRejectedValue(Error('corrupt'))
+    else h.intent.mockResolvedValue(mode === 'present')
+    const runtime = await import('../hostRuntime')
+    await runtime.startRemoteHost()
+    await h.owned!()
+    if (mode === 'absent') expect(h.disable).toHaveBeenCalledExactlyOnceWith(false)
+    else expect(h.disable).not.toHaveBeenCalled()
+    await runtime.stopRemoteHost()
+  }
+)
 
 it('el arranque simultáneo se comparte y el modo legado conserva su identidad y cuenta', async () => {
   const runtime = await import('../hostRuntime')

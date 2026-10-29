@@ -3,7 +3,14 @@ import { CloudResult, SessionState, SignInResult } from '../../shared/types'
 import { closeAllSsh } from '../ssh'
 import { ApiError, apiRequest, errorCode } from './apiClient'
 import { clearConnections, loadConnections } from './cloudStore'
-import { authRequest, currentSession, deviceName, forgetSession, loadSession, storeSession } from './session'
+import {
+  authRequest,
+  currentSession,
+  deviceName,
+  forgetSession,
+  loadSession,
+  storeSession
+} from './session'
 
 /** Estado al arrancar: con sesión guardada se precargan las conexiones, que de paso la validan. */
 export async function getSessionState(): Promise<SessionState> {
@@ -15,21 +22,50 @@ export async function getSessionState(): Promise<SessionState> {
   } catch (error) {
     // 401: caducó o se revocó con la app cerrada (expireSession ya la ha olvidado). Cualquier
     // otro fallo (sin red, 5xx, URL mal configurada) es "servicio no disponible", con reintento
-    if (error instanceof ApiError && error.status === 401) return { state: 'signed-out', expired: true }
+    if (error instanceof ApiError && error.status === 401)
+      return { state: 'signed-out', expired: true }
     return { state: 'unreachable' }
   }
 }
 
+let signingIn = false
+let accountEpoch = 0
 async function signIn(apiPath: string, email: string, password: string): Promise<SignInResult> {
+  if (signingIn) return { ok: false, code: 'busy' }
+  signingIn = true
+  const epoch = accountEpoch
+  const previous = currentSession()
   try {
     const result = await apiRequest<{ token: string; user: { email: string } }>('POST', apiPath, {
       body: { email, password, deviceName: deviceName() }
     })
+    if (currentSession() !== previous || epoch !== accountEpoch) {
+      void apiRequest('POST', '/api/auth/logout', { token: result.token }).catch(() => {})
+      return { ok: false, code: 'account_changed' }
+    }
+    let expectedEpoch = epoch
+    if (previous) {
+      const { remoteDone } = await endLocalSession('signed_out')
+      expectedEpoch = epoch + 1
+      await remoteDone
+      void apiRequest('POST', '/api/auth/logout', { token: previous.token }).catch(() => {})
+    }
+    if (accountEpoch !== expectedEpoch || currentSession() !== null) {
+      void apiRequest('POST', '/api/auth/logout', { token: result.token }).catch(() => {})
+      return { ok: false, code: 'account_changed' }
+    }
     clearConnections()
     await storeSession({ token: result.token, email: result.user.email })
+    if (accountEpoch !== expectedEpoch) {
+      if (currentSession()?.token === result.token) await forgetSession()
+      void apiRequest('POST', '/api/auth/logout', { token: result.token }).catch(() => {})
+      return { ok: false, code: 'account_changed' }
+    }
     return { ok: true, email: result.user.email }
   } catch (error) {
     return { ok: false, code: errorCode(error) }
+  } finally {
+    signingIn = false
   }
 }
 
@@ -51,6 +87,10 @@ export type AccountExit = 'signed_out' | 'expired' | 'deleted'
  */
 type AccountExitHandler = (exit: AccountExit, token: string | null) => Promise<void>
 let onAccountExit: AccountExitHandler = async () => {}
+let onPasswordChanged: () => Promise<void> = async () => {}
+export function setAccountPasswordChangeHandler(handler: () => Promise<void>): void {
+  onPasswordChanged = handler
+}
 
 export function setAccountExitHandler(handler: AccountExitHandler): void {
   onAccountExit = handler
@@ -62,6 +102,7 @@ export function setAccountExitHandler(handler: AccountExitHandler): void {
  * baja el equipo) sigue en segundo plano: se devuelve para no revocar la sesión antes.
  */
 async function endLocalSession(exit: AccountExit): Promise<{ remoteDone: Promise<void> }> {
+  accountEpoch++
   const remoteDone = onAccountExit(exit, currentSession()?.token ?? null).catch(() => undefined)
   clearConnections()
   closeAllSsh()
@@ -88,9 +129,14 @@ export function expireSession(): void {
   for (const window of BrowserWindow.getAllWindows()) window.webContents.send('session-expired')
 }
 
-export async function changePassword(currentPassword: string, newPassword: string): Promise<CloudResult> {
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string
+): Promise<CloudResult> {
+  const before = currentSession()
   try {
     await authRequest('PUT', '/api/me/password', { currentPassword, newPassword })
+    if (before && currentSession() === before) await onPasswordChanged().catch(() => undefined)
     return { ok: true }
   } catch (error) {
     return { ok: false, code: errorCode(error) }

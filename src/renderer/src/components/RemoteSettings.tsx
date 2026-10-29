@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import AgentSetup from './AgentSetup'
 import { AlertTriangle, KeyRound, Loader2 } from 'lucide-react'
 import { LocalTravelReadiness } from './LocalTravelReadiness'
 import type { LocalAgentStopResult } from '../../../shared/remote/localAgent'
@@ -149,6 +150,13 @@ export default function RemoteSettings(): React.JSX.Element {
     <>
       {remote && (
         <LocalTravelReadiness agent={remote.localAgent} agentOwned={remote.agentOwned ?? false} />
+      )}
+      {remote && (
+        <AgentSetup
+          signedIn={remote.signedIn}
+          hasPassword={remote.hasPassword}
+          encrypted={remote.encryptionAvailable}
+        />
       )}
       <div className="settings-section">
         <h3>{t('background.title')}</h3>

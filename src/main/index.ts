@@ -12,7 +12,8 @@ import {
   login,
   logout,
   register,
-  setAccountExitHandler
+  setAccountExitHandler,
+  setAccountPasswordChangeHandler
 } from './cloud/account'
 import { getMigrationOffer, migrateLocalConnections } from './cloud/migration'
 import { setUnauthorizedHandler } from './cloud/apiClient'
@@ -68,7 +69,8 @@ import {
   remoteHost,
   signOutRemoteHost,
   startRemoteHost,
-  stopRemoteHost
+  stopRemoteHost,
+  cutNativeHostForAccount
 } from './remote/hostRuntime'
 import { setupRemoteSettingsIpc } from './remote/remoteSettings'
 import { closeAllViewers, isViewerWindow, setupControllerIpc } from './remote/controllerRuntime'
@@ -171,6 +173,9 @@ app.whenReady().then(async () => {
     closeAllViewers()
     await signOutRemoteHost(exit, token)
   })
+  setAccountPasswordChangeHandler(async () => {
+    await cutNativeHostForAccount()
+  })
   ipcMain.handle('get-session', async () => await getSessionState())
   // Tras entrar, el control remoto de este PC se liga a esa cuenta y se registra ya en ella
   const afterSignIn = async (result: SignInResult): Promise<SignInResult> => {
@@ -186,8 +191,7 @@ app.whenReady().then(async () => {
   )
   ipcMain.handle(
     'register',
-    async (_, email: string, password: string) =>
-      await afterSignIn(await register(email, password))
+    async (_, email: string, password: string) => await afterSignIn(await register(email, password))
   )
   ipcMain.handle('logout', async () => await logout())
   ipcMain.handle(

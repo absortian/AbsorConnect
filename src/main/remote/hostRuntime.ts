@@ -24,6 +24,11 @@ import { MigrationJournal, migrationStatusSource } from './migrationJournal'
 import { AgentControlClient, installedAgentControlSource } from './agentControlClient'
 import type { LocalAgentStopResult } from '../../shared/remote/localAgent'
 import { absentLocalAgent, type LocalAgentSnapshot } from '../../shared/remote/localAgent'
+import { MigrationCoordinator } from './migrationCoordinator'
+import { installedMigrationProvider } from './migrationProvider'
+import { accountMigrationApi } from './migrationApi'
+import { apiBaseUrl } from '../cloud/apiClient'
+import { NativeAccountGuard } from './nativeAccountGuard'
 
 let service: HostService | null = null
 let store: RemoteAccessStore | null = null
@@ -31,7 +36,26 @@ let identity: DeviceIdentity | null = null
 let monitor: SupportMonitor | null = null
 let nativeClient: AgentStatusClient | null = null
 let migrationJournal: MigrationJournal | null = null
+let migrationCoordinator: MigrationCoordinator | null = null
 const nativeControl = new AgentControlClient(installedAgentControlSource())
+let latestNative = absentLocalAgent()
+const accountGuard = new NativeAccountGuard({
+  snapshot: () => latestNative,
+  stop: (id) => nativeControl.stop(id),
+  reserved: (stopped) => {
+    latestNative = {
+      ...latestNative,
+      ownership: 'agent',
+      phase: stopped ? 'responding' : 'unverified',
+      state: stopped ? 'revoked' : null,
+      active: false,
+      readyForUnattended: false
+    }
+    setLocalAgentState(latestNative)
+    refreshAgentUpdateGuard()
+    void service?.reserveForLocalAgent()
+  }
+})
 let keepAwakeId: number | null = null
 
 function setKeepAwake(on: boolean): void {
@@ -76,6 +100,7 @@ async function start(): Promise<void> {
     migrationStatusSource(migrationJournal, installedAgentSource())
   )
   const native = await nativeClient.read()
+  latestNative = native
   if (!stopRequested) {
     setLocalAgentState(native)
     refreshAgentUpdateGuard()
@@ -114,7 +139,15 @@ async function start(): Promise<void> {
         iceServers: () => api.iceServers(),
         language: getLanguage
       }),
-    onAgentOwned: () => hostStore.setEnabled(false),
+    onAgentOwned: async () => {
+      // Una intención ya reserva el host al reiniciar; no reescribir el origen que vamos a importar.
+      try {
+        if (await migrationJournal?.intentPresent()) return
+      } catch {
+        return
+      } // Preservar también el origen si la intención requiere recuperación.
+      await hostStore.setEnabled(false)
+    },
     nativeAgent: () => nativeClient?.read() ?? Promise.resolve(absentLocalAgent()),
     setKeepAwake,
     setStatus: (status, controller) => {
@@ -127,10 +160,41 @@ async function start(): Promise<void> {
       )
     }
   })
+  const hostService = service
+  const journal = migrationJournal
+  migrationCoordinator = new MigrationCoordinator({
+    session: currentSession,
+    origin: apiBaseUrl,
+    journal,
+    identity: deviceIdentity,
+    store: hostStore,
+    host: hostService,
+    provider: installedMigrationProvider(),
+    api: accountMigrationApi(),
+    stopAfterSourceChange: (target) => nativeControl.stop(target.deviceId),
+    compensated: async (revalidate) => {
+      nativeClient?.close()
+      nativeClient = new AgentStatusClient(migrationStatusSource(journal, installedAgentSource()))
+      const state = await nativeClient.read()
+      if (state.ownership !== 'legacy') throw Error('agent_migration_other_authority')
+      revalidate()
+      setLocalAgentState(state)
+      latestNative = state
+      hostService.releaseAfterMigrationCompensation()
+      nativeClient.watch((next) => {
+        latestNative = next
+        setLocalAgentState(next)
+        refreshAgentUpdateGuard()
+        if (next.ownership !== 'legacy') void hostService.reserveForLocalAgent()
+      })
+      refreshAgentUpdateGuard()
+    }
+  })
   if (native.ownership !== 'legacy') await service.reserveForLocalAgent()
   if (stopRequested || nativeClient.isClosed) return
   service.start()
   nativeClient.watch((state) => {
+    latestNative = state
     setLocalAgentState(state)
     refreshAgentUpdateGuard()
     if (state.ownership !== 'legacy') void service?.reserveForLocalAgent()
@@ -140,6 +204,7 @@ async function start(): Promise<void> {
 /** Para el servicio y corta la sesión en curso (salir de la app; cerrar sesión, tarea 4.10). */
 export async function stopRemoteHost(reason: HostCloseReason = 'stopped'): Promise<void> {
   stopRequested = true
+  migrationCoordinator?.invalidate()
   nativeClient?.close()
   const current = service
   service = null
@@ -157,16 +222,35 @@ export async function stopRemoteHost(reason: HostCloseReason = 'stopped'): Promi
  *   - Con la cuenta borrada, el servicio ya borró sus equipos.
  */
 export async function signOutRemoteHost(exit: AccountExit, token: string | null): Promise<void> {
+  migrationCoordinator?.invalidate()
+  const stopping = accountGuard.cut()
   const current = service
-  if (!current) return
+  if (!current) {
+    await stopping
+    return
+  }
   // Lo primero, antes de esperar a nada: así la sesión se corta en el momento
   const device = await current.suspend()
+  await stopping
   if (exit === 'signed_out' && token && device) {
     await new DeviceApi(() => token).remove(device).catch(() => undefined)
   }
   if (exit === 'expired' && (await store?.isEnabled()) && !getMainWindow()?.isVisible()) {
     notifyAccountExpired(await getLanguage(), showMainWindow)
   }
+}
+
+/** Solo Main; no expone dependencias/almacenes a preload. */
+export function agentSetup(): MigrationCoordinator | null {
+  return migrationCoordinator
+}
+
+/** Cuenta/contraseña/revocación: sin elevación ni token en el servicio; nunca reanuda el agente. */
+export async function cutNativeHostForAccount(deviceId?: string): Promise<LocalAgentStopResult> {
+  if (deviceId !== undefined && latestNative.deviceId !== deviceId)
+    return { ok: false, code: 'local_agent_unverified' }
+  migrationCoordinator?.invalidate()
+  return accountGuard.cut(deviceId)
 }
 
 /** Para Ajustes (tarea 6.2), el cierre de sesión (4.10) y la lista de equipos (marcar este PC). */

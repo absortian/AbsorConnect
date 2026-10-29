@@ -32,8 +32,9 @@ def load(name,path):
 
 
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('lab',type=Path);parser.add_argument('vm',type=Path);parser.add_argument('--api-base',required=True);parser.add_argument('--node',default='node');parser.add_argument('--mobile-device');parser.add_argument('--mobile-runtime',action='store_true');parser.add_argument('--turn-config',type=Path);parser.add_argument('--stun-config',type=Path);parser.add_argument('--android-mapped-direct',action='store_true');parser.add_argument('--ui-status',action='store_true');parser.add_argument('--ui-control',action='store_true');args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument('lab',type=Path);parser.add_argument('vm',type=Path);parser.add_argument('--api-base',required=True);parser.add_argument('--node',default='node');parser.add_argument('--mobile-device');parser.add_argument('--mobile-runtime',action='store_true');parser.add_argument('--turn-config',type=Path);parser.add_argument('--stun-config',type=Path);parser.add_argument('--android-mapped-direct',action='store_true');parser.add_argument('--ui-status',action='store_true');parser.add_argument('--ui-control',action='store_true');parser.add_argument('--migration',action='store_true');args=parser.parse_args()
     assert not args.ui_control or args.ui_status
+    assert not getattr(args,'migration',False) or args.ui_control and not args.mobile_device
     mobile_module=load('mobile_protected',Path(__file__).with_name('mobile-protected-runner.py')) if args.mobile_device else None
     assert not args.ui_status or not args.mobile_device, 'ui_status_requires_desktop_controller'
     assert not args.mobile_runtime or args.mobile_device, 'runtime_requires_mobile_device'
@@ -75,7 +76,7 @@ def main():
     output=lab/('protected-webrtc-'+uuid.uuid4().hex);output.mkdir(mode=0o700)
     installer=(ROOT/'agent/linux-secure-lab/install-vm.py').read_text()
     owned={};signals={};server=thread=tunnel=child=None;manifest_path=None;work=None;mapping=None
-    installed=False;locked=False;errors=[];marker_created=False;result=None;target=None
+    installed=False;locked=False;errors=[];marker_created=False;migration_helper_created=False;result=None;target=None
     build=json.loads((directory/'linux-webrtc-build.json').read_text())
     # No atribuir el resultado a fuentes que no corresponden al binario probado.
     for name,digest in build['artifactSourceSha256'].items():
@@ -121,6 +122,24 @@ def main():
                 root("from pathlib import Path;Path('/var/lib/absorconnect-protected-worker-lab/result.json').write_bytes(b'')")
                 vm.remote('sudo -n systemctl start '+WORKER)
                 if name=='correct-auto-reconnect':item['autoWorkerReady'].set()
+            elif args.migration and name=='correct':
+                node_input={'accountToken':item['owner'],'deviceId':item['path'].split('/')[-1],'deviceKey':item['deviceKey'],'key':base64.b64encode(item['key']).decode(),'salt':item['salt'],'origin':'http://127.0.0.1:28022'}
+                node_input['stage']='prepare'
+                run=subprocess.run(vm.SSH+['ABSOR_CONNECT_API_URL=http://127.0.0.1:28022 '+ui_node+' '+migration_runtime],input=json.dumps(node_input).encode(),capture_output=True,timeout=100)
+                if run.returncode:
+                    p=output/'migration-runtime-stderr.txt';p.write_bytes(run.stderr);p.chmod(0o600)
+                assert run.returncode==0,'migration_main_runtime_failed'
+                assert json.loads(run.stdout)['lostPrepareReply'];installed=True
+                assert vm.remote('systemctl show '+WORKER+' -p ActiveState --value').strip()==b'inactive'
+                imported=json.loads(root("from pathlib import Path;print(Path('/var/lib/absorconnect-secure-lab/attempts.json').read_text())"))
+                assert len(imported['failures'])==4 and imported['locked_until'] is None
+                node_input['stage']='commit'
+                run=subprocess.run(vm.SSH+['ABSOR_CONNECT_API_URL=http://127.0.0.1:28022 '+ui_node+' '+migration_runtime],input=json.dumps(node_input).encode(),capture_output=True,timeout=100)
+                if run.returncode:
+                    p=output/'migration-recovery-stderr.txt';p.write_bytes(run.stderr);p.chmod(0o600)
+                assert run.returncode==0,'migration_main_recovery_failed'
+                item['migration']=json.loads(run.stdout)
+                item['brokerPid']=int(vm.remote('systemctl show '+SERVICE+' -p MainPID --value'))
             else:
                 install=json.loads(root('import sys;sys.argv=["install-vm.py",'+repr('install-native-ui-control' if args.ui_control else 'install-native-ui' if args.ui_status else 'install-native')+'];\n'+installer,json.dumps(data).encode()))
                 installed=True;assert install['brokerUid'] not in (0,1000)
@@ -196,7 +215,7 @@ print(json.dumps({'survivedBrokerStart':True,'brokerNotReactivated':True}))
             item=owned[name]={'owner':account['token'],'password':password,'key':secrets.token_bytes(32),'salt':base64.b64encode(secrets.token_bytes(16)).decode(),'cut':threading.Event()}
             if mobile_module:
                 item['key']=hashlib.pbkdf2_hmac('sha256','contraseña-del-pc'.encode(),base64.b64decode(item['salt']),600000)
-            item['path']='/api/devices/'+str(uuid.uuid4());device_key=secrets.token_urlsafe(32)
+            item['path']='/api/devices/'+str(uuid.uuid4());device_key=secrets.token_urlsafe(32);item['deviceKey']=device_key
             info={'name':'Host IPC P2P propio','platform':'linux','appVersion':'0.1.0','remote':{'state':'available','features':{'clipboard':False,'files':False,'audio':False}}}
             assert request('PUT',item['path'],info,item['owner'],device_key)[0]==200
             status,enrollment=request('POST',item['path']+'/agent-enrollments',{},item['owner'],device_key);assert status==201;item['grant']=enrollment['enrollmentToken']
@@ -273,6 +292,8 @@ print(json.dumps({'survivedBrokerStart':True,'brokerNotReactivated':True}))
                 size=int(self.headers.get('Content-Length','0'));assert 0<size<=limit;return json.loads(self.rfile.read(size))
             def item(self):return next((v for v in owned.values() if v.get('agent') and self.headers.get('Authorization')=='Bearer '+v['agent']),None)
             def do_GET(self):
+                if args.migration and re.fullmatch('/api/devices/[0-9a-f-]{36}/agent-enrollment-transactions/[0-9a-f-]{36}',self.path):
+                    owner=self.headers.get('Authorization','').removeprefix('Bearer ');key=self.headers.get('X-Device-Key');status,data=request('GET',self.path,token=owner,key=key);self.reply(status,data);return
                 if mobile and mobile.get(self):return
                 name=self.path.removeprefix('/signal/')
                 if name in signals and self.path=='/signal/'+name:
@@ -291,6 +312,11 @@ print(json.dumps({'survivedBrokerStart':True,'brokerNotReactivated':True}))
                 if status==204:self.send_response(204);self.end_headers()
                 else:self.reply(status,data)
             def do_POST(self):
+                if args.migration and re.fullmatch('/api/devices/[0-9a-f-]{36}/agent-enrollment-transactions/[0-9a-f-]{36}',self.path):
+                    owner=self.headers.get('Authorization','').removeprefix('Bearer ');key=self.headers.get('X-Device-Key');status,data=request('POST',self.path,{},owner,key)
+                    if status==201:
+                        item=next(v for v in owned.values() if self.path.startswith(v['path']+'/') and v['owner']==owner);item['grant']=data['enrollmentToken']
+                    self.reply(status,data);return
                 if mobile and mobile.post(self):return
                 if self.path=='/api/host-agent/enroll':
                     body=self.body(4096);item=next(v for v in owned.values() if v['grant']==body.get('enrollmentToken'))
@@ -390,6 +416,20 @@ print(json.dumps({'survivedBrokerStart':True,'brokerNotReactivated':True}))
             bundled.chmod(0o600)
             ui_runtime='/home/absorlab/AbsorConnectLab/secure-ipc-staging/ui-main-runtime.cjs'
             vm.remote('cat > '+ui_runtime,bundled.read_bytes())
+        if args.migration:
+            source=ROOT/'prototypes/backend-agent-check/migration-main-runtime.ts'
+            migration_bundle=output/'migration-main-runtime.cjs'
+            subprocess.run([str(ROOT/'node_modules/.bin/esbuild'),str(source),'--bundle','--platform=node','--format=cjs','--target=node22','--outfile='+str(migration_bundle)],capture_output=True,check=True,timeout=30)
+            migration_bundle.chmod(0o600)
+            migration_runtime='/home/absorlab/AbsorConnectLab/secure-ipc-staging/migration-main-runtime.cjs'
+            vm.remote('cat > '+migration_runtime,migration_bundle.read_bytes())
+            payload=io.BytesIO()
+            with tarfile.open(fileobj=payload,mode='w') as tar:
+                files={'migration-vm.py':(ROOT/'agent/linux-secure-lab/migration-vm.py').read_bytes(),'install-vm.py':installer.encode(),'manifest.json':json.dumps({n:hashlib.sha256(b).hexdigest() for n,b in artifacts.items()}).encode(),**{'artifacts/'+n:b for n,b in artifacts.items()}}
+                for name,raw in files.items():
+                    info=tarfile.TarInfo(name);info.size=len(raw);info.mode=0o444;info.uid=0;info.gid=0;tar.addfile(info,io.BytesIO(raw))
+            root("from pathlib import Path;import tarfile,io,sys,os;home=Path('/opt/absorconnect-migration-lab');state=Path('/var/lib/absorconnect-migration-lab');assert not home.exists() and not state.exists();home.mkdir(mode=0o755);state.mkdir(mode=0o755);tarfile.open(fileobj=io.BytesIO(sys.stdin.buffer.read()),mode='r:').extractall(home)",payload.getvalue())
+            migration_helper_created=True
         # Este manifiesto contiene únicamente rutas loopback y una cadena pública de compatibilidad.
         manifest={name:{'origin':origin,'credential':'acg_'+'a'*43,'apiSignaling':True,'signalUrl':origin+'/signal/'+name,'faultUrl':origin+'/fault/'+name,**({'uiStatus':True} if args.ui_status and name=='correct' else {})} for name in names}
         manifest_path=output/'controller.json';manifest_path.write_text(json.dumps(manifest));manifest_path.chmod(0o600)
@@ -449,6 +489,9 @@ print(json.dumps({'survivedBrokerStart':True,'brokerNotReactivated':True}))
             controller=next(c for c in result['cases'] if c['name']=='api-revoked')['controller']
             assert controller['channelClosedAfterFault'] and controller['cutAfterFaultMilliseconds']<2000
             result['explicitLocalStop']={**proof,'controllerCutAfterMilliseconds':controller['cutAfterFaultMilliseconds'],'apiRevokedCaseReplacedByLocalStopWithApiUnavailable':True}
+        if args.migration:
+            proof=owned['correct']['migration'];assert proof['failuresImported']==4 and proof['sameDevice'] and proof['sourceUnchanged'] and proof['payloadZeroed']
+            result['migration']=proof
         result['fixtureSourceSha256']=source_hashes
         if args.mobile_runtime:result['mobileRuntimeSourceSha256']=mobile_runtime_hashes
         if mapping:result.update({'directVmNatMapping':True,'vmNatMappedPortsTotal':mapping.total,'vmNatMappingsRemoved':not mapping.ports})
@@ -459,6 +502,9 @@ print(json.dumps({'survivedBrokerStart':True,'brokerNotReactivated':True}))
             try:mapping.close()
             except Exception:errors.append('vm_nat_cleanup')
         cleanup_install()
+        if migration_helper_created:
+            root("from pathlib import Path;import shutil,json,subprocess;p=Path('/opt/absorconnect-migration-lab');assert not p.is_symlink() and (p/'migration-vm.py').is_file();state=Path('/var/lib/absorconnect-migration-lab')\nif Path('/opt/absorconnect-secure-lab').exists():\n v=json.loads((state/'receipt.json').read_text());r=subprocess.run(['/usr/bin/python3','-I','-B',str(p/'migration-vm.py'),'remove'],input=json.dumps({'transactionId':v['transactionId'],'deviceId':v['deviceId']}).encode(),capture_output=True,timeout=30);assert r.returncode==0\nassert not Path('/etc/absorconnect-secure-lab').exists();shutil.rmtree(p);assert not state.is_symlink();shutil.rmtree(state)",timeout=40)
+            vm.remote('rm -rf /home/absorlab/AbsorConnectLab/migration-main-state')
         if locked:vm.logout();vm.login()
         vm.remote('rm -rf /home/absorlab/AbsorConnectLab/secure-ipc-staging')
         if marker_created:root("from pathlib import Path;p=Path('/run/absorconnect-owned-vm-lab');assert p.read_bytes()==b'absorconnect-native-window-fixture-v1\\n';p.unlink()")

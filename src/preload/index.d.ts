@@ -32,6 +32,14 @@ declare global {
       openViewer: (deviceId: string, deviceName: string) => Promise<boolean>
       remoteSettings: () => Promise<RemoteSettingsResult>
       stopLocalAgent: () => Promise<LocalAgentStopResult>
+      agentSetupState: () => Promise<import('../shared/remote/agentSetup').AgentSetupResult>
+      prepareAgent: (
+        choice: import('../shared/remote/agentSetup').AgentSetupChoice
+      ) => Promise<import('../shared/remote/agentSetup').AgentSetupResult>
+      recoverAgentSetup: () => Promise<import('../shared/remote/agentSetup').AgentSetupResult>
+      commitAgentSetup: () => Promise<import('../shared/remote/agentSetup').AgentSetupResult>
+      cancelAgentSetup: () => Promise<import('../shared/remote/agentSetup').AgentSetupResult>
+      retireLocalAgent: () => Promise<import('../shared/remote/agentSetup').AgentSetupResult>
       setRemotePassword: (password: string) => Promise<RemoteSettingsResult>
       setRemoteEnabled: (enabled: boolean) => Promise<RemoteSettingsResult>
       updateRemoteSettings: (changes: RemoteSettingsChanges) => Promise<RemoteSettingsResult>

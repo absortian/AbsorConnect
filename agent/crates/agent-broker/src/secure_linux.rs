@@ -157,6 +157,7 @@ fn new_grant_instance() -> Result<String, ()> {
     Ok(value)
 }
 struct Authority {
+    host_name: String,
     agent: Agent,
     verifier: Verifier<ProtectedAttemptStore, WallClock>,
     handle: Option<SessionHandle>,
@@ -391,10 +392,7 @@ impl Authority {
                     Ok(v) => v,
                     Err(e) => return Ok(auth_denied(e)),
                 };
-                match self
-                    .verifier
-                    .begin(binding, "AbsorConnect isolated IPC diagnostic".into())
-                {
+                match self.verifier.begin(binding, self.host_name.clone()) {
                     Ok(hello) => {
                         self.audit.append(Event::WorkerStarted).map_err(|_| ())?;
                         Ok(Reply::Hello {
@@ -539,6 +537,7 @@ pub fn run() -> Result<i32, ()> {
     let listener = linux::activation_listener(Path::new(SOCKET)).map_err(|_| ())?;
     let key = WrappingKey::from_bytes(&credentials("wrapping.key", 32)?).map_err(|_| ())?;
     let bundle = secrets::open(&credentials("host.sealed.json", 8192)?, &key).map_err(|_| ())?;
+    let host_name = bundle.host_name().to_owned();
     #[cfg(feature = "ui-status-lab")]
     let public_device_id = bundle.host_id().to_owned();
     let (api, verifier) = bundle
@@ -587,6 +586,7 @@ pub fn run() -> Result<i32, ()> {
         _ => return Err(()),
     };
     let mut authority = Authority {
+        host_name,
         agent: RenewingAgent::new(BootClock, api),
         verifier,
         handle: None,

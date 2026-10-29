@@ -465,5 +465,36 @@
     },
     "declaredYes": "declarada por el agente, sin certificar",
     "declaredNo": "no declarada"
+  },
+  "agentSetup": {
+    "title": "Acceso desatendido",
+    "notCertified": "El servicio nativo sigue en validación. Esta configuración no está certificada para viajar sin acceso alternativo.",
+    "phase": {
+      "unavailable": "Instalador del agente todavía no disponible para este equipo.",
+      "idle": "Modo de usuario. Puedes preparar el traspaso cuando haya un componente compatible.",
+      "preparing": "Preparando el traspaso. El host de usuario está reservado.",
+      "prepared": "Traspaso preparado; falta confirmar la activación.",
+      "committed": "Traspaso confirmado. Consulta también el estado real del agente y sus permisos.",
+      "compensating": "Retirada pendiente de confirmación local y en la cuenta.",
+      "intervention_required": "Requiere intervención: no se habilitará otro host automáticamente."
+    },
+    "packageUnavailable": "Los prototipos de laboratorio no se instalan desde esta pantalla. Los instaladores finales por sistema siguen pendientes.",
+    "cancelled": "Operación cancelada. Se conserva el estado anterior.",
+    "error": "No se pudo confirmar la operación. Revisa el estado y recupera o retira el traspaso; no vuelvas a dar de alta otro equipo.",
+    "signIn": "Inicia sesión en la cuenta propietaria.",
+    "password": "Crea primero la contraseña de este PC en el modo de usuario.",
+    "encryption": "Hace falta un almacén seguro disponible para importar la contraseña.",
+    "confirmChoice": "Elige explícitamente la confirmación de cada conexión",
+    "confirmRequired": "Pedir confirmación delante del PC (requiere una persona allí).",
+    "confirmUnattended": "Permitir conexiones sin confirmación local, después de verificar cuenta y contraseña del PC.",
+    "adminPermission": "El sistema pedirá permiso de administrador cuando el instalador compatible esté disponible. Preparar conserva identidad, contraseña, opciones y bloqueo; todavía no activa el trabajador.",
+    "prepare": "Preparar traspaso",
+    "commit": "Confirmar activación",
+    "cancel": "Retirar este traspaso",
+    "policyIntervention": "Las opciones importadas requieren funciones que este componente aún no admite. Se conservan y el trabajador no se activa.",
+    "recoveryHint": "La recuperación necesita el componente protegido y la sesión de cuenta que inició el alta. Una respuesta perdida no autoriza a regenerar identidad o contraseña.",
+    "recover": "Comprobar recuperación",
+    "retire": "Dar de baja el agente de este PC",
+    "passwordChange": "Para cambiar la contraseña del PC, retira primero el agente, cambia la contraseña en el modo de usuario y realiza una nueva alta. Cerrar sesión o revocar exige también una nueva alta."
   }
 }
