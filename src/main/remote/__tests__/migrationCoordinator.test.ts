@@ -75,7 +75,7 @@ beforeEach(async () => {
     compensated: async () => {
       counter.legacyResume++
     },
-    quiesceTimeoutMs: 30
+    quiesceTimeoutMs: 5000
   }
 })
 afterEach(async () => {
@@ -148,6 +148,7 @@ describe.skipIf(process.platform === 'win32')('coordinador durable sin secretos'
     if (phase === 'drain' || phase === 'snapshot') expect(counter.apiCreate).toBe(0)
   })
   it('un drenaje tardío no continúa después del plazo ni lee el material', async () => {
+    d.quiesceTimeoutMs = 30
     let finish!: () => void
     d.host.quiesceForMigration = () =>
       new Promise<void>((resolve) => {
