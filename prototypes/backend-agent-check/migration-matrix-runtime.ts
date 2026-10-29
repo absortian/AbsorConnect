@@ -92,9 +92,9 @@ async function main():Promise<void>{
         "from pathlib import Path;p=Path('/etc/absorconnect-secure-lab');assert (p/'owned-installation').read_bytes()==b'absorconnect-encrypted-host-lab-v1\\n';f=p/'host.sealed.json';b=f.read_bytes();assert 0<len(b)<=8192;f.write_bytes(b[:-2]+b'XX')"],{timeout:3000,maxBuffer:512})
       check(!(await c.commit()).ok);check((await provider.inspect())?.phase==='intervention_required')
     }
-    if(input.scenario==='commit-account-switch'){
+    if(['commit-account-switch','commit-account-switch-lost'].includes(input.scenario)){
       const commit=provider.commit
-      provider.commit=async(target)=>{const value=await commit(target);session=null;c.invalidate();return value}
+      provider.commit=async(target)=>{const value=await commit(target);session=null;c.invalidate();if(input.scenario==='commit-account-switch-lost')throw Error('lost_reply');return value}
       check(!(await c.commit()).ok);session=sourceSession;c=new MigrationCoordinator(deps);check((await c.recover()).ok)
     }
     if(input.scenario==='unsupported-policy')check(! (await c.commit()).ok)

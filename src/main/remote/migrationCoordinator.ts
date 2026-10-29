@@ -254,27 +254,30 @@ export class MigrationCoordinator {
       )
         throw Error('agent_migration_not_consumed')
       this.check(session, epoch, record)
-      const receipt = await this.d.provider.commit({
-        deviceId: record.deviceId,
-        transactionId: record.transactionId
-      })
       try {
+        const receipt = await this.d.provider.commit({
+          deviceId: record.deviceId,
+          transactionId: record.transactionId
+        })
         this.check(session, epoch, record)
-      } catch (error) {
-        // No pedir elevación al salir de la cuenta: la parada es el IPC local del dueño.
-        await this.d
-          .stopAfterSourceChange?.({
-            deviceId: record.deviceId,
-            transactionId: record.transactionId
-          })
-          .catch(() => undefined)
-        throw error
+        if (!matches(receipt, record) || receipt.phase !== 'committed')
+          throw Error('agent_migration_commit_unconfirmed')
+        await this.d.journal.advance(record, 'committed')
+        this.check(session, epoch, record)
+        this.canCommit = false
+      } finally {
+        try {
+          this.check(session, epoch, record)
+        } catch {
+          // También si se perdió la respuesta de commit; nunca pedir elevación al salir.
+          await this.d
+            .stopAfterSourceChange?.({
+              deviceId: record.deviceId,
+              transactionId: record.transactionId
+            })
+            .catch(() => undefined)
+        }
       }
-      if (!matches(receipt, record) || receipt.phase !== 'committed')
-        throw Error('agent_migration_commit_unconfirmed')
-      await this.d.journal.advance(record, 'committed')
-      this.check(session, epoch, record)
-      this.canCommit = false
     })
   }
   cancel(): Promise<AgentSetupResult> {

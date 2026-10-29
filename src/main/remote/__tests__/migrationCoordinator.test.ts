@@ -254,6 +254,25 @@ describe.skipIf(process.platform === 'win32')('coordinador durable sin secretos'
     expect((await d.journal.read())?.phase).toBe('prepared')
     expect(counter.legacyResume).toBe(0)
   })
+  it('también para tras cambiar cuenta y perder la respuesta del commit nativo', async () => {
+    const c = new MigrationCoordinator(d)
+    await c.begin(choice)
+    const stop = vi.fn(async () => ({ ok: true }))
+    d.stopAfterSourceChange = stop
+    const commit = d.provider.commit
+    d.provider.commit = async (target) => {
+      await commit(target)
+      session = null
+      c.invalidate()
+      throw Error('lost_reply')
+    }
+    expect((await c.commit()).ok).toBe(false)
+    expect(stop).toHaveBeenCalledExactlyOnceWith({
+      deviceId: receipt!.deviceId,
+      transactionId: receipt!.transactionId
+    })
+    expect(counter.legacyResume).toBe(0)
+  })
   it('dos begin concurrentes no piden dos grants y el proveedor ausente no toca identidad', async () => {
     const c = new MigrationCoordinator(d)
     const results = await Promise.all([c.begin(choice), c.begin(choice)])

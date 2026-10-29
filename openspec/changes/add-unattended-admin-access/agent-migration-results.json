@@ -12,7 +12,7 @@
     "targetSecureStorage": "AES-GCM/LoadCredential root real en VM"
   },
   "localValidation": {
-    "vitestPassed": 465,
+    "vitestPassed": 466,
     "vitestSkipped": 7,
     "phpunitTests": 171,
     "phpunitAssertions": 1178,
@@ -188,7 +188,7 @@
         "lockSurvivedBrokerRestart": false,
         "newPasswordVerified": true,
         "oldPasswordRejected": true,
-        "localStopAckMilliseconds": 60,
+        "localStopAckMilliseconds": 56,
         "readyForUnattended": false
       },
       {
@@ -208,6 +208,20 @@
       {
         "schema": 1,
         "scenario": "commit-account-switch",
+        "passed": true,
+        "sourceUnchanged": true,
+        "legacyCalls": 0,
+        "compensatedAfterBothProofs": true,
+        "nativeLockTested": false,
+        "lockSurvivedBrokerRestart": false,
+        "newPasswordVerified": false,
+        "oldPasswordRejected": false,
+        "localStopAckMilliseconds": null,
+        "readyForUnattended": false
+      },
+      {
+        "schema": 1,
+        "scenario": "commit-account-switch-lost",
         "passed": true,
         "sourceUnchanged": true,
         "legacyCalls": 0,
@@ -290,7 +304,7 @@
     "productionInstallerTested": false
   },
   "sourceSha256": {
-    "src/main/remote/migrationCoordinator.ts": "ee5f08d82a104e9bcae4075e48b074a238b8f2c22e19a5442cb7adfe238eab64",
+    "src/main/remote/migrationCoordinator.ts": "e9b39e797aa78deb13c94b1b30aafb599daf93e7e81a4558a378b557eb45640a",
     "src/main/remote/migrationJournal.ts": "d4abea522350a0a65503898b0e7458133b07da8ce67737b8fcd2edf00fa49847",
     "src/main/remote/migrationProvider.ts": "c4e6e86938812964a3d6306da85908958c7b3f67c42c9b83726c127252eabb44",
     "src/main/remote/migrationApi.ts": "25e66c87a09e858954393a799a378e4d522a706169982de818cdec05a28cc341",

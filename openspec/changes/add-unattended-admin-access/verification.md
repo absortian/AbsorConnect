@@ -3176,7 +3176,7 @@ conserva hashes y límites; el avance permanece 25/57 (44 %), por debajo del mí
 ## Traspaso, ciclo de cuenta e interfaz — 29/10/2026 (CI pendiente)
 
 El coordinador Main, el snapshot privado y el importador root ya están unidos a
-la API transaccional. La matriz VM pasó catorce escenarios: respuestas perdidas,
+la API transaccional. La matriz VM pasó quince escenarios: respuestas perdidas,
 compensaciones fallidas, contador inválido, opciones no soportadas, bloqueo activo
 que sobrevive al broker, cuarto a quinto fallo, contraseña nueva/antigua, salida
 de cuenta local y cambio de cuenta durante prepare/commit, más salud fallida.
@@ -3188,7 +3188,7 @@ corte del visor 436 ms). Ambas matrices retiraron cuentas, unidades y secretos.
 El recorrido real de React/preload/IPC verifica elección explícita sin
 preselección, cancelación anterior a preparar, preparación/confirmación separadas,
 opciones no soportadas, baja, fallo de servicio y recuperación. Solo entrega el
-DTO público, sin K/ace/acg/token, vínculo de cuenta o transacción. Vitest: 465
+DTO público, sin K/ace/acg/token, vínculo de cuenta o transacción. Vitest: 466
 pruebas y 7 omisiones; PHPUnit: 171/1178; typecheck/lint/validación OpenSpec pasan.
 Los cambios de cuenta invalidan continuaciones y un commit tardío solicita parada
 local sin elevación. Cancelar solo devuelve el legado tras ambas pruebas y una
@@ -3200,3 +3200,8 @@ El proveedor distribuible sigue indisponible: los arneses usan VM propia y caja
 AES de origen ficticia; no acreditan DPAPI/Llavero/libsecret. La integración común
 no completa instaladores/ACL/IPC finales, Mac, entrada general ni piloto físico.
 El avance permanece 25/57 (44 %) durante esta revisión.
+
+La matriz adicional cubre también perder la respuesta de commit al cambiar de
+cuenta. El coordinador solicita parada local en `finally`, incluso ante rechazo
+del proveedor, y conserva la reserva sin devolver el host al legado. Pasan los
+quince casos con todos los recursos retirados; no aumenta el avance antes de CI.

@@ -4,7 +4,7 @@ import argparse,hashlib,importlib.util,io,json,os,secrets,shlex,subprocess,tarfi
 from pathlib import Path
 from urllib.parse import urlsplit
 ROOT=Path(__file__).resolve().parents[2]
-CASES=['create-lost','prepare-lost','counter-invalid','unsupported-policy','cancel-api-down','remove-lost','commit-lost','active-lock','four-to-lock','account-switch','password-change','account-logout','health-failed','commit-account-switch']
+CASES=['create-lost','prepare-lost','counter-invalid','unsupported-policy','cancel-api-down','remove-lost','commit-lost','active-lock','four-to-lock','account-switch','password-change','account-logout','health-failed','commit-account-switch','commit-account-switch-lost']
 def load(name,path):
     spec=importlib.util.spec_from_file_location(name,path);module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module);return module
 def main():
