@@ -34,8 +34,8 @@ fn run() -> Result<(), absor_agent_security::windows_vault::VaultError> {
     }
     let binding = || {
         DtlsBinding::new(
-            format!("sha-256 {}", vec!["AA"; 32].join(":")),
-            format!("sha-256 {}", vec!["BB"; 32].join(":")),
+            format!("sha-256 {}", ["AA"; 32].join(":")),
+            format!("sha-256 {}", ["BB"; 32].join(":")),
         )
         .map_err(|_| VaultError::Schema)
     };
@@ -91,14 +91,13 @@ fn run() -> Result<(), absor_agent_security::windows_vault::VaultError> {
                 vault.revoke()?;
             }
             facts.insert("statePreserved".into(), true.into());
-            facts.insert(
-                "sameHost".into(),
-                (vault
-                    .bundle()
-                    .map(|b| b.host_id() == host)
-                    .unwrap_or(command == "revoke"))
-                .into(),
-            );
+            let bundle = vault.bundle();
+            let expected = if command == "revoke" {
+                matches!(bundle, Err(VaultError::Revoked))
+            } else {
+                bundle.map(|b| b.host_id() == host).unwrap_or(false)
+            };
+            facts.insert("sameHostOrRevoked".into(), expected.into());
         }
         "wrong-host" => {
             facts.insert(
