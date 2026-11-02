@@ -3238,3 +3238,12 @@ de viabilidad Mac, el fallo Xorg de no interferencia ni el piloto físico. La ma
 certificada de servicio completo sigue vacía y el proveedor distribuible permanece
 indisponible. Los cambios posteriores a ese SHA solo actualizan esta evidencia,
 el recuento y la guía de uso.
+# Revisión de dependencias del 02/11/2026
+
+Se preparan parches/minores compatibles del escritorio como parte de la revisión
+previa a distribución. La auditoría actual pasa de 52 paquetes señalados (15
+altos) a 33 (dos altos), con los límites y las versiones en
+`docs/dependency-security-20261102.md`. Pasan typecheck, 466 Vitest con siete
+omitidas y build local. Los paquetes se verifican en CI; Electron 45 y las cadenas
+moderadas de herramientas siguen pendientes. Esto no acepta nuevas tareas ni
+anuncia acceso desatendido preparado para producción.
