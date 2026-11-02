@@ -60,6 +60,11 @@ class RunnerTests(unittest.TestCase):
         for source in ['', 'x'*12001]:
             with self.assertRaises(RuntimeError):payload('a'*32,source)
 
+    def test_sftp_quotes_preserve_windows_paths_and_spaces(self):
+        source=r'D:\a\_temp\folder with space\probe.exe'
+        target='/C:/ProgramData/AbsorConnectVaultLab/absor-win-vault-check-lab.exe'
+        self.assertEqual(shlex.split('put '+quote(source)+' '+quote(target)),['put',source,target])
+
     def test_ssh_only_request_and_private_journal(self):
         with tempfile.TemporaryDirectory() as directory:
             remote=Remote()

@@ -98,8 +98,7 @@ try {
  $task=$folder.RegisterTaskDefinition($taskName,$definition,18,$systemName,$null,5,'O:BAG:BAD:P(A;;GA;;;SY)(A;;GA;;;BA)')
  $registered=$true
  $sd=New-Object Security.AccessControl.RawSecurityDescriptor($task.GetSecurityDescriptor(5))
- # El serializador de Task Scheduler no conserva todos los bits de ControlFlags.
- # Se solicita D:P al crear y se verifica dueño y cada ACE, sin aceptar otros SID.
+ # Se solicita D:P al crear y se verifica dueño y cada ACE del objeto de tarea.
  if($sd.Owner.Value -cne 'S-1-5-32-544'){throw 'runner_task_owner'}
  if($sd.DiscretionaryAcl.Count -ne 2){throw 'runner_task_acl_count'}
  $seen=@{}

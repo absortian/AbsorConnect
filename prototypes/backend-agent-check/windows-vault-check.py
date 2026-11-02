@@ -48,6 +48,7 @@ class Matrix:
         self.commit = meta['commit']
         quiet = module(REPO/'prototypes/backend-agent-check/windows_ssh_system.py','vault_system')
         self.owned_ci = owned_ci
+        self.transfer_quote = quiet.quote
         self.remote = quiet.OwnedCiRemote() if owned_ci else module(lab / 'windows-vm-ssh/lab_remote.py', 'vault_remote')
         self.out = lab / ('windows-vault-' + uuid.uuid4().hex)
         self.out.mkdir(mode=0o700)
@@ -105,9 +106,9 @@ class Matrix:
     def prepare(self):
         self.system("Assert-OwnVm;if([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -cne 'S-1-5-18'){throw 'own_system_vm_required'};if(Test-Path -LiteralPath $d){throw 'destination_exists'};New-Item -ItemType Directory -Path $d|Out-Null;$a=New-Object Security.AccessControl.DirectorySecurity;$a.SetSecurityDescriptorSddlForm('" + DIR_ACL + "');Set-Acl -LiteralPath $d -AclObject $a;[IO.File]::WriteAllText(($d+'\\lab-owner.txt'),\"ABSOR_CONNECT_OWN_WINDOWS_VM_VAULT_V1`n\",(New-Object Text.UTF8Encoding($false)));@{created=$true}")
         self.created = True
-        result = self.remote.transfer(['put ' + str(self.binary) + ' /' + ROOT.replace('\\', '/') + '/' + BINARY])
+        result = self.remote.transfer(['put ' + self.transfer_quote(str(self.binary)) + ' ' + self.transfer_quote('/' + ROOT.replace('\\', '/') + '/' + BINARY)])
         require(result.returncode == 0, 'artifact_transfer')
-        result = self.remote.transfer(['put ' + str(REPO/'agent/windows-vault-lab/check-denials.ps1') + ' /' + ROOT.replace('\\', '/') + '/check-denials.ps1'])
+        result = self.remote.transfer(['put ' + self.transfer_quote(str(REPO/'agent/windows-vault-lab/check-denials.ps1')) + ' ' + self.transfer_quote('/' + ROOT.replace('\\', '/') + '/check-denials.ps1')])
         require(result.returncode == 0, 'denials_transfer')
         self.system("$a=New-Object Security.AccessControl.FileSecurity;$a.SetSecurityDescriptorSddlForm('" + FILE_ACL + "');foreach($n in @('lab-owner.txt','" + BINARY + "')){Set-Acl -LiteralPath ($d+'\\'+$n) -AclObject $a};if((Get-FileHash -LiteralPath ($d+'\\" + BINARY + "') -Algorithm SHA256).Hash.ToLowerInvariant() -cne '" + self.digest + "'){throw 'binary_hash'};@{verified=$true}")
         self.baseline = self.snapshot()
@@ -214,7 +215,7 @@ def main():
     try:
         if args.local_ci:matrix.remote.prepare();ci_prepared=True
         matrix.execute()
-    except (LabError, RuntimeError) as exc:
+    except (LabError, RuntimeError, OSError, subprocess.SubprocessError) as exc:
         error = str(exc) if re.fullmatch('[a-z_]{1,100}', str(exc)) else 'non_enum_error'
     finally:
         try:
