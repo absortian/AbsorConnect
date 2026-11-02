@@ -29,7 +29,7 @@ async function main() {
   for (const { name, file } of candidates) {
     const metadata = fs.lstatSync(file)
     if (!metadata.isFile() || metadata.isSymbolicLink()) throw new Error('packaged_asar_type')
-    const entries = asar.listPackage(file).map(value => value.replace(/^\//, ''))
+    const entries = asar.listPackage(file).map(value => value.replace(/\\/g, '/').replace(/^\/+/, ''))
     if (entries.length > 100000) throw new Error('packaged_asar_bound')
     for (const value of entries) {
       if (value.includes('\0') || value.split('/').includes('..') || forbidden.has(value.split('/')[0])) {
@@ -37,12 +37,12 @@ async function main() {
       }
     }
     for (const value of required) {
-      if (!entries.includes(value) || asar.statFile(file, value).size < 1) throw new Error('packaged_runtime_missing')
+      if (!entries.includes(value) || asar.statFile(file, path.normalize(value)).size < 1) throw new Error('packaged_runtime_missing')
     }
     const native = entries.filter(value => value.endsWith('.node') && /(?:^|\/)node_modules\/(?:koffi|@koromix)\//.test(value))
     if (native.length === 0) throw new Error('packaged_native_binding_missing')
     for (const value of native) {
-      const header = asar.statFile(file, value)
+      const header = asar.statFile(file, path.normalize(value))
       const disk = path.join(file + '.unpacked', value)
       if (!header.unpacked || !fs.statSync(disk).isFile()) throw new Error('native_binding_must_be_unpacked')
     }
