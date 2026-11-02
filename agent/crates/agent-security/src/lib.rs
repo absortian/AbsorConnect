@@ -9,6 +9,9 @@ pub mod linux;
 pub mod migration;
 pub mod secrets;
 pub mod status_wire;
+#[cfg(windows)]
+#[allow(unsafe_code)]
+pub mod windows_vault;
 pub mod wire;
 
 #[cfg(all(target_os = "linux", feature = "protected-ipc-lab"))]

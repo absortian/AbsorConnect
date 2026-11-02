@@ -37,7 +37,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
       - name: Instalar toolchain fijado
@@ -52,6 +52,7 @@ jobs:
         run: |
           python agent/tools/diagnose.py --self-test
           python -B prototypes/backend-agent-check/test_mobile_protected_runner.py
+          python -B prototypes/backend-agent-check/test_windows_ssh_system.py
           python -B prototypes/remote-desktop/unattended-check/test-linux-xauthority-fd.py
       - name: Autorización y proceso propio
         run: |
@@ -65,7 +66,9 @@ jobs:
         if: runner.os == 'Windows'
         env:
           RUSTFLAGS: '-C target-feature=+crt-static'
-        run: cargo +1.85.0 build --manifest-path agent/Cargo.toml --offline --locked --release -p absor-agent-windows-session --features windows-session-lab
+        run: |
+          cargo +1.85.0 build --manifest-path agent/Cargo.toml --offline --locked --release -p absor-agent-windows-session --features windows-session-lab
+          cargo +1.85.0 build --manifest-path agent/Cargo.toml --offline --locked --release -p absor-agent-security --features windows-vault-lab
       - name: Conservar binarios SCM de laboratorio
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v7
@@ -77,3 +80,26 @@ jobs:
             agent/target/release/absor-win-sessiond-lab.exe
             agent/target/release/absor-win-session-worker-lab.exe
             agent/target/release/absor-win-session-monitor-lab.exe
+      - name: Conservar sonda del almacén Windows
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-vault-lab-x86_64
+          if-no-files-found: error
+          retention-days: 7
+          path: agent/target/release/absor-win-vault-check-lab.exe
+      - name: Almacén SYSTEM en el runner Windows efímero
+        if: runner.os == 'Windows' && runner.environment == 'github-hosted'
+        run: python -B prototypes/backend-agent-check/windows-vault-owned-ci.py
+      - name: Conservar solo informes del almacén SYSTEM
+        if: always() && runner.os == 'Windows'
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-vault-owned-ci-results
+          if-no-files-found: ignore
+          retention-days: 7
+          path: |
+            ${{ runner.temp }}/absorconnect-vault-owned-ci/windows-vault-*/report.json
+            ${{ runner.temp }}/absorconnect-vault-owned-ci/windows-vault-*/system-failure.json
+            ${{ runner.temp }}/absorconnect-vault-owned-ci/windows-vault-*/restricted-user.json
+            ${{ runner.temp }}/absorconnect-vault-owned-ci/windows-vault-*/quiet-*.json
