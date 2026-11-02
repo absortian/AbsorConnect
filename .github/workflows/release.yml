@@ -65,6 +65,9 @@ jobs:
           # sobre .env.production aunque estén vacías, y la app quedaría sin servicio.
           MAIN_VITE_API_URL: ${{ vars.MAIN_VITE_API_URL || 'https://absorconnect.absor.top' }}
 
+      - name: Comprobar límites del paquete generado
+        run: node prototypes/remote-desktop/package-check/unattended-package.cjs
+
       - name: Upload release assets
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
