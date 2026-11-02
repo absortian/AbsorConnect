@@ -31,17 +31,25 @@ siguen pendientes de 4.4. No activa el proveedor de Ajustes ni instala el agente
 CI conserva `absor-win-vault-check-lab.exe` con CRT estático en el artefacto
 `windows-vault-lab-x86_64`. La matriz de
 `prototypes/backend-agent-check/windows-vault-check.py` usa solo la VM propia,
-SSH fijado y el agente de UTM para ejecutar como SYSTEM. Crea un destino nuevo
+SSH fijado y tareas SYSTEM temporales, sin interfaz. Crea un destino nuevo
 protegido, usa credenciales artificiales y K aleatoria, no abre conexiones API,
 no captura pantalla ni envía entrada. Conserva únicamente informes enumerados y
 retira sus propios archivos al terminar. No requiere iniciar sesión en Windows.
 
-El runner actual llama al agente de UTM y puede activar su icono repetidamente en
-el Dock del Mac. Por eso exige `--allow-utm` explícito y no debe ejecutarse mientras
-interfiere con el uso del equipo. Está detenido tras la incidencia comunicada por
-el propietario; la repetición definitiva perdió la conexión y dejó pendiente
-comprobar/retirar su destino de laboratorio. No repetir UTM automáticamente.
-El siguiente runner deberá usar SSH sin activar la interfaz antes de continuar.
+El runner anterior llamaba al agente de UTM y activaba su icono repetidamente en
+el Dock. Se ha retirado esa dependencia. `windows_ssh_system.py` usa el acceso SSH
+administrativo existente para registrar una tarea sin triggers, con nombre único,+DACL SYSTEM/Administradores y límite de treinta segundos. Comprueba sesión 0 y
+SYSTEM, liga el resultado al nonce y retira la tarea y sus archivos. Su journal
+privado permite recuperar una solicitud cuyo transporte quede incierto. No es
+un RPC del producto y no recibe código de renderers o de la red de AbsorConnect.
+
+La repetición del binario final quedó interrumpida al perder UTM/SSH: falta
+comprobar/retirar aquel destino en la VM local. No se debe reabrir UTM desde el
+arnés. El modo `--local-ci` verifica también el almacén con SYSTEM real en un
+runner Windows hospedado y efímero de GitHub, sin usar el Mac ni sus VM. Exige
+ese entorno explícito, fija el nombre del host y no admite reinicio; no acredita
+arranque sin usuario ni sustituye el piloto físico. La verificación del nuevo
+runner y de ese recorrido de CI sigue en curso.
 
 El resultado de esta matriz es evidencia parcial de 4.4, no certificación del
 agente desatendido, de DPAPI en otras versiones ni de usuarios interactivos.

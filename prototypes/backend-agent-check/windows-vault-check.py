@@ -36,7 +36,7 @@ def module(path, name):
 
 
 class Matrix:
-    def __init__(self, lab, artifact, reboot):
+    def __init__(self, lab, artifact, reboot, owned_ci=False):
         self.lab = lab
         self.binary = artifact / BINARY
         require(self.binary.is_file() and not self.binary.is_symlink(), 'artifact_missing')
@@ -46,10 +46,12 @@ class Matrix:
         require(meta.get('schema') == 1 and re.fullmatch('[0-9a-f]{40}', meta.get('commit', '')), 'artifact_metadata')
         require(meta.get('files') == {BINARY: self.digest}, 'artifact_hash')
         self.commit = meta['commit']
-        self.remote = module(lab / 'windows-vm-ssh/lab_remote.py', 'vault_remote')
-        self.qga = module(lab / 'windows-vm-ssh/qga_owned.py', 'vault_qga')
+        quiet = module(REPO/'prototypes/backend-agent-check/windows_ssh_system.py','vault_system')
+        self.owned_ci = owned_ci
+        self.remote = quiet.OwnedCiRemote() if owned_ci else module(lab / 'windows-vm-ssh/lab_remote.py', 'vault_remote')
         self.out = lab / ('windows-vault-' + uuid.uuid4().hex)
         self.out.mkdir(mode=0o700)
+        self.system_runner = quiet.SshSystem(self.remote,self.out,self.remote.common) if owned_ci else quiet.SshSystem(self.remote,self.out)
         self.cases = []
         self.created = False
         self.removed = False
@@ -62,9 +64,9 @@ class Matrix:
 
     def system(self, source):
         try:
-            value = self.qga.call("$d='" + ROOT + "';$s=$d+'\\store';" + source)
+            value = self.system_runner.call("$d='" + ROOT + "';$s=$d+'\\store';" + source)
         except (subprocess.SubprocessError,OSError):
-            raise LabError('qga_transport_failed') from None
+            raise LabError('ssh_system_transport_failed') from None
         if value.get('ok') is not True:
             self.save('system-failure.json', value)
             raise LabError('system_' + value.get('errorCode', 'failed'))
@@ -101,7 +103,7 @@ class Matrix:
         self.system("$a=New-Object Security.AccessControl." + kind + ";$a.SetSecurityDescriptorSddlForm('" + sddl + "');Set-Acl -LiteralPath (" + path + ") -AclObject $a;@{set=$true}")
 
     def prepare(self):
-        self.system("$m=Get-CimInstance Win32_ComputerSystem;if($m.Manufacturer -cne 'QEMU' -or $m.Model -cne 'QEMU Virtual Machine' -or [Security.Principal.WindowsIdentity]::GetCurrent().User.Value -cne 'S-1-5-18'){throw 'own_system_vm_required'};if(Test-Path -LiteralPath $d){throw 'destination_exists'};New-Item -ItemType Directory -Path $d|Out-Null;$a=New-Object Security.AccessControl.DirectorySecurity;$a.SetSecurityDescriptorSddlForm('" + DIR_ACL + "');Set-Acl -LiteralPath $d -AclObject $a;[IO.File]::WriteAllText(($d+'\\lab-owner.txt'),\"ABSOR_CONNECT_OWN_WINDOWS_VM_VAULT_V1`n\",(New-Object Text.UTF8Encoding($false)));@{created=$true}")
+        self.system("Assert-OwnVm;if([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -cne 'S-1-5-18'){throw 'own_system_vm_required'};if(Test-Path -LiteralPath $d){throw 'destination_exists'};New-Item -ItemType Directory -Path $d|Out-Null;$a=New-Object Security.AccessControl.DirectorySecurity;$a.SetSecurityDescriptorSddlForm('" + DIR_ACL + "');Set-Acl -LiteralPath $d -AclObject $a;[IO.File]::WriteAllText(($d+'\\lab-owner.txt'),\"ABSOR_CONNECT_OWN_WINDOWS_VM_VAULT_V1`n\",(New-Object Text.UTF8Encoding($false)));@{created=$true}")
         self.created = True
         result = self.remote.transfer(['put ' + str(self.binary) + ' /' + ROOT.replace('\\', '/') + '/' + BINARY])
         require(result.returncode == 0, 'artifact_transfer')
@@ -109,7 +111,7 @@ class Matrix:
         require(result.returncode == 0, 'denials_transfer')
         self.system("$a=New-Object Security.AccessControl.FileSecurity;$a.SetSecurityDescriptorSddlForm('" + FILE_ACL + "');foreach($n in @('lab-owner.txt','" + BINARY + "')){Set-Acl -LiteralPath ($d+'\\'+$n) -AclObject $a};if((Get-FileHash -LiteralPath ($d+'\\" + BINARY + "') -Algorithm SHA256).Hash.ToLowerInvariant() -cne '" + self.digest + "'){throw 'binary_hash'};@{verified=$true}")
         self.baseline = self.snapshot()
-        require(not self.baseline['userLoggedOn'], 'login_screen_required')
+        require(self.owned_ci or not self.baseline['userLoggedOn'], 'login_screen_required')
 
     def snapshot(self):
         return self.ps("[ordered]@{userLoggedOn=[bool](Get-CimInstance Win32_ComputerSystem).UserName;uac=Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System'|Select-Object EnableLUA,PromptOnSecureDesktop,ConsentPromptBehaviorAdmin,ConsentPromptBehaviorUser;service=[bool](Get-Service AbsorConnectSessionLab -ErrorAction SilentlyContinue)}|ConvertTo-Json -Compress")
@@ -127,7 +129,7 @@ class Matrix:
     def execute(self):
         self.prepare()
         value = self.invoke('provision')
-        self.case('provision_without_login', noUser=True, nativeFacts=all(value['facts'].values()))
+        self.case('provision_in_owned_ci' if self.owned_ci else 'provision_without_login', systemSessionZero=True, nativeFacts=all(value['facts'].values()))
         self.invoke('read')
         self.invoke('check-lock')
         self.case('fresh_process_preserves_lock', nativeVerifierLocked=True)
@@ -188,7 +190,7 @@ class Matrix:
         self.invoke('read')
         self.case('fifth_failure_durable', nativeVerifierLocked=True, newProcess=True)
         final = self.snapshot()
-        self.case('system_unchanged', noUser=not final['userLoggedOn'], sameUac=final['uac'] == self.baseline['uac'], noServiceChange=final['service'] == self.baseline['service'])
+        self.case('system_unchanged', sameUserPresence=final['userLoggedOn']==self.baseline['userLoggedOn'], sameUac=final['uac'] == self.baseline['uac'], noServiceChange=final['service'] == self.baseline['service'])
 
     def cleanup(self):
         if not self.created:
@@ -202,14 +204,15 @@ def main():
     parser.add_argument('lab', type=Path)
     parser.add_argument('artifact', type=Path)
     parser.add_argument('--reboot', action='store_true')
-    parser.add_argument('--allow-utm', action='store_true', help='Permite el runner UTM, que puede activar su icono en el Dock del Mac.')
+    parser.add_argument('--local-ci', action='store_true', help='Solo runner Windows efímero y hospedado de GitHub; sin SSH ni reinicio.')
     args = parser.parse_args()
-    if not args.allow_utm:
-        parser.error('runner_utm_requires_explicit_opt_in; no se ha iniciado la VM ni ninguna prueba')
-    matrix = Matrix(args.lab.resolve(), args.artifact.resolve(), args.reboot)
+    if args.local_ci and args.reboot:parser.error('owned_ci_no_reboot')
+    matrix = Matrix(args.lab.resolve(), args.artifact.resolve(), args.reboot,args.local_ci)
     error = None
     started = time.monotonic()
+    ci_prepared=False
     try:
+        if args.local_ci:matrix.remote.prepare();ci_prepared=True
         matrix.execute()
     except (LabError, RuntimeError) as exc:
         error = str(exc) if re.fullmatch('[a-z_]{1,100}', str(exc)) else 'non_enum_error'
@@ -218,7 +221,10 @@ def main():
             matrix.cleanup()
         except (LabError, RuntimeError):
             error = error or 'cleanup_failed'
-    report = {'schema': 1, 'ok': error is None, 'artifactCommit': matrix.commit, 'artifactSha256': matrix.digest, 'cases': matrix.cases, 'error': error, 'filesRemoved': matrix.removed, 'elapsedSeconds': round(time.monotonic()-started), 'captureTested': False, 'inputTested': False, 'readyForUnattended': False}
+        if ci_prepared:
+            try:matrix.remote.cleanup()
+            except (LabError,RuntimeError):error=error or 'owned_ci_cleanup_failed'
+    report = {'schema': 1, 'ok': error is None, 'artifactCommit': matrix.commit, 'artifactSha256': matrix.digest, 'cases': matrix.cases, 'error': error, 'filesRemoved': matrix.removed, 'ownedHostedCi':args.local_ci,'rebootTested':args.reboot,'elapsedSeconds': round(time.monotonic()-started), 'captureTested': False, 'inputTested': False, 'readyForUnattended': False}
     matrix.save('report.json', report)
     print(json.dumps({'report': str(matrix.out/'report.json'), 'ok': error is None}))
     return 0 if error is None else 1
