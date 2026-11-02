@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Contrato del runner; no conecta a VM ni ejecuta tareas administrativas en CI."""
 import base64
+import hashlib
 import json
 import os
 from pathlib import Path
 import re
+import shlex
 import subprocess
 import tempfile
 import unittest
@@ -19,6 +21,7 @@ class Remote:
         self.sources=[]
         self.wrong_nonce=wrong_nonce
         self.failed=failed
+        self.uploaded={}
 
     def powershell(self, source, timeout):
         self.calls.append(('powershell',timeout))
@@ -30,11 +33,19 @@ class Remote:
         if len(self.sources)==1:
             return SimpleNamespace(returncode=0,stdout=b'{"ok":true}')
         nonce=re.search(r'quiet-([0-9a-f]{32})',source).group(1)
+        expected=re.search(r"-cne '([0-9a-f]{64})'",source).group(1)
+        if hashlib.sha256(self.uploaded['controller.ps1']).hexdigest()!=expected:
+            raise AssertionError('controller_bytes_differ_from_manifest')
+        expected_payload=re.search(r"\$payloadHash='([0-9a-f]{64})'",self.uploaded['controller.ps1'].decode()).group(1)
+        if hashlib.sha256(self.uploaded['payload.ps1']).hexdigest()!=expected_payload:
+            raise AssertionError('payload_bytes_differ_from_manifest')
         value={'schema':1,'nonce':'f'*32 if self.wrong_nonce else nonce,'ok':True,'result':{'ownVm':True},'systemSessionZero':True}
         return SimpleNamespace(returncode=1 if self.failed else 0,stdout=json.dumps(value).encode())
 
     def transfer(self, lines):
         self.calls.append(('sftp',len(lines)))
+        for line in lines:
+            _,source,target=shlex.split(line);self.uploaded[target.rsplit('/',1)[1]]=Path(source).read_bytes()
         return SimpleNamespace(returncode=0)
 
 

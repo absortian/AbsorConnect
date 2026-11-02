@@ -178,7 +178,8 @@ class SshSystem:
         files = {}
         for name, text in [('payload.ps1', body), ('controller.ps1', controller)]:
             p = self.output / ('quiet-'+nonce+'-'+name)
-            p.write_text(text, encoding='utf-8')
+            # Bytes exactos: Windows no debe convertir LF a CRLF después de calcular SHA-256.
+            p.write_bytes(text.encode('utf-8'))
             p.chmod(0o600)
             files[name] = p
         journal = self.output / ('quiet-'+nonce+'.json')
