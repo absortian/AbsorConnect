@@ -160,22 +160,27 @@
       "tests": 171,
       "assertions": 1178
     },
-    "nativeCodeHead": "25bf477d36d22236596b8b54f0b7c7ce6e989c45",
+    "nativeCodeHead": "e4e026f03b9e27ba8439c3693c30174cecbff92b",
     "nativeDefaultPlusAllFeatures": {
       "linux": 316,
       "macos": 278,
       "windows": 276
     },
-    "nativeLogsAndAnnotationsReviewed": true
+    "nativeLogsAndAnnotationsReviewed": true,
+    "quietRunnerPython": {
+      "tests": 7,
+      "windowsSkipped": 0,
+      "linuxAndMacSkipped": 1
+    }
   },
   "limits": [
     "4.4 sigue pendiente de identidad exclusiva del broker y named pipes autorizados",
-    "Los 21 casos usan el mismo código de biblioteca del artefacto final; su repetición final quedó incompleta por el transporte",
+    "El recorrido final de CI pasa 21 casos sin UTM; el reinicio sin usuario solo se verificó en la primera VM local",
     "Retirada del último destino de laboratorio pendiente de recuperar SSH; no hay credenciales API reales ni servicio instalado por esta sonda",
     "El token restringido del usuario SSH no acredita un usuario estándar interactivo",
     "No certifica ARM64 nativo, otras versiones, caída eléctrica, restauración completa de disco o administrador malicioso",
     "No activa el proveedor de producto ni publica acceso desatendido",
-    "UTM puede activar el Dock: el runner exige opt-in y no debe repetirse automáticamente"
+    "El runner actual no usa UTM; no reiniciar automáticamente la VM local para recuperar su limpieza pendiente"
   ],
   "readyForUnattended": false,
   "captureTested": false,
@@ -184,5 +189,150 @@
     "accepted": 29,
     "total": 57,
     "percent": 51
+  },
+  "ownedHostedCi": {
+    "headCommit": "e4e026f03b9e27ba8439c3693c30174cecbff92b",
+    "artifactCommit": "e8e16f61ba8a3e55691c8b0a7b4456ed4a59f302",
+    "artifactSha256": "bf3318845ce0f3c370d8be843c299b4399c6e0d29991799682e01b3d583c0599",
+    "runId": 41491494058,
+    "jobId": 125435365475,
+    "reportsArchiveSha256": "2daa956ebf019ae0679c98b099bc13b2b192c2bb279fe6bdcfc9e4cc90922ede",
+    "cases": [
+      {
+        "case": "quiet_runner_lost_reply_recovery",
+        "ok": true,
+        "effectOnce": true,
+        "realSystemTask": true,
+        "replyLossSimulated": true
+      },
+      {
+        "case": "provision_in_owned_ci",
+        "ok": true,
+        "systemSessionZero": true,
+        "nativeFacts": true
+      },
+      {
+        "case": "fresh_process_preserves_lock",
+        "ok": true,
+        "nativeVerifierLocked": true
+      },
+      {
+        "case": "wrong_host",
+        "ok": true,
+        "denied": true
+      },
+      {
+        "case": "replace_attempts",
+        "ok": true,
+        "newCiphertext": true,
+        "statePreserved": true
+      },
+      {
+        "case": "different_dpapi_profile",
+        "ok": true,
+        "denied": true
+      },
+      {
+        "case": "restricted_user_denials",
+        "ok": true,
+        "allDenied": true,
+        "interactiveClaimAbsent": true
+      },
+      {
+        "case": "ciphertext_tampered",
+        "ok": true,
+        "denied": true,
+        "counterUnchanged": true
+      },
+      {
+        "case": "cross_purpose_blob",
+        "ok": true,
+        "denied": true,
+        "counterUnchanged": true
+      },
+      {
+        "case": "missing_attempts",
+        "ok": true,
+        "denied": true,
+        "counterUnchanged": true
+      },
+      {
+        "case": "permissive_acl",
+        "ok": true,
+        "denied": true,
+        "counterUnchanged": true
+      },
+      {
+        "case": "wrong_owner",
+        "ok": true,
+        "denied": true,
+        "counterUnchanged": true
+      },
+      {
+        "case": "unprotected_dacl",
+        "ok": true,
+        "denied": true,
+        "counterUnchanged": true
+      },
+      {
+        "case": "hardlink",
+        "ok": true,
+        "denied": true,
+        "counterUnchanged": true
+      },
+      {
+        "case": "symlink",
+        "ok": true,
+        "denied": true,
+        "counterUnchanged": true
+      },
+      {
+        "case": "junction_ancestor",
+        "ok": true,
+        "denied": true,
+        "counterUnchanged": true
+      },
+      {
+        "case": "unfinished_write",
+        "ok": true,
+        "denied": true,
+        "counterUnchanged": true
+      },
+      {
+        "case": "oversized_file",
+        "ok": true,
+        "denied": true,
+        "counterUnchanged": true
+      },
+      {
+        "case": "revocation_survives_counter_restore",
+        "ok": true,
+        "denied": true,
+        "freshProcess": true
+      },
+      {
+        "case": "fifth_failure_durable",
+        "ok": true,
+        "nativeVerifierLocked": true,
+        "newProcess": true
+      },
+      {
+        "case": "system_unchanged",
+        "ok": true,
+        "sameUserPresence": true,
+        "sameUac": true,
+        "noServiceChange": true
+      }
+    ],
+    "filesRemoved": true,
+    "temporaryRequests": 92,
+    "allRequestTasksAndFilesRemoved": true,
+    "elapsedSeconds": 172,
+    "systemSessionZero": true,
+    "rebootTested": false,
+    "noUserClaim": false,
+    "captureTested": false,
+    "inputTested": false,
+    "logsAndAnnotationsReviewed": true
   }
 }

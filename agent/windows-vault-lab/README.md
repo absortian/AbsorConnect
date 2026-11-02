@@ -38,7 +38,8 @@ retira sus propios archivos al terminar. No requiere iniciar sesión en Windows.
 
 El runner anterior llamaba al agente de UTM y activaba su icono repetidamente en
 el Dock. Se ha retirado esa dependencia. `windows_ssh_system.py` usa el acceso SSH
-administrativo existente para registrar una tarea sin triggers, con nombre único,+DACL SYSTEM/Administradores y límite de treinta segundos. Comprueba sesión 0 y
+administrativo existente para registrar una tarea sin triggers, con nombre único,
+DACL SYSTEM/Administradores y límite de treinta segundos. Comprueba sesión 0 y
 SYSTEM, liga el resultado al nonce y retira la tarea y sus archivos. Su journal
 privado permite recuperar una solicitud cuyo transporte quede incierto. No es
 un RPC del producto y no recibe código de renderers o de la red de AbsorConnect.
@@ -48,8 +49,15 @@ comprobar/retirar aquel destino en la VM local. No se debe reabrir UTM desde el
 arnés. El modo `--local-ci` verifica también el almacén con SYSTEM real en un
 runner Windows hospedado y efímero de GitHub, sin usar el Mac ni sus VM. Exige
 ese entorno explícito, fija el nombre del host y no admite reinicio; no acredita
-arranque sin usuario ni sustituye el piloto físico. La verificación del nuevo
-runner y de ese recorrido de CI sigue en curso.
+arranque sin usuario ni sustituye el piloto físico.
+
+En `e4e026f03b9e27ba8439c3693c30174cecbff92b` pasan los 21 casos de ese recorrido
+en SYSTEM/sesión 0, incluido perder deliberadamente una respuesta y recuperar
+su journal sin repetir el efecto. Se retiran las 92 tareas temporales y sus
+archivos, además de los datos de la matriz. Se revisan los registros completos
+y anotaciones de CI nativo en los tres sistemas. El informe público conserva
+por separado este resultado, el reinicio de la primera prueba local y la
+limpieza pendiente del último intento local.
 
 El resultado de esta matriz es evidencia parcial de 4.4, no certificación del
 agente desatendido, de DPAPI en otras versiones ni de usuarios interactivos.
