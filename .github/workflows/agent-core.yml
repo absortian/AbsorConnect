@@ -102,3 +102,4 @@ jobs:
             ${{ runner.temp }}/absorconnect-vault-owned-ci/windows-vault-*/report.json
             ${{ runner.temp }}/absorconnect-vault-owned-ci/windows-vault-*/system-failure.json
             ${{ runner.temp }}/absorconnect-vault-owned-ci/windows-vault-*/restricted-user.json
+            ${{ runner.temp }}/absorconnect-vault-owned-ci/windows-vault-*/quiet-*.json

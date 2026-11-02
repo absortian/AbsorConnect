@@ -182,8 +182,10 @@ class SshSystem:
             p.chmod(0o600)
             files[name] = p
         journal = self.output / ('quiet-'+nonce+'.json')
-        def save(state):
-            journal.write_text(json.dumps({'schema':1,'nonce':nonce,'state':state,'payloadSha256':digest})+'\n')
+        def save(state, diagnostic=None):
+            record={'schema':1,'nonce':nonce,'state':state,'payloadSha256':digest}
+            if diagnostic is not None:record['diagnostic']=diagnostic
+            journal.write_text(json.dumps(record)+'\n')
             journal.chmod(0o600)
         save('prepared')
         bootstrap = self.common + ";Assert-OwnVm;Assert-PrivateDirectory '"+BASE+"';if(Test-Path -LiteralPath '"+root+"'){throw 'runner_destination_exists'};$a=New-Object Security.AccessControl.DirectorySecurity;$a.SetSecurityDescriptorSddlForm('"+ACL+"');[IO.Directory]::CreateDirectory('"+root+"',$a)|Out-Null;[IO.File]::WriteAllText('"+root+"\\owner.txt','absorconnect-quiet-system-v1 "+nonce+"');@{ok=$true}|ConvertTo-Json -Compress"
@@ -196,14 +198,20 @@ class SshSystem:
         save('uploaded')
         expected = hashlib.sha256(controller.encode()).hexdigest()
         path = root+'\\controller.ps1'
-        invoke = "$ErrorActionPreference='Stop';if((Get-FileHash -LiteralPath '"+path+"' -Algorithm SHA256).Hash.ToLowerInvariant() -cne '"+expected+"'){throw 'runner_controller_hash'};Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force;& '"+path+"'"
+        invoke = "$ErrorActionPreference='Stop';try{if((Get-FileHash -LiteralPath '"+path+"' -Algorithm SHA256).Hash.ToLowerInvariant() -cne '"+expected+"'){throw 'runner_controller_hash'};Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force;& '"+path+"'}catch{$cause=$_.Exception.GetBaseException();$code=if($cause.Message -cmatch '^[a-z_]{1,80}$'){$cause.Message}else{'non_enum_error'};@{quietError=$true;errorCode=$code;errorType=$cause.GetType().Name;hresult=$cause.HResult;line=$_.InvocationInfo.ScriptLineNumber}|ConvertTo-Json -Compress;exit 78}"
         try:
             result = self.remote.powershell(invoke, timeout=45)
         except (subprocess.SubprocessError, OSError, RuntimeError):
             save('transport_uncertain')
             raise RuntimeError('runner_transport_uncertain') from None
         if result.returncode != 0 or len(result.stdout) > 32768:
-            save('controller_failed')
+            diagnostic=None
+            try:
+                candidate=json.loads(result.stdout.decode('utf-8-sig'))
+                if set(candidate)=={'quietError','errorCode','errorType','hresult','line'} and candidate['quietError'] is True and re.fullmatch('[a-z_]{1,80}',candidate['errorCode']) and re.fullmatch('[A-Za-z0-9_]{1,80}',candidate['errorType']) and type(candidate['hresult']) is int and type(candidate['line']) is int:
+                    diagnostic=candidate
+            except (ValueError,UnicodeError,TypeError):pass
+            save('controller_failed',diagnostic)
             raise RuntimeError('runner_controller_failed')
         try:
             value = json.loads(result.stdout.decode('utf-8-sig'))
