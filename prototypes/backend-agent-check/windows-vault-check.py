@@ -128,6 +128,7 @@ class Matrix:
         self.case(name, denied=True, counterUnchanged=self.hash() == old)
 
     def execute(self):
+        self.runner_recovery()
         self.prepare()
         value = self.invoke('provision')
         self.case('provision_in_owned_ci' if self.owned_ci else 'provision_without_login', systemSessionZero=True, nativeFacts=all(value['facts'].values()))
@@ -192,6 +193,37 @@ class Matrix:
         self.case('fifth_failure_durable', nativeVerifierLocked=True, newProcess=True)
         final = self.snapshot()
         self.case('system_unchanged', sameUserPresence=final['userLoggedOn']==self.baseline['userLoggedOn'], sameUac=final['uac'] == self.baseline['uac'], noServiceChange=final['service'] == self.baseline['service'])
+
+    def runner_recovery(self):
+        # La tarea real termina; se pierde únicamente su respuesta para ensayar el journal.
+        proof='C:\\ProgramData\\AbsorConnectLabSsh\\recovery-'+uuid.uuid4().hex+'.txt'
+        self.system("$p='"+proof+"';if(Test-Path -LiteralPath $p){throw 'recovery_fixture_exists'};[IO.File]::WriteAllText($p,'0');@{prepared=$true}")
+        class DropReply:
+            def __init__(self,base):self.base=base;self.lost=False
+            def transfer(self,*args,**kwargs):return self.base.transfer(*args,**kwargs)
+            def powershell(self,source,timeout):
+                result=self.base.powershell(source,timeout)
+                if not self.lost and 'controller.ps1' in source:
+                    self.lost=True
+                    raise RuntimeError('simulated_reply_loss')
+                return result
+        before=set(self.out.glob('quiet-*.json'))
+        drop=DropReply(self.remote)
+        quiet=module(REPO/'prototypes/backend-agent-check/windows_ssh_system.py','vault_recovery')
+        runner=quiet.SshSystem(drop,self.out,self.system_runner.common)
+        try:
+            try:
+                runner.call("$p='"+proof+"';$n=[int][IO.File]::ReadAllText($p);if($n -lt 0 -or $n -gt 1){throw 'recovery_fixture_count'};[IO.File]::WriteAllText($p,[string]($n+1));@{effect=$true}")
+                raise LabError('reply_loss_not_injected')
+            except RuntimeError as exc:
+                require(str(exc)=='runner_transport_uncertain' and drop.lost,'unexpected_loss_fixture')
+            journals=set(self.out.glob('quiet-*.json'))-before
+            require(len(journals)==1,'recovery_journal_count')
+            self.system_runner.recover(journals.pop())
+            value=self.system("@{once=([IO.File]::ReadAllText('"+proof+"') -ceq '1')}")
+            self.case('quiet_runner_lost_reply_recovery',effectOnce=value.get('once') is True,realSystemTask=True,replyLossSimulated=True)
+        finally:
+            self.system("$p='"+proof+"';$i=Get-Item -LiteralPath $p -Force;if($i.PSIsContainer -or ($i.Attributes -band [IO.FileAttributes]::ReparsePoint) -or $i.Length -gt 4){throw 'recovery_fixture_changed'};Remove-Item -LiteralPath $p;@{removed=$true}")
 
     def cleanup(self):
         if not self.created:
