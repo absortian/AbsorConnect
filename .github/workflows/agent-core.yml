@@ -65,7 +65,9 @@ jobs:
         if: runner.os == 'Windows'
         env:
           RUSTFLAGS: '-C target-feature=+crt-static'
-        run: cargo +1.85.0 build --manifest-path agent/Cargo.toml --offline --locked --release -p absor-agent-windows-session --features windows-session-lab
+        run: |
+          cargo +1.85.0 build --manifest-path agent/Cargo.toml --offline --locked --release -p absor-agent-windows-session --features windows-session-lab
+          cargo +1.85.0 build --manifest-path agent/Cargo.toml --offline --locked --release -p absor-agent-security --features windows-vault-lab
       - name: Conservar binarios SCM de laboratorio
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v7
@@ -77,3 +79,11 @@ jobs:
             agent/target/release/absor-win-sessiond-lab.exe
             agent/target/release/absor-win-session-worker-lab.exe
             agent/target/release/absor-win-session-monitor-lab.exe
+      - name: Conservar sonda del almacén Windows
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-vault-lab-x86_64
+          if-no-files-found: error
+          retention-days: 7
+          path: agent/target/release/absor-win-vault-check-lab.exe

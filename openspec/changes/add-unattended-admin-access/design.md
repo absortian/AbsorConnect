@@ -590,3 +590,18 @@ El proveedor distribuible permanece indisponible hasta los instaladores/ACL de
 4.4/5.3/11.x: no se descubre un prototipo por ruta o variable de entorno, no se
 ejecuta Electron como root y no se instala este laboratorio en equipos reales.
 La aceptación de integración Main/IPC/UX no certifica esos adaptadores ni el piloto.
+
+### D16. Adaptador de almacén Windows antes del broker final
+
+El adaptador Windows usará DPAPI del perfil SYSTEM, con interfaz prohibida y
+entropía ligada al equipo y al tipo de dato. No se empleará el ámbito de máquina
+como sustituto de permisos de archivo. Se comprobarán por handle propietario,
+DACL protegida, enlaces, tipo y tamaño, con un único actor y ancestros fijados.
+El contador del verificador común se conservará entre procesos y no se volverá
+a aprovisionar por ausencia, corrupción, ACL inadecuada o escritura incompleta.
+La revocación tendrá un marcador separado del contador.
+
+La sonda aislada verificará estos fallos sin cuenta real, captura ni entrada y
+con retirada de sus archivos. No acepta 4.4 completa: quedan perfil exclusivo del
+broker, IPC autorizado y conexión con el servicio/API. El proveedor distribuible
+seguirá indisponible y las pruebas físicas se mantendrán para el final.

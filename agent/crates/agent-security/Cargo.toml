@@ -12,6 +12,7 @@ protected-ipc-lab = ["lab-http"]
 input-lease-lab = []
 ui-status-lab = ["protected-ipc-lab"]
 ui-control-lab = ["ui-status-lab"]
+windows-vault-lab = []
 
 [dependencies]
 absor-agent-api = { path = "../agent-api" }
@@ -24,6 +25,14 @@ serde_json = "=1.0.154"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 libc = "=0.2.191"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "=0.52.0", features = ["Win32_Foundation", "Win32_Security", "Win32_Security_Authorization", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_System_Threading"] }
+
+[[bin]]
+name = "absor-win-vault-check-lab"
+path = "src/windows_vault_lab.rs"
+required-features = ["windows-vault-lab"]
 
 [[bin]]
 name = "absor-secret-provision-lab"

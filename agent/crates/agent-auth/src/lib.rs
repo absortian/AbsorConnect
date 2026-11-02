@@ -80,6 +80,14 @@ impl AttemptState {
         Ok(state)
     }
 
+    /// Los almacenes del SO validan también estados descifrados antes de publicarlos.
+    pub fn validate(&self) -> Result<(), AuthError> {
+        if self.valid() {
+            Ok(())
+        } else {
+            Err(AuthError::Storage)
+        }
+    }
     fn valid(&self) -> bool {
         self.schema == 1
             && self.failures.len() <= MAX_FAILURES
