@@ -362,3 +362,15 @@ físico. No se aceptan esas tareas por compilar en CI. Evidencia:
 solicitado por tareas aceptadas, sin equivaler al tiempo restante o a producto
 listo para viajes. Se conservan los 21 hallazgos npm heredados para su revisión
 antes de la release final.
+
+El 02/11 se añade el adaptador Windows de DPAPI del perfil SYSTEM y AttemptStore,
+con DACL por handle, bloqueo exclusivo, sustitución protegida y revocación separada.
+Pasan 21 casos de VM sin login, incluido reinicio, denegaciones con token restringido,
+manipulación, enlaces y quinto fallo durable. La biblioteca de ese binario coincide
+con la del artefacto final; su repetición final pasó 14/21 antes de perder el transporte
+UTM, con limpieza aún pendiente. Se detiene ese runner al interferir con el Dock del
+Mac y se exige opt-in para evitar repetirlo automáticamente. CI nativo pasa en los
+tres sistemas, Vitest 466/7 omitidas y PHPUnit 171/1178. **4.4 sigue parcial** por
+identidad del broker, IPC y servicio/API finales. No cambia el 29/57 (51 %), no se
+activa el proveedor y no se presenta el laboratorio como despliegue de producción.
+Evidencia: `windows-vault-results.json`.

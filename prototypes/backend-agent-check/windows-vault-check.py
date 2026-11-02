@@ -5,6 +5,7 @@ import hashlib
 import importlib.util
 import json
 import re
+import subprocess
 import time
 import uuid
 from pathlib import Path
@@ -60,7 +61,10 @@ class Matrix:
         p.chmod(0o600)
 
     def system(self, source):
-        value = self.qga.call("$d='" + ROOT + "';$s=$d+'\\store';" + source)
+        try:
+            value = self.qga.call("$d='" + ROOT + "';$s=$d+'\\store';" + source)
+        except (subprocess.SubprocessError,OSError):
+            raise LabError('qga_transport_failed') from None
         if value.get('ok') is not True:
             self.save('system-failure.json', value)
             raise LabError('system_' + value.get('errorCode', 'failed'))
@@ -163,7 +167,7 @@ class Matrix:
         self.fault('cross_purpose_blob', "[IO.File]::WriteAllBytes(($s+'\\attempts.dpapi'),[IO.File]::ReadAllBytes($s+'\\credentials.dpapi'))", restore, 'Crypto')
         self.fault('missing_attempts', "Remove-Item -LiteralPath ($s+'\\attempts.dpapi')", restore + ";$a=New-Object Security.AccessControl.FileSecurity;$a.SetSecurityDescriptorSddlForm('"+FILE_ACL+"');Set-Acl -LiteralPath ($s+'\\attempts.dpapi') -AclObject $a", 'Io')
         reset_acl = "$a=New-Object Security.AccessControl.FileSecurity;$a.SetSecurityDescriptorSddlForm('"+FILE_ACL+"');Set-Acl -LiteralPath ($s+'\\attempts.dpapi') -AclObject $a"
-        self.fault('permissive_acl', "$a=Get-Acl -LiteralPath ($s+'\\attempts.dpapi');$a.AddAccessRule((New-Object Security.AccessControl.FileSystemAccessRule('S-1-5-32-545','Read','Allow')));Set-Acl -LiteralPath ($s+'\\attempts.dpapi') -AclObject $a", reset_acl, 'Metadata')
+        self.fault('permissive_acl', "$a=New-Object Security.AccessControl.FileSecurity;$a.SetSecurityDescriptorSddlForm('O:SYG:SYD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;FR;;;BU)');Set-Acl -LiteralPath ($s+'\\attempts.dpapi') -AclObject $a", reset_acl, 'Metadata')
         self.fault('wrong_owner', "$a=Get-Acl -LiteralPath ($s+'\\attempts.dpapi');$a.SetOwner((New-Object Security.Principal.SecurityIdentifier('S-1-5-32-544')));Set-Acl -LiteralPath ($s+'\\attempts.dpapi') -AclObject $a", reset_acl, 'Metadata')
         self.fault('unprotected_dacl', "$a=Get-Acl -LiteralPath ($s+'\\attempts.dpapi');$a.SetAccessRuleProtection($false,$true);Set-Acl -LiteralPath ($s+'\\attempts.dpapi') -AclObject $a", reset_acl, 'Metadata')
         self.fault('hardlink', "New-Item -ItemType HardLink -Path ($s+'\\extra.bin') -Target ($s+'\\attempts.dpapi')|Out-Null", "Remove-Item -LiteralPath ($s+'\\extra.bin')", 'Metadata')
@@ -198,7 +202,10 @@ def main():
     parser.add_argument('lab', type=Path)
     parser.add_argument('artifact', type=Path)
     parser.add_argument('--reboot', action='store_true')
+    parser.add_argument('--allow-utm', action='store_true', help='Permite el runner UTM, que puede activar su icono en el Dock del Mac.')
     args = parser.parse_args()
+    if not args.allow_utm:
+        parser.error('runner_utm_requires_explicit_opt_in; no se ha iniciado la VM ni ninguna prueba')
     matrix = Matrix(args.lab.resolve(), args.artifact.resolve(), args.reboot)
     error = None
     started = time.monotonic()

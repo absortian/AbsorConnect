@@ -36,6 +36,13 @@ protegido, usa credenciales artificiales y K aleatoria, no abre conexiones API,
 no captura pantalla ni envía entrada. Conserva únicamente informes enumerados y
 retira sus propios archivos al terminar. No requiere iniciar sesión en Windows.
 
+El runner actual llama al agente de UTM y puede activar su icono repetidamente en
+el Dock del Mac. Por eso exige `--allow-utm` explícito y no debe ejecutarse mientras
+interfiere con el uso del equipo. Está detenido tras la incidencia comunicada por
+el propietario; la repetición definitiva perdió la conexión y dejó pendiente
+comprobar/retirar su destino de laboratorio. No repetir UTM automáticamente.
+El siguiente runner deberá usar SSH sin activar la interfaz antes de continuar.
+
 El resultado de esta matriz es evidencia parcial de 4.4, no certificación del
 agente desatendido, de DPAPI en otras versiones ni de usuarios interactivos.
 La retirada/reparación final deberá coordinar la baja API, el servicio y el almacén;
