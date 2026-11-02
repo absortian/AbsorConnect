@@ -94,12 +94,20 @@ $registered=$false
 $raw=$null
 $cleanup=$false
 try {
- # TASK_CREATE (2) rechaza sustituciones; SDDL cerrada desde el registro inicial.
- $task=$folder.RegisterTaskDefinition($taskName,$definition,2,$systemName,$null,5,'D:P(A;;GA;;;SY)(A;;GA;;;BA)')
+ # CREATE | DONT_ADD_PRINCIPAL_ACE: no sustitución ni ACE agregadas por el servicio.
+ $task=$folder.RegisterTaskDefinition($taskName,$definition,18,$systemName,$null,5,'O:BAG:BAD:P(A;;GA;;;SY)(A;;GA;;;BA)')
  $registered=$true
- $sd=New-Object Security.AccessControl.RawSecurityDescriptor($task.GetSecurityDescriptor(4))
- if(-not($sd.ControlFlags -band [Security.AccessControl.ControlFlags]::DiscretionaryAclProtected) -or $sd.DiscretionaryAcl.Count -lt 2 -or $sd.DiscretionaryAcl.Count -gt 3){throw 'runner_task_acl'}
- foreach($ace in $sd.DiscretionaryAcl){if($ace.AceQualifier -ne [Security.AccessControl.AceQualifier]::AccessAllowed -or $ace.SecurityIdentifier.Value -notin @('S-1-5-18','S-1-5-32-544')){throw 'runner_task_acl'}}
+ $sd=New-Object Security.AccessControl.RawSecurityDescriptor($task.GetSecurityDescriptor(5))
+ # El serializador de Task Scheduler no conserva todos los bits de ControlFlags.
+ # Se solicita D:P al crear y se verifica dueño y cada ACE, sin aceptar otros SID.
+ if($sd.Owner.Value -cne 'S-1-5-32-544'){throw 'runner_task_owner'}
+ if($sd.DiscretionaryAcl.Count -ne 2){throw 'runner_task_acl_count'}
+ $seen=@{}
+ foreach($ace in $sd.DiscretionaryAcl){
+  $sid=$ace.SecurityIdentifier.Value
+  if($ace.AceQualifier -ne [Security.AccessControl.AceQualifier]::AccessAllowed -or $sid -notin @('S-1-5-18','S-1-5-32-544') -or $seen.ContainsKey($sid)){throw 'runner_task_acl_identity'}
+  $seen[$sid]=$true
+ }
  if($task.Definition.Triggers.Count -ne 0 -or $task.Definition.Settings.ExecutionTimeLimit -cne 'PT30S'){throw 'runner_task_policy'}
  $instance=$task.Run($null)
  $timer=[Diagnostics.Stopwatch]::StartNew()
